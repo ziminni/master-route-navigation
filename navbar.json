@@ -1,0 +1,34 @@
+{
+  "parents": [
+    {
+      "id": 1,
+      "name": "Academics",
+      "mains": [
+        {
+          "id": 1,
+          "name": "Classess",
+          "function": "ClassesPage()",
+          "access": "student",
+          "modulars": [
+            { "id": 101, "name": "Overview", "function": "OverviewPage()" },
+            { "id": 102, "name": "Events", "function": "EventsPage()" },
+            { "id": 103, "name": "Match History", "function": "HistoryPage()" },
+            { "id": 104, "name": "Leaderboards", "function": "LeaderboardsPage()" }
+          ]
+        },
+        { "id": 2, "name": "Schedule", "function": "SchedulePage()", "access": ["faculty", "student"], "modulars": [] },
+        { "id": 3, "name": "Progress", "function": "ProgressPage()", "access": ["student","faculty"], "modulars": [] },
+        {
+          "id": 4,
+          "name": "Appointments",
+          "function": "AppointmentsPage()",
+          "access": ["student","faculty"],
+          "modulars": [
+            {"id": 401, "name": "Calendar", "function": "CalendarPage()", "access": "student"}
+          ]
+        },
+        { "id": 5, "name": "Curriculum", "function": "CurriculumPage()", "access": ["student","faculty"], "modulars": [] }
+      ]
+    }
+  ]
+}

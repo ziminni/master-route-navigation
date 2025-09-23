@@ -1,0 +1,186 @@
+/* Sidebar Main Styles */
+.sidebar-main {
+    background: #1e4d2b;
+    border: none;
+}
+
+.sidebar-green-background {
+    background: #1e4d2b;
+    border: none;
+}
+
+/* Header Styles */
+.sidebar-header {
+    background: #ffc107;
+    border: none;
+    border-bottom: 2px solid #e6ac00;
+}
+
+.sidebar-header-label {
+    color: #333333;
+    font-size: 16px;
+    font-weight: bold;
+    background: transparent;
+}
+
+/* Toggle Button */
+.toggle-button {
+    background: transparent;
+    color: #333333;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+}
+
+.toggle-button:hover {
+    background: rgba(51, 51, 51, 0.1);
+    color: #222222;
+}
+
+.toggle-button:pressed {
+    background: rgba(51, 51, 51, 0.15);
+}
+
+/* Main Section Buttons */
+.section-main-button {
+    background: transparent;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    text-align: left;
+    padding: 12px 15px;
+    border: none;
+    border-radius: 6px;
+    margin: 2px 8px;
+    min-height: 40px;
+}
+
+.section-main-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.section-main-button:pressed {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Sub Container */
+.sub-container {
+    background: transparent;
+    border: none;
+}
+
+/* Sub Item Row Container */
+.sub-row-container {
+    background: transparent;
+    border: none;
+    margin: 0px 8px;
+    border-radius: 4px;
+}
+
+/* Sub Item Main Button */
+.sub-main-button {
+    background: transparent;
+    color: #b8c5ba;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    border: none;
+    border-radius: 4px;
+    min-height: 36px;
+}
+
+.sub-main-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #e8f5e8;
+}
+
+.sub-main-button:pressed {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Popup Button */
+.popup-button {
+    background: transparent;
+    color: #9db3a0;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 6px;
+    min-width: 30px;
+    max-width: 30px;
+    min-height: 30px;
+    max-height: 30px;
+    border: none;
+    border-radius: 4px;
+    margin: 3px 5px 3px 0px;
+}
+
+.popup-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.popup-button:pressed {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Scroll Area */
+.sidebar-scroll-area {
+    border: none;
+    background: transparent;
+}
+
+.sidebar-scroll-area QScrollBar:vertical {
+    background: rgba(255, 255, 255, 0.1);
+    width: 8px;
+    border-radius: 4px;
+    margin: 0px;
+}
+
+.sidebar-scroll-area QScrollBar::handle:vertical {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    min-height: 20px;
+}
+
+.sidebar-scroll-area QScrollBar::handle:vertical:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.sidebar-scroll-area QScrollBar::add-line:vertical,
+.sidebar-scroll-area QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* Content Widget */
+.sidebar-content {
+    background: transparent;
+}
+
+/* Popup Menu */
+.popup-menu {
+    background: #2a2a2a;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 0px;
+    border: 1px solid #444444;
+    border-radius: 8px;
+    min-width: 180px;
+}
+
+.popup-menu::item {
+    padding: 10px 16px;
+    margin: 2px 4px;
+    border-radius: 4px;
+}
+
+.popup-menu::item:selected {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.popup-menu::item:pressed {
+    background: rgba(255, 255, 255, 0.1);
+}
