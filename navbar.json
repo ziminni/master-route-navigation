@@ -6,28 +6,57 @@
       "mains": [
         {
           "id": 1,
-          "name": "Classess",
+          "name": "Classes",
           "function": "ClassesPage()",
+          "path": "views.Academics.classespage",
           "access": "student",
           "modulars": [
-            { "id": 101, "name": "Overview", "function": "OverviewPage()" },
-            { "id": 102, "name": "Events", "function": "EventsPage()" },
-            { "id": 103, "name": "Match History", "function": "HistoryPage()" },
-            { "id": 104, "name": "Leaderboards", "function": "LeaderboardsPage()" }
+            { "id": 101, "name": "Overview", "function": "OverviewPage()", "path": "views.Academics.overviewpage" },
+            { "id": 102, "name": "Events", "function": "EventsPage()", "path": "views.Academics.eventspage" },
+            { "id": 103, "name": "Match History", "function": "HistoryPage()", "path": "views.Academics.historypage" },
+            { "id": 104, "name": "Leaderboards", "function": "LeaderboardsPage()", "path": "views.Academics.leaderboardspage" }
           ]
         },
-        { "id": 2, "name": "Schedule", "function": "SchedulePage()", "access": ["faculty", "student"], "modulars": [] },
-        { "id": 3, "name": "Progress", "function": "ProgressPage()", "access": ["student","faculty"], "modulars": [] },
+        {
+          "id": 2,
+          "name": "Schedule",
+          "function": "SchedulePage()",
+          "path": "views.Academics.schedule_page",
+          "access": ["faculty", "student"],
+          "modulars": []
+        },
+        {
+          "id": 3,
+          "name": "Progress",
+          "function": "ProgressPage()",
+          "path": "views.common.progresspage",
+          "access": ["student", "faculty"],
+          "modulars": []
+        },
         {
           "id": 4,
           "name": "Appointments",
           "function": "AppointmentsPage()",
-          "access": ["student","faculty"],
+          "path": "views.common.appointmentspage",
+          "access": ["student", "faculty"],
           "modulars": [
-            {"id": 401, "name": "Calendar", "function": "CalendarPage()", "access": "student"}
+            {
+              "id": 401,
+              "name": "Calendar",
+              "function": "CalendarPage()",
+              "path": "views.Academics.calendarpage",
+              "access": "student"
+            }
           ]
         },
-        { "id": 5, "name": "Curriculum", "function": "CurriculumPage()", "access": ["student","faculty"], "modulars": [] }
+        {
+          "id": 5,
+          "name": "Curriculum",
+          "function": "CurriculumPage()",
+          "path": "views.common.curriculumpage",
+          "access": ["student", "faculty"],
+          "modulars": []
+        }
       ]
     }
   ]

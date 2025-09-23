@@ -1,23 +1,23 @@
 from PyQt6.QtWidgets import QStackedWidget, QLabel, QVBoxLayout, QWidget
 from PyQt6.QtGui import QFont
-from utils.db_helper import NavigationDataHelper
+from utils.db_helper import NavigationDataHelper, get_path_for_main, get_path_for_modular
 from importlib import import_module
 import os
 
 class Router:
     def __init__(self, user_role):
         self.stack = QStackedWidget()
-        self.nav_helper = NavigationDataHelper()
+        self.nav_helper = NavigationDataHelper(json_file="frontend/utils/navbar.json")  # Adjust path as needed
         self.user_role = user_role
         self.page_map = {}
         self._page_classes = self._build_page_classes()
         self._preload_pages()
 
     def _build_page_classes(self):
-        """Parse navbar.json 'function' fields to build {id_or_key: ClassObject} map."""
+        """Parse navbar.json 'function' and use path helper methods to build {id_or_key: ClassObject} map."""
         page_classes = {}
         for parent in self.nav_helper.data["parents"]:
-            parent_name = parent["name"]  # Use as-is (e.g., "Academics")
+            parent_name = parent["name"]
             parent_id = parent["id"]
 
             print(f"Router: Processing parent '{parent_name}' (ID: {parent_id})")
@@ -26,32 +26,36 @@ class Router:
             for main in parent["mains"]:
                 main_id = main["id"]
                 function_str = main["function"]
-                class_name = function_str.replace("()", "")  # e.g., "ClassesPage"
+                class_name = function_str.replace("()", "")
+                module_path = get_path_for_main(main_id)  # e.g., views.Academics.classespage
+                print(f"Router: Path for main ID {main_id} ({class_name}): {module_path}")
 
                 try:
-                    # Assume module path: views.<parent_name>.<class_name.lower()>
-                    module_path = f"views.{parent_name}.{class_name.lower()}"
-                    file_path = os.path.join("views", parent_name, f"{class_name.lower()}.py")
-                    print(f"Router: Attempting to import {module_path}, file: {file_path}, exists: {os.path.exists(file_path)}")
-                    module = import_module(module_path)
-                    page_class = getattr(module, class_name)
-                    page_classes[f"main_{main_id}"] = page_class  # Key matches page_map
-                    print(f"Router: Successfully imported {class_name} for main ID {main_id}")
+                    if module_path:
+                        # Check if file exists (for logging only)
+                        file_path = module_path.replace(".", "/") + ".py"
+                        print(f"Router: Attempting to import {module_path}, file: {file_path}, exists: {os.path.exists(file_path)}")
+                        module = import_module(module_path)
+                        page_class = getattr(module, class_name)
+                        page_classes[f"main_{main_id}"] = page_class
+                        print(f"Router: Successfully imported {class_name} for main ID {main_id}")
+                    else:
+                        print(f"Warning: No path found for main ID {main_id}, skipping {class_name}")
                 except (ImportError, AttributeError) as e:
                     print(f"Warning: Could not import {class_name} from {module_path}: {e}")
-                    # Fallback: page_classes[f"main_{main_id}"] = None (handled later)
 
-            # Handle modulars (extend key with parent main_id)
+            # Handle modulars
             for main in parent["mains"]:
                 main_id = main["id"]
                 for modular in main["modulars"]:
                     mod_id = modular["id"]
-                    function_str = modular.get("function", "")  # Optional for modulars
-                    if function_str:
+                    function_str = modular.get("function", "")
+                    module_path = get_path_for_modular(mod_id)  # e.g., views.Academics.overviewpage
+                    print(f"Router: Path for modular ID {mod_id}: {module_path}")
+                    if function_str and module_path:
                         class_name = function_str.replace("()", "")
                         try:
-                            module_path = f"views.{parent_name}.{class_name.lower()}"
-                            file_path = os.path.join("views", parent_name, f"{class_name.lower()}.py")
+                            file_path = module_path.replace(".", "/") + ".py"
                             print(f"Router: Attempting to import {module_path} for modular, file: {file_path}, exists: {os.path.exists(file_path)}")
                             module = import_module(module_path)
                             page_class = getattr(module, class_name)

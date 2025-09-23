@@ -1,20 +1,44 @@
 import json
+import os
+import sys
 
 class NavigationDataHelper:
-    def __init__(self, json_file="navbar.json"):
+    def __init__(self, json_file="frontend/utils/navbar.json"):
+        # Try default path, then fallback to project root or relative paths
         self.json_file = json_file
         self._data = None
         self._load_data()
 
     def _load_data(self):
+        absolute_path = os.path.abspath(self.json_file)
+        print(f"NavigationDataHelper: Current working directory: {os.getcwd()}")
+        print(f"NavigationDataHelper: Attempting to load JSON from {absolute_path}, exists: {os.path.exists(absolute_path)}")
+        
+        # Try alternative paths if the default fails
+        if not os.path.exists(absolute_path):
+            alternative_paths = [
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "navbar.json"),
+                os.path.join(os.getcwd(), "navbar.json"),
+                os.path.join(os.getcwd(), "frontend", "navbar.json")
+            ]
+            for alt_path in alternative_paths:
+                print(f"NavigationDataHelper: Trying alternative path: {alt_path}, exists: {os.path.exists(alt_path)}")
+                if os.path.exists(alt_path):
+                    self.json_file = alt_path
+                    absolute_path = alt_path
+                    break
+        
+        if not os.path.exists(absolute_path):
+            print(f"NavigationDataHelper: ERROR: File {absolute_path} does not exist. Check file path and working directory.")
+        
         try:
             with open(self.json_file, "r") as f:
                 data = json.load(f)
-            print(f"Loaded navbar.json: {data}")
+            print(f"NavigationDataHelper: Loaded navbar.json: {data}")
             if not isinstance(data, dict) or "parents" not in data:
                 raise ValueError("Invalid JSON structure: 'parents' key missing")
 
-            # Validate access and function fields
+            # Validate access, function, and path fields
             for parent in data["parents"]:
                 for main in parent["mains"]:
                     if "access" not in main:
@@ -23,14 +47,18 @@ class NavigationDataHelper:
                         raise ValueError(f"Invalid 'access' field in main item {main['id']}")
                     if "function" not in main or not isinstance(main["function"], str) or not main["function"].endswith("()"):
                         raise ValueError(f"Invalid 'function' field in main item {main['id']}: must be a string ending with '()'")
+                    if "path" not in main or not isinstance(main["path"], str):
+                        raise ValueError(f"Missing or invalid 'path' field in main item {main['id']}")
 
                     # Validate modulars if present
                     for modular in main.get("modulars", []):
                         if "function" not in modular or not isinstance(modular["function"], str) or not modular["function"].endswith("()"):
                             raise ValueError(f"Invalid 'function' field in modular item {modular['id']}: must be a string ending with '()'")
+                        if "path" not in modular or not isinstance(modular["path"], str):
+                            raise ValueError(f"Missing or invalid 'path' field in modular item {modular['id']}")
 
             self._data = data
-            print(f"✓ Navigation data loaded from {self.json_file}")
+            print(f"✓ Navigation data loaded from {absolute_path}, parents found: {len(data['parents'])}")
         except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
             print(f"❌ Error loading JSON: {e}")
             self._data = {"parents": []}  # Fallback to empty structure
@@ -43,8 +71,27 @@ class NavigationDataHelper:
     def data(self):
         return self._data
 
+    def get_path_for_main(self, main_id):
+        for parent in self.data["parents"]:
+            for main in parent["mains"]:
+                if main["id"] == main_id:
+                    return main.get("path", "")
+        print(f"NavigationDataHelper: No path found for main ID {main_id}")
+        return ""
+
+    def get_path_for_modular(self, modular_id):
+        for parent in self.data["parents"]:
+            for main in parent["mains"]:
+                for modular in main["modulars"]:
+                    if modular["id"] == modular_id:
+                        return modular.get("path", "")
+        print(f"NavigationDataHelper: No path found for modular ID {modular_id}")
+        return ""
+
     def get_all_parents(self):
-        return [(p["id"], p["name"]) for p in self.data["parents"]]
+        parents = [(p["id"], p["name"]) for p in self.data["parents"]]
+        print(f"NavigationDataHelper: Returning {len(parents)} parents: {parents}")
+        return parents
 
     def get_parent_by_id(self, parent_id):
         for p in self.data["parents"]:
@@ -96,7 +143,7 @@ class NavigationDataHelper:
 
     def get_access_level(self, main_id):
         main = self.get_main_by_id(main_id)
-        return main[3] if main else None  # Returns string or list
+        return main[3] if main else None
 
     def search_page(self, page_name):
         results = []
@@ -165,3 +212,9 @@ def get_access_level(main_id):
 
 def search_page(page_name):
     return _nav_helper.search_page(page_name)
+
+def get_path_for_main(main_id):
+    return _nav_helper.get_path_for_main(main_id)
+
+def get_path_for_modular(modular_id):
+    return _nav_helper.get_path_for_modular(modular_id)
