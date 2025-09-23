@@ -7,11 +7,11 @@
         {
           "id": 1,
           "name": "Classes",
-          "function": "ClassesPage()",
-          "path": "views.Academics.classespage",
+          "function": "HomePage()",
+          "path": "views.Academics.Classroom.Shared.classroom_home",
           "access": "student",
           "modulars": [
-            { "id": 101, "name": "Overview", "function": "OverviewPage()", "path": "views.Academics.overviewpage" },
+            { "id": 101, "name": "Home", "function": "HomePage()", "path": "views.Academics.Classroom.Shared.classroom_home" },
             { "id": 102, "name": "Events", "function": "EventsPage()", "path": "views.Academics.eventspage" },
             { "id": 103, "name": "Match History", "function": "HistoryPage()", "path": "views.Academics.historypage" },
             { "id": 104, "name": "Leaderboards", "function": "LeaderboardsPage()", "path": "views.Academics.leaderboardspage" }
@@ -44,7 +44,7 @@
               "id": 401,
               "name": "Calendar",
               "function": "CalendarPage()",
-              "path": "views.Academics.calendarpage",
+              "path": "views.Calendar.Calendar",
               "access": "student"
             }
           ]

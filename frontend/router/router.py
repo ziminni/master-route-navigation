@@ -3,11 +3,19 @@ from PyQt6.QtGui import QFont
 from utils.db_helper import NavigationDataHelper, get_path_for_main, get_path_for_modular
 from importlib import import_module
 import os
+import sys
 
 class Router:
     def __init__(self, user_role):
+        # Ensure sys.path includes project root (E:\NEW-master)
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        if project_root not in sys.path:
+            sys.path.append(project_root)
+        print(f"Router: Added {project_root} to sys.path")
+        print(f"Router: sys.path: {sys.path}")
+
         self.stack = QStackedWidget()
-        self.nav_helper = NavigationDataHelper(json_file="frontend/utils/navbar.json")  # Adjust path as needed
+        self.nav_helper = NavigationDataHelper(json_file="navbar.json")  # Beside main.py
         self.user_role = user_role
         self.page_map = {}
         self._page_classes = self._build_page_classes()
@@ -19,7 +27,6 @@ class Router:
         for parent in self.nav_helper.data["parents"]:
             parent_name = parent["name"]
             parent_id = parent["id"]
-
             print(f"Router: Processing parent '{parent_name}' (ID: {parent_id})")
 
             # Handle mains
@@ -27,22 +34,22 @@ class Router:
                 main_id = main["id"]
                 function_str = main["function"]
                 class_name = function_str.replace("()", "")
-                module_path = get_path_for_main(main_id)  # e.g., views.Academics.classespage
+                module_path = get_path_for_main(main_id)
                 print(f"Router: Path for main ID {main_id} ({class_name}): {module_path}")
 
                 try:
                     if module_path:
-                        # Check if file exists (for logging only)
                         file_path = module_path.replace(".", "/") + ".py"
-                        print(f"Router: Attempting to import {module_path}, file: {file_path}, exists: {os.path.exists(file_path)}")
+                        abs_file_path = os.path.abspath(file_path)
+                        print(f"Router: Attempting to import {module_path}, file: {abs_file_path}, exists: {os.path.exists(abs_file_path)}")
                         module = import_module(module_path)
                         page_class = getattr(module, class_name)
                         page_classes[f"main_{main_id}"] = page_class
                         print(f"Router: Successfully imported {class_name} for main ID {main_id}")
                     else:
-                        print(f"Warning: No path found for main ID {main_id}, skipping {class_name}")
+                        print(f"Router: No path found for main ID {main_id}, skipping {class_name}")
                 except (ImportError, AttributeError) as e:
-                    print(f"Warning: Could not import {class_name} from {module_path}: {e}")
+                    print(f"Router: Failed to import {class_name} from {module_path}: {e}")
 
             # Handle modulars
             for main in parent["mains"]:
@@ -50,19 +57,20 @@ class Router:
                 for modular in main["modulars"]:
                     mod_id = modular["id"]
                     function_str = modular.get("function", "")
-                    module_path = get_path_for_modular(mod_id)  # e.g., views.Academics.overviewpage
+                    module_path = get_path_for_modular(mod_id)
                     print(f"Router: Path for modular ID {mod_id}: {module_path}")
                     if function_str and module_path:
                         class_name = function_str.replace("()", "")
                         try:
                             file_path = module_path.replace(".", "/") + ".py"
-                            print(f"Router: Attempting to import {module_path} for modular, file: {file_path}, exists: {os.path.exists(file_path)}")
+                            abs_file_path = os.path.abspath(file_path)
+                            print(f"Router: Attempting to import {module_path} for modular, file: {abs_file_path}, exists: {os.path.exists(abs_file_path)}")
                             module = import_module(module_path)
                             page_class = getattr(module, class_name)
                             page_classes[f"mod_{main_id}_{mod_id}"] = page_class
                             print(f"Router: Successfully imported {class_name} for modular ID {mod_id}")
                         except (ImportError, AttributeError) as e:
-                            print(f"Warning: Could not import modular {class_name}: {e}")
+                            print(f"Router: Failed to import modular {class_name} from {module_path}: {e}")
 
         return page_classes
 
@@ -79,8 +87,6 @@ class Router:
                 access = main["access"]
                 name = main["name"]
                 key = f"main_{main_id}"
-
-                # Check role access
                 if (isinstance(access, str) and (access == self.user_role or self.user_role == "super_admin")) or \
                    (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
                     page_class = self._page_classes.get(key)
@@ -93,7 +99,6 @@ class Router:
                     mod_id = modular["id"]
                     mod_name = modular["name"]
                     mod_key = f"mod_{main_id}_{mod_id}"
-
                     if (isinstance(access, str) and (access == self.user_role or self.user_role == "super_admin")) or \
                        (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
                         page_class = self._page_classes.get(mod_key)
