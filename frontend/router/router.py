@@ -88,7 +88,7 @@ class Router:
                 name = main["name"]
                 key = f"main_{main_id}"
                 if (isinstance(access, str) and (access == self.user_role or self.user_role == "super_admin")) or \
-                   (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
+                (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
                     page_class = self._page_classes.get(key)
                     page = page_class() if page_class else self._create_default_widget(name, f"Page for {name}")
                     index = self.stack.addWidget(page)
@@ -100,7 +100,7 @@ class Router:
                     mod_name = modular["name"]
                     mod_key = f"mod_{main_id}_{mod_id}"
                     if (isinstance(access, str) and (access == self.user_role or self.user_role == "super_admin")) or \
-                       (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
+                    (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
                         page_class = self._page_classes.get(mod_key)
                         page = page_class() if page_class else self._create_default_widget(mod_name, f"Sub-page for {mod_name}")
                         index = self.stack.addWidget(page)

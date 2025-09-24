@@ -13,7 +13,7 @@ class NavigationDataHelper:
         absolute_path = os.path.abspath(self.json_file)
         print(f"NavigationDataHelper: Current working directory: {os.getcwd()}")
         print(f"NavigationDataHelper: Attempting to load JSON from {absolute_path}, exists: {os.path.exists(absolute_path)}")
-        
+
         # Try alternative paths if the default fails
         if not os.path.exists(absolute_path):
             alternative_paths = [
@@ -27,10 +27,10 @@ class NavigationDataHelper:
                     self.json_file = alt_path
                     absolute_path = alt_path
                     break
-        
+
         if not os.path.exists(absolute_path):
             print(f"NavigationDataHelper: ERROR: File {absolute_path} does not exist. Check file path and working directory.")
-        
+
         try:
             with open(self.json_file, "r") as f:
                 data = json.load(f)

@@ -5,7 +5,7 @@ from utils.db_helper import get_all_parents, get_main_by_parent, get_modular_by_
 
 class CollapsibleSection(QFrame):
     def __init__(self, icon, text, router, user_role, parent_sidebar=None,
-                 sub_indent=20, sub_spacing=2, sub_button_padding=8):
+                sub_indent=20, sub_spacing=2, sub_button_padding=8):
         super().__init__()
         self.router = router
         self.user_role = user_role
