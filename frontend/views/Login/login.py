@@ -2,7 +2,7 @@
 PyQt6 Login UI (Wide Rectangular Card with Logo + Header Text)
 Wired to backend/User AuthService (PostgreSQL + bcrypt)
 """
-from .Dashboard import Dashboard
+from ..Dashboard.Dashboard import Dashboard
 from .resetpassword import ResetPasswordWidget
 
 

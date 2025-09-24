@@ -1,6 +1,6 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget
-from ui.Login.login import LoginWidget
+from views.Login.login import LoginWidget
 from services.auth_service import AuthService
 from widgets.layout_manager import LayoutManager
 from router.router import Router
@@ -10,6 +10,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.auth_service = AuthService()
         self.login_widget = LoginWidget()
+        # Store session data
+        self.user_session = None
 
         self.setCentralWidget(self.login_widget)
 
@@ -20,9 +22,19 @@ class MainWindow(QMainWindow):
 
     def open_dashboard(self, result):
         print(f"Login OK for {result.username} | roles={result.roles} | primary={result.primary_role}")
+        # Store user session data
+        self.user_session = {
+            "username": result.username,
+            "roles": result.roles,
+            "primary_role": result.primary_role,
+            "token": result.token
+        }
 
-        # Initialize Router with the user's primary_role
-        router = Router(user_role=result.primary_role)
+        # Initialize Router with user session data
+        router = Router(
+            user_role=self.user_session["primary_role"],
+            user_session=self.user_session
+        )
 
         # Create main layout and content widget for LayoutManager
         main_layout = QGridLayout()
@@ -38,7 +50,7 @@ class MainWindow(QMainWindow):
             main_layout=main_layout,
             content=content,
             router=router,
-            user_role=result.primary_role
+            user_role=self.user_session["primary_role"]
         )
 
         # Update layout based on initial window width
@@ -50,6 +62,9 @@ class MainWindow(QMainWindow):
 
         # Connect resize event to update layout dynamically
         self.resizeEvent = lambda event: self.layout_manager.update_layout(self.width())
+
+        # Navigate to the Dashboard page (main_id=1 in navbar.json)
+        router.navigate(page_id=1, is_modular=False)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

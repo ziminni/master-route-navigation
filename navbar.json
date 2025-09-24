@@ -2,62 +2,38 @@
   "parents": [
     {
       "id": 1,
-      "name": "Academics",
+      "name": "Dashboard",
       "mains": [
         {
           "id": 1,
-          "name": "Classes",
-          "function": "HomePage()",
-          "path": "views.Academics.Classroom.Shared.classroom_home",
-          "access": "student",
-          "modulars": [
-            { "id": 101, "name": "Home", "function": "HomePage()", "path": "views.Academics.Classroom.Shared.classroom_home" },
-            { "id": 102, "name": "Events", "function": "EventsPage()", "path": "views.Academics.eventspage" },
-            { "id": 103, "name": "Match History", "function": "HistoryPage()", "path": "views.Academics.historypage" },
-            { "id": 104, "name": "Leaderboards", "function": "LeaderboardsPage()", "path": "views.Academics.leaderboardspage" }
-          ]
-        },
-        {
-          "id": 2,
-          "name": "Schedule",
-          "function": "SchedulePage()",
-          "path": "views.Academics.schedule_page",
-          "access": ["faculty", "student"],
-          "modulars": []
-        },
-        {
-          "id": 3,
-          "name": "Progress",
-          "function": "ProgressPage()",
-          "path": "views.common.progresspage",
-          "access": ["student", "faculty"],
-          "modulars": []
-        },
-        {
-          "id": 4,
-          "name": "Appointments",
-          "function": "AppointmentsPage()",
-          "path": "views.common.appointmentspage",
-          "access": ["student", "faculty"],
-          "modulars": [
-            {
-              "id": 401,
-              "name": "Calendar",
-              "function": "CalendarPage()",
-              "path": "views.Calendar.Calendar",
-              "access": "student"
-            }
-          ]
-        },
-        {
-          "id": 5,
-          "name": "Curriculum",
-          "function": "CurriculumPage()",
-          "path": "views.common.curriculumpage",
-          "access": ["student", "faculty"],
+          "name": "Dashboard",
+          "function": "Dashboard()",
+          "path": "views.Dashboard.Dashboard",
+          "access": ["admin", "faculty", "staff", "student"],
           "modulars": []
         }
       ]
+    },
+    {
+      "id": 2,
+      "name": "Academics",
+      "mains": []
+    },
+    {
+      "id": 3,
+      "name": "Organizations",
+      "mains": []
+    },
+    {
+      "id": 4,
+      "name": "Campus",
+      "mains": []
+    },
+    {
+      "id": 5,
+      "name": "Tools",
+      "mains": []
     }
+
   ]
 }
