@@ -49,7 +49,7 @@ class CollapsibleSection(QFrame):
                 for main_id, main_name, _, access, _ in mains:
                     # Check if user_role is in access (string or list)
                     if (isinstance(access, str) and (access == self.user_role or self.user_role == "super_admin")) or \
-                       (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
+                    (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
                         print(f"CollapsibleSection: Adding main '{main_name}' (ID: {main_id}) to section '{text}'")
 
                         # Container for the sub-item row
@@ -77,7 +77,7 @@ class CollapsibleSection(QFrame):
                             filtered_modulars = [
                                 mod for mod in modulars
                                 if (isinstance(access, str) and (access == self.user_role or self.user_role == "super_admin")) or
-                                   (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin"))
+                                (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin"))
                             ]
                             print(f"CollapsibleSection: Filtered {len(filtered_modulars)} modulars for main '{main_name}': {filtered_modulars}")
                             if filtered_modulars:
@@ -188,7 +188,7 @@ class Sidebar(QFrame):
         # Create a green background frame that will fill remaining space
         self.green_background = QFrame()
         self.green_background.setObjectName("sidebarGreenBackground")
-        
+
         # Layout for the green background
         green_layout = QVBoxLayout(self.green_background)
         green_layout.setContentsMargins(0, 0, 0, 0)

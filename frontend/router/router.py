@@ -25,6 +25,8 @@ class Router:
     def _build_page_classes(self):
         """Parse navbar.json 'function' and use path helper methods to build {id_or_key: ClassObject} map."""
         page_classes = {}
+
+        # Handle parent
         for parent in self.nav_helper.data["parents"]:
             parent_name = parent["name"]
             parent_id = parent["id"]
@@ -140,6 +142,7 @@ class Router:
         print(f"Router: Navigating to {key}, index: {index}, page_map: {self.page_map}")
         if index is not None:
             self.stack.setCurrentWidget(self.stack.widget(index))
+            
         else:
             missing_page = self._create_default_widget("⚠️ Missing Page", f"No page found for ID {key}")
             index = self.stack.addWidget(missing_page)
