@@ -15,7 +15,7 @@ from .serializers import (
 User = get_user_model()
 
 # Convert to dictionary
-ROLE_PRIORITY = ["admin", "faculty", "staff", "org_officer", "student"] 
+ROLE_PRIORITY = ["admin", "faculty", "staff", "student"] 
 '''
     choices = {
 1:'ADMIN',
