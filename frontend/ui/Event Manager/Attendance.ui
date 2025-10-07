@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1366</width>
-    <height>768</height>
+    <width>900</width>
+    <height>750</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,10 +16,10 @@
   <widget class="QWidget" name="verticalLayoutWidget">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>50</y>
-     <width>1271</width>
-     <height>661</height>
+     <x>10</x>
+     <y>20</y>
+     <width>891</width>
+     <height>591</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="AttendanceLAyout">
@@ -28,10 +28,10 @@
       <widget class="QTableWidget" name="tableWidget">
        <property name="geometry">
         <rect>
-         <x>5</x>
-         <y>140</y>
-         <width>1261</width>
-         <height>461</height>
+         <x>10</x>
+         <y>90</y>
+         <width>861</width>
+         <height>391</height>
         </rect>
        </property>
        <attribute name="verticalHeaderStretchLastSection">
@@ -86,8 +86,8 @@
       <widget class="QWidget" name="widget_3" native="true">
        <property name="geometry">
         <rect>
-         <x>10</x>
-         <y>61</y>
+         <x>0</x>
+         <y>10</y>
          <width>291</width>
          <height>71</height>
         </rect>
@@ -116,8 +116,8 @@
       <widget class="QPushButton" name="pushButton_4">
        <property name="geometry">
         <rect>
-         <x>1170</x>
-         <y>600</y>
+         <x>790</x>
+         <y>530</y>
          <width>81</width>
          <height>31</height>
         </rect>

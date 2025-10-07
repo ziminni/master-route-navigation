@@ -8,16 +8,17 @@ class Events(QMainWindow):
         super().__init__()
         # Choose UI based on role: Faculty vs Student/Org Officer
         is_faculty = (primary_role == "faculty") or (roles and "faculty" in roles)
+        is_org_officer = (primary_role == "org_officer") or (roles and "org_officer" in (roles or []))
         base_dir = os.path.dirname(__file__)
         users_root = os.path.join(base_dir, "Module-6_Event_Manager", "Users")
 
         if is_faculty:
             ui_file = os.path.join(users_root, "Faculty", "EventManager-Faculty.ui")
         else:
-            # Prefer OrgOfficer if present, else Student
-            org_ui = os.path.join(users_root, "Student", "EventManager-OrgOfficer.ui")
+            # Use OrgOfficer UI only if user has org_officer role; otherwise Student UI
+            org_ui = os.path.join(users_root, "Student", "EventManager-OrgOfficer.ui") if is_org_officer else ""
             student_ui = os.path.join(users_root, "Student", "EventManager-Student.ui")
-            ui_file = org_ui if os.path.exists(org_ui) else student_ui
+            ui_file = org_ui if org_ui and os.path.exists(org_ui) else student_ui
 
         if not os.path.exists(ui_file):
             raise FileNotFoundError(f"Events UI file not found at '{ui_file}'. Verify the .ui files under 'Module-6_Event_Manager/Users'.")

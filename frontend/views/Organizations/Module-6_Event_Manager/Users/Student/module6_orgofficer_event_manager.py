@@ -36,7 +36,7 @@ class EventTimelineDialog(QDialog):
             if proposals:
                 self._requested_event = proposals[0].get("eventName")
         if hasattr(self, "Event_Add") and add_timeline_item:
-            self.Event_Add.clicked.connect(lambda: self._add_timeline(add_timeline_item))
+            self.Event_Add.clicked.connect(lambda: self._open_add_activity_dialog(add_timeline_item))
         if hasattr(self, "Event_Edit") and update_timeline_item:
             self.Event_Edit.clicked.connect(lambda: self._edit_timeline(update_timeline_item))
         if hasattr(self, "Event_Delete") and delete_timeline_item:
@@ -46,48 +46,60 @@ class EventTimelineDialog(QDialog):
             data = load_timeline(self._requested_event)
             self._render_timeline_table(data)
 
-    # def _add_timeline(self, add_func):
-    #     # Open Add Activity dialog, prefilled from current proposal if available
-    #     dialog = AddActivityDialog(self)
-    #     try:
-    #         from service.event_proposal_service import get_proposal_by_name
-    #         prop = get_proposal_by_name(self._requested_event) or {}
-    #         if hasattr(dialog, "dateEdit") and prop.get("date"):
-    #             from PyQt6.QtCore import QDate
-    #             y, m, d = [int(x) for x in prop["date"].split("-")]
-    #             dialog.dateEdit.setDate(QDate(y, m, d))
-    #         if hasattr(dialog, "timeEdit") and prop.get("time"):
-    #             from PyQt6.QtCore import QTime
-    #             hh, mm = [int(x) for x in prop["time"].split(":")]
-    #             dialog.timeEdit.setTime(QTime(hh, mm))
-    #         if hasattr(dialog, "building") and prop.get("building"):
-    #             idx = dialog.building.findText(prop.get("building", ""))
-    #             if idx >= 0:
-    #                 dialog.building.setCurrentIndex(idx)
-    #         if hasattr(dialog, "roomname") and prop.get("roomName"):
-    #             idx = dialog.roomname.findText(prop.get("roomName", ""))
-    #             if idx >= 0:
-    #                 dialog.roomname.setCurrentIndex(idx)
-    #     except Exception:
-    #         pass
-    #     if dialog.exec() == dialog.DialogCode.Accepted:
-    #         data = dialog.get_activity_data()
-    #         if not data:
-    #             return
-    #         day_label = data.get("day")
-    #         time_hhmm = data.get("time")
-    #         activity = data.get("activity")
-    #         building = data.get("building")
-    #         room = data.get("room")
-    #         event_name = self._requested_event
-    #         if day_label and time_hhmm and activity:
-    #             if callable(add_func):
-    #                 try:
-    #                     add_func(day_label, time_hhmm, activity, event_name, building=building, room=room)
-    #                 except Exception:
-    #                     pass
-    #             table = getattr(self, "WeekTable_2", None)
-    #             self._place_activity_at(table, day_label, time_hhmm, activity)
+    def _open_add_activity_dialog(self, add_func):
+        table = getattr(self, "WeekTable_2", None)
+        if table is None:
+            return
+        row = table.currentRow()
+        col = table.currentColumn()
+        if row < 0 or col < 0:
+            return
+        v_item = table.verticalHeaderItem(row)
+        h_item = table.horizontalHeaderItem(col)
+        time_label = v_item.text() if v_item else ""
+        day_label = h_item.text() if h_item else ""
+        if not time_label or not day_label:
+            return
+        dialog = QDialog(self)
+        uic.loadUi(ui_path("addactivity.ui"), dialog)
+        # Apply button closes dialog
+        try:
+            apply_btn = getattr(dialog, "ApplyActivity", None)
+            if apply_btn and hasattr(apply_btn, "clicked"):
+                apply_btn.clicked.connect(dialog.accept)
+        except Exception:
+            pass
+        # Populate building/rooms
+        try:
+            from services.events_metadata_service import load_buildings, load_rooms
+            if hasattr(dialog, "building"):
+                for b in load_buildings():
+                    dialog.building.addItem(b.get("name", ""), b.get("id"))
+            def refresh_rooms_for_dialog():
+                if not hasattr(dialog, "roomname"):
+                    return
+                dialog.roomname.clear()
+                sel_building_id = None
+                if hasattr(dialog, "building") and hasattr(dialog.building, "currentData"):
+                    sel_building_id = dialog.building.currentData()
+                for r in load_rooms(sel_building_id):
+                    dialog.roomname.addItem(r.get("name", ""))
+            if hasattr(dialog, "building") and hasattr(dialog.building, "currentIndexChanged"):
+                dialog.building.currentIndexChanged.connect(lambda _: refresh_rooms_for_dialog())
+            refresh_rooms_for_dialog()
+        except Exception:
+            pass
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            try:
+                time_hhmm = self._to_24h(time_label)
+                activity = "Activity"
+                building = getattr(dialog.building, "currentText", lambda: "")() if hasattr(dialog, "building") else ""
+                room = getattr(dialog.roomname, "currentText", lambda: "")() if hasattr(dialog, "roomname") else ""
+                if day_label and time_hhmm and activity:
+                    add_func(day_label, time_hhmm, activity, self._requested_event, building=building, room=room)
+                    self._place_activity_at(table, day_label, time_hhmm, activity)
+            except Exception:
+                pass
 
     def _to_24h(self, label: str) -> str:
         try:

@@ -1,19 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <widget class="QWidget" name="MainWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1366</width>
-    <height>768</height>
+    <width>900</width>
+    <height>750</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
-  <widget class="QWidget" name="centralwidget">
+  <widget class="QWidget" name="centralwidget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1366</width>
+     <height>768</height>
+    </rect>
+   </property>
    <widget class="QStackedWidget" name="stackedWidget">
     <property name="geometry">
      <rect>
@@ -30,8 +38,8 @@
      <widget class="QWidget" name="horizontalLayoutWidget_3">
       <property name="geometry">
        <rect>
-        <x>300</x>
-        <y>30</y>
+        <x>270</x>
+        <y>60</y>
         <width>611</width>
         <height>401</height>
        </rect>
@@ -175,8 +183,8 @@
      <widget class="QWidget" name="horizontalLayoutWidget_4">
       <property name="geometry">
        <rect>
-        <x>20</x>
-        <y>30</y>
+        <x>10</x>
+        <y>60</y>
         <width>241</width>
         <height>461</height>
        </rect>
@@ -305,7 +313,6 @@
     <widget class="QWidget" name="page_2"/>
    </widget>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>

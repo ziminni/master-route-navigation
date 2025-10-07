@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1366</width>
-    <height>768</height>
+    <width>900</width>
+    <height>750</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,8 +18,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1366</width>
-     <height>768</height>
+     <width>900</width>
+     <height>750</height>
     </rect>
    </property>
    <widget class="QStackedWidget" name="stackedWidget">
@@ -27,21 +27,21 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>1366</width>
-      <height>768</height>
+      <width>900</width>
+      <height>750</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="page1">
      <widget class="QWidget" name="horizontalLayoutWidget_3">
       <property name="geometry">
        <rect>
-        <x>310</x>
-        <y>50</y>
-        <width>501</width>
-        <height>501</height>
+        <x>260</x>
+        <y>80</y>
+        <width>631</width>
+        <height>441</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="WeekSched_2">
@@ -261,9 +261,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>50</y>
-        <width>276</width>
-        <height>491</height>
+        <y>80</y>
+        <width>241</width>
+        <height>441</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="TodaySched_3">
@@ -383,26 +383,13 @@
      </widget>
     </widget>
     <widget class="QWidget" name="page2">
-     <widget class="QPushButton" name="Return">
-      <property name="geometry">
-       <rect>
-        <x>1194</x>
-        <y>20</y>
-        <width>91</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Go Back</string>
-      </property>
-     </widget>
      <widget class="QFrame" name="frame1stYear">
       <property name="geometry">
        <rect>
-        <x>160</x>
-        <y>80</y>
-        <width>1061</width>
-        <height>531</height>
+        <x>20</x>
+        <y>60</y>
+        <width>871</width>
+        <height>511</height>
        </rect>
       </property>
       <property name="frameShape">
@@ -547,6 +534,19 @@
         </widget>
        </item>
       </layout>
+     </widget>
+     <widget class="QPushButton" name="Return">
+      <property name="geometry">
+       <rect>
+        <x>800</x>
+        <y>30</y>
+        <width>91</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Go Back</string>
+      </property>
      </widget>
     </widget>
    </widget>

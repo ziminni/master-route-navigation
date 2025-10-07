@@ -1,22 +1,22 @@
 {
-  "eventName": "ASO",
-  "building": "Science Hall",
+  "eventName": "LMAO",
+  "building": "Engineering Building",
   "description": "123",
   "date": "2000-01-01",
   "time": "00:00",
-  "roomName": "SCI-301",
-  "organizer": "Electrical Engineering Guild",
-  "budget": 3.0,
+  "roomName": "ENG-201",
+  "organizer": "Computer Science Society",
+  "budget": 7.0,
   "proposals": [
     {
-      "eventName": "ASO",
-      "building": "Science Hall",
+      "eventName": "LMAO",
+      "building": "Engineering Building",
       "description": "123",
       "date": "2000-01-01",
       "time": "00:00",
-      "roomName": "SCI-301",
-      "organizer": "Electrical Engineering Guild",
-      "budget": 3.0
+      "roomName": "ENG-201",
+      "organizer": "Computer Science Society",
+      "budget": 7.0
     }
   ]
 }
