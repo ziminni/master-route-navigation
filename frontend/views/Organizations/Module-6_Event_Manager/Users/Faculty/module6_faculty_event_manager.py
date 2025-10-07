@@ -258,13 +258,12 @@ class RequestProposalDialog(QDialog):
                 self.comboBox_2.addItem(org.get("name", ""), org.get("id"))
 
     def _save_and_open_event_timeline(self):
-        # Save proposal so it becomes available for reschedule dropdowns
+        # Save/Update proposal into proposals list (append/dedupe by name)
         try:
-            from services.event_proposal_service import save_proposal, add_proposal
+            from services.event_proposal_service import add_proposal
         except Exception:
-            save_proposal = None
             add_proposal = None
-        if save_proposal:
+        if add_proposal:
             payload = {
                 "eventName": getattr(self.lineEdit, "text", lambda: "")(),
                 "building": getattr(self.comboBox, "currentText", lambda: "")(),
@@ -275,9 +274,7 @@ class RequestProposalDialog(QDialog):
                 "organizer": getattr(self.comboBox_2, "currentText", lambda: "")(),
                 "budget": getattr(self.doubleSpinBox, "value", lambda: 0.0)(),
             }
-            save_proposal(payload)
-            if add_proposal:
-                add_proposal(payload)
+            add_proposal(payload)
         dialog = EventTimelineDialog(self)
         dialog.exec()
 
@@ -386,6 +383,19 @@ class RequestRescheduleDialog(QDialog):
             idx = self.comboBox_2.findText(proposal.get("organizer", ""))
             if idx >= 0:
                 self.comboBox_2.setCurrentIndex(idx)
+        # Description
+        if hasattr(self, "lineEdit_2") and hasattr(self.lineEdit_2, "setText"):
+            try:
+                self.lineEdit_2.setText(proposal.get("description", ""))
+            except Exception:
+                pass
+        # Budget
+        if hasattr(self, "doubleSpinBox") and hasattr(self.doubleSpinBox, "setValue"):
+            try:
+                val = float(proposal.get("budget", 0.0) or 0.0)
+                self.doubleSpinBox.setValue(val)
+            except Exception:
+                pass
         # Date/Time
         try:
             if hasattr(self, "dateEdit") and proposal.get("date"):

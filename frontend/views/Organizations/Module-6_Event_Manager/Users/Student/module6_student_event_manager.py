@@ -99,6 +99,13 @@ class EventManagerStudent(QWidget):
 
         # Populate weekly and today schedules from event timeline JSON
         self._load_and_render_schedules()
+        # If there's an Upcoming Events button, repurpose it to switch events if multiple proposals exist
+        try:
+            if hasattr(self, "pushButton_2"):
+                self.pushButton_2.setText("Refresh from Proposals")
+                self.pushButton_2.clicked.connect(self._load_and_render_schedules)
+        except Exception:
+            pass
 
     def show_attendance_page(self):
         self.stackedWidget.setCurrentIndex(1)  # Show attendance page
@@ -114,15 +121,14 @@ class EventManagerStudent(QWidget):
         except Exception:
             load_timeline = None
             list_proposals = None
+        # Prefer the first proposal; if none, empty
         event_name = None
+        proposals = []
         if list_proposals:
-            try:
-                proposals = list_proposals() or []
-                if proposals:
-                    event_name = proposals[0].get("eventName")
-            except Exception:
-                pass
-        data = load_timeline(event_name) if load_timeline else {"timeline": []}
+            proposals = list_proposals() or []
+            if proposals:
+                event_name = proposals[0].get("eventName")
+        data = load_timeline(event_name) if (load_timeline and event_name) else {"timeline": []}
         timeline_items = data.get("timeline", []) if isinstance(data, dict) else []
         self._populate_weekly_from_timeline(timeline_items)
         self._populate_today_from_timeline(timeline_items)
