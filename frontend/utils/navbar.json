@@ -91,7 +91,7 @@
           "name": "Calendar",
           "function": "MainCalendar()",
           "path": "views.Calendar.MainCalendar",
-          "access": ["student", "admin"],
+          "access": ["admin", "faculty", "staff", "student"],
           "modulars":[]
         },
         {

@@ -1,4 +1,4 @@
-# Calendar.py LAYOUT FOR THE CALENDAR
+# Calendar.py LAYOUT FOR THE CALENDAR with Search Integration
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget,
     QPushButton, QComboBox, QLineEdit, QListWidget, QCalendarWidget
@@ -24,6 +24,7 @@ class Calendar(QWidget):
         
         # Callback for navigating to activities (will be set by MainCalendar.py)
         self.navigate_to_activities = None
+        self.navigate_to_search = None  # NEW: Navigation callback for search
         
         # Store events list widget reference
         self.month_events_list = None
@@ -320,7 +321,31 @@ class Calendar(QWidget):
                 border-color: #FDC601;
             }
         """)
+        # UPDATED: Connect Enter key to trigger search with query
+        self.search_bar.returnPressed.connect(self.on_search_triggered)
         controls_layout.addWidget(self.search_bar)
+        
+        # UPDATED: Search button
+        self.btn_search = QPushButton("🔍")
+        self.btn_search.setStyleSheet("""
+            QPushButton {
+                background-color: #f8f9fa;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 8px 12px;
+                font-size: 14px;
+                min-width: 40px;
+            }
+            QPushButton:hover {
+                background-color: #e9ecef;
+                border-color: #FDC601;
+            }
+            QPushButton:pressed {
+                background-color: #dee2e6;
+            }
+        """)
+        self.btn_search.clicked.connect(self.on_search_triggered)
+        controls_layout.addWidget(self.btn_search)
         
         layout.addLayout(controls_layout)
 
@@ -475,6 +500,14 @@ class Calendar(QWidget):
             self.show_month_view()
         elif view_type == "Day":
             self.show_day_view()
+    
+    # UPDATED METHOD: Handle search trigger with query transfer
+    def on_search_triggered(self):
+        """Handle search button click or Enter press - transfer query to SearchView"""
+        search_query = self.search_bar.text().strip()
+        if self.navigate_to_search:
+            # Pass the search query to the navigation callback
+            self.navigate_to_search(search_query)
 
     def show_month_view(self):
         """Show month calendar view"""

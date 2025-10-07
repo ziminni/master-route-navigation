@@ -1,0 +1,53 @@
+{
+    "events": [
+        {
+            "date_time": "10/2/2025\n9:00 AM",
+            "event": "TeSTING",
+            "type": "Academic",
+            "location": "TEST",
+            "status": "Patya ko"
+        },
+        {
+            "date_time": "10/15/2025\n9:00 AM",
+            "event": "Database Systems Lecture",
+            "type": "Academic",
+            "location": "Room 301",
+            "status": "Upcoming"
+        },
+        {
+            "date_time": "10/20/2025\n2:00 PM",
+            "event": "Student Council Meeting",
+            "type": "Organizational",
+            "location": "Conference Hall",
+            "status": "Upcoming"
+        },
+        {
+            "date_time": "10/25/2025\n11:59 PM",
+            "event": "Project Submission",
+            "type": "Deadline",
+            "location": "Online Portal",
+            "status": "Pending"
+        },
+        {
+            "date_time": "11/01/2025\nAll Day",
+            "event": "All Saints' Day",
+            "type": "Holiday",
+            "location": "N/A",
+            "status": "Holiday"
+        },
+        {
+            "date_time": "10/18/2025\n10:00 AM",
+            "event": "Software Engineering Workshop",
+            "type": "Academic",
+            "location": "Lab 204",
+            "status": "Upcoming"
+        },
+        {
+            "date_time": "10/11/2025\n7:00 AM",
+            "event": "testing adding and edit to acad and date",
+            "type": "Academic",
+            "location": "N/A",
+            "status": "Upcoming"
+        }
+    ]
+}

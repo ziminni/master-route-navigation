@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QTimeEdit, QCheckBox, QFrame, QGridLayout, QScrollArea
 )
 from PyQt6.QtCore import Qt, QDate, QTime
+from datetime import datetime
 
 class EditEvent(QWidget):
     def __init__(self, username, roles, primary_role, token, event_data=None, parent=None):
@@ -13,6 +14,10 @@ class EditEvent(QWidget):
         self.primary_role = primary_role
         self.token = token
         self.event_data = event_data  # Event data to edit
+        self.original_event_name = None  # Store original name for updating
+
+        # Reference to MainCalendar (set by MainCalendar after initialization)
+        self.main_calendar = None
 
         # API configuration
         self.api_base = "http://127.0.0.1:8000/api/"
@@ -363,6 +368,24 @@ class EditEvent(QWidget):
         end_time_layout.addWidget(self.btn_end_pm)
         grid_layout.addWidget(end_time_widget, row, 3)
         
+        # Row 4: Status
+        row = 4
+        label_status = QLabel("Status")
+        label_status.setStyleSheet(label_style)
+        grid_layout.addWidget(label_status, row, 0, Qt.AlignmentFlag.AlignTop)
+        
+        self.combo_status = QComboBox()
+        self.combo_status.addItems([
+            "Upcoming",
+            "Ongoing",
+            "Completed",
+            "Cancelled",
+            "Pending",
+            "Holiday"
+        ])
+        self.combo_status.setStyleSheet(input_style)
+        grid_layout.addWidget(self.combo_status, row, 1)
+        
         form_layout.addWidget(fields_container)
 
     def setup_user_selection(self, form_layout):
@@ -501,12 +524,60 @@ class EditEvent(QWidget):
         if not self.event_data:
             return
         
-        # TODO: Populate form with event_data
-        # Example structure:
-        # self.input_event_title.setText(self.event_data.get('title', ''))
-        # self.input_description.setPlainText(self.event_data.get('description', ''))
-        # etc.
-        pass
+        # Store original event name for updating
+        self.original_event_name = self.event_data.get('event', '')
+        
+        # Set event title
+        self.input_event_title.setText(self.event_data.get('event', ''))
+        
+        # Set event type
+        event_type = self.event_data.get('type', '')
+        index = self.combo_event_type.findText(event_type)
+        if index >= 0:
+            self.combo_event_type.setCurrentIndex(index)
+        
+        # Set location
+        location = self.event_data.get('location', '')
+        if location and location != 'N/A':
+            self.input_location.setText(location)
+        
+        # Set status
+        status = self.event_data.get('status', 'Upcoming')
+        status_index = self.combo_status.findText(status)
+        if status_index >= 0:
+            self.combo_status.setCurrentIndex(status_index)
+        
+        # Parse date_time (format: "10/2/2025\n9:00 AM")
+        date_time_str = self.event_data.get('date_time', '')
+        if date_time_str and '\n' in date_time_str:
+            date_part, time_part = date_time_str.split('\n')
+            
+            # Parse date
+            try:
+                date_obj = datetime.strptime(date_part.strip(), "%m/%d/%Y")
+                self.date_start.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
+            except:
+                pass
+            
+            # Parse time and AM/PM
+            time_part = time_part.strip()
+            if 'AM' in time_part or 'PM' in time_part:
+                is_pm = 'PM' in time_part
+                time_str = time_part.replace('AM', '').replace('PM', '').strip()
+                
+                try:
+                    time_obj = datetime.strptime(time_str, "%I:%M")
+                    self.time_start.setTime(QTime(time_obj.hour, time_obj.minute))
+                    
+                    # Set AM/PM buttons
+                    if is_pm:
+                        self.btn_start_pm.setChecked(True)
+                        self.btn_start_am.setChecked(False)
+                    else:
+                        self.btn_start_am.setChecked(True)
+                        self.btn_start_pm.setChecked(False)
+                except:
+                    pass
 
     def back_to_activities(self):
         """Navigate back to activities"""
@@ -516,11 +587,12 @@ class EditEvent(QWidget):
             self._info("Navigation not configured")
 
     def save_event(self):
-        """Handle update event action"""
-        event_title = self.input_event_title.text()
+        """Handle update event action - saves to JSON through MainCalendar"""
+        # Validate inputs
+        event_title = self.input_event_title.text().strip()
         event_type = self.combo_event_type.currentText()
         
-        if not event_title.strip():
+        if not event_title:
             self._error("Please enter an event title.")
             return
             
@@ -528,10 +600,47 @@ class EditEvent(QWidget):
             self._error("Please select an event type.")
             return
         
-        # TODO: Implement actual API call to update event
-        self._info(f"Event '{event_title}' updated successfully!")
-        if self.navigate_back_to_activities:
-            self.navigate_back_to_activities()
+        # Get start date and time
+        start_date = self.date_start.date()
+        start_time = self.time_start.time()
+        
+        # Convert to 24-hour format based on AM/PM selection
+        start_hour = start_time.hour()
+        if self.btn_start_pm.isChecked() and start_hour != 12:
+            start_hour += 12
+        elif self.btn_start_am.isChecked() and start_hour == 12:
+            start_hour = 0
+        
+        # Format start date/time
+        start_time_str = QTime(start_hour, start_time.minute()).toString("h:mm AP")
+        date_time_str = f"{start_date.toString('M/d/yyyy')}\n{start_time_str}"
+        
+        # Get location
+        location = self.input_location.text().strip() if self.input_location.text().strip() else "N/A"
+        
+        # Get status
+        status = self.combo_status.currentText()
+        
+        # Create updated event data
+        updated_event_data = {
+            "date_time": date_time_str,
+            "event": event_title,
+            "type": event_type,
+            "location": location,
+            "status": status
+        }
+        
+        # Update through MainCalendar
+        if self.main_calendar:
+            if self.main_calendar.update_event(self.original_event_name, updated_event_data):
+                QMessageBox.information(self, "Success", f"Event '{event_title}' has been updated successfully!")
+                # Navigate back to activities
+                if self.navigate_back_to_activities:
+                    self.navigate_back_to_activities()
+            else:
+                self._error("Failed to update event. Please try again.")
+        else:
+            self._error("Cannot update event: MainCalendar reference not set.")
 
     def cancel_event(self):
         """Handle cancel action"""

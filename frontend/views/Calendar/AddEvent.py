@@ -13,6 +13,9 @@ class AddEvent(QWidget):
         self.primary_role = primary_role
         self.token = token
 
+        # Reference to MainCalendar (set by MainCalendar after initialization)
+        self.main_calendar = None
+
         # API configuration
         self.api_base = "http://127.0.0.1:8000/api/"
         self.activities_url = self.api_base + "activities/"
@@ -157,18 +160,18 @@ class AddEvent(QWidget):
         """)
         
         grid_layout = QGridLayout(fields_container)
-        grid_layout.setSpacing(20)  # Increased spacing between elements
-        grid_layout.setContentsMargins(20, 20, 20, 20)  # Increased margins
-        grid_layout.setVerticalSpacing(25)  # Extra vertical spacing between rows
-        grid_layout.setHorizontalSpacing(20)  # Horizontal spacing between columns
+        grid_layout.setSpacing(20)
+        grid_layout.setContentsMargins(20, 20, 20, 20)
+        grid_layout.setVerticalSpacing(25)
+        grid_layout.setHorizontalSpacing(20)
         
-        # Set column stretch to give more space
-        grid_layout.setColumnStretch(0, 0)  # Label column (fixed)
-        grid_layout.setColumnStretch(1, 2)  # Input column (expandable)
-        grid_layout.setColumnStretch(2, 0)  # Label column (fixed)
-        grid_layout.setColumnStretch(3, 2)  # Input column (expandable)
+        # Set column stretch
+        grid_layout.setColumnStretch(0, 0)
+        grid_layout.setColumnStretch(1, 2)
+        grid_layout.setColumnStretch(2, 0)
+        grid_layout.setColumnStretch(3, 2)
         
-        # Set minimum column widths for better spacing
+        # Set minimum column widths
         grid_layout.setColumnMinimumWidth(0, 130)
         grid_layout.setColumnMinimumWidth(1, 200)
         grid_layout.setColumnMinimumWidth(2, 130)
@@ -501,11 +504,12 @@ class AddEvent(QWidget):
             self._info("Navigation not configured")
 
     def save_event(self):
-        """Handle save event action"""
-        event_title = self.input_event_title.text()
+        """Handle save event action - saves to JSON through MainCalendar"""
+        # Validate inputs
+        event_title = self.input_event_title.text().strip()
         event_type = self.combo_event_type.currentText()
         
-        if not event_title.strip():
+        if not event_title:
             self._error("Please enter an event title.")
             return
             
@@ -513,9 +517,45 @@ class AddEvent(QWidget):
             self._error("Please select an event type.")
             return
         
-        # TODO: Implement actual API call to save event
-        self._info(f"Event '{event_title}' saved successfully!")
-        self.clear_form()
+        # Get start date and time
+        start_date = self.date_start.date()
+        start_time = self.time_start.time()
+        
+        # Convert to 24-hour format based on AM/PM selection
+        start_hour = start_time.hour()
+        if self.btn_start_pm.isChecked() and start_hour != 12:
+            start_hour += 12
+        elif self.btn_start_am.isChecked() and start_hour == 12:
+            start_hour = 0
+        
+        # Format start date/time
+        start_time_str = QTime(start_hour, start_time.minute()).toString("h:mm AP")
+        date_time_str = f"{start_date.toString('M/d/yyyy')}\n{start_time_str}"
+        
+        # Get location (optional)
+        location = self.input_location.text().strip() if self.input_location.text().strip() else "N/A"
+        
+        # Create event data matching the JSON format
+        event_data = {
+            "date_time": date_time_str,
+            "event": event_title,
+            "type": event_type,
+            "location": location,
+            "status": "Upcoming"  # Default status for new events
+        }
+        
+        # Save through MainCalendar
+        if self.main_calendar:
+            if self.main_calendar.add_new_event(event_data):
+                QMessageBox.information(self, "Success", f"Event '{event_title}' has been saved successfully!")
+                self.clear_form()
+                # Navigate back to activities
+                if self.navigate_back_to_activities:
+                    self.navigate_back_to_activities()
+            else:
+                self._error("Failed to save event. Please try again.")
+        else:
+            self._error("Cannot save event: MainCalendar reference not set.")
 
     def cancel_event(self):
         """Handle cancel action"""

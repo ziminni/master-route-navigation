@@ -1,11 +1,15 @@
-# MainCalendar.py  MAIN ENTRY POINT
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QStackedWidget
+# MainCalendar.py - UPDATED to Handle Search Query Transfer
+import json
+import os
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QStackedWidget, QMessageBox
 from PyQt6.QtGui import QFont
+from datetime import datetime
 from .Calendar import Calendar
 from .AdminActivities import AdminActivities
 from .StudentActivities import StudentActivities
 from .AddEvent import AddEvent
 from .EditEvent import EditEvent
+from .SearchView import SearchView
 
 class MainCalendar(QWidget):
     def __init__(self, username, roles, primary_role, token):
@@ -14,52 +18,13 @@ class MainCalendar(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-
-        # Initialize sample events data
-        self.sample_events = [
-             {
-                "date_time": "10/2/2025\n9:00 AM",
-                "event": "TeSTING",
-                "type": "Academic",
-                "location": "TEST",
-                "status": "Patya ko",
-            },
-            {
-                "date_time": "10/15/2025\n9:00 AM",
-                "event": "Database Systems Lecture",
-                "type": "Academic",
-                "location": "Room 301",
-                "status": "Upcoming",
-            },
-            {
-                "date_time": "10/20/2025\n2:00 PM",
-                "event": "Student Council Meeting",
-                "type": "Organizational",
-                "location": "Conference Hall",
-                "status": "Upcoming",
-            },
-            {
-                "date_time": "10/25/2025\n11:59 PM",
-                "event": "Project Submission",
-                "type": "Deadline",
-                "location": "Online Portal",
-                "status": "Pending",
-            },
-            {
-                "date_time": "11/01/2025\nAll Day",
-                "event": "All Saints' Day",
-                "type": "Holiday",
-                "location": "N/A",
-                "status": "Holiday",
-            },
-            {
-                "date_time": "10/18/2025\n10:00 AM",
-                "event": "Software Engineering Workshop",
-                "type": "Academic",
-                "location": "Lab 204",
-                "status": "Upcoming",
-            }
-        ]
+        
+        # Path to events.json - in the same directory as this file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.events_file = os.path.join(current_dir, "events.json")
+        
+        # Load events from JSON file
+        self.sample_events = self.load_events_from_json()
 
         # Initialize layout with stacked widget
         layout = QVBoxLayout()
@@ -89,31 +54,44 @@ class MainCalendar(QWidget):
                 "Invalid Role", f"No activities available for role: {primary_role}"
             )
         
-        # Load sample events into activities widget
+        # Load events into activities widget
         if hasattr(self.activities_widget, 'load_events'):
             self.activities_widget.load_events(self.sample_events)
         
-        # Load sample events into calendar widget (month and day views)
+        # Load events into calendar widget (month and day views)
         if hasattr(self.calendar_widget, 'load_events'):
             self.calendar_widget.load_events(self.sample_events)
+        
+        # Create search widget
+        self.search_widget = SearchView(username, roles, primary_role, token)
+        self.search_widget.main_calendar = self
+        self.search_widget.load_events(self.sample_events)
         
         # Create add event and edit event widgets (only for admin)
         if role_lower == "admin":
             self.add_event_widget = AddEvent(username, roles, primary_role, token)
             self.edit_event_widget = EditEvent(username, roles, primary_role, token)
+            
+            # Set reference to MainCalendar for saving/updating events
+            self.add_event_widget.main_calendar = self
+            self.edit_event_widget.main_calendar = self
         else:
             self.add_event_widget = None
             self.edit_event_widget = None
         
         # Set navigation callbacks
         self.calendar_widget.navigate_to_activities = self.show_activities
+        self.calendar_widget.navigate_to_search = self.show_search  # UPDATED: Now accepts query parameter
         
         if hasattr(self.activities_widget, 'navigate_back_to_calendar'):
             self.activities_widget.navigate_back_to_calendar = self.show_calendar
         
+        # Set search navigation
+        self.search_widget.navigate_back_to_calendar = self.show_calendar
+        
         # Connect add event button in activities widget (admin only)
         if role_lower == "admin" and hasattr(self.activities_widget, 'btn_add_event'):
-            self.activities_widget.btn_add_event.clicked.disconnect()  # Remove any existing connection
+            self.activities_widget.btn_add_event.clicked.disconnect()
             self.activities_widget.btn_add_event.clicked.connect(self.show_add_event)
         
         # Connect edit event navigation (admin only)
@@ -130,16 +108,46 @@ class MainCalendar(QWidget):
         # Add widgets to stack
         self.stacked_widget.addWidget(self.calendar_widget)      # Index 0 - Calendar
         self.stacked_widget.addWidget(self.activities_widget)     # Index 1 - Activities
+        self.stacked_widget.addWidget(self.search_widget)         # Index 2 - Search
         if self.add_event_widget:
-            self.stacked_widget.addWidget(self.add_event_widget)  # Index 2 - Add Event (admin only)
+            self.stacked_widget.addWidget(self.add_event_widget)  # Index 3 - Add Event (admin only)
         if self.edit_event_widget:
-            self.stacked_widget.addWidget(self.edit_event_widget) # Index 3 - Edit Event (admin only)
+            self.stacked_widget.addWidget(self.edit_event_widget) # Index 4 - Edit Event (admin only)
         
         # Start with calendar view
         self.stacked_widget.setCurrentIndex(0)
         
         layout.addWidget(self.stacked_widget)
         self.setLayout(layout)
+
+    def load_events_from_json(self):
+        """Load events from events.json file"""
+        try:
+            if os.path.exists(self.events_file):
+                with open(self.events_file, 'r') as f:
+                    data = json.load(f)
+                    return data.get('events', [])
+            else:
+                # Create empty events file if it doesn't exist
+                self.save_events_to_json([])
+                return []
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to load events: {str(e)}")
+            return []
+    
+    def save_events_to_json(self, events=None):
+        """Save events to events.json file"""
+        try:
+            if events is None:
+                events = self.sample_events
+            
+            data = {"events": events}
+            with open(self.events_file, 'w') as f:
+                json.dump(data, f, indent=4)
+            return True
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to save events: {str(e)}")
+            return False
 
     def show_calendar(self):
         """Switch to calendar view"""
@@ -149,10 +157,22 @@ class MainCalendar(QWidget):
         """Switch to activities view"""
         self.stacked_widget.setCurrentIndex(1)
     
+    def show_search(self, search_query=""):
+        """Switch to search view with optional search query"""
+        self.stacked_widget.setCurrentIndex(2)
+        # Refresh search view with latest events
+        self.search_widget.load_events(self.sample_events)
+        
+        # UPDATED: If search query is provided, set it and execute search
+        if search_query:
+            self.search_widget.search_bar.setText(search_query)
+            self.search_widget.on_search_clicked()
+    
     def show_add_event(self):
         """Switch to add event view (admin only)"""
         if self.add_event_widget:
-            self.stacked_widget.setCurrentIndex(2)
+            self.add_event_widget.clear_form()  # Clear form before showing
+            self.stacked_widget.setCurrentIndex(3)
     
     def show_edit_event(self, event_data=None):
         """Switch to edit event view (admin only)"""
@@ -161,37 +181,58 @@ class MainCalendar(QWidget):
             if event_data:
                 self.edit_event_widget.event_data = event_data
                 self.edit_event_widget.load_event_data()
-            self.stacked_widget.setCurrentIndex(3)
+            self.stacked_widget.setCurrentIndex(4)
     
     def add_new_event(self, event_data):
-        """Add a new event to the events list"""
+        """Add a new event to the events list and save to JSON"""
         self.sample_events.append(event_data)
-        # Refresh all widgets
-        if hasattr(self.activities_widget, 'load_events'):
-            self.activities_widget.load_events(self.sample_events)
-        if hasattr(self.calendar_widget, 'load_events'):
-            self.calendar_widget.load_events(self.sample_events)
+        
+        # Save to JSON file
+        if self.save_events_to_json():
+            # Refresh all widgets
+            if hasattr(self.activities_widget, 'load_events'):
+                self.activities_widget.load_events(self.sample_events)
+            if hasattr(self.calendar_widget, 'load_events'):
+                self.calendar_widget.load_events(self.sample_events)
+            if hasattr(self.search_widget, 'load_events'):
+                self.search_widget.load_events(self.sample_events)
+            return True
+        return False
     
     def update_event(self, old_event_name, new_event_data):
-        """Update an existing event"""
+        """Update an existing event and save to JSON"""
         for i, event in enumerate(self.sample_events):
             if event['event'] == old_event_name:
                 self.sample_events[i] = new_event_data
                 break
-        # Refresh all widgets
-        if hasattr(self.activities_widget, 'load_events'):
-            self.activities_widget.load_events(self.sample_events)
-        if hasattr(self.calendar_widget, 'load_events'):
-            self.calendar_widget.load_events(self.sample_events)
+        
+        # Save to JSON file
+        if self.save_events_to_json():
+            # Refresh all widgets
+            if hasattr(self.activities_widget, 'load_events'):
+                self.activities_widget.load_events(self.sample_events)
+            if hasattr(self.calendar_widget, 'load_events'):
+                self.calendar_widget.load_events(self.sample_events)
+            if hasattr(self.search_widget, 'load_events'):
+                self.search_widget.load_events(self.sample_events)
+            return True
+        return False
     
     def delete_event(self, event_name):
-        """Delete an event from the events list"""
+        """Delete an event from the events list and save to JSON"""
         self.sample_events = [e for e in self.sample_events if e['event'] != event_name]
-        # Refresh all widgets
-        if hasattr(self.activities_widget, 'load_events'):
-            self.activities_widget.load_events(self.sample_events)
-        if hasattr(self.calendar_widget, 'load_events'):
-            self.calendar_widget.load_events(self.sample_events)
+        
+        # Save to JSON file
+        if self.save_events_to_json():
+            # Refresh all widgets
+            if hasattr(self.activities_widget, 'load_events'):
+                self.activities_widget.load_events(self.sample_events)
+            if hasattr(self.calendar_widget, 'load_events'):
+                self.calendar_widget.load_events(self.sample_events)
+            if hasattr(self.search_widget, 'load_events'):
+                self.search_widget.load_events(self.sample_events)
+            return True
+        return False
     
     def filter_events(self, filter_type):
         """
