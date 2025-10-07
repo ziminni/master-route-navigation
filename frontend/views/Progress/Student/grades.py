@@ -3,95 +3,70 @@ import json
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QStackedWidget, QPushButton, QComboBox,
-    QTableWidget, QTableWidgetItem
+    QTableWidget, QTableWidgetItem, QHeaderView
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QColor
 
 from .gwastatistics import GwaStatisticsWidget
 from .degreeprogress import DegreeProgressWidget
 from .subjectsenrolled import SubjectsEnrolledWidget
+from .facultynotes import FacultyNotesWidget
 
 
 class GradesWidget(QWidget):
     """
-    Main Student Progress page combining the tabs:
-    Grades, GWA Statistics, Subjects Enrolled, Degree Progress.
+    Main Student Progress page combining:
+    Grades, GWA STATISTICS, SUBJECTS ENROLLED, DEGREE PROGRESS, FACULTY NOTES.
     """
     def __init__(self, user_role="student"):
         super().__init__()
         self.user_role = user_role
         self.current_semester = None
 
-        # load data
-        self.semester_list = self.load_semesters_from_json()
+        # Load only from grades.json
         self.grades_data = self.load_grades_from_json()
+        self.semester_list = list(self.grades_data.keys()) if self.grades_data else []
 
+        self.setObjectName("gradesWidget")
         self.init_ui()
-        self.load_styles()
-
-    # ---------------------------------------------------------
-    def load_semesters_from_json(self):
-        """Load list of semesters from /views/Progress/data/semesters.json"""
-        progress_dir = os.path.dirname(os.path.dirname(__file__))
-        data_path = os.path.join(progress_dir, "data", "semesters.json")
-        if not os.path.exists(data_path):
-            print(f"⚠️ semesters.json not found at {data_path}")
-            return []
-        try:
-            with open(data_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    return data
-                if isinstance(data, dict) and "semesters" in data:
-                    return data["semesters"]
-                return []
-        except Exception as e:
-            print(f"❌ Error loading semesters.json: {e}")
-            return []
 
     # ---------------------------------------------------------
     def load_grades_from_json(self):
-        """Load all grades from /views/Progress/data/grades.json"""
+        """Load all grades and available semesters from grades.json"""
         progress_dir = os.path.dirname(os.path.dirname(__file__))
         data_path = os.path.join(progress_dir, "data", "grades.json")
-        if not os.path.exists(data_path):
-            print(f"⚠️ grades.json not found at {data_path}")
-            return {}
         try:
             with open(data_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if isinstance(data, dict) and "semesters" in data:
-                    return data["semesters"]
-                return data
+                # Support both { "semesters": {...} } or direct dict
+                if isinstance(data, dict):
+                    return data.get("semesters", data)
         except Exception as e:
             print(f"❌ Error loading grades.json: {e}")
-            return {}
+        return {}
 
     # ---------------------------------------------------------
     def init_ui(self):
-        self.setObjectName("gradesWidget")  # 🔹 matches your QSS
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 0, 10, 10)
         main_layout.setSpacing(10)
 
-        # header
+        # Header
         header_label = QLabel("Academic Progress Tracker")
         header_label.setFont(QFont("Poppins", 14, QFont.Weight.Bold))
         main_layout.addWidget(header_label)
 
-        # -----------------------
-        # Tab buttons
-        # -----------------------
+        # Tabs
+        tab_layout = QHBoxLayout()
         self.tab_names = [
-            "GRADES", "GWA STATISTICS", "SUBJECTS ENROLLED", "DEGREE PROGRESS"
+            "GRADES", "GWA STATISTICS", "SUBJECTS ENROLLED", "DEGREE PROGRESS", "FACULTY NOTES"
         ]
         self.tab_buttons = []
-        tab_layout = QHBoxLayout()
 
         for i, name in enumerate(self.tab_names):
             btn = QPushButton(name)
-            btn.setObjectName("tabButton")  # 🔹 apply tabButton style
+            btn.setObjectName("tabButton")
             btn.setProperty("active", i == 0)
             btn.clicked.connect(lambda checked, index=i: self.switch_tab(index))
             self.tab_buttons.append(btn)
@@ -100,57 +75,75 @@ class GradesWidget(QWidget):
         tab_layout.addStretch()
         main_layout.addLayout(tab_layout)
 
-        # -----------------------
-        # Semester combo
-        # -----------------------
+        # Semester Combo
         self.semester_combo = QComboBox()
-        self.semester_combo.setObjectName("semesterCombo")  # 🔹 match QSS
+        self.semester_combo.setObjectName("semesterCombo")
         if self.semester_list:
             self.semester_combo.addItems(self.semester_list)
-            self.semester_combo.setCurrentIndex(0)
             self.current_semester = self.semester_list[0]
         self.semester_combo.currentTextChanged.connect(self.on_semester_changed)
         main_layout.addWidget(self.semester_combo)
 
-        # -----------------------
-        # Stacked pages
-        # -----------------------
+        # --- StackedWidget (pages) ---
         self.stacked_widget = QStackedWidget()
+
+        # GRADES PAGE
+        self.grades_page = QWidget()
+        self.grades_page.setObjectName("gradesPage")
+        grades_layout = QVBoxLayout(self.grades_page)
+        grades_layout.setContentsMargins(0, 0, 0, 0)
 
         # Grades Table
         self.grades_table = QTableWidget()
-        self.grades_table.setObjectName("gradesTable")  # 🔹 match QSS
-        self.grades_table.setColumnCount(7)
+        self.grades_table.setObjectName("gradesTable")
+        self.grades_table.setColumnCount(8)
         self.grades_table.setHorizontalHeaderLabels([
-            "Subject Code", "Description", "Units",
+            "No.", "Subject Code", "Description", "Units",
             "Midterm", "Finals", "Re-Exam", "Remarks"
         ])
+        self.grades_table.verticalHeader().setVisible(False)
         self.grades_table.setAlternatingRowColors(True)
         self.grades_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.grades_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.grades_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.grades_table.setWordWrap(True)
 
-        gwa_widget = GwaStatisticsWidget()
-        subjects_widget = SubjectsEnrolledWidget()
-        degree_widget = DegreeProgressWidget()
+        # Column width policy (0 means stretch)
+        widths = [50, 120, 0, 60, 80, 80, 80, 100]
+        header = self.grades_table.horizontalHeader()
+        for i, w in enumerate(widths):
+            if w == 0:
+                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
+            else:
+                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)
+                self.grades_table.setColumnWidth(i, w)
 
-        self.widgets = [
-            self.grades_table,
-            gwa_widget,
-            subjects_widget,
-            degree_widget,
-        ]
+        grades_layout.addWidget(self.grades_table)
 
-        for w in self.widgets:
-            self.stacked_widget.addWidget(w)
+        # Add widgets to stack
+        self.stacked_widget.addWidget(self.grades_page)
+        self.gwa_widget = GwaStatisticsWidget()
+        self.subjects_widget = SubjectsEnrolledWidget()
+        self.degree_widget = DegreeProgressWidget()
+        self.faculty_widget = FacultyNotesWidget()
+
+        self.stacked_widget.addWidget(self.gwa_widget)
+        self.stacked_widget.addWidget(self.subjects_widget)
+        self.stacked_widget.addWidget(self.degree_widget)
+        self.stacked_widget.addWidget(self.faculty_widget)
+
         main_layout.addWidget(self.stacked_widget)
 
-        # default visible tab: GRADES
+        # Default tab
         self.stacked_widget.setCurrentIndex(0)
         if self.current_semester:
             self.populate_table(self.current_semester)
-        else:
-            self.grades_table.setRowCount(0)
+
+            # Sync initial semester with other widgets
+            self.subjects_widget.set_semester(self.current_semester)
+            self.degree_widget.set_semester(self.current_semester)
+            if hasattr(self.faculty_widget, "set_semester"):
+                self.faculty_widget.set_semester(self.current_semester)
 
     # ---------------------------------------------------------
     def switch_tab(self, index):
@@ -158,8 +151,7 @@ class GradesWidget(QWidget):
             btn.setProperty("active", i == index)
             btn.style().unpolish(btn)
             btn.style().polish(btn)
-        if 0 <= index < len(self.widgets):
-            self.stacked_widget.setCurrentWidget(self.widgets[index])
+        self.stacked_widget.setCurrentIndex(index)
 
     # ---------------------------------------------------------
     def on_semester_changed(self, semester):
@@ -168,47 +160,72 @@ class GradesWidget(QWidget):
         self.current_semester = semester
         self.populate_table(semester)
 
+        # 🔁 Sync semester with other widgets
+        if hasattr(self, "subjects_widget") and self.subjects_widget:
+            self.subjects_widget.set_semester(semester)
+        if hasattr(self, "degree_widget") and self.degree_widget:
+            self.degree_widget.set_semester(semester)
+        if hasattr(self, "faculty_widget") and self.faculty_widget:
+            if hasattr(self.faculty_widget, "set_semester"):
+                self.faculty_widget.set_semester(semester)
+
     # ---------------------------------------------------------
     def populate_table(self, semester):
-        """Fill the grades table with subjects for the given semester"""
         sem_obj = self.grades_data.get(semester, {})
         grades_list = sem_obj.get("grades", []) if isinstance(sem_obj, dict) else []
-        if not grades_list:
-            self.grades_table.setRowCount(0)
-            return
+        self.grades_table.setRowCount(0)
 
-        self.grades_table.setRowCount(len(grades_list))
-        for row, record in enumerate(grades_list):
-            self.grades_table.setItem(row, 0, QTableWidgetItem(str(record.get("subject_code", ""))))
-            self.grades_table.setItem(row, 1, QTableWidgetItem(str(record.get("description", ""))))
-            self.grades_table.setItem(row, 2, QTableWidgetItem(str(record.get("units", ""))))
-            self.grades_table.setItem(row, 3, QTableWidgetItem(str(record.get("midterm", ""))))
-            self.grades_table.setItem(row, 4, QTableWidgetItem(str(record.get("finals", ""))))
-            self.grades_table.setItem(row, 5, QTableWidgetItem(str(record.get("re_exam", ""))))
-            remarks_item = QTableWidgetItem(str(record.get("remarks", "")))
+        for idx, record in enumerate(grades_list, start=1):
+            row = self.grades_table.rowCount()
+            self.grades_table.insertRow(row)
 
-            # mark failed rows visually
-            if record.get("remarks", "").upper() == "FAILED":
-                remarks_item.setData(Qt.ItemDataRole.UserRole, "FAILED")
+            # No. column
+            no_item = QTableWidgetItem(str(idx))
+            no_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.grades_table.setItem(row, 0, no_item)
 
-            self.grades_table.setItem(row, 6, remarks_item)
+            # Subject code
+            sc_item = QTableWidgetItem(record.get("subject_code", ""))
+            sc_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.grades_table.setItem(row, 1, sc_item)
 
-        self.grades_table.resizeColumnsToContents()
+            # Description
+            desc_item = QTableWidgetItem(record.get("description", ""))
+            desc_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.grades_table.setItem(row, 2, desc_item)
+
+            # Units
+            units_item = QTableWidgetItem(str(record.get("units", "")))
+            units_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.grades_table.setItem(row, 3, units_item)
+
+            # Midterm
+            mid_item = QTableWidgetItem(str(record.get("midterm", "")))
+            mid_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.grades_table.setItem(row, 4, mid_item)
+
+            # Finals
+            fin_item = QTableWidgetItem(str(record.get("finals", "")))
+            fin_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.grades_table.setItem(row, 5, fin_item)
+
+            # Re-exam
+            re_item = QTableWidgetItem(str(record.get("re_exam", "")))
+            re_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.grades_table.setItem(row, 6, re_item)
+
+            # Remarks (with FAILED styling)
+            remarks = str(record.get("remarks", ""))
+            remarks_item = QTableWidgetItem(remarks)
+            remarks_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            if remarks.strip().upper() == "FAILED":
+                remarks_item.setForeground(QColor("#ff0000"))
+                fnt = remarks_item.font()
+                fnt.setBold(True)
+                remarks_item.setFont(fnt)
+
+            self.grades_table.setItem(row, 7, remarks_item)
+
+        self.grades_table.resizeRowsToContents()
         print(f"📘 Loaded {len(grades_list)} subjects for {semester}")
-
-    # ---------------------------------------------------------
-    def load_styles(self):
-        """Load the shared QSS stylesheet for Progress module."""
-        try:
-            styles_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                "Styles", "styles.qss"
-            )
-            if os.path.exists(styles_path):
-                with open(styles_path, "r", encoding="utf-8") as f:
-                    self.setStyleSheet(f.read())
-                print(f"✅ Loaded Progress styles from {styles_path}")
-            else:
-                print(f"⚠️ Stylesheet not found at {styles_path}")
-        except Exception as e:
-            print(f"❌ Error loading styles: {e}")

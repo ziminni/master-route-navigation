@@ -1,3 +1,8 @@
+* {
+    font-family: "Poppins", sans-serif;
+}
+
+
 /* Main Window Styling */
 #mainWindow {
     background-color: #f5f5f5;
@@ -288,4 +293,127 @@ QPushButton#tabButton[active="true"] {
 #degreeProgressTable QScrollBar::add-line:horizontal,
 #degreeProgressTable QScrollBar::sub-line:horizontal {
     width: 0px;
+}
+
+#noteGroupBox {
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    margin-top: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    background-color: #f8f9fa;
+}
+
+#noteGroupBox::title {
+    subcontrol-origin: margin;
+    left: 8px;
+    color: #2c5530;
+}
+
+#noteMessage {
+    font-size: 12px;
+    color: #333;
+    padding: 4px 8px;
+}
+
+#noteFrame {
+    background-color: #ffffff;
+    border-radius: 6px;
+    border: none;
+}
+
+#noteMessageContainer {
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 0 0 6px 6px;
+}
+
+
+/* =========================
+   Faculty Notes Styling (Final Polished)
+   ========================= */
+
+#facultyNotesWidget {
+    background-color: transparent;
+}
+
+#facultyNotesScroll {
+    border: none;
+    background-color: #ffffff;
+    border-radius: 8px;
+}
+
+/* Each note "card" */
+#noteCard {
+    background-color: transparent;
+    border: none;
+    margin: 0;                      /* remove vertical gaps */
+    padding: 0;                     /* no inner spacing between cards */
+}
+
+/* Header Button (Subject + Instructor) */
+#noteHeaderBtn {
+    background-color: #1b4332;
+    color: white;
+    padding: 10px 22px;             /* spacing from left edge */
+    border: none;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+#noteHeaderBtn:hover {
+    background-color: #2d6a4f;
+}
+
+#noteHeaderBtn:checked {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Message Body */
+#noteMessageBody {
+    background-color: #ffffff;      /* pure white background */
+    border: none;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    padding: 14px 22px 14px 22px;   /* keep content spaced inside, but no gap between messages */
+}
+
+/* Message Text */
+#noteMessageLabel {
+    color: #222;
+    font-size: 12px;
+    font-family: "Poppins";
+    text-align: left;
+}
+
+/* Date */
+#noteFooterLabel {
+    color: #666;
+    font-size: 11px;
+    font-family: "Poppins";
+}
+
+/* Delete Button */
+#deleteNoteButton {
+    background-color: #ffecec;
+    color: #b02a37;
+    border: 1px solid #f5c2c7;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-weight: 500;
+}
+
+#deleteNoteButton:hover {
+    background-color: #f8d7da;
+    border-color: #f1aeb5;
+}
+
+#deleteNoteButton:pressed {
+    background-color: #f1aeb5;
 }

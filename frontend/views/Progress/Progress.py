@@ -1,9 +1,11 @@
 import os
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
 from PyQt6.QtGui import QFont
 
-# Import the student views of the Progress page
+# Import views in Progress folder
 from .Student.grades import GradesWidget
+# from .Faculty.(homepage file here) import (homepage file class name)
+# from .Admin.(homepage file here) import (homepage file class name)
 
 
 class Progress(QWidget):
@@ -18,12 +20,20 @@ class Progress(QWidget):
         self.primary_role = primary_role
         self.token = token
 
-        # ✅ Create layout first
         layout = QVBoxLayout(self)
 
-        # ✅ Load role-specific page (for now, student only)
+        # Load role-specific page (for now, student only)
         if primary_role == "student":
             progress_widget = GradesWidget(user_role="student")
+
+        # ------------------------------------------------
+        #                 FOR USER ROLES
+        # ------------------------------------------------
+        # if primary_role == "faculty":
+        #     progress_widget = (Faculty)Widget(user_role="faculty")
+        # if primary_role == "admin":
+        #     progress_widget = (Admin)Widget(user_role="admin")
+
         else:
             progress_widget = self._create_default_widget(
                 "Progress", f"No progress page available for role: {primary_role}"
@@ -31,8 +41,38 @@ class Progress(QWidget):
 
         layout.addWidget(progress_widget)
 
+        # ------------------------------------------------
+        # Apply Progress QSS stylesheet recursively
+        # ------------------------------------------------
+        try:
+            qss_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "Styles", "styles.qss"
+            )
+            if os.path.exists(qss_path):
+                with open(qss_path, "r", encoding="utf-8") as f:
+                    qss = f.read()
+
+                    # Apply to Progress
+                    self.setStyleSheet(qss)
+
+                    # Apply to GradesWidget and all its child widgets
+                    progress_widget.setStyleSheet(qss)
+                    for child in progress_widget.findChildren(QWidget):
+                        child.setStyleSheet(qss)
+
+                    # Force a style refresh
+                    app = QApplication.instance()
+                    if app is not None:
+                        app.setStyleSheet(qss)
+
+                print(f"✅ Progress: QSS applied from {qss_path}")
+            else:
+                print(f"⚠️ Progress: Stylesheet not found at {qss_path}")
+        except Exception as e:
+            print(f"❌ Progress: Error applying QSS: {e}")
+
         self.setLayout(layout)
-        self.load_styles()
 
     # ---------------------------------------------------------
     def _create_default_widget(self, title, desc):
@@ -48,20 +88,3 @@ class Progress(QWidget):
         layout.addStretch()
         widget.setLayout(layout)
         return widget
-
-    # ---------------------------------------------------------
-    def load_styles(self):
-        """Loads stylesheet from /frontend/views/Progress/Styles/styles.qss"""
-        try:
-            styles_path = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                "Styles", "styles.qss"
-            )
-            if os.path.exists(styles_path):
-                with open(styles_path, "r", encoding="utf-8") as f:
-                    self.setStyleSheet(f.read())
-                print(f"✅ Progress: Loaded styles from {styles_path}")
-            else:
-                print(f"⚠️ Progress: Stylesheet not found at {styles_path}")
-        except Exception as e:
-            print(f"❌ Progress: Error loading styles: {e}")

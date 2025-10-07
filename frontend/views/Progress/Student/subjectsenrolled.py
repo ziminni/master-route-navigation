@@ -7,12 +7,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QFileSystemWatcher
 from PyQt6.QtGui import QColor, QBrush, QFont
 
+
 class SubjectsEnrolledWidget(QWidget):
     def __init__(self):
         super().__init__()
-        self.subjects_data = []
-        self.all_semesters_data = {}
-        self.current_semester = "2025-2026 1st Sem"  # Default semester
+        self.subjects_data = {}
+        self.current_semester = None
         self.file_watcher = QFileSystemWatcher(self)
 
         # JSON path
@@ -28,6 +28,7 @@ class SubjectsEnrolledWidget(QWidget):
             self.file_watcher.addPath(self.file_path)
             self.file_watcher.fileChanged.connect(self.on_file_changed)
 
+    # ---------------------------------------------------------
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 0)
@@ -35,8 +36,7 @@ class SubjectsEnrolledWidget(QWidget):
 
         # Create table
         self.table = QTableWidget()
-        self.table.setObjectName("gradesTable")  # Important: same as GradesWidget for QSS
-
+        self.table.setObjectName("gradesTable")  # Match QSS
         headers = ["No.", "Subject Code", "Description", "Units", "Schedule", "Room", "Instructor"]
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
@@ -60,8 +60,9 @@ class SubjectsEnrolledWidget(QWidget):
 
         layout.addWidget(self.table)
 
+    # ---------------------------------------------------------
     def load_subjects_from_file(self):
-        """Load subjects from JSON"""
+        """Load all subjects from JSON"""
         if not os.path.exists(self.file_path):
             print(f"⚠️ File not found: {self.file_path}")
             return
@@ -70,20 +71,24 @@ class SubjectsEnrolledWidget(QWidget):
             with open(self.file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            # Store all semesters data
-            self.all_semesters_data = data.get("semesters", {})
-            
-            # Load data for current semester
-            self.load_semester_data(self.current_semester)
+            # Handle both structures: with or without 'semesters'
+            self.subjects_data = data.get("semesters", data)
+            self.semester_list = list(self.subjects_data.keys())
+
+            # Default to the latest semester
+            if self.semester_list:
+                self.current_semester = self.semester_list[-1]
+                self.load_semester_data(self.current_semester)
 
         except Exception as e:
             print(f"❌ Error reading enrolledSubjects.json: {e}")
-    
+
+    # ---------------------------------------------------------
     def load_semester_data(self, semester):
         """Load and display subjects for a specific semester"""
-        semester_data = self.all_semesters_data.get(semester, {})
+        semester_data = self.subjects_data.get(semester, {})
         subjects = semester_data.get("subjects", [])
-        
+
         self.clear_subjects()
 
         for i, subj in enumerate(subjects, start=1):
@@ -98,12 +103,15 @@ class SubjectsEnrolledWidget(QWidget):
             )
 
         self.table.resizeRowsToContents()
-    
+        print(f"📘 Loaded {len(subjects)} subjects for {semester}")
+
+    # ---------------------------------------------------------
     def set_semester(self, semester):
-        """Called when semester combo box changes"""
+        """Used by GradesWidget combo to update subjects"""
         self.current_semester = semester
         self.load_semester_data(semester)
 
+    # ---------------------------------------------------------
     def on_file_changed(self, path):
         """Reload table when JSON changes"""
         print(f"🔄 Detected change in {path}, reloading...")
@@ -111,6 +119,7 @@ class SubjectsEnrolledWidget(QWidget):
         if os.path.exists(self.file_path) and self.file_path not in self.file_watcher.files():
             self.file_watcher.addPath(self.file_path)
 
+    # ---------------------------------------------------------
     def add_subject_entry(self, number, code, description, units, schedule, room, instructor):
         row = self.table.rowCount()
         self.table.insertRow(row)
@@ -129,11 +138,6 @@ class SubjectsEnrolledWidget(QWidget):
 
             self.table.setItem(row, col, item)
 
-        self.subjects_data.append(values)
-
+    # ---------------------------------------------------------
     def clear_subjects(self):
         self.table.setRowCount(0)
-        self.subjects_data.clear()
-
-    def get_subjects_data(self):
-        return self.subjects_data
