@@ -18,7 +18,7 @@ class GwaStatisticsWidget(QWidget):
         self.current_semester = None
         self.file_watcher = QFileSystemWatcher(self)
 
-        self.file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "grades.json")
+        self.file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "student_grades.json")
 
         self.init_ui()
         self.load_grades_and_calculate_gwa()
@@ -72,7 +72,7 @@ class GwaStatisticsWidget(QWidget):
             self.plot_gwa_chart()
 
         except Exception as e:
-            print(f"❌ Error reading grades.json: {e}")
+            print(f"❌ Error reading student_grades.json: {e}")
 
     # ---------------------------------------------------------
     def calculate_gwa(self, grades):

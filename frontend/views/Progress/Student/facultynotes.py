@@ -43,12 +43,12 @@ class FacultyNotesWidget(QWidget):
     # ---------------------------------------------------------
     def load_notes_from_json(self):
         progress_dir = os.path.dirname(os.path.dirname(__file__))
-        data_path = os.path.join(progress_dir, "data", "facultynotes.json")
+        data_path = os.path.join(progress_dir, "data", "student_facultyNotes.json")
         try:
             with open(data_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            print(f"❌ Error loading facultynotes.json: {e}")
+            print(f"❌ Error loading student_facultyNotes.json: {e}")
             return {}
 
     # ---------------------------------------------------------

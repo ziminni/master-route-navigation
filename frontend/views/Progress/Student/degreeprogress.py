@@ -28,7 +28,7 @@ class DegreeProgressWidget(QWidget):
         # File path for JSON
         self.subjects_file_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
-            "data", "degree_progress_subjects.json"
+            "data", "student_degreeProgress.json"
         )
 
         self.init_ui()
@@ -113,7 +113,7 @@ class DegreeProgressWidget(QWidget):
                 self.load_semester_data(self.current_semester)
 
         except Exception as e:
-            print(f"❌ Error reading degree_progress_subjects.json: {e}")
+            print(f"❌ Error reading student_degreeProgress.json: {e}")
 
     # ---------------------------------------------------------
     def load_semester_data(self, semester):

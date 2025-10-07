@@ -417,3 +417,199 @@ QPushButton#tabButton[active="true"] {
 #deleteNoteButton:pressed {
     background-color: #f1aeb5;
 }
+
+
+/* Faculty Sections Page */
+#sectionsWidget {
+    background-color: #ffffff;
+}
+
+/* Cards */
+#sectionCard {
+    border: none;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Image Label */
+#sectionCard QLabel {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+/* View Students Button (restored old thicker style) */
+#viewStudentsButton {
+    background-color: #155724;
+    color: white;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 0;             /* Increased vertical padding */
+    margin: 8px 14px 14px 14px;  /* Clean spacing from edges */
+    min-height: 36px;            /* Ensures consistent thickness */
+}
+
+#viewStudentsButton:hover {
+    background-color: #1e7e34;
+}
+
+#viewStudentsButton:pressed {
+    background-color: #14551f;
+}
+
+/* Scroll Area */
+#facultyNotesScroll {
+    border: none;
+    background: transparent;
+}
+
+/* Students List */
+#goBackButton {
+    background-color: #ffc107;
+    color: #1b1b1b;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+#goBackButton:hover {
+    background-color: #e0a800;
+}
+
+/* ===============================
+   STUDENT PROFILE - SEND MESSAGE
+   =============================== */
+#sendFrame {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    margin-top: 15px;
+    padding: 10px 15px;
+}
+
+#subjectLabel {
+    color: #333;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+#messageInput {
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    padding: 6px 8px;
+    background-color: #fafafa;
+    font-family: "Poppins";
+    font-size: 12px;
+}
+
+#messageInput:focus {
+    border: 1px solid #155724;
+    background-color: #ffffff;
+}
+
+#sendNoteButton {
+    background-color: #155724;
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 6px 14px;
+}
+
+#sendNoteButton:hover {
+    background-color: #1e7e34;
+}
+
+/* ============================
+   MODERN SCROLL AREA & SCROLLBAR
+   ============================ */
+
+/* Card-like scroll container */
+#facultyNotesScroll {
+    background: #fafafa;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;          /* ✅ smooth corners */
+    padding: 8px;
+}
+
+/* (Optional: if you use a second scroll area, e.g. for the grades or progress) */
+#studentProfileScroll {
+    background: #fafafa;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 8px;
+}
+
+/* Vertical scrollbar */
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 4px 2px 4px 0px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #c8cec9;    /* neutral gray */
+    border-radius: 4px;
+    min-height: 24px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #9ea39f;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0;
+    background: none;
+}
+
+/* Horizontal scrollbar */
+QScrollBar:horizontal {
+    background: transparent;
+    height: 8px;
+    margin: 0px 4px 2px 4px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #c8cec9;
+    border-radius: 4px;
+    min-width: 24px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #9ea39f;
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0;
+    background: none;
+}
+
+/* Make scroll content blend seamlessly */
+QScrollArea QWidget {
+    background: transparent;
+}
+
+/* Progress Bar Styling */
+QProgressBar {
+    border: 1px solid #e0e0e0;         /* soft border */
+    border-radius: 8px;                 /* subtle curve */
+    background-color: #f4f6f5;          /* light neutral bg */
+    height: 16px;
+    text-align: center;
+    color: #155724;                     /* text color */
+    font-weight: 600;
+    font-size: 11px;
+}
+
+QProgressBar::chunk {
+    background-color: #4e9a51;          /* calm green tone */
+    border-radius: 8px;                 /* rounded chunk */
+    margin: 1px;
+    transition: none;                   /* 🚫 disable animation */
+}

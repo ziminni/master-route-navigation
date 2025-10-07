@@ -24,7 +24,7 @@ class GradesWidget(QWidget):
         self.user_role = user_role
         self.current_semester = None
 
-        # Load only from grades.json
+        # Load only from student_grades.json
         self.grades_data = self.load_grades_from_json()
         self.semester_list = list(self.grades_data.keys()) if self.grades_data else []
 
@@ -33,9 +33,9 @@ class GradesWidget(QWidget):
 
     # ---------------------------------------------------------
     def load_grades_from_json(self):
-        """Load all grades and available semesters from grades.json"""
+        """Load all grades and available semesters from student_grades.json"""
         progress_dir = os.path.dirname(os.path.dirname(__file__))
-        data_path = os.path.join(progress_dir, "data", "grades.json")
+        data_path = os.path.join(progress_dir, "data", "student_grades.json")
         try:
             with open(data_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -43,7 +43,7 @@ class GradesWidget(QWidget):
                 if isinstance(data, dict):
                     return data.get("semesters", data)
         except Exception as e:
-            print(f"❌ Error loading grades.json: {e}")
+            print(f"❌ Error loading student_grades.json: {e}")
         return {}
 
     # ---------------------------------------------------------

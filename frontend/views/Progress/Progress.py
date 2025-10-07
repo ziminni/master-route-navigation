@@ -4,7 +4,7 @@ from PyQt6.QtGui import QFont
 
 # Import views in Progress folder
 from .Student.grades import GradesWidget
-# from .Faculty.(homepage file here) import (homepage file class name)
+from .Faculty.sections import SectionsWidget
 # from .Admin.(homepage file here) import (homepage file class name)
 
 
@@ -29,8 +29,8 @@ class Progress(QWidget):
         # ------------------------------------------------
         #                 FOR USER ROLES
         # ------------------------------------------------
-        # if primary_role == "faculty":
-        #     progress_widget = (Faculty)Widget(user_role="faculty")
+        elif primary_role == "faculty":
+            progress_widget = SectionsWidget()
         # if primary_role == "admin":
         #     progress_widget = (Admin)Widget(user_role="admin")
 

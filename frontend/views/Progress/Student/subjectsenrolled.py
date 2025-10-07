@@ -17,7 +17,7 @@ class SubjectsEnrolledWidget(QWidget):
 
         # JSON path
         self.file_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "data", "enrolledSubjects.json"
+            os.path.dirname(os.path.dirname(__file__)), "data", "student_enrolledSubjects.json"
         )
 
         self.init_ui()
