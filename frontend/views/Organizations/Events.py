@@ -8,7 +8,8 @@ class Events(QMainWindow):
         super().__init__()
         # Choose UI based on role: Faculty vs Student/Org Officer
         is_faculty = (primary_role == "faculty") or (roles and "faculty" in roles)
-        is_org_officer = (primary_role == "org_officer") or (roles and "org_officer" in (roles or []))
+        # Only treat as org_officer when it's the primary role to avoid students with extra roles seeing the wrong UI
+        is_org_officer = (primary_role == "org_officer")
         base_dir = os.path.dirname(__file__)
         users_root = os.path.join(base_dir, "Module-6_Event_Manager", "Users")
 
