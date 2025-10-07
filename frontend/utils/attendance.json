@@ -1,0 +1,29 @@
+{
+  "event": "Tech Innovation Fair",
+  "filters": ["All"],
+  "records": [
+    {
+      "studentId": "2025-00001",
+      "name": "Alex Cruz",
+      "year": "1st Year",
+      "section": "A",
+      "course": "BSCS",
+      "gender": "Male",
+      "status": "Present",
+      "timeIn": "2025-10-15T08:03:00",
+      "timeOut": "2025-10-15T12:10:00"
+    },
+    {
+      "studentId": "2025-00002",
+      "name": "Bea Santos",
+      "year": "2nd Year",
+      "section": "B",
+      "course": "BSIT",
+      "gender": "Female",
+      "status": "Absent",
+      "timeIn": null,
+      "timeOut": null
+    }
+  ]
+}
+

@@ -29,8 +29,8 @@
         {
           "id": 3,
           "name": "Schedule",
-          "function": "()",
-          "path": "",
+          "function": "Schedule()",
+          "path": "views.Academics.Scheduler.Schedule",
           "access": ["student", "admin"],
           "modulars":[]
         },
@@ -75,8 +75,8 @@
         {
           "id": 8,
           "name": "Events",
-          "function": "()",
-          "path": "",
+          "function": "Events()",
+          "path": "views.Organizations.Events",
           "access": ["student", "admin"],
           "modulars":[]
         }
