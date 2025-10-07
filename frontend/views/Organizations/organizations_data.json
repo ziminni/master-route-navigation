@@ -1,0 +1,572 @@
+{
+    "organizations": [
+        {
+            "id": 1,
+            "name": "CISCo",
+            "is_joined": true,
+            "is_branch": false,
+            "logo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_orgs\\CiSCo Logo.jpg",
+            "brief": "Hello World Mga Negative",
+            "description": "Students and organize events.",
+            "branches": [
+                {
+                    "id": 101,
+                    "name": "IT Branch",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "No Photo",
+                    "brief": "Section for IT enthusiasts.",
+                    "description": "Focus on IT.",
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [
+                        [
+                            "Alex Brown",
+                            "Member"
+                        ],
+                        [
+                            "Sofia Davis",
+                            "Member"
+                        ]
+                    ]
+                },
+                {
+                    "id": 102,
+                    "name": "CS Branch",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "No Photo",
+                    "brief": "Section for CS enthusiasts.",
+                    "description": "Focus on computer science.",
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [
+                        [
+                            "Liam Wilson",
+                            "Member"
+                        ],
+                        [
+                            "Emma Moore",
+                            "Member"
+                        ]
+                    ]
+                }
+            ],
+            "events": [
+                {
+                    "name": "Coding Bootcamp",
+                    "date": "2025-09-25",
+                    "description": "Intensive coding sessions."
+                },
+                {
+                    "name": "Tech Talk Series",
+                    "date": "2025-10-30",
+                    "description": "Guest speakers on tech trends."
+                }
+            ],
+            "officers": [
+                {
+                    "name": "Ruben, Stephen Joseph",
+                    "position": "Treasurer",
+                    "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
+                    "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
+                    "start_date": "07/08/2025"
+                },
+                {
+                    "name": "Pescasio, Jacob Hermon",
+                    "position": "Vice - Internal Chairperson",
+                    "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Internal.jpg",
+                    "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Internal.jpg",
+                    "start_date": "07/08/2025"
+                },
+                {
+                    "name": "Okit, Maki Auri",
+                    "position": "Vice - External Chairperson",
+                    "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\External.jpg",
+                    "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\External.jpg",
+                    "start_date": "07/08/2025"
+                },
+                {
+                    "name": "Unajan, Vianca Louise",
+                    "position": "Secretary",
+                    "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Secretary.jpg",
+                    "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Secretary.jpg",
+                    "start_date": "07/08/2025"
+                },
+                {
+                    "name": "Yuri Salise",
+                    "position": "President",
+                    "card_image_path": "No Photo",
+                    "photo_path": "No Photo",
+                    "start_date": "10/04/2025"
+                }
+            ],
+            "members": [
+                [
+                    "Yuri Salise",
+                    "President",
+                    "Inactive",
+                    "2023-04-09"
+                ],
+                [
+                    "Kurty Salise",
+                    "Member",
+                    "Inactive",
+                    "2023-04-09"
+                ],
+                [
+                    "Mia King",
+                    "Member",
+                    "Active",
+                    "2023-05-12"
+                ],
+                [
+                    "Noah Scott",
+                    "Member",
+                    "Active",
+                    "2023-06-18"
+                ],
+                [
+                    "Jane Smith",
+                    "Member",
+                    "Active",
+                    "2025-10-04"
+                ],
+                [
+                    "Ruben, Stephen Joseph",
+                    "Vice - Internal Chairperson",
+                    "Active",
+                    "07/08/2025"
+                ],
+                [
+                    "Pescasio, Jacob Hermon",
+                    "Vice - Internal Chairperson",
+                    "Active",
+                    "07/08/2025"
+                ],
+                [
+                    "Okit, Maki Auri",
+                    "Vice - External Chairperson",
+                    "Active",
+                    "07/08/2025"
+                ],
+                [
+                    "Unajan, Vianca Louise",
+                    "Secretary",
+                    "Active",
+                    "07/08/2025"
+                ]
+            ],
+            "applicants": [],
+            "officer_history": {
+                "A.Y. 2024-2025 - 1st Semester": [
+                    {
+                        "name": "Sam Foster",
+                        "position": "Lead",
+                        "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Lead.jpg",
+                        "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Lead.jpg",
+                        "start_date": "07/08/2024"
+                    },
+                    {
+                        "name": "Tina Gray",
+                        "position": "Assistant Lead",
+                        "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\AssistantLead.jpg",
+                        "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\AssistantLead.jpg",
+                        "start_date": "07/08/2024"
+                    }
+                ],
+                "A.Y. 2024-2025 - 2nd Semester": [
+                    {
+                        "name": "Uma Harris",
+                        "position": "Lead",
+                        "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Lead2.jpg",
+                        "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Lead2.jpg",
+                        "start_date": "01/15/2025"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 2,
+            "name": "Robotics Club",
+            "is_joined": true,
+            "is_branch": false,
+            "logo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_orgs\\Sample Org 1.jpg",
+            "brief": "Club dedicated to robotics engineering.",
+            "description": "Build and program robots.",
+            "branches": [
+                {
+                    "id": 201,
+                    "name": "Mechanics Branch",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "C:/Users/Yuri/Desktop/v-hub-tester/frontend/assets/organization/sample_orgs/Sample Org 3.png",
+                    "brief": "Focus on robot mechanics.",
+                    "description": "Build mechanical components.",
+                    "events": [],
+                    "officers": [
+                        {
+                            "name": "Okit, Maki Auri",
+                            "position": "Vice - External Chairperson",
+                            "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\External.jpg",
+                            "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\External.jpg",
+                            "start_date": "07/08/2025"
+                        },
+                        {
+                            "name": "Ava White",
+                            "position": "Secretary",
+                            "card_image_path": "No Photo",
+                            "photo_path": "No Photo",
+                            "start_date": "10/07/2025"
+                        }
+                    ],
+                    "members": [
+                        [
+                            "Okit, Maki Auri",
+                            "Vice - External Chairperson",
+                            "Active",
+                            "07/08/2025"
+                        ],
+                        [
+                            "Ava White",
+                            "Secretary",
+                            "Active",
+                            "2025-10-07"
+                        ]
+                    ],
+                    "applicants": [
+                        [
+                            "Oliver Green",
+                            "Member"
+                        ]
+                    ]
+                },
+                {
+                    "id": 202,
+                    "name": "Programming Branch",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "No Photo",
+                    "brief": "Focus on robot programming.",
+                    "description": "Program robots for functionality.",
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [
+                        [
+                            "Ethan Lee",
+                            "Member"
+                        ],
+                        [
+                            "Isabella Clark",
+                            "Member"
+                        ]
+                    ]
+                }
+            ],
+            "events": [
+                {
+                    "name": "Robot Competition",
+                    "date": "2025-11-20",
+                    "description": "Annual robotics challenge."
+                }
+            ],
+            "officers": [
+                {
+                    "name": "Ruben, Stephen Joseph",
+                    "position": "Vice - Internal Chairperson",
+                    "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
+                    "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
+                    "start_date": "07/08/2025"
+                }
+            ],
+            "members": [
+                [
+                    "Sophia Martinez",
+                    "Member",
+                    "Active",
+                    "2025-09-27"
+                ]
+            ],
+            "applicants": [],
+            "officer_history": {}
+        },
+        {
+            "id": 3,
+            "name": "Chess Club",
+            "is_joined": false,
+            "is_branch": false,
+            "logo_path": "C:/Users/Yuri/Desktop/v-hub-tester/frontend/assets/organization/sample_orgs/Sample Org.png",
+            "brief": "Club for chess players.",
+            "description": "Play and learn chess.",
+            "branches": [
+                {
+                    "id": 301,
+                    "name": "Beginner Branch",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "No Photo",
+                    "brief": "Section for beginner chess players.",
+                    "description": "Learn basic chess strategies.",
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [
+                        [
+                            "Mason Adams",
+                            "Member"
+                        ],
+                        [
+                            "Charlotte Baker",
+                            "Member"
+                        ]
+                    ]
+                },
+                {
+                    "id": 302,
+                    "name": "Advanced Branch",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "No Photo",
+                    "brief": "Section for advanced chess players.",
+                    "description": "Compete in advanced chess.",
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [
+                        [
+                            "Elijah Carter",
+                            "Member"
+                        ],
+                        [
+                            "Amelia Diaz",
+                            "Member"
+                        ]
+                    ]
+                }
+            ],
+            "events": [
+                {
+                    "name": "Chess Tournament",
+                    "date": "2025-10-10",
+                    "description": "Inter-club chess matches."
+                }
+            ],
+            "officers": [],
+            "members": [
+                [
+                    "Ira Turner",
+                    "President",
+                    "Active",
+                    "2024-03-01"
+                ],
+                [
+                    "Jade Underwood",
+                    "Member",
+                    "Active",
+                    "2024-04-05"
+                ],
+                [
+                    "Kyle Vargas",
+                    "Member",
+                    "Inactive",
+                    "2024-05-10"
+                ],
+                [
+                    "Lia White",
+                    "Member",
+                    "Active",
+                    "2024-06-15"
+                ]
+            ],
+            "applicants": [
+                [
+                    "James Edwards",
+                    "Member"
+                ],
+                [
+                    "Harper Flores",
+                    "Member"
+                ]
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Debate Team",
+            "is_joined": false,
+            "is_branch": false,
+            "logo_path": "No Photo",
+            "brief": "Team for public speaking and debates.",
+            "description": "Join debates and competitions.",
+            "branches": [
+                {
+                    "id": 401,
+                    "name": "Policy Branch",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "No Photo",
+                    "brief": "Focus on policy debates.",
+                    "description": "Train in policy debate techniques.",
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [
+                        [
+                            "Logan Garcia",
+                            "Member"
+                        ],
+                        [
+                            "Mia Hernandez",
+                            "Member"
+                        ]
+                    ]
+                }
+            ],
+            "events": [
+                {
+                    "name": "Debate Workshop",
+                    "date": "2025-09-15",
+                    "description": "Training on debate techniques."
+                }
+            ],
+            "officers": [],
+            "members": [
+                [
+                    "Max Young",
+                    "President",
+                    "Active",
+                    "2022-01-01"
+                ],
+                [
+                    "Nora Zimmerman",
+                    "Member",
+                    "Active",
+                    "2022-02-05"
+                ],
+                [
+                    "Owen Allen",
+                    "Member",
+                    "Inactive",
+                    "2022-03-10"
+                ],
+                [
+                    "Paula Bell",
+                    "Member",
+                    "Active",
+                    "2022-04-15"
+                ]
+            ],
+            "applicants": [
+                [
+                    "William Jackson",
+                    "Member"
+                ],
+                [
+                    "Evelyn Kim",
+                    "Member"
+                ]
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Eco Warriors",
+            "is_joined": false,
+            "is_branch": false,
+            "logo_path": "No Photo",
+            "brief": "Group focused on sustainability.",
+            "description": "Environmental activities.",
+            "branches": [
+                {
+                    "id": 501,
+                    "name": "Recycling Branch",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "No Photo",
+                    "brief": "Focus on recycling initiatives.",
+                    "description": "Promote recycling practices.",
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [
+                        [
+                            "Daniel Lee",
+                            "Member"
+                        ],
+                        [
+                            "Chloe Martinez",
+                            "Member"
+                        ]
+                    ]
+                },
+                {
+                    "id": 502,
+                    "name": "Conservation Branch",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "No Photo",
+                    "brief": "Focus on conservation efforts.",
+                    "description": "Promote conservation practices.",
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [
+                        [
+                            "Benjamin Nguyen",
+                            "Member"
+                        ],
+                        [
+                            "Lily Patel",
+                            "Member"
+                        ]
+                    ]
+                }
+            ],
+            "events": [
+                {
+                    "name": "Tree Planting",
+                    "date": "2025-10-25",
+                    "description": "Community tree planting event."
+                }
+            ],
+            "officers": [],
+            "members": [
+                [
+                    "Quinn Cook",
+                    "President",
+                    "Active",
+                    "2023-09-01"
+                ],
+                [
+                    "Riley Diaz",
+                    "Member",
+                    "Active",
+                    "2023-10-05"
+                ],
+                [
+                    "Sam Evans",
+                    "Member",
+                    "Inactive",
+                    "2023-11-10"
+                ],
+                [
+                    "Tina Foster",
+                    "Member",
+                    "Active",
+                    "2023-12-15"
+                ]
+            ],
+            "applicants": [
+                [
+                    "Michael Quinn",
+                    "Member"
+                ],
+                [
+                    "Aria Roberts",
+                    "Member"
+                ]
+            ]
+        }
+    ]
+}
