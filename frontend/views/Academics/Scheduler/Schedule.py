@@ -31,12 +31,29 @@ class Schedule(QWidget):
         except Exception:
             pass
 
-        # Tag role and optionally student context on the loaded UI widget
+        # Tag role and student context on the loaded UI widget
         try:
             setattr(loaded, "user_role", "faculty" if is_faculty else "student")
-            # Optionally propagate a student_id if username looks like one
-            if not is_faculty and isinstance(username, str) and username:
-                setattr(loaded, "student_id", username)
+            if not is_faculty:
+                # Prefer a valid student_id; if username isn't an id, fallback to first student in JSON
+                from services.students_service import list_students, get_student_year
+                student_id = username if (isinstance(username, str) and username and username.count("-") == 1) else None
+                if not student_id:
+                    try:
+                        students = list_students() or []
+                        if students:
+                            student_id = students[0].get("studentId")
+                    except Exception:
+                        student_id = None
+                if student_id:
+                    setattr(loaded, "student_id", student_id)
+                    # Optionally tag student_year to help controller restrict years
+                    try:
+                        year = get_student_year(student_id)
+                        if year:
+                            setattr(loaded, "student_year", year)
+                    except Exception:
+                        pass
         except Exception:
             pass
 

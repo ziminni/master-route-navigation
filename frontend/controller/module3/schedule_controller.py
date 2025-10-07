@@ -151,10 +151,7 @@ def _populate_today(window: object, student_id) -> None:
     table = getattr(window, "tableWidget_2", None)
     if not table or not isinstance(table, QTableWidget):
         return
-    # Prefer the explicit student_id parameter; fallback to search box only when searching
-    explicit_id = student_id
-    searching = hasattr(window, "StudentSearch") and window.StudentSearch.isVisible() and window.StudentSearch.text().strip() != ""
-    schedule = load_schedule(window.StudentSearch.text() if searching else explicit_id)
+    schedule = load_schedule(getattr(window, "StudentSearch").text() if hasattr(window, "StudentSearch") else None)
     #This is the key fix VVV
     searching = hasattr(window, "StudentSearch") and window.StudentSearch.isVisible() and window.StudentSearch.text().strip() != ""
     # today = schedule.get("today", []) if isinstance(schedule, dict) else []#This should still refer to the weekly schedule json block, not a separate today

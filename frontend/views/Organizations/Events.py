@@ -7,9 +7,12 @@ class Events(QMainWindow):
     def __init__(self, username: str = "", roles=None, primary_role: str = "", token: str = ""):
         super().__init__()
         # Choose UI based on role: Faculty vs Student/Org Officer
-        is_faculty = (primary_role == "faculty") or (roles and "faculty" in roles)
-        # Only treat as org_officer when it's the primary role to avoid students with extra roles seeing the wrong UI
-        is_org_officer = (primary_role == "org_officer")
+        # Normalize roles to a set of strings for robust checks
+        normalized_roles = set(roles or [])
+        if isinstance(primary_role, str) and primary_role:
+            normalized_roles.add(primary_role)
+        is_faculty = "faculty" in normalized_roles
+        is_org_officer = "org_officer" in normalized_roles
         base_dir = os.path.dirname(__file__)
         users_root = os.path.join(base_dir, "Module-6_Event_Manager", "Users")
 
