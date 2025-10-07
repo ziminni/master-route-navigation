@@ -4,6 +4,7 @@ from PyQt6 import uic
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QHeaderView, QWidget, QPushButton, QTableWidget, QTableWidgetItem
 )
+from datetime import datetime
 
 def ui_path(filename):
     # Returns the absolute path to the shared ui file under frontend/ui/Event Manager
@@ -90,11 +91,107 @@ class EventManagerStudent(QWidget):
 
         # Attendance will be lazy-loaded by the controller when needed
 
+        # Fit tables if present
+        if hasattr(self, "EventT_Table") and hasattr(self.EventT_Table, "horizontalHeader"):
+            self.EventT_Table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        if hasattr(self, "Events_table") and hasattr(self.Events_table, "horizontalHeader"):
+            self.Events_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        # Populate weekly and today schedules from event timeline JSON
+        self._load_and_render_schedules()
+
     def show_attendance_page(self):
         self.stackedWidget.setCurrentIndex(1)  # Show attendance page
 
     def show_main_page(self):
         self.stackedWidget.setCurrentIndex(0)  # Show main page
+
+    # --- Internal helpers for schedules ---
+    def _load_and_render_schedules(self) -> None:
+        try:
+            from services.event_timeline_service import load_timeline
+            from services.event_proposal_service import list_proposals
+        except Exception:
+            load_timeline = None
+            list_proposals = None
+        event_name = None
+        if list_proposals:
+            try:
+                proposals = list_proposals() or []
+                if proposals:
+                    event_name = proposals[0].get("eventName")
+            except Exception:
+                pass
+        data = load_timeline(event_name) if load_timeline else {"timeline": []}
+        timeline_items = data.get("timeline", []) if isinstance(data, dict) else []
+        self._populate_weekly_from_timeline(timeline_items)
+        self._populate_today_from_timeline(timeline_items)
+
+    def _populate_weekly_from_timeline(self, items: list[dict]) -> None:
+        table = getattr(self, "EventT_Table", None)
+        if not isinstance(table, QTableWidget):
+            return
+        days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        times = [
+            "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
+            "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM",
+            "5:00 PM", "6:00 PM", "7:00 PM",
+        ]
+        # Set headers
+        table.setRowCount(len(times))
+        table.setColumnCount(len(days))
+        for r, label in enumerate(times):
+            table.setVerticalHeaderItem(r, QTableWidgetItem(label))
+            for c in range(len(days)):
+                table.setItem(r, c, QTableWidgetItem(""))
+        for c, d in enumerate(days):
+            table.setHorizontalHeaderItem(c, QTableWidgetItem(d))
+        # Place activities
+        for it in items:
+            day = it.get("day")
+            time24 = it.get("time")
+            activity = it.get("activity", "")
+            if not (day and time24 and activity and day in days):
+                continue
+            try:
+                label = datetime.strptime(time24, "%H:%M").strftime("%I:%M %p").lstrip("0")
+            except Exception:
+                label = time24
+            if label not in times:
+                continue
+            r = times.index(label)
+            c = days.index(day)
+            table.setItem(r, c, QTableWidgetItem(activity))
+
+    def _populate_today_from_timeline(self, items: list[dict]) -> None:
+        table = getattr(self, "Events_table", None)
+        if not isinstance(table, QTableWidget):
+            return
+        times = [
+            "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
+            "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM",
+            "5:00 PM", "6:00 PM", "7:00 PM",
+        ]
+        today_name = datetime.now().strftime("%A")
+        table.setRowCount(len(times))
+        table.setColumnCount(1)
+        for r, label in enumerate(times):
+            table.setVerticalHeaderItem(r, QTableWidgetItem(label))
+            table.setItem(r, 0, QTableWidgetItem(""))
+        # Filter today's items
+        todays = [it for it in items if it.get("day") == today_name]
+        for it in todays:
+            time24 = it.get("time")
+            activity = it.get("activity", "")
+            if not time24:
+                continue
+            try:
+                label = datetime.strptime(time24, "%H:%M").strftime("%I:%M %p").lstrip("0")
+            except Exception:
+                label = time24
+            if label in times:
+                r = times.index(label)
+                table.setItem(r, 0, QTableWidgetItem(activity))
 
 if __name__ == "__main__":
     app = QApplication([])
