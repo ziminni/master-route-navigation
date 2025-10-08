@@ -18,64 +18,13 @@ class Student(User):
         super().__init__(name=student_name)
         self.ui = Ui_Widget()
         self.ui.setupUi(self)
+        self._apply_table_style()
         self.joined_org_count: int = 0
         self.table = self.findChild(QtWidgets.QTableView, "list_view")
-        self._apply_table_style()
         self._setup_no_member_label()
         self.ui.verticalLayout_17.addWidget(self.no_member_label)
         self._setup_connections()
         self.load_orgs()
-
-    def _apply_table_style(self) -> None:
-        """Apply modern stylesheet for the members QTableView."""
-        table = self.ui.list_view
-        table.setAlternatingRowColors(True)
-
-        palette = table.palette()
-        palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor("white"))
-        palette.setColor(QtGui.QPalette.ColorRole.AlternateBase, QtGui.QColor("#f6f8fa"))
-        table.setPalette(palette)
-
-        table.setStyleSheet("""
-        QTableView {
-            border: none;
-            gridline-color: #084924;
-            font-size: 14px;
-            selection-background-color: #FDC601;
-            selection-color: white;
-        }
-        QTableView::item {
-            padding: 7px;
-        }
-        QTableView::item:hover {
-            background-color: #FDC601;
-            color: black;
-        }
-        """)
-
-        header = table.horizontalHeader()
-        header.setStyleSheet("""
-        QHeaderView::section {
-            background-color: #084924;
-            color: white;
-            font-weight: bold;
-            padding: 6px;
-            border: none;
-        }
-        QHeaderView::section:hover {
-            background-color: #098f42;
-        }
-        QHeaderView::section:first {
-            border-top-left-radius: 10px;
-        }
-        QHeaderView::section:last {
-            border-top-right-radius: 10px;
-        }
-        """)
-
-        header.setStretchLastSection(True)
-        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
-        table.verticalHeader().setVisible(False)
 
     def _setup_connections(self) -> None:
         """Set up signal-slot connections."""
@@ -186,7 +135,6 @@ class Student(User):
         model = ViewMembers(filtered_members, is_managing=False)
         self.ui.list_view.setModel(model)
 
-        # Reapply styling every time table reloads
         self._apply_table_style()
 
         if filtered_members:

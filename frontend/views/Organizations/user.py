@@ -4,7 +4,10 @@ import sys
 import copy
 from typing import List, Dict, Optional
 from PyQt6 import QtWidgets, QtCore, QtGui
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from frontend.widgets.orgs_custom_widgets.tables import ActionDelegate
 
 class User(QtWidgets.QWidget):
     def __init__(self, name: str = "User", parent: Optional[QtWidgets.QWidget] = None):
@@ -17,6 +20,72 @@ class User(QtWidgets.QWidget):
         self.officer_count = 0
         self.college_org_count = 0
         self.data_file = os.path.join(os.path.dirname(__file__), 'organizations_data.json')
+
+    def _apply_table_style(self) -> None:
+        """Apply modern stylesheet for the members QTableView."""
+        table = self.ui.list_view
+        table.setAlternatingRowColors(True)
+
+        table.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                            QtWidgets.QSizePolicy.Policy.Expanding)
+
+        palette = table.palette()
+        palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor("white"))
+        palette.setColor(QtGui.QPalette.ColorRole.AlternateBase, QtGui.QColor("#f6f8fa"))
+        table.setPalette(palette)
+
+        table.setStyleSheet("""
+        QTableView {
+            border-radius: 10px;
+            background-color: white;
+            gridline-color: #084924;
+            font-size: 14px;
+            selection-background-color: #FDC601;
+            selection-color: black;
+        }
+        QTableView::item {
+            padding: 7px;
+        }
+        QTableView::item:hover {
+            background-color: #FDC601;
+            color: black;
+        }
+        """)
+
+        header = table.horizontalHeader()
+        header.setStyleSheet("""
+        QHeaderView::section {
+            background-color: #084924;
+            color: white;
+            font-weight: bold;
+            padding: 6px;
+            border: none;
+        }
+        QHeaderView::section:hover {
+            background-color: #098f42;
+        }
+        QHeaderView::section:first {
+            border-top-left-radius: 10px;
+        }
+        QHeaderView::section:last {
+            border-top-right-radius: 10px;
+        }
+        """)
+
+        table.verticalHeader().setVisible(False)
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+
+        model = table.model()
+        if model is not None and model.columnCount() > 0:
+            last_header = model.headerData(model.columnCount() - 1, QtCore.Qt.Orientation.Horizontal)
+            if last_header == "Actions":
+                action_column_index = model.columnCount() - 1
+
+                header.setSectionResizeMode(action_column_index, QtWidgets.QHeaderView.ResizeMode.Interactive)
+                header.resizeSection(action_column_index, 200)
+
+                table.setItemDelegateForColumn(action_column_index, ActionDelegate(table))
 
     def _load_data(self) -> List[Dict]:
         """Load organization and branch data from JSON file."""

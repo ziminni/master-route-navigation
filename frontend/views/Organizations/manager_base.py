@@ -6,7 +6,6 @@ from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtWidgets import QMessageBox
 from typing import Dict, List, Optional, Tuple
 
-
 class ManagerBase:
     """Mixin class providing member and applicant management functionality."""
     
@@ -198,8 +197,11 @@ class ManagerBase:
                     action_widget
                 )
             
-            self._setup_member_header_with_applicants_btn()
-    
+            if self.is_managing:
+                self._setup_member_header_with_applicants_btn()
+        
+        self._apply_table_style()
+
     def load_applicants(self, search_text: str = ""):
         """Load and filter applicants into the table view with action controls."""
         from frontend.widgets.orgs_custom_widgets.tables import ViewApplicants
@@ -249,6 +251,7 @@ class ManagerBase:
         
         self._setup_applicant_header()
         self.is_viewing_applicants = True
+        self._apply_table_style()
     
     def accept_applicant(self, row: int):
         """Confirm and move applicant to members."""

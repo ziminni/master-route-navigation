@@ -20,6 +20,7 @@ class Admin(ManagerBase, User):
         
         self.ui = Ui_Widget()
         self.ui.setupUi(self)
+        self._apply_table_style()
         self.ui.joined_container.setVisible(False)
         
         self.table = self.findChild(QtWidgets.QTableView, "list_view")
@@ -324,7 +325,6 @@ class Admin(ManagerBase, User):
         self.load_members(self._get_search_text())
         self.ui.stacked_widget.setCurrentIndex(2)
     
-    # --- FIX 3: Update _return_to_prev_page to call the helper when returning to page 0 ---
     def _return_to_prev_page(self) -> None:
         """Navigate back to the previous page, handling applicants view."""
         if self.ui.stacked_widget.currentIndex() == 2:
@@ -334,12 +334,10 @@ class Admin(ManagerBase, User):
             else:
                 self.ui.stacked_widget.setCurrentIndex(1)
         else:
-            # Code runs when returning to the main landing page (index 0)
             if self.ui.comboBox.currentIndex() == 0:
                 self.load_orgs()
             else:
                 self.load_branches()
             self.ui.stacked_widget.setCurrentIndex(0)
             
-            # Reposition the button to account for potential window resizing
             self._reposition_create_button()

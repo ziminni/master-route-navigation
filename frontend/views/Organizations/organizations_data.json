@@ -439,7 +439,15 @@
                     "description": "Training on debate techniques."
                 }
             ],
-            "officers": [],
+            "officers": [
+                {
+                    "name": "Max Young",
+                    "position": "President",
+                    "card_image_path": "No Photo",
+                    "photo_path": "No Photo",
+                    "start_date": "10/08/2025"
+                }
+            ],
             "members": [
                 [
                     "Max Young",
@@ -464,13 +472,15 @@
                     "Member",
                     "Active",
                     "2022-04-15"
+                ],
+                [
+                    "William Jackson",
+                    "Member",
+                    "Active",
+                    "2025-10-08"
                 ]
             ],
             "applicants": [
-                [
-                    "William Jackson",
-                    "Member"
-                ],
                 [
                     "Evelyn Kim",
                     "Member"

@@ -20,6 +20,7 @@ class Faculty(ManagerBase, User):
         
         self.ui = Ui_Widget()
         self.ui.setupUi(self)
+        self._apply_table_style()
         self.ui.joined_container.setVisible(False)
         
         self.table = self.findChild(QtWidgets.QTableView, "list_view")
