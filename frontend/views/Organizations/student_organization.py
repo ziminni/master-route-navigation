@@ -1,6 +1,5 @@
-from PyQt6 import QtWidgets, QtCore
+from PyQt6 import QtWidgets, QtCore, QtGui
 import sys
-
 import os
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
@@ -13,6 +12,7 @@ from frontend.widgets.orgs_custom_widgets.dialogs import OfficerDialog
 from frontend.widgets.orgs_custom_widgets.tables import ViewMembers
 from frontend.ui.Organization.org_main_ui import Ui_Widget
 
+
 class Student(User):
     def __init__(self, student_name: str = "Student"):
         super().__init__(name=student_name)
@@ -20,10 +20,62 @@ class Student(User):
         self.ui.setupUi(self)
         self.joined_org_count: int = 0
         self.table = self.findChild(QtWidgets.QTableView, "list_view")
+        self._apply_table_style()
         self._setup_no_member_label()
         self.ui.verticalLayout_17.addWidget(self.no_member_label)
         self._setup_connections()
         self.load_orgs()
+
+    def _apply_table_style(self) -> None:
+        """Apply modern stylesheet for the members QTableView."""
+        table = self.ui.list_view
+        table.setAlternatingRowColors(True)
+
+        palette = table.palette()
+        palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor("white"))
+        palette.setColor(QtGui.QPalette.ColorRole.AlternateBase, QtGui.QColor("#f6f8fa"))
+        table.setPalette(palette)
+
+        table.setStyleSheet("""
+        QTableView {
+            border: none;
+            gridline-color: #084924;
+            font-size: 14px;
+            selection-background-color: #FDC601;
+            selection-color: white;
+        }
+        QTableView::item {
+            padding: 7px;
+        }
+        QTableView::item:hover {
+            background-color: #FDC601;
+            color: black;
+        }
+        """)
+
+        header = table.horizontalHeader()
+        header.setStyleSheet("""
+        QHeaderView::section {
+            background-color: #084924;
+            color: white;
+            font-weight: bold;
+            padding: 6px;
+            border: none;
+        }
+        QHeaderView::section:hover {
+            background-color: #098f42;
+        }
+        QHeaderView::section:first {
+            border-top-left-radius: 10px;
+        }
+        QHeaderView::section:last {
+            border-top-right-radius: 10px;
+        }
+        """)
+
+        header.setStretchLastSection(True)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        table.verticalHeader().setVisible(False)
 
     def _setup_connections(self) -> None:
         """Set up signal-slot connections."""
@@ -40,7 +92,10 @@ class Student(User):
         self.no_member_label = QtWidgets.QLabel("No Record(s) Found", self.ui.list_container)
         self.no_member_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.no_member_label.setStyleSheet("font-size: 20px;")
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Expanding
+        )
         self.no_member_label.setSizePolicy(sizePolicy)
         self.no_member_label.hide()
 
@@ -62,8 +117,14 @@ class Student(User):
         self.joined_org_count = 0
         self.college_org_count = 0
 
-        filtered_joined = [org for org in organizations if org["is_joined"] and not org["is_branch"] and (search_text in org["name"].lower() or not search_text)]
-        filtered_college = [org for org in organizations if not org["is_branch"] and (search_text in org["name"].lower() or not search_text)]
+        filtered_joined = [
+            org for org in organizations
+            if org["is_joined"] and not org["is_branch"] and (search_text in org["name"].lower() or not search_text)
+        ]
+        filtered_college = [
+            org for org in organizations
+            if not org["is_branch"] and (search_text in org["name"].lower() or not search_text)
+        ]
 
         for org in filtered_joined:
             self._add_joined_org(org)
@@ -124,8 +185,9 @@ class Student(User):
 
         model = ViewMembers(filtered_members, is_managing=False)
         self.ui.list_view.setModel(model)
-        self.ui.list_view.horizontalHeader().setStretchLastSection(True)
-        self.ui.list_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+
+        # Reapply styling every time table reloads
+        self._apply_table_style()
 
         if filtered_members:
             self.ui.list_view.show()
@@ -138,7 +200,7 @@ class Student(User):
         """Handle combo box change to switch between organizations and branches."""
         self.ui.joined_label.setText("Joined Organization(s)" if index == 0 else "Joined Branch(es)")
         self.ui.college_label.setText("College Organization(s)" if index == 0 else "College Branch(es)")
-        self.load_orgs() if self.ui.comboBox.currentIndex() == 0 else self.load_branches()
+        self.load_orgs() if index == 0 else self.load_branches()
         self.ui.joined_org_scrollable.verticalScrollBar().setValue(0)
         self.ui.college_org_scrollable.verticalScrollBar().setValue(0)
 
@@ -147,19 +209,23 @@ class Student(User):
         card = JoinedOrgCard(self._get_logo_path(org_data["logo_path"]), org_data, self)
         col = self.joined_org_count % 5
         row = self.joined_org_count // 5
-        self.ui.joined_org_grid.addWidget(card, row, col, alignment=QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignHCenter)
+        self.ui.joined_org_grid.addWidget(
+            card, row, col, alignment=QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignHCenter
+        )
         self.joined_org_count += 1
         self.ui.joined_org_grid.setRowMinimumHeight(row, 300)
 
     def _add_college_org(self, org_data: Dict) -> None:
         """Add a college organization card to the grid."""
         card = CollegeOrgCard(
-            self._get_logo_path(org_data["logo_path"]), org_data["description"],
-            org_data, self
+            self._get_logo_path(org_data["logo_path"]),
+            org_data["description"], org_data, self
         )
         col = self.college_org_count % 5
         row = self.college_org_count // 5
-        self.ui.college_org_grid.addWidget(card, row, col, alignment=QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignHCenter)
+        self.ui.college_org_grid.addWidget(
+            card, row, col, alignment=QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignHCenter
+        )
         self.college_org_count += 1
         self.ui.college_org_grid.setRowMinimumHeight(row, 300)
 
@@ -172,7 +238,11 @@ class Student(User):
         if not self.current_org:
             return
         selected_semester = self.ui.officer_history_dp.itemText(index)
-        officers = self.current_org.get("officer_history", {}).get(selected_semester, []) if selected_semester != "Current Officers" else self.current_org.get("officers", [])
+        officers = (
+            self.current_org.get("officer_history", {}).get(selected_semester, [])
+            if selected_semester != "Current Officers"
+            else self.current_org.get("officers", [])
+        )
         self.load_officers(officers)
 
     def _to_members_page(self) -> None:
