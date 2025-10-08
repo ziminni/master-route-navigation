@@ -5,7 +5,7 @@
             "name": "CISCo",
             "is_joined": true,
             "is_branch": false,
-            "logo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_orgs\\CiSCo Logo.jpg",
+            "logo_path": "frontend\\assets\\organization\\sample_orgs\\CiSCo Logo.jpg",
             "brief": "Hello World Mga Negative",
             "description": "Students and organize events.",
             "branches": [
@@ -70,29 +70,29 @@
                 {
                     "name": "Ruben, Stephen Joseph",
                     "position": "Treasurer",
-                    "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
-                    "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
+                    "card_image_path": "frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
+                    "photo_path": "frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
                     "start_date": "07/08/2025"
                 },
                 {
                     "name": "Pescasio, Jacob Hermon",
                     "position": "Vice - Internal Chairperson",
-                    "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Internal.jpg",
-                    "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Internal.jpg",
+                    "card_image_path": "frontend\\assets\\organization\\sample_officers\\Internal.jpg",
+                    "photo_path": "frontend\\assets\\organization\\sample_officers\\Internal.jpg",
                     "start_date": "07/08/2025"
                 },
                 {
                     "name": "Okit, Maki Auri",
                     "position": "Vice - External Chairperson",
-                    "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\External.jpg",
-                    "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\External.jpg",
+                    "card_image_path": "frontend\\assets\\organization\\sample_officers\\External.jpg",
+                    "photo_path": "frontend\\assets\\organization\\sample_officers\\External.jpg",
                     "start_date": "07/08/2025"
                 },
                 {
                     "name": "Unajan, Vianca Louise",
                     "position": "Secretary",
-                    "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Secretary.jpg",
-                    "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Secretary.jpg",
+                    "card_image_path": "frontend\\assets\\organization\\sample_officers\\Secretary.jpg",
+                    "photo_path": "frontend\\assets\\organization\\sample_officers\\Secretary.jpg",
                     "start_date": "07/08/2025"
                 },
                 {
@@ -165,15 +165,15 @@
                     {
                         "name": "Sam Foster",
                         "position": "Lead",
-                        "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Lead.jpg",
-                        "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Lead.jpg",
+                        "card_image_path": "frontend\\assets\\organization\\sample_officers\\Lead.jpg",
+                        "photo_path": "frontend\\assets\\organization\\sample_officers\\Lead.jpg",
                         "start_date": "07/08/2024"
                     },
                     {
                         "name": "Tina Gray",
                         "position": "Assistant Lead",
-                        "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\AssistantLead.jpg",
-                        "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\AssistantLead.jpg",
+                        "card_image_path": "frontend\\assets\\organization\\sample_officers\\AssistantLead.jpg",
+                        "photo_path": "frontend\\assets\\organization\\sample_officers\\AssistantLead.jpg",
                         "start_date": "07/08/2024"
                     }
                 ],
@@ -181,8 +181,8 @@
                     {
                         "name": "Uma Harris",
                         "position": "Lead",
-                        "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Lead2.jpg",
-                        "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Lead2.jpg",
+                        "card_image_path": "frontend\\assets\\organization\\sample_officers\\Lead2.jpg",
+                        "photo_path": "frontend\\assets\\organization\\sample_officers\\Lead2.jpg",
                         "start_date": "01/15/2025"
                     }
                 ]
@@ -193,7 +193,7 @@
             "name": "Robotics Club",
             "is_joined": true,
             "is_branch": false,
-            "logo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_orgs\\Sample Org 1.jpg",
+            "logo_path": "frontend\\assets\\organization\\sample_orgs\\Sample Org 1.jpg",
             "brief": "Club dedicated to robotics engineering.",
             "description": "Build and program robots.",
             "branches": [
@@ -210,8 +210,8 @@
                         {
                             "name": "Okit, Maki Auri",
                             "position": "Vice - External Chairperson",
-                            "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\External.jpg",
-                            "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\External.jpg",
+                            "card_image_path": "frontend\\assets\\organization\\sample_officers\\External.jpg",
+                            "photo_path": "frontend\\assets\\organization\\sample_officers\\External.jpg",
                             "start_date": "07/08/2025"
                         },
                         {
@@ -277,8 +277,8 @@
                 {
                     "name": "Ruben, Stephen Joseph",
                     "position": "Vice - Internal Chairperson",
-                    "card_image_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
-                    "photo_path": "C:\\Users\\Yuri\\Desktop\\v-hub-tester\\frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
+                    "card_image_path": "frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
+                    "photo_path": "frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
                     "start_date": "07/08/2025"
                 }
             ],
