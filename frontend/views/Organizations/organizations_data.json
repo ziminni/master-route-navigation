@@ -585,6 +585,37 @@
                     "Member"
                 ]
             ]
+        },
+        {
+            "applicants": [],
+            "branches": [
+                {
+                    "id": 601,
+                    "name": "Heeloo",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "No Photo",
+                    "brief": "",
+                    "description": "",
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [],
+                    "officer_history": {},
+                    "parent_id": 6
+                }
+            ],
+            "brief": "",
+            "description": "",
+            "events": [],
+            "id": 6,
+            "is_branch": false,
+            "is_joined": false,
+            "logo_path": "No Photo",
+            "members": [],
+            "name": "W",
+            "officer_history": {},
+            "officers": []
         }
     ]
 }

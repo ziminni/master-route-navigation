@@ -363,3 +363,230 @@ class EditMemberDialog(BlurredDialog):
         
         self.updated_position = new_position
         self.accept()
+
+class CreateOrgDialog(BlurredDialog):
+    def __init__(self, parent, is_branch: bool = False):
+        super().__init__(parent)
+        self.parent_window = parent
+        self.is_branch = is_branch
+        self.setWindowTitle(f"Create {'Branch' if is_branch else 'Organization'}")
+        self.setFixedSize(600, 500)
+
+        main_layout = QtWidgets.QVBoxLayout(self)
+
+        # Name input
+        name_layout = QtWidgets.QHBoxLayout()
+        name_layout.addWidget(QtWidgets.QLabel("Name:"))
+        self.name_edit = QtWidgets.QLineEdit()
+        self.name_edit.setStyleSheet("border-radius: 10px; padding: 10px; border: 1px solid #084924; color: #084924;")
+        name_layout.addWidget(self.name_edit)
+        main_layout.addLayout(name_layout)
+
+        if is_branch:
+            parent_layout = QtWidgets.QHBoxLayout()
+            parent_label = QtWidgets.QLabel("Parent Organization:")
+            parent_label.setStyleSheet("font-weight: bold; color: #084924;")
+            parent_layout.addWidget(parent_label)
+            self.parent_combo = QtWidgets.QComboBox()
+            self.parent_combo.setStyleSheet("border-radius: 10px; padding: 10px; border: 1px solid #084924; color: #084924;")
+            
+            # Load organizations and populate combo box
+            organizations = self.parent_window._load_data()
+            parent_orgs = [org for org in organizations if not org.get("is_branch", False)]
+            
+            if not parent_orgs:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "No Organizations",
+                    "No parent organizations available. Please create an organization first.",
+                    QtWidgets.QMessageBox.StandardButton.Ok
+                )
+                self.reject()
+                return
+            
+            for org in parent_orgs:
+                self.parent_combo.addItem(org["name"], org)
+            
+            parent_layout.addWidget(self.parent_combo)
+            main_layout.addLayout(parent_layout)
+
+        # Content layout
+        content_layout = QtWidgets.QHBoxLayout()
+
+        # Left: Logo preview and browse
+        left_widget = QtWidgets.QWidget()
+        left_layout = QtWidgets.QVBoxLayout(left_widget)
+        self.preview_label = QtWidgets.QLabel()
+        self.preview_label.setFixedSize(200, 200)
+        self.preview_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.parent_window.set_circular_logo(self.preview_label, "No Photo")
+        left_layout.addWidget(self.preview_label)
+
+        browse_btn = QtWidgets.QPushButton("Browse Image")
+        browse_btn.setStyleSheet("""
+            border: 2px solid #084924; 
+            background-color: transparent;
+            border-radius: 10px;
+            padding: 5px;
+            color: #084924;
+        """)
+        browse_btn.clicked.connect(self.browse_image)
+        left_layout.addWidget(browse_btn)
+
+        content_layout.addWidget(left_widget)
+
+        # Right: Brief and Description
+        right_widget = QtWidgets.QWidget()
+        right_layout = QtWidgets.QVBoxLayout(right_widget)
+
+        brief_label = QtWidgets.QLabel("Brief Overview")
+        brief_label.setStyleSheet("color: #084924; text-decoration: underline #084924;")
+
+        right_layout.addWidget(brief_label)
+        self.brief_edit = QtWidgets.QTextEdit()
+        self.brief_edit.setStyleSheet("")
+        right_layout.addWidget(self.brief_edit)
+
+        obj_label = QtWidgets.QLabel("Description")
+        obj_label.setStyleSheet("color: #084924; text-decoration: underline #084924;")
+
+        right_layout.addWidget(obj_label)
+        self.desc_edit = QtWidgets.QTextEdit()
+        right_layout.addWidget(self.desc_edit)
+
+        content_layout.addWidget(right_widget)
+        main_layout.addLayout(content_layout)
+
+        # Buttons
+        btn_layout = QtWidgets.QHBoxLayout()
+        confirm_btn = QtWidgets.QPushButton("Confirm")
+        confirm_btn.setStyleSheet("""
+            border: 2px solid #084924; 
+            background-color: #084924;
+            border-radius: 10px;
+            padding: 5px;
+            color: white;
+        """)
+        confirm_btn.clicked.connect(self.confirm)
+        cancel_btn = QtWidgets.QPushButton("Cancel")
+        cancel_btn.setStyleSheet("""
+            border: 2px solid #EB5757; 
+            background-color: #EB5757;
+            border-radius: 10px;
+            padding: 5px;
+            color: white;
+        """)
+        cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(confirm_btn)
+        btn_layout.addWidget(cancel_btn)
+        main_layout.addLayout(btn_layout)
+
+    def browse_image(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Select Logo Image", "", "Image Files (*.png *.jpg *.jpeg *.bmp)"
+        )
+        if file_path:
+            self.logo_path = file_path
+            self.parent_window.set_circular_logo(self.preview_label, file_path)
+        else:
+            self.logo_path = "No Photo"
+
+    def confirm(self):
+        name = self.name_edit.text().strip()
+        if not name:
+            QtWidgets.QMessageBox.warning(self, "Invalid Input", "Name is required.")
+            return
+
+        brief = self.brief_edit.toPlainText().strip()
+        description = self.desc_edit.toPlainText().strip()
+        logo_path = getattr(self, 'logo_path', 'No Photo')
+
+        new_org = {
+            "id": None,  # Set later
+            "name": name,
+            "is_joined": False,
+            "is_branch": self.is_branch,
+            "logo_path": logo_path,
+            "brief": brief,
+            "description": description,
+            "events": [],
+            "officers": [],
+            "members": [],
+            "applicants": [],
+            "officer_history": {}
+        }
+        
+        # Only add branches key for organizations, not for branches
+        if not self.is_branch:
+            new_org["branches"] = []
+
+        organizations = self.parent_window._load_data()
+        
+        if self.is_branch:
+            if self.parent_combo.count() == 0:
+                QtWidgets.QMessageBox.warning(self, "Invalid Input", "No parent organizations available.")
+                return
+            
+            parent_org = self.parent_combo.currentData()
+            if not parent_org:
+                QtWidgets.QMessageBox.warning(self, "Invalid Input", "Please select a parent organization.")
+                return
+            
+            # Set ID for branch based on parent ID
+            branch_count = len(parent_org.get("branches", []))
+            new_org["id"] = parent_org["id"] * 100 + branch_count + 1
+            new_org["parent_id"] = parent_org["id"]  # Store parent reference
+            
+            # Add to parent's branches
+            if "branches" not in parent_org:
+                parent_org["branches"] = []
+            parent_org["branches"].append(new_org)
+            
+            # Update the parent organization in the organizations list
+            for i, org in enumerate(organizations):
+                if org["id"] == parent_org["id"]:
+                    organizations[i] = parent_org
+                    break
+            
+            print(f"[v0] Created branch '{name}' under parent org '{parent_org['name']}' with ID {new_org['id']}")
+        else:
+            # Set ID for org
+            max_id = max([org.get("id", 0) for org in organizations], default=0)
+            new_org["id"] = max_id + 1
+            # Add to organizations
+            organizations.append(new_org)
+            print(f"[v0] Created organization '{name}' with ID {new_org['id']}")
+
+        import json
+        try:
+            with open(self.parent_window.data_file, 'w') as file:
+                json.dump({"organizations": organizations}, file, indent=4)
+            print(f"[v0] Successfully saved new {'branch' if self.is_branch else 'organization'} to {self.parent_window.data_file}")
+        except Exception as e:
+            print(f"[v0] Error saving {self.parent_window.data_file}: {str(e)}")
+            QtWidgets.QMessageBox.critical(self, "Save Error", f"Failed to save data: {str(e)}")
+            return
+        
+        if self.is_branch:
+            # If we're currently viewing branches, reload branches
+            if hasattr(self.parent_window.ui, 'comboBox') and self.parent_window.ui.comboBox.currentIndex() == 1:
+                self.parent_window.load_branches()
+            else:
+                # Switch to branches view and load
+                if hasattr(self.parent_window.ui, 'comboBox'):
+                    self.parent_window.ui.comboBox.setCurrentIndex(1)
+                self.parent_window.load_branches()
+        else:
+            # Reload organizations view
+            if hasattr(self.parent_window.ui, 'comboBox'):
+                self.parent_window.ui.comboBox.setCurrentIndex(0)
+            self.parent_window.load_orgs()
+        
+        QtWidgets.QMessageBox.information(
+            self,
+            "Success",
+            f"{'Branch' if self.is_branch else 'Organization'} '{name}' created successfully!",
+            QtWidgets.QMessageBox.StandardButton.Ok
+        )
+        
+        self.accept()

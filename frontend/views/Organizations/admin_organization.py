@@ -8,7 +8,7 @@ sys.path.append(project_root)
 from typing import Dict
 from frontend.views.Organizations.user import User
 from frontend.views.Organizations.manager_base import ManagerBase
-from frontend.widgets.orgs_custom_widgets.dialogs import OfficerDialog
+from frontend.widgets.orgs_custom_widgets.dialogs import OfficerDialog, CreateOrgDialog
 from frontend.ui.Organization.org_main_ui import Ui_Widget
 
 class Admin(ManagerBase, User):
@@ -148,7 +148,6 @@ class Admin(ManagerBase, User):
     
     def _create_organization(self) -> None:
         """Handle create organization/branch action."""
-        # Placeholder for create organization functionality
         from PyQt6.QtWidgets import QInputDialog
         
         items = ["Organization", "Branch"]
@@ -162,11 +161,9 @@ class Admin(ManagerBase, User):
         )
         
         if ok and item:
-            QtWidgets.QMessageBox.information(
-                self,
-                f"Create {item}",
-                f"Create {item} dialog will be implemented here."
-            )
+            is_branch = item == "Branch"
+            dialog = CreateOrgDialog(self, is_branch=is_branch)
+            dialog.exec()
     
     def show_officer_dialog(self, officer_data: Dict) -> None:
         """Display officer details in a dialog."""

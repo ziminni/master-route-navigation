@@ -186,7 +186,16 @@ class User(QtWidgets.QWidget):
         self.ui.org_type.setText("Branch" if org_data["is_branch"] else "Organization")
         self.ui.brief_label.setText(org_data.get("brief", "No brief available"))
         self.ui.obj_label.setText(org_data.get("description", "No description available"))
-        self.ui.obj_label_2.setText("\n".join([branch["name"] for branch in org_data.get("branches", [])]) or "No branches available")
+        
+        branches = org_data.get("branches")
+        if branches is None or not isinstance(branches, list):
+            branches_text = "No branches available"
+        elif len(branches) == 0:
+            branches_text = "No branches available"
+        else:
+            branches_text = "\n".join([branch.get("name", "Unnamed") for branch in branches])
+        self.ui.obj_label_2.setText(branches_text)
+        
         self.set_circular_logo(self.ui.logo, self._get_logo_path(org_data["logo_path"]))
         
         self.ui.officer_history_dp.clear()
