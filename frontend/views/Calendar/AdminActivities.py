@@ -1,5 +1,6 @@
 # AdminActivities.py
 import requests
+from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
     QMessageBox, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, QListWidget
@@ -475,7 +476,7 @@ class AdminActivities(QWidget):
         self.activities_table.setSortingEnabled(True)
     
     def populate_upcoming_events(self, activities):
-        """Populate the upcoming events list with activity data"""
+        """Populate the upcoming events list with activity data - FIXED to filter and sort"""
         self.list_upcoming.clear()
         
         # Define emoji icons for each event type
@@ -486,10 +487,66 @@ class AdminActivities(QWidget):
             "Holiday": "🔴"
         }
         
-        for activity in activities:
+        # Filter and sort upcoming events
+        upcoming_events = self._filter_upcoming_events(activities)
+        
+        for activity in upcoming_events:
             icon = type_icons.get(activity["type"], "⚪")
             event_text = f"{icon} {activity['event']}\n    {activity['date_time'].replace(chr(10), ' - ')}"
             self.list_upcoming.addItem(event_text)
+    
+    def _filter_upcoming_events(self, events):
+        """
+        Filter events to show only upcoming events (today onwards) and sort by date.
+        Events that ended before today are excluded.
+        
+        Returns:
+            list: Sorted list of upcoming events (nearest date first)
+        """
+        today = datetime.now().date()
+        upcoming = []
+        
+        for event in events:
+            # Parse the date_time field
+            date_str = event.get('date_time', '')
+            
+            try:
+                # Your format: "10/2/2025\n9:00 AM" or "10/15/2025\n2:00 PM"
+                # Split by newline to get just the date part
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()  # "10/2/2025"
+                else:
+                    date_part = date_str.strip()
+                
+                # Parse the date in MM/DD/YYYY format
+                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
+                
+                # Include event if date is today or in the future
+                if event_date >= today:
+                    upcoming.append(event)
+                    
+            except (ValueError, IndexError) as e:
+                # If date parsing fails, print warning and skip
+                print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
+                continue
+        
+        # Sort by date (earliest first)
+        def get_event_date(event):
+            """Extract date from event for sorting"""
+            date_str = event.get('date_time', '')
+            try:
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()
+                else:
+                    date_part = date_str.strip()
+                
+                return datetime.strptime(date_part, "%m/%d/%Y").date()
+            except:
+                return datetime.max.date()  # Put unparseable dates at the end
+        
+        upcoming.sort(key=get_event_date)
+        
+        return upcoming
     
     def edit_event(self, row):
         """Handle edit event button click"""
@@ -507,7 +564,7 @@ class AdminActivities(QWidget):
             self._info(f"Edit event: {event_data['event']}")
     
     def delete_event(self, row):
-        """Handle delete event button click"""
+        """Handle delete event button click - FIXED to actually delete from JSON"""
         event_name = self.activities_table.item(row, 1).text()
         
         reply = QMessageBox.question(
@@ -519,8 +576,17 @@ class AdminActivities(QWidget):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            self.activities_table.removeRow(row)
-            self._info(f"Event '{event_name}' deleted successfully")
+            # Call MainCalendar's delete_event method to remove from JSON
+            if hasattr(self, 'main_calendar'):
+                success = self.main_calendar.delete_event(event_name)
+                if success:
+                    QMessageBox.information(self, "Success", f"Event '{event_name}' deleted successfully")
+                else:
+                    QMessageBox.warning(self, "Error", f"Failed to delete event '{event_name}'")
+            else:
+                # Fallback: just remove from table if main_calendar not available
+                self.activities_table.removeRow(row)
+                self._info(f"Event '{event_name}' removed from table")
 
     # -------- Event handlers --------
     def back_to_calendar(self):
@@ -543,10 +609,10 @@ class AdminActivities(QWidget):
             self.populate_upcoming_events(filtered_events)
     
     def on_upcoming_filter_changed(self, filter_text):
-        """Handle filter change in upcoming events list"""
+        """Handle filter change in upcoming events list - FIXED to use filtered upcoming events"""
         if hasattr(self, 'main_calendar'):
             filtered_events = self.main_calendar.filter_events(filter_text)
-            # Update only the upcoming events list
+            # Update only the upcoming events list (with date filtering)
             self.populate_upcoming_events(filtered_events)
 
     # -------- UI helpers --------

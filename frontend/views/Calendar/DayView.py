@@ -17,6 +17,7 @@ class DayView(QWidget):
         self.current_date = datetime.now()
         self.navigate_back_to_calendar = None  # Will be set by parent
         self.navigate_to_activities = None  # Will be set by parent
+        self.all_events = []  # Store all events
         
         self.init_ui()
         
@@ -460,34 +461,91 @@ class DayView(QWidget):
         )
     
     def load_events(self, events):
-        """Load events from MainCalendar"""
-        self.populate_upcoming_events(events)
-        # Filter events for current date before populating time slots
+        """Load events from MainCalendar - FIXED VERSION"""
+        self.all_events = events  # Store all events
+        
+        # Filter and sort upcoming events
+        upcoming_events = self._filter_upcoming_events(events)
+        
+        # Populate upcoming events list
+        self.populate_upcoming_events(upcoming_events)
+        
+        # Populate time slots with events for current date
         current_date_events = self.filter_events_by_current_date(events)
         self.populate_time_slots_with_events(current_date_events)
-    
-    def filter_events_by_current_date(self, events):
-        """Filter events to only show those on the current date"""
-        filtered_events = []
+
+    def _filter_upcoming_events(self, events):
+        """
+        Filter events to show only upcoming events (today onwards) and sort by date.
+        Events that ended before today are excluded.
         
-        # Format current date to match event date format (M/D/YYYY)
-        current_month = self.current_date.month
-        current_day = self.current_date.day
-        current_year = self.current_date.year
-        current_date_str = f"{current_month}/{current_day}/{current_year}"
+        Returns:
+            list: Sorted list of upcoming events (nearest date first)
+        """
+        today = datetime.now().date()
+        upcoming = []
         
         for event in events:
+            # Parse the date_time field
+            date_str = event.get('date_time', '')
+            
             try:
-                # Extract date from date_time (e.g., "10/15/2025\n9:00 AM")
-                event_date_str = event['date_time'].split('\n')[0] if '\n' in event['date_time'] else event['date_time'].split()[0]
+                # Your format: "10/2/2025\n9:00 AM" or "10/15/2025\n2:00 PM"
+                # Split by newline to get just the date part
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()  # "10/2/2025"
+                else:
+                    date_part = date_str.strip()
                 
-                # Compare dates
-                if event_date_str == current_date_str:
-                    filtered_events.append(event)
-            except Exception as e:
-                print(f"Error filtering event {event.get('event', 'Unknown')}: {e}")
+                # Parse the date in MM/DD/YYYY format
+                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
+                
+                # Include event if date is today or in the future
+                if event_date >= today:
+                    upcoming.append(event)
+                    
+            except (ValueError, IndexError) as e:
+                # If date parsing fails, print warning and skip
+                print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
+                continue
         
-        return filtered_events
+        # Sort by date (earliest first)
+        def get_event_date(event):
+            """Extract date from event for sorting"""
+            date_str = event.get('date_time', '')
+            try:
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()
+                else:
+                    date_part = date_str.strip()
+                
+                return datetime.strptime(date_part, "%m/%d/%Y").date()
+            except:
+                return datetime.max.date()  # Put unparseable dates at the end
+        
+        upcoming.sort(key=get_event_date)
+        
+        return upcoming
+
+    def filter_events_by_current_date(self, events):
+        """Filter events that match the current displayed date"""
+        current_date_str = self.current_date.strftime("%m/%d/%Y")
+        filtered = []
+        
+        for event in events:
+            date_str = event.get('date_time', '')
+            try:
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()
+                else:
+                    date_part = date_str.strip()
+                
+                if date_part == current_date_str:
+                    filtered.append(event)
+            except:
+                continue
+        
+        return filtered
     
     def populate_time_slots_with_events(self, events):
         """Populate time slots with events based on their scheduled time"""
@@ -662,7 +720,7 @@ class DayView(QWidget):
         event_layout.addWidget(event_widget)
     
     def populate_upcoming_events(self, events):
-        """Populate the upcoming events list"""
+        """Populate the upcoming events list - FIXED with date filtering"""
         self.list_upcoming.clear()
         
         # Define emoji icons for each event type
@@ -688,33 +746,27 @@ class DayView(QWidget):
         self.current_date -= timedelta(days=1)
         self.update_date_label()
         # Reload events for the new date
-        if hasattr(self, 'main_calendar'):
-            events = self.main_calendar.sample_events
-            current_date_events = self.filter_events_by_current_date(events)
-            self.clear_time_slot_events()
-            self.populate_time_slots_with_events(current_date_events)
+        current_date_events = self.filter_events_by_current_date(self.all_events)
+        self.clear_time_slot_events()
+        self.populate_time_slots_with_events(current_date_events)
     
     def next_day(self):
         """Navigate to next day"""
         self.current_date += timedelta(days=1)
         self.update_date_label()
         # Reload events for the new date
-        if hasattr(self, 'main_calendar'):
-            events = self.main_calendar.sample_events
-            current_date_events = self.filter_events_by_current_date(events)
-            self.clear_time_slot_events()
-            self.populate_time_slots_with_events(current_date_events)
+        current_date_events = self.filter_events_by_current_date(self.all_events)
+        self.clear_time_slot_events()
+        self.populate_time_slots_with_events(current_date_events)
     
     def go_to_today(self):
         """Navigate to today"""
         self.current_date = datetime.now()
         self.update_date_label()
         # Reload events for today
-        if hasattr(self, 'main_calendar'):
-            events = self.main_calendar.sample_events
-            current_date_events = self.filter_events_by_current_date(events)
-            self.clear_time_slot_events()
-            self.populate_time_slots_with_events(current_date_events)
+        current_date_events = self.filter_events_by_current_date(self.all_events)
+        self.clear_time_slot_events()
+        self.populate_time_slots_with_events(current_date_events)
     
     def on_view_changed(self, view):
         """Handle view change"""
@@ -722,10 +774,12 @@ class DayView(QWidget):
             self.navigate_back_to_calendar()
     
     def on_day_filter_changed(self, filter_text):
-        """Handle filter change in day view upcoming events"""
+        """Handle filter change in day view upcoming events - FIXED with date filtering"""
         if hasattr(self, 'main_calendar'):
             filtered_events = self.main_calendar.filter_events(filter_text)
-            self.populate_upcoming_events(filtered_events)
+            # Apply date filtering and sorting
+            upcoming_events = self._filter_upcoming_events(filtered_events)
+            self.populate_upcoming_events(upcoming_events)
     
     def show_activities(self):
         """Navigate to activities view"""

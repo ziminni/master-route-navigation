@@ -41,13 +41,6 @@
             "type": "Academic",
             "location": "Lab 204",
             "status": "Upcoming"
-        },
-        {
-            "date_time": "10/11/2025\n7:00 AM",
-            "event": "testing adding and edit to acad and date",
-            "type": "Academic",
-            "location": "N/A",
-            "status": "Upcoming"
         }
     ]
 }

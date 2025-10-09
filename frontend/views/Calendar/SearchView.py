@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QComboBox, QLineEdit, QScrollArea, QListWidget
 )
 from PyQt6.QtCore import Qt, QDate
+from datetime import datetime
 from PyQt6.QtGui import QFont
 
 class SearchView(QWidget):
@@ -421,12 +422,72 @@ class SearchView(QWidget):
                 widget.setParent(None)
     
     def load_events(self, events):
-        """Load events from MainCalendar"""
-        print(f"SearchView: Loading {len(events)} events")
-        self.all_events = events
+        """Load events from MainCalendar - FIXED VERSION"""
+        self.all_events = events  # Store all events for searching
         
-        # Update upcoming events list
+        # Filter and sort upcoming events for sidebar
+        upcoming_events = self._filter_upcoming_events(events)
+        
+        # Populate upcoming events list
+        self.populate_upcoming_events(upcoming_events)
+
+    def _filter_upcoming_events(self, events):
+        """
+        Filter events to show only upcoming events (today onwards) and sort by date.
+        Events that ended before today are excluded.
+        
+        Returns:
+            list: Sorted list of upcoming events (nearest date first)
+        """
+        today = datetime.now().date()
+        upcoming = []
+        
+        for event in events:
+            # Parse the date_time field
+            date_str = event.get('date_time', '')
+            
+            try:
+                # Your format: "10/2/2025\n9:00 AM" or "10/15/2025\n2:00 PM"
+                # Split by newline to get just the date part
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()  # "10/2/2025"
+                else:
+                    date_part = date_str.strip()
+                
+                # Parse the date in MM/DD/YYYY format
+                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
+                
+                # Include event if date is today or in the future
+                if event_date >= today:
+                    upcoming.append(event)
+                    
+            except (ValueError, IndexError) as e:
+                # If date parsing fails, print warning and skip
+                print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
+                continue
+        
+        # Sort by date (earliest first)
+        def get_event_date(event):
+            """Extract date from event for sorting"""
+            date_str = event.get('date_time', '')
+            try:
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()
+                else:
+                    date_part = date_str.strip()
+                
+                return datetime.strptime(date_part, "%m/%d/%Y").date()
+            except:
+                return datetime.max.date()  # Put unparseable dates at the end
+        
+        upcoming.sort(key=get_event_date)
+        
+        return upcoming
+
+    def populate_upcoming_events(self, events):
+        """Populate the upcoming events list - FIXED with date filtering"""
         self.events_list.clear()
+        
         type_icons = {
             "Academic": "🟢",
             "Organizational": "🔵",
@@ -438,26 +499,14 @@ class SearchView(QWidget):
             icon = type_icons.get(event["type"], "⚪")
             event_text = f"{icon} {event['event']}\n    {event['date_time'].replace(chr(10), ' - ')}"
             self.events_list.addItem(event_text)
-        
-        print(f"SearchView: Loaded {self.events_list.count()} items into list")
-    
+
     def on_filter_changed(self, filter_text):
-        """Handle filter change"""
+        """Handle filter change in upcoming events - FIXED with date filtering"""
         if hasattr(self, 'main_calendar'):
             filtered_events = self.main_calendar.filter_events(filter_text)
-            
-            self.events_list.clear()
-            type_icons = {
-                "Academic": "🟢",
-                "Organizational": "🔵",
-                "Deadline": "🟠",
-                "Holiday": "🔴"
-            }
-            
-            for event in filtered_events:
-                icon = type_icons.get(event["type"], "⚪")
-                event_text = f"{icon} {event['event']}\n    {event['date_time'].replace(chr(10), ' - ')}"
-                self.events_list.addItem(event_text)
+            # Apply date filtering and sorting
+            upcoming_events = self._filter_upcoming_events(filtered_events)
+            self.populate_upcoming_events(upcoming_events)
     
     def on_search_clicked(self):
         """Execute search - case insensitive"""

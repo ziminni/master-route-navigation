@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from .DayView import DayView
+from datetime import datetime
 from .AdminActivities import AdminActivities
 from .StudentActivities import StudentActivities
 from .AddEvent import AddEvent
@@ -501,7 +502,6 @@ class Calendar(QWidget):
         elif view_type == "Day":
             self.show_day_view()
     
-    # UPDATED METHOD: Handle search trigger with query transfer
     def on_search_triggered(self):
         """Handle search button click or Enter press - transfer query to SearchView"""
         search_query = self.search_bar.text().strip()
@@ -548,7 +548,7 @@ class Calendar(QWidget):
             self.stacked_widget.setCurrentIndex(4)
     
     def load_events(self, events):
-        """Load events from MainCalendar into month view and day view"""
+        """Load events from MainCalendar into month view and day view - FIXED VERSION"""
         # Load into month view upcoming events panel
         if self.month_events_list is not None:
             self.month_events_list.clear()
@@ -558,7 +558,11 @@ class Calendar(QWidget):
                 "Deadline": "🟠",
                 "Holiday": "🔴"
             }
-            for event in events:
+            
+            # Filter and sort upcoming events
+            upcoming_events = self._filter_upcoming_events(events)
+            
+            for event in upcoming_events:
                 icon = type_icons.get(event["type"], "⚪")
                 event_text = f"{icon} {event['event']}\n    {event['date_time'].replace(chr(10), ' - ')}"
                 self.month_events_list.addItem(event_text)
@@ -566,11 +570,68 @@ class Calendar(QWidget):
         # Load into day view
         if hasattr(self, 'day_view_container') and hasattr(self.day_view_container, 'load_events'):
             self.day_view_container.load_events(events)
-    
+
+    def _filter_upcoming_events(self, events):
+        """
+        Filter events to show only upcoming events (today onwards) and sort by date.
+        Events that ended before today are excluded.
+        
+        Returns:
+            list: Sorted list of upcoming events (nearest date first)
+        """
+        today = datetime.now().date()
+        upcoming = []
+        
+        for event in events:
+            # Parse the date_time field
+            date_str = event.get('date_time', '')
+            
+            try:
+                # Your format: "10/2/2025\n9:00 AM" or "10/15/2025\n2:00 PM"
+                # Split by newline to get just the date part
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()  # "10/2/2025"
+                else:
+                    date_part = date_str.strip()
+                
+                # Parse the date in MM/DD/YYYY format
+                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
+                
+                # Include event if date is today or in the future
+                if event_date >= today:
+                    upcoming.append(event)
+                    
+            except (ValueError, IndexError) as e:
+                # If date parsing fails, print warning and skip
+                print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
+                continue
+        
+        # Sort by date (earliest first)
+        def get_event_date(event):
+            """Extract date from event for sorting"""
+            date_str = event.get('date_time', '')
+            try:
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()
+                else:
+                    date_part = date_str.strip()
+                
+                return datetime.strptime(date_part, "%m/%d/%Y").date()
+            except:
+                return datetime.max.date()  # Put unparseable dates at the end
+        
+        upcoming.sort(key=get_event_date)
+        
+        return upcoming
+
     def on_month_filter_changed(self, filter_text):
-        """Handle filter change in month view upcoming events"""
+        """Handle filter change in month view upcoming events - FIXED VERSION"""
         if hasattr(self, 'main_calendar'):
             filtered_events = self.main_calendar.filter_events(filter_text)
+            
+            # Apply upcoming events filter and sorting
+            upcoming_events = self._filter_upcoming_events(filtered_events)
+            
             # Update the month view upcoming events list
             if self.month_events_list is not None:
                 self.month_events_list.clear()
@@ -580,7 +641,7 @@ class Calendar(QWidget):
                     "Deadline": "🟠",
                     "Holiday": "🔴"
                 }
-                for event in filtered_events:
+                for event in upcoming_events:
                     icon = type_icons.get(event["type"], "⚪")
                     event_text = f"{icon} {event['event']}\n    {event['date_time'].replace(chr(10), ' - ')}"
                     self.month_events_list.addItem(event_text)
