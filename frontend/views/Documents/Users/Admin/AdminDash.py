@@ -413,27 +413,6 @@ class AdminDash(QWidget):
         
         self.files_container_layout.addWidget(self.files_table)
         files_layout.addWidget(self.files_container)
-
-        # Populate and track files
-        for idx, file_data in enumerate(files_data):
-            status = file_data.get('status', 'available')
-            approval = file_data.get('approval_status', 'pending')
-            self.add_file_to_table(
-                file_data['filename'], 
-                file_data.get('uploaded_date', file_data.get('time', 'N/A')), 
-                file_data['extension'],
-                status,
-                approval
-            )
-            # Track file data in cache
-            self.file_data_cache[file_data['filename']] = {
-                'uploaded_date': file_data.get('uploaded_date', file_data.get('time', 'N/A')),
-                'extension': file_data['extension'],
-                'status': status,
-                'approval_status': approval,
-                'row_index': idx
-            }
-        files_layout.addWidget(self.files_table)
         
         # New button at bottom right
         new_btn = QPushButton("+  New")
@@ -902,6 +881,12 @@ class AdminDash(QWidget):
         # If table is hidden (empty state showing), we need to show it
         if not self.files_table.isVisible():
             print("Transitioning from empty state to populated files table")
+            # Clear the model and cache when transitioning from empty state
+            self.files_model.clear()
+            self.files_model.setHorizontalHeaderLabels(["Filename", "Upload Date", "Type", "Status", "Approval"])
+            self.file_data_cache.clear()
+            print("Cleared model and cache during empty state transition")
+            
             if hasattr(self, 'files_empty_state') and self.files_empty_state:
                 self.files_empty_state.setVisible(False)
             self.files_table.setVisible(True)
@@ -1013,7 +998,7 @@ class AdminDash(QWidget):
             self.files_table.setVisible(False)
             if not hasattr(self, 'files_empty_state') or not self.files_empty_state:
                 self.files_empty_state = EmptyStateWidget(
-                    icon_name="document.png",
+                    icon_name="folder1.png",
                     title="No Files Yet",
                     message="Upload your first file to get started with document management.",
                     action_text="Upload File"
