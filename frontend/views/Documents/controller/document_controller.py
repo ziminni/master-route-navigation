@@ -1117,24 +1117,25 @@ class DocumentController:
             files_path = get_mock_data_path('files_data.json')
             with open(files_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            
-            uploaded_files = data.get('uploaded_files', [])
+            # Use the canonical 'files' array (files_data.json uses 'files')
+            files_list = data.get('files', [])
             file_found = False
-            
-            for file_data in uploaded_files:
-                if file_data['filename'] == filename:
+
+            for file_data in files_list:
+                # Match by filename and optionally by timestamp
+                if file_data.get('filename') == filename:
                     if timestamp is None or file_data.get('timestamp') == timestamp:
                         file_data['collection'] = collection_name or 'None'
                         file_found = True
                         break
-            
+
             if file_found:
-                data['uploaded_files'] = uploaded_files
-                
+                data['files'] = files_list
+
                 with open(files_path, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2)
-                
-                return True, f"File collection updated successfully"
+
+                return True, "File collection updated successfully"
             else:
                 return False, f"File '{filename}' not found"
                 
