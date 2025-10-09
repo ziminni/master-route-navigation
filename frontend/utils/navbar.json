@@ -127,8 +127,8 @@
         {
           "id": 13,
           "name": "Documents",
-          "function": "()",
-          "path": "",
+          "function": "DocumentsView()",
+          "path": "views.Documents.Documents",
           "access": ["student","admin"],
           "modulars":[]
         },
