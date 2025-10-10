@@ -257,12 +257,12 @@ class AdminDash(QWidget):
         files_header_layout.setContentsMargins(0, 0, 0, 0)
 
         
-        uploaded_files_label = QLabel("Uploaded Files")
+        uploaded_files_label = QLabel("Latest 10 Files")
         uploaded_files_label.setStyleSheet("font-family: Poppins; font-size: 20px; padding: 5px;")
         uploaded_files_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)  # Align vertically with buttons
         
 
-        files_title = QPushButton("Manage Uploaded Files")
+        files_title = QPushButton("View All Files")
         files_title.setStyleSheet("""
     QPushButton {
         font-weight: bold;
@@ -374,8 +374,8 @@ class AdminDash(QWidget):
         self.files_container_layout = QVBoxLayout(self.files_container)
         self.files_container_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Load file data using controller
-        files_data = self.controller.get_files()
+        # Load file data using controller (limit to latest 10)
+        files_data = self.controller.get_files(limit=10)
 
         # Show empty state or populate table
         if len(files_data) == 0:
@@ -868,70 +868,12 @@ class AdminDash(QWidget):
         print(f"Added new collection to UI: {collection_name} (ID: {collection_id})")
     
     def on_file_uploaded(self, file_data):
-        """Handle file uploaded event - incremental update"""
+        """Handle file uploaded event - refresh latest 10 files table"""
         print(f"File uploaded: {file_data}")
         
-        filename = file_data.get('filename')
-        if not filename:
-            # Fallback to full refresh if filename not provided
-            self.refresh_files_table()
-            return
-        
-        # CRITICAL FIX: Handle empty state transition
-        # If table is hidden (empty state showing), we need to show it
-        if not self.files_table.isVisible():
-            print("Transitioning from empty state to populated files table")
-            # Clear the model and cache when transitioning from empty state
-            self.files_model.clear()
-            self.files_model.setHorizontalHeaderLabels(["Filename", "Upload Date", "Type", "Status", "Approval"])
-            self.file_data_cache.clear()
-            print("Cleared model and cache during empty state transition")
-            
-            if hasattr(self, 'files_empty_state') and self.files_empty_state:
-                self.files_empty_state.setVisible(False)
-            self.files_table.setVisible(True)
-        
-        # Check if file already exists
-        if filename in self.file_data_cache:
-            # Update existing file data
-            row_idx = self.file_data_cache[filename]['row_index']
-            status = file_data.get('status', 'available')
-            approval = file_data.get('approval_status', 'pending')
-            
-            self.files_model.item(row_idx, 0).setText(file_data.get('filename', filename))
-            self.files_model.item(row_idx, 1).setText(file_data.get('uploaded_date', file_data.get('time', '')))
-            self.files_model.item(row_idx, 2).setText(file_data.get('extension', ''))
-            self.files_model.item(row_idx, 3).setText(self._get_status_emoji(status))
-            self.files_model.item(row_idx, 4).setText(self._get_approval_emoji(approval))
-            
-            # Update cache
-            self.file_data_cache[filename]['uploaded_date'] = file_data.get('uploaded_date', file_data.get('time', ''))
-            self.file_data_cache[filename]['extension'] = file_data.get('extension', '')
-            self.file_data_cache[filename]['status'] = status
-            self.file_data_cache[filename]['approval_status'] = approval
-            print(f"Updated existing file in UI: {filename}")
-        else:
-            # Add new file
-            status = file_data.get('status', 'available')
-            approval = file_data.get('approval_status', 'pending')
-            
-            self.add_file_to_table(
-                file_data.get('filename', ''),
-                file_data.get('uploaded_date', file_data.get('time', '')),
-                file_data.get('extension', ''),
-                status,
-                approval
-            )
-            
-            # Add to cache
-            self.file_data_cache[filename] = {
-                'uploaded_date': file_data.get('uploaded_date', file_data.get('time', '')),
-                'extension': file_data.get('extension', ''),
-                'status': status,
-                'approval_status': approval,
-                'row_index': self.files_model.rowCount() - 1
-            }
-            print(f"Added new file to UI: {filename}")
+        # Use the robust refresh method that handles "latest 10" correctly
+        # This ensures proper sorting and maintains only the most recent files
+        self.refresh_files_table()
         
         # Update collection file count if file was added to a collection
         print(f"DEBUG: file_data keys: {file_data.keys()}")
@@ -988,10 +930,9 @@ class AdminDash(QWidget):
             print(f"Added collection: {collection_name} (ID: {collection_id})")
     
     def refresh_files_table(self):
-        """Efficiently refresh the uploaded files table with incremental updates"""
-        # Get fresh data from controller
-        files_data = self.controller.get_files()
-        fresh_files = {f['filename']: f for f in files_data}
+        """Refresh the uploaded files table showing latest 10 files"""
+        # Get fresh data from controller (limit to latest 10 files)
+        files_data = self.controller.get_files(limit=10)
         
         # Handle empty state
         if len(files_data) == 0:
@@ -1014,81 +955,36 @@ class AdminDash(QWidget):
                 self.files_empty_state.setVisible(False)
             self.files_table.setVisible(True)
         
-        current_filenames = set(self.file_data_cache.keys())
-        fresh_filenames = set(fresh_files.keys())
+        # Clear the model and cache completely for clean refresh
+        self.files_model.clear()
+        self.file_data_cache.clear()
         
-        # Identify changes
-        removed_files = current_filenames - fresh_filenames
-        new_files = fresh_filenames - current_filenames
-        existing_files = current_filenames & fresh_filenames
+        # Reset table headers
+        self.files_model.setHorizontalHeaderLabels(['File Name', 'Upload Date', 'Type', 'Status', 'Approval'])
         
-        # Check for modified files (data changed but file still exists)
-        modified_files = set()
-        for filename in existing_files:
-            cached = self.file_data_cache[filename]
-            fresh = fresh_files[filename]
-            if (cached.get('uploaded_date') != fresh.get('uploaded_date', fresh.get('time', '')) or 
-                cached.get('extension') != fresh.get('extension') or
-                cached.get('status') != fresh.get('status', 'available') or
-                cached.get('approval_status') != fresh.get('approval_status', 'pending')):
-                modified_files.add(filename)
-        
-        # Remove deleted files (sort by row index descending to avoid index shifting issues)
-        for filename in sorted(removed_files, 
-                              key=lambda f: self.file_data_cache[f]['row_index'], 
-                              reverse=True):
-            row_idx = self.file_data_cache[filename]['row_index']
-            self.files_model.removeRow(row_idx)
-            del self.file_data_cache[filename]
-            print(f"Removed file: {filename}")
-        
-        # Update modified files
-        for filename in modified_files:
-            row_idx = self.file_data_cache[filename]['row_index']
-            fresh = fresh_files[filename]
-            status = fresh.get('status', 'available')
-            approval = fresh.get('approval_status', 'pending')
-            
-            self.files_model.item(row_idx, 0).setText(fresh['filename'])
-            self.files_model.item(row_idx, 1).setText(fresh.get('uploaded_date', fresh.get('time', '')))
-            self.files_model.item(row_idx, 2).setText(fresh['extension'])
-            self.files_model.item(row_idx, 3).setText(self._get_status_emoji(status))
-            self.files_model.item(row_idx, 4).setText(self._get_approval_emoji(approval))
-            
-            # Update cache
-            self.file_data_cache[filename]['uploaded_date'] = fresh.get('uploaded_date', fresh.get('time', ''))
-            self.file_data_cache[filename]['extension'] = fresh['extension']
-            self.file_data_cache[filename]['status'] = status
-            self.file_data_cache[filename]['approval_status'] = approval
-            print(f"Updated file: {filename}")
-        
-        # Add new files
-        for filename in new_files:
-            fresh = fresh_files[filename]
-            status = fresh.get('status', 'available')
-            approval = fresh.get('approval_status', 'pending')
+        # Populate table with fresh data
+        for idx, file_data in enumerate(files_data):
+            status = file_data.get('status', 'available')
+            approval = file_data.get('approval_status', 'pending')
             
             self.add_file_to_table(
-                fresh['filename'], 
-                fresh.get('uploaded_date', fresh.get('time', '')), 
-                fresh['extension'],
+                file_data['filename'], 
+                file_data.get('uploaded_date', file_data.get('time', 'N/A')), 
+                file_data['extension'],
                 status,
                 approval
             )
             
-            # Add to cache with current row index
-            self.file_data_cache[filename] = {
-                'uploaded_date': fresh.get('uploaded_date', fresh.get('time', '')),
-                'extension': fresh['extension'],
+            # Track file data in cache with correct row index
+            self.file_data_cache[file_data['filename']] = {
+                'uploaded_date': file_data.get('uploaded_date', file_data.get('time', 'N/A')),
+                'extension': file_data['extension'],
                 'status': status,
                 'approval_status': approval,
-                'row_index': self.files_model.rowCount() - 1
+                'row_index': idx
             }
-            print(f"Added file: {filename}")
         
-        # Rebuild row indices after all changes (removals shift indices)
-        if removed_files:
-            self._rebuild_file_indices()
+        print(f"Refreshed files table with {len(files_data)} files (latest 10)")
     
     def handle_manage_deleted_files(self):
         print("Manage Deleted Files clicked")

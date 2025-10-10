@@ -47,13 +47,14 @@ class DocumentController:
         
     # ==================== FILE OPERATIONS ====================
     
-    def get_files(self, include_deleted: bool = False, filters: Optional[Dict] = None) -> List[Dict]:
+    def get_files(self, include_deleted: bool = False, filters: Optional[Dict] = None, limit: Optional[int] = None) -> List[Dict]:
         """
         Get files based on user role and filters.
         
         Args:
             include_deleted (bool): Whether to include deleted files
             filters (dict, optional): Filters to apply (category, uploader, etc.)
+            limit (int, optional): Maximum number of files to return (sorted by upload date, newest first)
             
         Returns:
             list: List of file dictionaries
@@ -74,6 +75,20 @@ class DocumentController:
             if 'search' in filters and filters['search']:
                 search_term = filters['search'].lower()
                 files = [f for f in files if search_term in f.get('filename', '').lower()]
+        
+        # Sort by upload date (newest first) for consistent ordering
+        try:
+            # Try to sort by upload date or file_id (newer files have higher IDs)
+            files.sort(key=lambda f: (
+                f.get('uploaded_date', f.get('time', '')), 
+                f.get('file_id', 0)
+            ), reverse=True)
+        except Exception as e:
+            print(f"Warning: Could not sort files by date: {e}")
+        
+        # Apply limit if specified
+        if limit is not None and limit > 0:
+            files = files[:limit]
         
         return files
     
