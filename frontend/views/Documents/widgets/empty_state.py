@@ -9,6 +9,18 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt, pyqtSignal
 import os
+import sys
+
+# Import IconLoader for consistent icon management
+# Handle both relative and absolute imports for flexibility
+try:
+    from ..utils.icon_utils import IconLoader
+except ImportError:
+    # Fallback for when running as script (not as package)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    utils_dir = os.path.join(current_dir, '..', 'utils')
+    sys.path.insert(0, utils_dir)
+    from ..utils.icon_utils import IconLoader
 
 
 class EmptyStateWidget(QWidget):
@@ -107,27 +119,23 @@ class EmptyStateWidget(QWidget):
         self.setLayout(main_layout)
     
     def _create_icon_label(self):
-        """Create icon label with proper loading from assets folder"""
+        """
+        Create icon label using IconLoader utility for consistent icon management.
+        
+        Benefits of using IconLoader:
+        - Automatic caching for performance
+        - Consistent error handling
+        - Centralized asset path management
+        - Fallback handling
+        """
         try:
-            # Get assets path relative to this file
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            assets_path = os.path.join(current_dir, '..', 'assets')
-            icon_path = os.path.join(assets_path, self.icon_name)
+            # Use IconLoader for consistent icon loading with caching
+            pixmap = IconLoader.load_icon(self.icon_name, size=(128, 128))
             
-            # Load pixmap
-            pixmap = QPixmap(icon_path)
-            
-            if not pixmap.isNull():
-                # Scale to appropriate size
-                scaled_pixmap = pixmap.scaled(
-                    128, 128, 
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                
+            if pixmap:
                 # Create label with pixmap
                 icon_label = QLabel()
-                icon_label.setPixmap(scaled_pixmap)
+                icon_label.setPixmap(pixmap)
                 icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 
                 # Apply gray filter for subdued look
@@ -135,7 +143,7 @@ class EmptyStateWidget(QWidget):
                 
                 return icon_label
             else:
-                print(f"Warning: Failed to load icon '{self.icon_name}' from {icon_path}")
+                # IconLoader already handles warning messages
                 return None
                 
         except Exception as e:
@@ -198,12 +206,10 @@ class LoadingStateWidget(QWidget):
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.setSpacing(15)
         
-        # Spinner (using simple animation text for now)
-        # TODO: Replace with actual QMovie spinner animation
-        spinner_label = QLabel("⏳")
-        spinner_label.setFont(QFont("Segoe UI Emoji", 48))
-        spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(spinner_label)
+        # Spinner using IconLoader (fallback to emoji if loading.png not found)
+        spinner_label = self._create_spinner_icon()
+        if spinner_label:
+            main_layout.addWidget(spinner_label)
         
         # Message
         message_label = QLabel(self.message)
@@ -216,6 +222,38 @@ class LoadingStateWidget(QWidget):
         main_layout.addStretch()
         
         self.setLayout(main_layout)
+    
+    def _create_spinner_icon(self):
+        """
+        Create spinner icon using IconLoader with fallback to emoji.
+        
+        Tries to load 'loading.png' or 'spinner.png', falls back to emoji if not found.
+        """
+        # Try multiple common spinner icon names
+        spinner_icons = ['loading.png', 'spinner.png', 'refresh.png']
+        
+        for icon_name in spinner_icons:
+            pixmap = IconLoader.load_icon(icon_name, size=(64, 64))
+            if pixmap:
+                spinner_label = QLabel()
+                spinner_label.setPixmap(pixmap)
+                spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                
+                # Add subtle animation effect with CSS
+                spinner_label.setStyleSheet("""
+                    QLabel {
+                        border-radius: 32px;
+                        background-color: rgba(8, 73, 36, 0.1);
+                        padding: 16px;
+                    }
+                """)
+                return spinner_label
+        
+        # Fallback to emoji if no icon found
+        spinner_label = QLabel("⏳")
+        spinner_label.setFont(QFont("Segoe UI Emoji", 48))
+        spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        return spinner_label
 
 
 class ErrorStateWidget(QWidget):
@@ -253,11 +291,10 @@ class ErrorStateWidget(QWidget):
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.setSpacing(20)
         
-        # Error icon (using emoji for now)
-        icon_label = QLabel("⚠️")
-        icon_label.setFont(QFont("Segoe UI Emoji", 64))
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(icon_label)
+        # Error icon using IconLoader (fallback to emoji)
+        error_icon = self._create_error_icon()
+        if error_icon:
+            main_layout.addWidget(error_icon)
         
         # Title
         title_label = QLabel(self.title)
@@ -302,3 +339,35 @@ class ErrorStateWidget(QWidget):
         main_layout.addStretch()
         
         self.setLayout(main_layout)
+    
+    def _create_error_icon(self):
+        """
+        Create error icon using IconLoader with fallback to emoji.
+        
+        Tries to load error-related icons, falls back to warning emoji if not found.
+        """
+        # Try multiple common error icon names
+        error_icons = ['error.png', 'warning.png', 'alert.png', 'exclamation.png']
+        
+        for icon_name in error_icons:
+            pixmap = IconLoader.load_icon(icon_name, size=(64, 64))
+            if pixmap:
+                error_label = QLabel()
+                error_label.setPixmap(pixmap)
+                error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                
+                # Add error-themed styling
+                error_label.setStyleSheet("""
+                    QLabel {
+                        border-radius: 32px;
+                        background-color: rgba(217, 83, 79, 0.1);
+                        padding: 16px;
+                    }
+                """)
+                return error_label
+        
+        # Fallback to emoji if no icon found
+        error_label = QLabel("⚠️")
+        error_label.setFont(QFont("Segoe UI Emoji", 64))
+        error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        return error_label
