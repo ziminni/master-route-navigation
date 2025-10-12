@@ -126,14 +126,8 @@ class EventManagerStudent(QWidget):
         except Exception:
             load_timeline = None
             list_proposals = None
-        # Prefer the first proposal; if none, empty
-        event_name = None
-        proposals = []
-        if list_proposals:
-            proposals = list_proposals() or []
-            if proposals:
-                event_name = proposals[0].get("eventName")
-        data = load_timeline(event_name) if (load_timeline and event_name) else {"timeline": []}
+        # Always show all events from the global timeline
+        data = load_timeline() if load_timeline else {"timeline": []}
         timeline_items = data.get("timeline", []) if isinstance(data, dict) else []
         self._populate_weekly_from_timeline(timeline_items)
         self._populate_today_from_timeline(timeline_items)

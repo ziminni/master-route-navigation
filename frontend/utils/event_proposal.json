@@ -1,12 +1,4 @@
 {
-  "eventName": "AS",
-  "building": "Engineering Building",
-  "description": "",
-  "date": "2000-01-01",
-  "time": "00:00",
-  "roomName": "ENG-201",
-  "organizer": "Computer Science Society",
-  "budget": 0.0,
   "proposals": [
     {
       "eventName": "AS",
@@ -27,6 +19,16 @@
       "roomName": "ENG-201",
       "organizer": "Computer Science Society",
       "budget": 12.0
+    },
+    {
+      "eventName": "POPO",
+      "building": "Engineering Building",
+      "description": "LO",
+      "date": "2000-01-01",
+      "time": "00:00",
+      "roomName": "ENG-201",
+      "organizer": "Computer Science Society",
+      "budget": 10.0
     }
   ]
 }

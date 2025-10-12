@@ -1,5 +1,5 @@
 import os
-from PyQt6.QtWidgets import QWidget, QMainWindow, QDialog
+from PyQt6.QtWidgets import QWidget, QMainWindow, QDialog, QTableWidgetItem
 from PyQt6 import uic
 
 
@@ -43,35 +43,47 @@ class Events(QMainWindow):
         # Refactored: Open Event Timeline dialog, Add button uses proposal data directly
         def _open_event_timeline_dialog() -> None:
             try:
+                from services.event_timeline_service import load_timeline
+            except Exception:
+                load_timeline = None
+            try:
                 dialog = QDialog(self)
                 uic.loadUi(_ui_path("Event Timeline.ui"), dialog)
-                # Wire Add button to add activity directly (no Add Activity dialog)
-                try:
-                    add_btn = getattr(dialog, "Event_Add", None)
-                    if add_btn and hasattr(add_btn, "clicked"):
-                        def add_activity_direct():
-                            # Example: use proposal data or defaults
-                            table = getattr(dialog, "WeekTable_2", None)
-                            if table is None:
-                                return
-                            row = table.currentRow()
-                            col = table.currentColumn()
-                            if row < 0 or col < 0:
-                                return
-                            v_item = table.verticalHeaderItem(row)
-                            h_item = table.horizontalHeaderItem(col)
-                            time_label = v_item.text() if v_item else ""
-                            day_label = h_item.text() if h_item else ""
-                            if not time_label or not day_label:
-                                return
-                            time_hhmm = time_label  # Or convert as needed
-                            activity = "Activity"  # Or fetch from proposal
-                            # Add logic to persist activity as needed
-                            # Optionally update table UI
-                            table.setItem(row, col, QTableWidgetItem(activity))
-                        add_btn.clicked.connect(add_activity_direct)
-                except Exception:
-                    pass
+                table = getattr(dialog, "WeekTable_2", None)
+                if table and load_timeline:
+                    # Set up headers (assume headers are already set in UI)
+                    # Clear table
+                    for r in range(table.rowCount()):
+                        for c in range(table.columnCount()):
+                            table.setItem(r, c, QTableWidgetItem(""))
+                    data = load_timeline() if load_timeline else {"timeline": []}
+                    items = data.get("timeline", [])
+                    for item in items:
+                        day = item.get("day")
+                        time = item.get("time")
+                        activity = item.get("activity", "")
+                        event_name = item.get("eventName", "")
+                        cell_text = f"{event_name}: {activity}" if event_name else activity
+                        # Convert time to display header
+                        try:
+                            from datetime import datetime
+                            label = datetime.strptime(time, "%H:%M").strftime("%I:%M %p").lstrip("0")
+                        except Exception:
+                            label = time
+                        row = -1
+                        col = -1
+                        for r in range(table.rowCount()):
+                            vh = table.verticalHeaderItem(r)
+                            if vh and vh.text() == label:
+                                row = r
+                                break
+                        for c in range(table.columnCount()):
+                            hh = table.horizontalHeaderItem(c)
+                            if hh and hh.text() == day:
+                                col = c
+                                break
+                        if row >= 0 and col >= 0:
+                            table.setItem(row, col, QTableWidgetItem(cell_text))
                 dialog.exec()
             except Exception as e:
                 print(f"Events: failed to open Event Timeline dialog: {e}")

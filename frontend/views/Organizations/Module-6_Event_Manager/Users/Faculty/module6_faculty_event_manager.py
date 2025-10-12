@@ -32,14 +32,13 @@ class EventTimelineDialog(QDialog):
             self.Event_Edit.clicked.connect(reschedule_dialog._save_reschedule)
         elif hasattr(self, "Event_Edit") and update_timeline_item:
             self.Event_Edit.clicked.connect(lambda: self._edit_timeline(update_timeline_item))
-        if hasattr(self, "Event_Delete") and delete_timeline_item:
-            self.Event_Delete.clicked.connect(lambda: self._delete_timeline(delete_timeline_item))
+        if hasattr(self, "Event_Delete"):
+            if hide_add and reschedule_dialog and hasattr(reschedule_dialog, "_delete_selected_proposal"):
+                self.Event_Delete.clicked.connect(lambda: (reschedule_dialog._delete_selected_proposal(), self.accept()))
+            elif delete_timeline_item:
+                self.Event_Delete.clicked.connect(lambda: self._delete_timeline(delete_timeline_item))
         if load_timeline and hasattr(self, "WeekTable_2"):
-            event_name = None
-            if load_proposal:
-                prop = load_proposal() or {}
-                event_name = prop.get("eventName")
-            data = load_timeline(event_name)
+            data = load_timeline()
             self._render_timeline_table(data)
 
 
@@ -56,19 +55,18 @@ class EventTimelineDialog(QDialog):
         if table is None:
             return
         items = data.get("timeline", [])
-        # We rely on headers to map day/time
         for item in items:
             day = item.get("day")
             time = item.get("time")
             activity = item.get("activity", "")
-            # Convert time to display header
+            event_name = item.get("eventName", "")
+            # Show as 'EventName: Activity' if eventName exists
+            cell_text = f"{event_name}: {activity}" if event_name else activity
             try:
                 from datetime import datetime
                 label = datetime.strptime(time, "%H:%M").strftime("%I:%M %p").lstrip("0")
             except Exception:
                 label = time
-            # Find indices
-            # vertical headers are times, horizontal headers are days
             row = -1
             col = -1
             for r in range(table.rowCount()):
@@ -82,7 +80,7 @@ class EventTimelineDialog(QDialog):
                     col = c
                     break
             if row >= 0 and col >= 0:
-                table.setItem(row, col, QTableWidgetItem(activity))
+                table.setItem(row, col, QTableWidgetItem(cell_text))
 
     def _place_activity_at(self, table, day: str, time_hhmm: str, activity: str):
         try:
@@ -267,6 +265,17 @@ class RequestProposalDialog(QDialog):
             delete_proposal_by_name(name)
 
 class RequestRescheduleDialog(QDialog):
+    def _delete_selected_proposal(self):
+        try:
+            from services.event_proposal_service import delete_proposal_by_name
+        except Exception:
+            delete_proposal_by_name = None
+        if not delete_proposal_by_name:
+            return
+        if hasattr(self, "comboBox_4"):
+            name = self.comboBox_4.currentText()
+            if name:
+                delete_proposal_by_name(name)
     def _save_reschedule(self):
         try:
             from services.event_proposal_service import list_proposals, get_proposal_by_name, save_proposal

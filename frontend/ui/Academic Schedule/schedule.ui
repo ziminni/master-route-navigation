@@ -380,10 +380,10 @@
          <widget class="QFrame" name="frame1stYear">
           <property name="geometry">
            <rect>
-            <x>20</x>
+            <x>10</x>
             <y>60</y>
-            <width>871</width>
-            <height>511</height>
+            <width>851</width>
+            <height>441</height>
            </rect>
           </property>
           <property name="frameShape">
@@ -532,8 +532,8 @@
          <widget class="QPushButton" name="Return">
           <property name="geometry">
            <rect>
-            <x>800</x>
-            <y>30</y>
+            <x>760</x>
+            <y>10</y>
             <width>91</width>
             <height>31</height>
            </rect>
@@ -549,7 +549,16 @@
     </widget>
    </item>
   </layout>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="statusbar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>100</width>
+     <height>30</height>
+    </rect>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

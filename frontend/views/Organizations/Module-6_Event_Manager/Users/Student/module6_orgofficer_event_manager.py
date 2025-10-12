@@ -14,7 +14,7 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 class EventTimelineDialog(QDialog):
-    def __init__(self, parent=None, hide_add=False, reschedule_dialog=None):
+    def __init__(self, parent=None, hide_add=False, hide_edit_delete=False, reschedule_dialog=None):
         super().__init__(parent)
         uic.loadUi(ui_path("Event Timeline.ui"), self)
         if hasattr(self, "WeekTable_2"):
@@ -22,6 +22,12 @@ class EventTimelineDialog(QDialog):
         # Hide Add button if requested (for reschedule context)
         if hide_add and hasattr(self, "Event_Add"):
             self.Event_Add.setVisible(False)
+        # Hide Edit and Delete buttons if requested (for proposal context)
+        if hide_edit_delete:
+            if hasattr(self, "Event_Edit"):
+                self.Event_Edit.setVisible(False)
+            if hasattr(self, "Event_Delete"):
+                self.Event_Delete.setVisible(False)
         try:
             from services.event_timeline_service import add_timeline_item, load_timeline, update_timeline_item, delete_timeline_item
             from services.event_proposal_service import list_proposals
@@ -38,17 +44,32 @@ class EventTimelineDialog(QDialog):
                 self._requested_event = proposals[0].get("eventName")
         # Only wire Add if not hidden
         if not hide_add and hasattr(self, "Event_Add") and add_timeline_item:
-            self.Event_Add.clicked.connect(lambda: self._add_activity_direct(add_timeline_item))
+            self.Event_Add.clicked.connect(lambda: self._add_activity_and_close(add_timeline_item))
         # If in reschedule mode, wire Edit to parent's _save_reschedule
         if hide_add and hasattr(self, "Event_Edit") and reschedule_dialog and hasattr(reschedule_dialog, "_save_reschedule"):
-            self.Event_Edit.clicked.connect(reschedule_dialog._save_reschedule)
+            self.Event_Edit.clicked.connect(lambda: self._edit_and_close(reschedule_dialog._save_reschedule))
         elif hasattr(self, "Event_Edit") and update_timeline_item:
-            self.Event_Edit.clicked.connect(lambda: self._edit_timeline(update_timeline_item))
-        if hasattr(self, "Event_Delete") and delete_timeline_item:
-            self.Event_Delete.clicked.connect(lambda: self._delete_timeline(delete_timeline_item))
-        if load_timeline and hasattr(self, "WeekTable_2") and self._requested_event:
-            data = load_timeline(self._requested_event)
+            self.Event_Edit.clicked.connect(lambda: self._edit_and_close(lambda: self._edit_timeline(update_timeline_item)))
+        if hasattr(self, "Event_Delete"):
+            if hide_add and reschedule_dialog and hasattr(reschedule_dialog, "_delete_selected_proposal"):
+                self.Event_Delete.clicked.connect(lambda: (reschedule_dialog._delete_selected_proposal(), self.accept()))
+            elif delete_timeline_item:
+                self.Event_Delete.clicked.connect(lambda: self._delete_and_close(delete_timeline_item))
+        if load_timeline and hasattr(self, "WeekTable_2"):
+            data = load_timeline()
             self._render_timeline_table(data)
+
+    def _add_activity_and_close(self, add_func):
+        self._add_activity_direct(add_func)
+        self.accept()
+
+    def _edit_and_close(self, edit_func):
+        edit_func()
+        self.accept()
+
+    def _delete_and_close(self, delete_func):
+        self._delete_timeline(delete_func)
+        self.accept()
 
 
     def _add_activity_direct(self, add_func):
@@ -91,6 +112,8 @@ class EventTimelineDialog(QDialog):
             day = item.get("day")
             time = item.get("time")
             activity = item.get("activity", "")
+            event_name = item.get("eventName", "")
+            cell_text = f"{event_name}: {activity}" if event_name else activity
             try:
                 from datetime import datetime
                 label = datetime.strptime(time, "%H:%M").strftime("%I:%M %p").lstrip("0")
@@ -109,7 +132,7 @@ class EventTimelineDialog(QDialog):
                     col = c
                     break
             if row >= 0 and col >= 0:
-                table.setItem(row, col, QTableWidgetItem(activity))
+                table.setItem(row, col, QTableWidgetItem(cell_text))
     def _place_activity_at(self, table, day: str, time_hhmm: str, activity: str):
         try:
             from datetime import datetime
@@ -173,13 +196,21 @@ class EventTimelineDialog(QDialog):
             table.setItem(row, col, QTableWidgetItem(""))
 
 class RequestProposalDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, hide_edit_delete=True):
         super().__init__(parent)
         uic.loadUi(ui_path("Request Event Proposal.ui"), self)
         if hasattr(self, "ViewEventTimeline"):
             self.ViewEventTimeline.clicked.connect(self._save_and_open_event_timeline)
         self._populate_dropdowns()
-        # Do not add any Add Proposal button; only use Event Timeline Add button
+        # Hide Edit and Delete buttons if requested, just like hide_add for reschedule
+        if hide_edit_delete:
+            if hasattr(self, "EditProposalButton"):
+                self.EditProposalButton.setVisible(False)
+            if hasattr(self, "DeleteProposalButton"):
+                self.DeleteProposalButton.setVisible(False)
+            # Always show Add button
+            if hasattr(self, "SaveProposalButton"):
+                self.SaveProposalButton.setVisible(True)
 
     def _populate_dropdowns(self):
         try:
@@ -224,7 +255,8 @@ class RequestProposalDialog(QDialog):
                 "budget": getattr(self.doubleSpinBox, "value", lambda: 0.0)(),
             }
             add_proposal(payload)
-        dialog = EventTimelineDialog(self)
+        # After saving, open the EventTimelineDialog (not RequestProposalDialog)
+        dialog = EventTimelineDialog(self, hide_add=False, hide_edit_delete=True)
         dialog.exec()
 
     def _save_only(self):
@@ -258,6 +290,17 @@ class RequestProposalDialog(QDialog):
             delete_proposal_by_name(name)
 
 class RequestRescheduleDialog(QDialog):
+    def _delete_selected_proposal(self):
+        try:
+            from services.event_proposal_service import delete_proposal_by_name
+        except Exception:
+            delete_proposal_by_name = None
+        if not delete_proposal_by_name:
+            return
+        if hasattr(self, "comboBox_4"):
+            name = self.comboBox_4.currentText()
+            if name:
+                delete_proposal_by_name(name)
     def _save_reschedule(self):
         try:
             from services.event_proposal_service import list_proposals, get_proposal_by_name, save_proposal
@@ -291,7 +334,7 @@ class RequestRescheduleDialog(QDialog):
         self._populate_dropdowns()
 
     def open_event_timeline(self):
-        dialog = EventTimelineDialog(self, hide_add=True, reschedule_dialog=self)
+        dialog = EventTimelineDialog(self, hide_add=True, hide_edit_delete=False, reschedule_dialog=self)
         dialog.exec()
 
     def _populate_dropdowns(self):
