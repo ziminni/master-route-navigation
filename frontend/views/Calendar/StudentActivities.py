@@ -1,5 +1,6 @@
 # StudentActivities.py
 import requests
+from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
     QMessageBox, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, QListWidget
@@ -25,12 +26,6 @@ class StudentActivities(QWidget):
 
         self.setWindowTitle("Activities")
         self.resize(1200, 700)
-
-        # Header
-        hdr = QVBoxLayout()
-        hdr.addWidget(QLabel(f"Welcome, {self.username}"))
-        hdr.addWidget(QLabel(f"Primary role: {self.primary_role}"))
-        hdr.addWidget(QLabel(f"All roles: [{', '.join(self.roles)}]"))
 
         # Top Controls (Filters and Buttons)
         controls = QHBoxLayout()
@@ -109,7 +104,6 @@ class StudentActivities(QWidget):
 
         # Main Layout
         root = QVBoxLayout(self)
-        root.addLayout(hdr)
         root.addLayout(controls)
         root.addLayout(content_layout)
 
@@ -382,7 +376,7 @@ class StudentActivities(QWidget):
         self.activities_table.setSortingEnabled(True)
     
     def populate_upcoming_events(self, activities):
-        """Populate the upcoming events list with activity data"""
+        """Populate the upcoming events list with activity data - FIXED to filter and sort"""
         self.list_upcoming.clear()
         
         # Define emoji icons for each event type
@@ -393,10 +387,131 @@ class StudentActivities(QWidget):
             "Holiday": "🔴"
         }
         
-        for activity in activities:
+        # Filter and sort upcoming events
+        upcoming_events = self._filter_upcoming_events(activities)
+        
+        for activity in upcoming_events:
             icon = type_icons.get(activity["type"], "⚪")
             event_text = f"{icon} {activity['event']}\n    {activity['date_time'].replace(chr(10), ' - ')}"
             self.list_upcoming.addItem(event_text)
+
+    def _sort_activities_by_priority(self, events):
+        """
+        Sort events by priority:
+        1. Current month events from today onwards 
+        2. Future month events 
+        3. Past events from current month 
+        4. Past events from previous months 
+        """
+        today = datetime.now().date()
+        current_month = today.month
+        current_year = today.year
+        
+        current_month_upcoming = []
+        future_months = []
+        current_month_past = []
+        old_past_events = []
+        
+        for event in events:
+            date_str = event.get('date_time', '')
+            
+            try:
+                # Parse the date
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()
+                else:
+                    date_part = date_str.strip()
+                
+                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
+                
+                # Update status based on date
+                if event_date < today:
+                    event['status'] = "Finished"
+                elif event.get('status') == "Finished":
+                    event['status'] = "Upcoming"
+                
+                # Categorize events
+                if event_date.month == current_month and event_date.year == current_year:
+                    # Current month events
+                    if event_date >= today:
+                        current_month_upcoming.append((event_date, event))
+                    else:
+                        current_month_past.append((event_date, event))
+                elif event_date > today:
+                    # Future months
+                    future_months.append((event_date, event))
+                else:
+                    # Past events from previous months
+                    old_past_events.append((event_date, event))
+                    
+            except (ValueError, IndexError) as e:
+                print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
+                # Put unparseable events at the very end
+                old_past_events.append((datetime.max.date(), event))
+                continue
+        
+        # Sort each category by date
+        current_month_upcoming.sort(key=lambda x: x[0])
+        current_month_past.sort(key=lambda x: x[0])
+        future_months.sort(key=lambda x: x[0])
+        old_past_events.sort(key=lambda x: x[0])
+        
+        # Combine: current month upcoming → future months → current month past → old past events
+        sorted_events = (
+            [event for _, event in current_month_upcoming] +
+            [event for _, event in future_months] +
+            [event for _, event in current_month_past] +
+            [event for _, event in old_past_events]
+        )
+        
+        return sorted_events
+    
+    def _filter_upcoming_events(self, events):
+        """
+        Filter events to show only upcoming events (today onwards) and sort by date.
+        Events that ended before today are excluded.
+        
+        Returns:
+            list: Sorted list of upcoming events (nearest date first)
+        """
+        today = datetime.now().date()
+        upcoming = []
+        
+        for event in events:
+            date_str = event.get('date_time', '')
+            
+            try:
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()
+                else:
+                    date_part = date_str.strip()
+                
+                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
+                
+                if event_date >= today:
+                    upcoming.append(event)
+                    
+            except (ValueError, IndexError) as e:
+                print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
+                continue
+        
+        # Sort by date (earliest first)
+        def get_event_date(event):
+            date_str = event.get('date_time', '')
+            try:
+                if '\n' in date_str:
+                    date_part = date_str.split('\n')[0].strip()
+                else:
+                    date_part = date_str.strip()
+                
+                return datetime.strptime(date_part, "%m/%d/%Y").date()
+            except:
+                return datetime.max.date()
+        
+        upcoming.sort(key=get_event_date)
+        
+        return upcoming
+    
 
     # -------- Event handlers --------
     def back_to_calendar(self):
@@ -415,10 +530,10 @@ class StudentActivities(QWidget):
             self.populate_upcoming_events(filtered_events)
     
     def on_upcoming_filter_changed(self, filter_text):
-        """Handle filter change in upcoming events list"""
+        """Handle filter change in upcoming events list - FIXED to use filtered upcoming events"""
         if hasattr(self, 'main_calendar'):
             filtered_events = self.main_calendar.filter_events(filter_text)
-            # Update only the upcoming events list
+            # Update only the upcoming events list (with date filtering)
             self.populate_upcoming_events(filtered_events)
 
     # -------- UI helpers --------

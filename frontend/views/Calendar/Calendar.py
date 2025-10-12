@@ -9,6 +9,7 @@ from .DayView import DayView
 from datetime import datetime
 from .AdminActivities import AdminActivities
 from .StudentActivities import StudentActivities
+from .Staff_FacultyActivities import StaffFacultyActivities
 from .AddEvent import AddEvent
 from .EditEvent import EditEvent
 
@@ -46,6 +47,8 @@ class Calendar(QWidget):
             self.activities_widget = AdminActivities(username, roles, primary_role, token)
         elif role_lower == "student":
             self.activities_widget = StudentActivities(username, roles, primary_role, token)
+        elif role_lower in ["staff", "faculty"]:
+            self.activities_widget = StaffFacultyActivities(username, roles, primary_role, token)
         else:
             self.activities_widget = self._create_default_widget(
                 "Invalid Role", f"No activities available for role: {primary_role}"
@@ -78,14 +81,11 @@ class Calendar(QWidget):
         self.show_month_view()
 
     def setup_month_view(self):
-        """Setup month calendar view with header, controls, and upcoming events"""
+        """Setup month calendar view with controls and upcoming events"""
         self.month_view_container = QWidget()
         container_layout = QVBoxLayout(self.month_view_container)
         container_layout.setContentsMargins(10, 10, 10, 10)
         container_layout.setSpacing(15)
-        
-        # Header
-        self.setup_header(container_layout)
         
         # Controls (View selector, Activities button, Search)
         self.setup_controls(container_layout)
@@ -244,14 +244,6 @@ class Calendar(QWidget):
         
         return calendar_container
 
-    def setup_header(self, layout):
-        """Setup header section"""
-        header_layout = QVBoxLayout()
-        header_layout.addWidget(QLabel(f"Welcome, {self.username}"))
-        header_layout.addWidget(QLabel(f"Primary role: {self.primary_role}"))
-        header_layout.addWidget(QLabel(f"All roles: [{', '.join(self.roles)}]"))
-        layout.addLayout(header_layout)
-
     def setup_controls(self, layout):
         """Setup controls section"""
         controls_layout = QHBoxLayout()
@@ -356,6 +348,8 @@ class Calendar(QWidget):
         # Set navigation callbacks
         self.day_view_container.navigate_back_to_calendar = self.show_month_view
         self.day_view_container.navigate_to_activities = self.show_activities
+        self.day_view_container.navigate_to_search = self.on_search_triggered
+        
 
     def create_upcoming_events_panel(self):
         """Create upcoming events panel"""
@@ -502,12 +496,14 @@ class Calendar(QWidget):
         elif view_type == "Day":
             self.show_day_view()
     
-    def on_search_triggered(self):
+    def on_search_triggered(self, query=None):
         """Handle search button click or Enter press - transfer query to SearchView"""
-        search_query = self.search_bar.text().strip()
+        if query is None:
+            query = self.search_bar.text().strip()
+        
         if self.navigate_to_search:
             # Pass the search query to the navigation callback
-            self.navigate_to_search(search_query)
+            self.navigate_to_search(query)
 
     def show_month_view(self):
         """Show month calendar view"""
@@ -518,6 +514,12 @@ class Calendar(QWidget):
             self.combo_view.blockSignals(True)
             self.combo_view.setCurrentText("Month")
             self.combo_view.blockSignals(False)
+        
+        # Also update the day view combo box if needed
+        if hasattr(self, 'day_view_container') and hasattr(self.day_view_container, 'combo_view'):
+            self.day_view_container.combo_view.blockSignals(True)
+            self.day_view_container.combo_view.setCurrentText("Month")
+            self.day_view_container.combo_view.blockSignals(False)
 
     def show_day_view(self):
         """Show day view"""
@@ -528,6 +530,12 @@ class Calendar(QWidget):
             self.combo_view.blockSignals(True)
             self.combo_view.setCurrentText("Day")
             self.combo_view.blockSignals(False)
+        
+        # Also update the day view combo box
+        if hasattr(self, 'day_view_container') and hasattr(self.day_view_container, 'combo_view'):
+            self.day_view_container.combo_view.blockSignals(True)
+            self.day_view_container.combo_view.setCurrentText("Day")
+            self.day_view_container.combo_view.blockSignals(False)
 
     def show_activities(self):
         """Show activities view"""
@@ -587,7 +595,6 @@ class Calendar(QWidget):
             date_str = event.get('date_time', '')
             
             try:
-                # Your format: "10/2/2025\n9:00 AM" or "10/15/2025\n2:00 PM"
                 # Split by newline to get just the date part
                 if '\n' in date_str:
                     date_part = date_str.split('\n')[0].strip()  # "10/2/2025"

@@ -1,4 +1,4 @@
-# AdminActivities.py
+# Staff_FacultyActivities.py
 import requests
 from datetime import datetime
 from PyQt6.QtWidgets import (
@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-class AdminActivities(QWidget):
+class StaffFacultyActivities(QWidget):
     def __init__(self, username, roles, primary_role, token, parent=None):
         super().__init__(parent)
         self.username = username
@@ -22,8 +22,8 @@ class AdminActivities(QWidget):
         self.headers = {"Authorization": f"Bearer {self.token}"}
 
         # Add navigation callback attributes
-        self.navigate_back_to_calendar = None  # Will be set by Calendar.py
-        self.navigate_to_edit_event = None  # Will be set by Calendar.py
+        self.navigate_back_to_calendar = None  
+        self.navigate_to_add_event = None
 
         self.setWindowTitle("Activities")
         self.resize(1200, 700)
@@ -69,7 +69,7 @@ class AdminActivities(QWidget):
         controls.addWidget(self.combo_activity_type)
         controls.addStretch()
         
-        # Action buttons (only show for admin)
+        # Add Event button (staff can add events)
         button_style = """
             QPushButton {
                 background-color: #084924;
@@ -90,11 +90,8 @@ class AdminActivities(QWidget):
             }
         """
         
-        # Add Event button (admin only)
         self.btn_add_event = QPushButton("+ Add Event")
         self.btn_add_event.setStyleSheet(button_style)
-        if self.primary_role.lower() != "admin":
-            self.btn_add_event.setVisible(False)
         controls.addWidget(self.btn_add_event)
         
         # Back to Calendar button
@@ -277,7 +274,7 @@ class AdminActivities(QWidget):
         upcoming_layout.addWidget(upcoming_frame)
 
     def setup_activities_table(self):
-        """Setup the activities table on the right side"""
+        """Setup the activities table on the right side (NO Action column for staff)"""
         self.activities_widget = QWidget()
         self.activities_widget.setStyleSheet("background-color: white;")
         
@@ -295,12 +292,12 @@ class AdminActivities(QWidget):
         table_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         table_layout.addWidget(table_title)
         
-        # Activities Table
-        self.activities_table = QTableWidget(0, 6)
+        # Activities Table - 5 columns (NO Action column for staff)
+        self.activities_table = QTableWidget(0, 5)
         self.activities_table.setMinimumSize(600, 400)
         
         # Set column headers
-        headers = ["Date & Time", "Event", "Type", "Location", "Status", "Action"]
+        headers = ["Date & Time", "Event", "Type", "Location", "Status"]
         self.activities_table.setHorizontalHeaderLabels(headers)
         
         # Style the table
@@ -352,14 +349,13 @@ class AdminActivities(QWidget):
             }
         """)
         
-        # Set column widths - more compact
+        # Set column widths
         self.activities_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        self.activities_table.setColumnWidth(0, 120)  # Date & Time
-        self.activities_table.setColumnWidth(1, 190)  # Event
-        self.activities_table.setColumnWidth(2, 90)   # Type
-        self.activities_table.setColumnWidth(3, 100)  # Location
+        self.activities_table.setColumnWidth(0, 150)  # Date & Time
+        self.activities_table.setColumnWidth(1, 250)  # Event
+        self.activities_table.setColumnWidth(2, 100)  # Type
+        self.activities_table.setColumnWidth(3, 150)  # Location
         self.activities_table.setColumnWidth(4, 100)  # Status
-        self.activities_table.setColumnWidth(5, 150)  # Action
         
         # Set row height
         self.activities_table.verticalHeader().setDefaultSectionSize(60)
@@ -369,6 +365,9 @@ class AdminActivities(QWidget):
         self.activities_table.setAlternatingRowColors(True)
         self.activities_table.setSortingEnabled(False)  # DISABLED to maintain custom sort order
         
+        # Make table read-only for staff
+        self.activities_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        
         table_layout.addWidget(self.activities_table)
 
     def load_events(self, events):
@@ -376,65 +375,6 @@ class AdminActivities(QWidget):
         self.activities_data = events
         self.populate_table(events)
         self.populate_upcoming_events(events)
-
-    def create_action_buttons(self, row):
-        """Create Edit/Delete action buttons for a table row (admin only)"""
-        if self.primary_role.lower() != "admin":
-            return None
-        
-        button_widget = QWidget()
-        button_widget.setStyleSheet("background-color: white;")
-        button_layout = QHBoxLayout(button_widget)
-        button_layout.setContentsMargins(5, 2, 5, 2)
-        button_layout.setSpacing(5)
-        
-        # Edit button
-        edit_btn = QPushButton("Edit")
-        edit_btn.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                color: #084924;
-                border: 1px solid #084924;
-                border-radius: 4px;
-                padding: 4px 8px;
-                font-weight: bold;
-                font-size: 10px;
-                min-width: 40px;
-            }
-            QPushButton:hover {
-                background-color: #f8f9fa;
-                border: 2px solid #084924;
-            }
-        """)
-        
-        # Delete button
-        delete_btn = QPushButton("Delete")
-        delete_btn.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                color: #dc3545;
-                border: 1px solid #dc3545;
-                border-radius: 4px;
-                padding: 4px 8px;
-                font-weight: bold;
-                font-size: 10px;
-                min-width: 40px;
-            }
-            QPushButton:hover {
-                background-color: #f8f9fa;
-                border: 2px solid #dc3545;
-            }
-        """)
-        
-        button_layout.addWidget(edit_btn)
-        button_layout.addWidget(delete_btn)
-        button_layout.addStretch()
-        
-        # Connect buttons
-        edit_btn.clicked.connect(lambda checked, r=row: self.edit_event(r))
-        delete_btn.clicked.connect(lambda checked, r=row: self.delete_event(r))
-        
-        return button_widget
     
     def populate_table(self, activities):
         """Populate the table with activity data - SORTED by priority"""
@@ -456,24 +396,14 @@ class AdminActivities(QWidget):
             self.activities_table.setItem(row_position, 3, QTableWidgetItem(activity["location"]))
             self.activities_table.setItem(row_position, 4, QTableWidgetItem(activity["status"]))
             
-            # Add action buttons (admin only)
-            if self.primary_role.lower() == "admin":
-                action_buttons = self.create_action_buttons(row_position)
-                if action_buttons:
-                    self.activities_table.setCellWidget(row_position, 5, action_buttons)
-            
             # Center align all cells
             for col in range(5):
                 item = self.activities_table.item(row_position, col)
                 if item:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # KEEP SORTING DISABLED to maintain our custom sort order
-        # If you want users to be able to sort by columns, comment out this line:
-        # self.activities_table.setSortingEnabled(True)
     
     def populate_upcoming_events(self, activities):
-        """Populate the upcoming events list with activity data - FIXED to filter and sort"""
+        """Populate the upcoming events list with activity data"""
         self.list_upcoming.clear()
         
         # Define emoji icons for each event type
@@ -577,32 +507,25 @@ class AdminActivities(QWidget):
         upcoming = []
         
         for event in events:
-            # Parse the date_time field
             date_str = event.get('date_time', '')
             
             try:
-                # Your format: "10/2/2025\n9:00 AM" or "10/15/2025\n2:00 PM"
-                # Split by newline to get just the date part
                 if '\n' in date_str:
-                    date_part = date_str.split('\n')[0].strip()  # "10/2/2025"
+                    date_part = date_str.split('\n')[0].strip()
                 else:
                     date_part = date_str.strip()
                 
-                # Parse the date in MM/DD/YYYY format
                 event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
                 
-                # Include event if date is today or in the future
                 if event_date >= today:
                     upcoming.append(event)
                     
             except (ValueError, IndexError) as e:
-                # If date parsing fails, print warning and skip
                 print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
                 continue
         
         # Sort by date (earliest first)
         def get_event_date(event):
-            """Extract date from event for sorting"""
             date_str = event.get('date_time', '')
             try:
                 if '\n' in date_str:
@@ -612,53 +535,13 @@ class AdminActivities(QWidget):
                 
                 return datetime.strptime(date_part, "%m/%d/%Y").date()
             except:
-                return datetime.max.date()  # Put unparseable dates at the end
+                return datetime.max.date()
         
         upcoming.sort(key=get_event_date)
         
         return upcoming
     
     # ========== EVENT HANDLERS ==========
-    
-    def edit_event(self, row):
-        """Handle edit event button click"""
-        event_data = {
-            'date_time': self.activities_table.item(row, 0).text(),
-            'event': self.activities_table.item(row, 1).text(),
-            'type': self.activities_table.item(row, 2).text(),
-            'location': self.activities_table.item(row, 3).text(),
-            'status': self.activities_table.item(row, 4).text(),
-        }
-        
-        if self.navigate_to_edit_event:
-            self.navigate_to_edit_event(event_data)
-        else:
-            self._info(f"Edit event: {event_data['event']}")
-    
-    def delete_event(self, row):
-        """Handle delete event button click - FIXED to actually delete from JSON"""
-        event_name = self.activities_table.item(row, 1).text()
-        
-        reply = QMessageBox.question(
-            self,
-            "Confirm Delete",
-            f"Are you sure you want to delete '{event_name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-        
-        if reply == QMessageBox.StandardButton.Yes:
-            # Call MainCalendar's delete_event method to remove from JSON
-            if hasattr(self, 'main_calendar'):
-                success = self.main_calendar.delete_event(event_name)
-                if success:
-                    QMessageBox.information(self, "Success", f"Event '{event_name}' deleted successfully")
-                else:
-                    QMessageBox.warning(self, "Error", f"Failed to delete event '{event_name}'")
-            else:
-                # Fallback: just remove from table if main_calendar not available
-                self.activities_table.removeRow(row)
-                self._info(f"Event '{event_name}' removed from table")
 
     def back_to_calendar(self):
         """Handle back to calendar button click"""
@@ -668,8 +551,11 @@ class AdminActivities(QWidget):
             self._info("Navigation not configured")
 
     def add_event(self):
-        """Handle add event button click"""
-        pass
+        """Handle add event button click - navigate to AddEvent page"""
+        if self.navigate_to_add_event:
+            self.navigate_to_add_event()
+        else:
+            self._info("Add Event navigation not configured")
 
     def filter_activities(self, filter_text):
         """Filter activities table based on selected type"""
@@ -680,7 +566,7 @@ class AdminActivities(QWidget):
             self.populate_upcoming_events(filtered_events)
     
     def on_upcoming_filter_changed(self, filter_text):
-        """Handle filter change in upcoming events list - FIXED to use filtered upcoming events"""
+        """Handle filter change in upcoming events list"""
         if hasattr(self, 'main_calendar'):
             filtered_events = self.main_calendar.filter_events(filter_text)
             # Update only the upcoming events list (with date filtering)
@@ -693,4 +579,3 @@ class AdminActivities(QWidget):
 
     def _error(self, msg):
         QMessageBox.critical(self, "Error", str(msg))
-        

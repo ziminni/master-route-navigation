@@ -1,4 +1,4 @@
-# MainCalendar.py - UPDATED to Handle Search Query Transfer
+# MainCalendar.py - UPDATED to Handle Search Query Transfer and Fix Upcoming Events
 import json
 import os
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QStackedWidget, QMessageBox
@@ -7,6 +7,7 @@ from datetime import datetime
 from .Calendar import Calendar
 from .AdminActivities import AdminActivities
 from .StudentActivities import StudentActivities
+from .Staff_FacultyActivities import StaffFacultyActivities
 from .AddEvent import AddEvent
 from .EditEvent import EditEvent
 from .SearchView import SearchView
@@ -36,10 +37,6 @@ class MainCalendar(QWidget):
         # Set reference to MainCalendar for filtering
         self.calendar_widget.main_calendar = self
         
-        # Also set reference for day view (inside calendar widget)
-        if hasattr(self.calendar_widget, 'day_view_container'):
-            self.calendar_widget.day_view_container.main_calendar = self
-        
         # Create activities widget based on role
         role_lower = primary_role.lower()
         if role_lower == "admin":
@@ -48,11 +45,17 @@ class MainCalendar(QWidget):
             self.activities_widget.main_calendar = self
         elif role_lower == "student":
             self.activities_widget = StudentActivities(username, roles, primary_role, token)
+        
+        elif role_lower in ["staff", "faculty"]:
+            self.activities_widget = StaffFacultyActivities(username, roles, primary_role, token)
+            # Set reference to MainCalendar for filtering
+            self.activities_widget.main_calendar = self
         else:
             # Fallback for other roles
             self.activities_widget = self._create_default_widget(
                 "Invalid Role", f"No activities available for role: {primary_role}"
             )
+
         
         # Load events into activities widget
         if hasattr(self.activities_widget, 'load_events'):
@@ -62,23 +65,30 @@ class MainCalendar(QWidget):
         if hasattr(self.calendar_widget, 'load_events'):
             self.calendar_widget.load_events(self.sample_events)
         
+        # CRITICAL: Set main_calendar reference for day view AFTER loading events
+        if hasattr(self.calendar_widget, 'day_view_container'):
+            self.calendar_widget.day_view_container.main_calendar = self
+        
         # Create search widget
         self.search_widget = SearchView(username, roles, primary_role, token)
         self.search_widget.main_calendar = self
         self.search_widget.load_events(self.sample_events)
         
-        # Create add event and edit event widgets (only for admin)
-        if role_lower == "admin":
+        # Create add event widget (admin, staff, faculty) and edit event widget (admin only)
+        if role_lower in ["admin", "staff", "faculty"]:
             self.add_event_widget = AddEvent(username, roles, primary_role, token)
-            self.edit_event_widget = EditEvent(username, roles, primary_role, token)
-            
-            # Set reference to MainCalendar for saving/updating events
             self.add_event_widget.main_calendar = self
-            self.edit_event_widget.main_calendar = self
+            
+            # Edit widget is admin only
+            if role_lower == "admin":
+                self.edit_event_widget = EditEvent(username, roles, primary_role, token)
+                self.edit_event_widget.main_calendar = self
+            else:
+                self.edit_event_widget = None
         else:
             self.add_event_widget = None
             self.edit_event_widget = None
-        
+
         # Set navigation callbacks
         self.calendar_widget.navigate_to_activities = self.show_activities
         self.calendar_widget.navigate_to_search = self.show_search  # UPDATED: Now accepts query parameter
@@ -89,9 +99,12 @@ class MainCalendar(QWidget):
         # Set search navigation
         self.search_widget.navigate_back_to_calendar = self.show_calendar
         
-        # Connect add event button in activities widget (admin only)
-        if role_lower == "admin" and hasattr(self.activities_widget, 'btn_add_event'):
-            self.activities_widget.btn_add_event.clicked.disconnect()
+        # Connect add event button in activities widget (admin, staff, and faculty)
+        if role_lower in ["admin", "staff", "faculty"] and hasattr(self.activities_widget, 'btn_add_event'):
+            try:
+                self.activities_widget.btn_add_event.clicked.disconnect()
+            except:
+                pass
             self.activities_widget.btn_add_event.clicked.connect(self.show_add_event)
         
         # Connect edit event navigation (admin only)
@@ -126,12 +139,16 @@ class MainCalendar(QWidget):
             if os.path.exists(self.events_file):
                 with open(self.events_file, 'r') as f:
                     data = json.load(f)
-                    return data.get('events', [])
+                    events = data.get('events', [])
+                    print(f"MainCalendar: Loaded {len(events)} events from JSON")
+                    return events
             else:
                 # Create empty events file if it doesn't exist
+                print("MainCalendar: events.json not found, creating empty file")
                 self.save_events_to_json([])
                 return []
         except Exception as e:
+            print(f"MainCalendar: Error loading events: {str(e)}")
             QMessageBox.warning(self, "Error", f"Failed to load events: {str(e)}")
             return []
     
@@ -144,8 +161,10 @@ class MainCalendar(QWidget):
             data = {"events": events}
             with open(self.events_file, 'w') as f:
                 json.dump(data, f, indent=4)
+            print(f"MainCalendar: Saved {len(events)} events to JSON")
             return True
         except Exception as e:
+            print(f"MainCalendar: Error saving events: {str(e)}")
             QMessageBox.critical(self, "Error", f"Failed to save events: {str(e)}")
             return False
 

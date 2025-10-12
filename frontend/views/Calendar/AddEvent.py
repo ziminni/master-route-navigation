@@ -1,9 +1,11 @@
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
     QMessageBox, QComboBox, QLineEdit, QTextEdit, QDateEdit, 
-    QTimeEdit, QCheckBox, QFrame, QGridLayout, QScrollArea
+    QTimeEdit, QCheckBox, QFrame, QGridLayout, QScrollArea, QCalendarWidget
+    
 )
 from PyQt6.QtCore import Qt, QDate, QTime
+
 
 class AddEvent(QWidget):
     def __init__(self, username, roles, primary_role, token, parent=None):
@@ -30,22 +32,11 @@ class AddEvent(QWidget):
         # Main layout
         root = QVBoxLayout(self)
 
-        # Header section
-        self.setup_header(root)
-
         # Top controls (navigation buttons)
         self.setup_controls(root)
 
         # Main content area - the form
         self.setup_form_content(root)
-
-    def setup_header(self, root):
-        """Setup header with user info"""
-        hdr = QVBoxLayout()
-        hdr.addWidget(QLabel(f"Welcome, {self.username}"))
-        hdr.addWidget(QLabel(f"Primary role: {self.primary_role}"))
-        hdr.addWidget(QLabel(f"All roles: [{', '.join(self.roles)}]"))
-        root.addLayout(hdr)
 
     def setup_controls(self, root):
         """Setup navigation controls"""
@@ -146,8 +137,85 @@ class AddEvent(QWidget):
         
         root.addWidget(scroll_area)
 
+    def customize_calendar(self, calendar):
+        """Customize the calendar widget appearance and behavior"""
+        # Set minimum size for calendar
+        calendar.setMinimumSize(400, 350)
+        
+        # Style the calendar
+        calendar.setStyleSheet("""
+            QCalendarWidget {
+                background-color: white;
+                border: 2px solid #084924;
+                border-radius: 8px;
+            }
+            
+            /* Navigation bar */
+            QCalendarWidget QToolButton {
+                background-color: #084924;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px;
+                margin: 3px;
+                font-weight: bold;
+            }
+            QCalendarWidget QToolButton:hover {
+                background-color: #FDC601;
+                color: #084924;
+            }
+            QCalendarWidget QToolButton::menu-indicator {
+                image: none;
+            }
+            
+            /* Month/Year selection */
+            QCalendarWidget QMenu {
+                background-color: white;
+                border: 1px solid #084924;
+            }
+            QCalendarWidget QSpinBox {
+                background-color: white;
+                border: 1px solid #084924;
+                border-radius: 4px;
+                padding: 5px;
+                font-weight: bold;
+                color: #084924;
+            }
+            
+            /* Header (days of week) */
+            QCalendarWidget QWidget#qt_calendar_navigationbar {
+                background-color: #084924;
+            }
+            QCalendarWidget QAbstractItemView:enabled {
+                background-color: white;
+                selection-background-color: #FDC601;
+                selection-color: #084924;
+                font-size: 13px;
+            }
+            
+            /* Day cells */
+            QCalendarWidget QAbstractItemView {
+                gridline-color: #e0e0e0;
+                alternate-background-color: #f8f9fa;
+            }
+            
+            /* Selected date */
+            QCalendarWidget QAbstractItemView:enabled {
+                color: #084924;
+            }
+            QCalendarWidget QAbstractItemView:disabled {
+                color: #cccccc;
+            }
+        """)
+        
+        # Set grid to be visible
+        calendar.setGridVisible(True)
+        
+        # Set first day of week to Sunday (optional)
+        calendar.setFirstDayOfWeek(Qt.DayOfWeek.Sunday)
+
     def setup_event_form(self, form_layout):
-        """Setup the event form fields with 12-hour time format"""
+        """Setup the event form fields with 12-hour time format and FIXED calendar"""
         # Form fields container
         fields_container = QFrame()
         fields_container.setStyleSheet("""
@@ -194,6 +262,21 @@ class AddEvent(QWidget):
             QComboBox::drop-down {
                 border: none;
                 width: 25px;
+            }
+            QDateEdit::drop-down {
+                border: none;
+                width: 25px;
+                subcontrol-origin: padding;
+                subcontrol-position: center right;
+            }
+            QDateEdit::down-arrow {
+                image: none;
+                border: 2px solid #084924;
+                width: 8px;
+                height: 8px;
+                border-left: 0;
+                border-top: 0;
+                margin-right: 5px;
             }
         """
         
@@ -263,6 +346,14 @@ class AddEvent(QWidget):
         self.date_start.setCalendarPopup(True)
         self.date_start.setDisplayFormat("MM/dd/yyyy")
         self.date_start.setStyleSheet(input_style)
+        
+        # Get and customize the calendar widget
+        start_calendar = self.date_start.calendarWidget()
+        if start_calendar is None:
+            start_calendar = QCalendarWidget()
+            self.date_start.setCalendarWidget(start_calendar)
+        self.customize_calendar(start_calendar)
+        
         grid_layout.addWidget(self.date_start, row, 1)
         
         label_start_time = QLabel("Start Time")
@@ -325,6 +416,14 @@ class AddEvent(QWidget):
         self.date_end.setCalendarPopup(True)
         self.date_end.setDisplayFormat("MM/dd/yyyy")
         self.date_end.setStyleSheet(input_style)
+        
+        # Get and customize the end date calendar widget
+        end_calendar = self.date_end.calendarWidget()
+        if end_calendar is None:
+            end_calendar = QCalendarWidget()
+            self.date_end.setCalendarWidget(end_calendar)
+        self.customize_calendar(end_calendar)
+        
         grid_layout.addWidget(self.date_end, row, 1)
         
         label_end_time = QLabel("End Time")

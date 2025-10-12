@@ -17,6 +17,7 @@ class DayView(QWidget):
         self.current_date = datetime.now()
         self.navigate_back_to_calendar = None  # Will be set by parent
         self.navigate_to_activities = None  # Will be set by parent
+        self.navigate_to_search = None  # NEW: Navigation callback for search
         self.all_events = []  # Store all events
         
         self.init_ui()
@@ -26,14 +27,7 @@ class DayView(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(15)
-        
-        # Header
-        header_layout = QVBoxLayout()
-        header_layout.addWidget(QLabel(f"Welcome, {self.username}"))
-        header_layout.addWidget(QLabel(f"Primary role: {self.primary_role}"))
-        header_layout.addWidget(QLabel(f"All roles: [{', '.join(self.roles)}]"))
-        main_layout.addLayout(header_layout)
-        
+    
         # View selector at the top
         self.setup_view_selector(main_layout)
         
@@ -125,7 +119,31 @@ class DayView(QWidget):
                 border-color: #FDC601;
             }
         """)
+        # Connect Enter key to trigger search with query
+        self.search_bar.returnPressed.connect(self.on_search_triggered)
         view_layout.addWidget(self.search_bar)
+        
+        # Search button
+        self.btn_search = QPushButton("🔍")
+        self.btn_search.setStyleSheet("""
+            QPushButton {
+                background-color: #f8f9fa;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 8px 12px;
+                font-size: 14px;
+                min-width: 40px;
+            }
+            QPushButton:hover {
+                background-color: #e9ecef;
+                border-color: #FDC601;
+            }
+            QPushButton:pressed {
+                background-color: #dee2e6;
+            }
+        """)
+        self.btn_search.clicked.connect(self.on_search_triggered)
+        view_layout.addWidget(self.btn_search)
         
         layout.addLayout(view_layout)
     
@@ -785,3 +803,12 @@ class DayView(QWidget):
         """Navigate to activities view"""
         if self.navigate_to_activities:
             self.navigate_to_activities()
+    
+    def on_search_triggered(self, query=None):
+        """Handle search button click or Enter press - transfer query to SearchView"""
+        if query is None:
+            query = self.search_bar.text().strip()
+        
+        if self.navigate_to_search:
+            # Pass the search query to the navigation callback
+            self.navigate_to_search(query)

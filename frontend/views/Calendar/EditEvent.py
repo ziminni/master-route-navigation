@@ -33,9 +33,6 @@ class EditEvent(QWidget):
         # Main layout
         root = QVBoxLayout(self)
 
-        # Header section
-        self.setup_header(root)
-
         # Top controls (navigation buttons)
         self.setup_controls(root)
 
@@ -45,14 +42,6 @@ class EditEvent(QWidget):
         # Load event data if provided
         if self.event_data:
             self.load_event_data()
-
-    def setup_header(self, root):
-        """Setup header with user info"""
-        hdr = QVBoxLayout()
-        hdr.addWidget(QLabel(f"Welcome, {self.username}"))
-        hdr.addWidget(QLabel(f"Primary role: {self.primary_role}"))
-        hdr.addWidget(QLabel(f"All roles: [{', '.join(self.roles)}]"))
-        root.addLayout(hdr)
 
     def setup_controls(self, root):
         """Setup navigation controls"""

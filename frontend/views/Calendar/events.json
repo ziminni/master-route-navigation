@@ -1,45 +1,24 @@
 {
     "events": [
         {
-            "date_time": "10/2/2025\n9:00 AM",
-            "event": "TeSTING",
-            "type": "Academic",
-            "location": "TEST",
-            "status": "Patya ko"
-        },
-        {
-            "date_time": "10/15/2025\n9:00 AM",
-            "event": "Database Systems Lecture",
-            "type": "Academic",
-            "location": "Room 301",
-            "status": "Upcoming"
-        },
-        {
-            "date_time": "10/20/2025\n2:00 PM",
-            "event": "Student Council Meeting",
-            "type": "Organizational",
-            "location": "Conference Hall",
-            "status": "Upcoming"
-        },
-        {
-            "date_time": "10/25/2025\n11:59 PM",
-            "event": "Project Submission",
+            "date_time": "10/13/2025\n9:00 AM",
+            "event": "Testing Admin Adding and Edit",
             "type": "Deadline",
-            "location": "Online Portal",
-            "status": "Pending"
-        },
-        {
-            "date_time": "11/01/2025\nAll Day",
-            "event": "All Saints' Day",
-            "type": "Holiday",
             "location": "N/A",
-            "status": "Holiday"
+            "status": "Cancelled"
         },
         {
-            "date_time": "10/18/2025\n10:00 AM",
-            "event": "Software Engineering Workshop",
-            "type": "Academic",
-            "location": "Lab 204",
+            "date_time": "11/1/2025\n9:00 AM",
+            "event": "Testing Staff Adding",
+            "type": "Organizational",
+            "location": "N/A",
+            "status": "Upcoming"
+        },
+        {
+            "date_time": "10/21/2025\n9:00 AM",
+            "event": "Testing Faculty Adding",
+            "type": "Deadline",
+            "location": "N/A",
             "status": "Upcoming"
         }
     ]
