@@ -435,12 +435,24 @@ class FacultyWindow(QWidget):
         dialog = RequestRescheduleDialog(self)
         dialog.exec()
 
+
+# Move the __main__ block to the end and match module 3 style
 if __name__ == "__main__":
     app = QApplication([])
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    style_qss = os.path.join(project_root, "styles", "style.qss")
-    if os.path.exists(style_qss):
-        with open(style_qss, 'r', encoding='utf-8') as f:
+    frontend_root = os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(
+                    os.path.dirname(
+                        os.path.dirname(__file__)
+                    )
+                )
+            )
+        )
+    )
+    qss_path = os.path.join(frontend_root, "assets", "qss", "module6_styles.qss")
+    if os.path.exists(qss_path):
+        with open(qss_path, 'r', encoding='utf-8') as f:
             app.setStyleSheet(f.read())
     window = FacultyWindow()
     window.show()

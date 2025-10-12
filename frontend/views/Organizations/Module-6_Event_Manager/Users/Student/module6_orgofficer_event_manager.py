@@ -179,17 +179,7 @@ class RequestProposalDialog(QDialog):
         if hasattr(self, "ViewEventTimeline"):
             self.ViewEventTimeline.clicked.connect(self._save_and_open_event_timeline)
         self._populate_dropdowns()
-        # Remove Save/Update and Delete buttons
-        try:
-            container = getattr(self, "verticalLayoutWidget", None)
-            layout = container.layout() if container and hasattr(container, "layout") else None
-            if layout:
-                btn_row = QHBoxLayout()
-                save_btn = QPushButton("Add Proposal", self)
-                btn_row.addWidget(save_btn)
-                layout.addLayout(btn_row)
-        except Exception:
-            pass
+        # Do not add any Add Proposal button; only use Event Timeline Add button
 
     def _populate_dropdowns(self):
         try:
@@ -467,7 +457,7 @@ class OrgOfficerWindow(QWidget):
 if __name__ == "__main__":
     app = QApplication([])
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    style_qss = os.path.join(project_root, "styles", "style.qss")
+    style_qss = os.path.join(project_root, "assets", "qss", "module6_styles.qss")
     if os.path.exists(style_qss):
         with open(style_qss, 'r', encoding='utf-8') as f:
             app.setStyleSheet(f.read())
