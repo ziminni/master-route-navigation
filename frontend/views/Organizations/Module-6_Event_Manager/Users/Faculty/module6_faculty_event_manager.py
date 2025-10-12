@@ -407,7 +407,6 @@ class FacultyWindow(QWidget):
         super().__init__()
         uic.loadUi(os.path.join(os.path.dirname(__file__), "EventManager-Faculty.ui"), self)
 
-        # Ensure frontend root is importable so controller/services/utils work when running directly
         try:
             import sys
             frontend_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))))
@@ -422,6 +421,12 @@ class FacultyWindow(QWidget):
             wire_faculty_signals(self, self.open_event_timeline, self.open_request_reschedule, self.open_request_proposal)
         except Exception:
             pass
+
+        # Apply QSS to this widget only
+        qss_path = os.path.join(frontend_root, "assets", "qss", "module6_styles.qss")
+        if os.path.exists(qss_path):
+            with open(qss_path, 'r', encoding='utf-8') as f:
+                self.setStyleSheet(f.read())
 
     def open_event_timeline(self):
         dialog = EventTimelineDialog(self)

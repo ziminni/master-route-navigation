@@ -416,7 +416,6 @@ class OrgOfficerWindow(QWidget):
                     self.stackedWidget.setCurrentIndex(1)
                 self.ViewAttendanceButton.clicked.connect(_fallback_open)
 
-        # Make all table columns fit the table width and rows fit contents
         for table_name in [
             "PendingTable", "Events_table_3", "Events_table_4",
             "Events_table_6", "Events_table_7", "tableWidget"
@@ -431,6 +430,12 @@ class OrgOfficerWindow(QWidget):
             self.RequestRescheduleButton.clicked.connect(self.open_request_reschedule)
         if hasattr(self, "RequestEventProposalButton"):
             self.RequestEventProposalButton.clicked.connect(self.open_request_proposal)
+
+        # Apply QSS to this widget only
+        qss_path = os.path.join(_project_root, "assets", "qss", "module6_styles.qss")
+        if os.path.exists(qss_path):
+            with open(qss_path, 'r', encoding='utf-8') as f:
+                self.setStyleSheet(f.read())
 
     def show_attendance_page(self):
         self.stackedWidget.setCurrentIndex(1)  # Show attendance page

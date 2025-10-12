@@ -97,7 +97,6 @@ class EventManagerStudent(QWidget):
         if hasattr(self, "Events_table") and hasattr(self.Events_table, "horizontalHeader"):
             self.Events_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
-        # Populate weekly and today schedules from event timeline JSON
         self._load_and_render_schedules()
         # If there's an Upcoming Events button, repurpose it to switch events if multiple proposals exist
         try:
@@ -106,6 +105,12 @@ class EventManagerStudent(QWidget):
                 self.pushButton_2.clicked.connect(self._load_and_render_schedules)
         except Exception:
             pass
+
+        # Apply QSS to this widget only
+        qss_path = os.path.join(_project_root, "assets", "qss", "module6_styles.qss")
+        if os.path.exists(qss_path):
+            with open(qss_path, 'r', encoding='utf-8') as f:
+                self.setStyleSheet(f.read())
 
     def show_attendance_page(self):
         self.stackedWidget.setCurrentIndex(1)  # Show attendance page
@@ -152,11 +157,12 @@ class EventManagerStudent(QWidget):
                 table.setItem(r, c, QTableWidgetItem(""))
         for c, d in enumerate(days):
             table.setHorizontalHeaderItem(c, QTableWidgetItem(d))
-        # Place activities
+        # Place activities (show event name and activity)
         for it in items:
             day = it.get("day")
             time24 = it.get("time")
             activity = it.get("activity", "")
+            event_name = it.get("eventName", "")
             if not (day and time24 and activity and day in days):
                 continue
             try:
@@ -167,7 +173,8 @@ class EventManagerStudent(QWidget):
                 continue
             r = times.index(label)
             c = days.index(day)
-            table.setItem(r, c, QTableWidgetItem(activity))
+            cell_text = f"{event_name}: {activity}" if event_name else activity
+            table.setItem(r, c, QTableWidgetItem(cell_text))
 
     def _populate_today_from_timeline(self, items: list[dict]) -> None:
         table = getattr(self, "Events_table", None)
@@ -189,6 +196,7 @@ class EventManagerStudent(QWidget):
         for it in todays:
             time24 = it.get("time")
             activity = it.get("activity", "")
+            event_name = it.get("eventName", "")
             if not time24:
                 continue
             try:
@@ -197,7 +205,8 @@ class EventManagerStudent(QWidget):
                 label = time24
             if label in times:
                 r = times.index(label)
-                table.setItem(r, 0, QTableWidgetItem(activity))
+                cell_text = f"{event_name}: {activity}" if event_name else activity
+                table.setItem(r, 0, QTableWidgetItem(cell_text))
 
 if __name__ == "__main__":
     app = QApplication([])

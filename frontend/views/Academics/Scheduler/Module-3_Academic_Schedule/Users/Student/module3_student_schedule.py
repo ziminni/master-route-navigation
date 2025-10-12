@@ -31,7 +31,6 @@ class ScheduleWindow(QWidget):
         )
         uic.loadUi(ui_file, self)
 
-        # Ensure frontend root is importable for 'controller.*' modules
         if frontend_root not in sys.path:
             sys.path.insert(0, frontend_root)
 
@@ -51,6 +50,12 @@ class ScheduleWindow(QWidget):
                 self.Search.setVisible(False)
             if hasattr(self, "StudentSearch"):
                 self.StudentSearch.setVisible(False)
+
+        # Apply QSS to this widget only
+        qss_path = os.path.join(frontend_root, "assets", "qss", "module3_styles.qss")
+        if os.path.exists(qss_path):
+            with open(qss_path, 'r', encoding='utf-8') as f:
+                self.setStyleSheet(f.read())
 
         # Ensure all QTableWidgets' columns fit the table width
         self.WeekTable_2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
