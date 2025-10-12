@@ -9,7 +9,11 @@ def ui_path(filename):
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "ui", "Event Manager", filename))
 
 # Ensure project root is importable for 'controller.*' modules when running directly
-_project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))))
+try:
+    from services.json_paths import get_project_root
+    _project_root = get_project_root()
+except Exception:
+    _project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))) )
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
@@ -504,7 +508,11 @@ class OrgOfficerWindow(QWidget):
 
 if __name__ == "__main__":
     app = QApplication([])
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    try:
+        from services.json_paths import get_project_root
+        project_root = get_project_root()
+    except Exception:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
     style_qss = os.path.join(project_root, "assets", "qss", "module6_styles.qss")
     if os.path.exists(style_qss):
         with open(style_qss, 'r', encoding='utf-8') as f:
