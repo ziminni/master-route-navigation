@@ -1,5 +1,5 @@
 import os
-from PyQt6.QtWidgets import QWidget, QMainWindow, QDialog, QTableWidgetItem
+from PyQt6.QtWidgets import QWidget, QMainWindow, QDialog
 from PyQt6 import uic
 
 
@@ -44,25 +44,34 @@ class Events(QMainWindow):
         def _open_event_timeline_dialog() -> None:
             try:
                 from services.event_timeline_service import load_timeline
-            except Exception:
-                load_timeline = None
-            try:
+                from PyQt6.QtWidgets import QTableWidgetItem
                 dialog = QDialog(self)
                 uic.loadUi(_ui_path("Event Timeline.ui"), dialog)
                 table = getattr(dialog, "WeekTable_2", None)
-                if table and load_timeline:
-                    # Set up headers (assume headers are already set in UI)
-                    # Clear table
-                    for r in range(table.rowCount()):
-                        for c in range(table.columnCount()):
+                if table:
+                    # Set up headers (same as Student Mod 6)
+                    days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+                    times = [
+                        "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
+                        "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM",
+                        "5:00 PM", "6:00 PM", "7:00 PM",
+                    ]
+                    table.setRowCount(len(times))
+                    table.setColumnCount(len(days))
+                    for r, label in enumerate(times):
+                        table.setVerticalHeaderItem(r, QTableWidgetItem(label))
+                        for c in range(len(days)):
                             table.setItem(r, c, QTableWidgetItem(""))
-                    data = load_timeline() if load_timeline else {"timeline": []}
-                    items = data.get("timeline", [])
-                    for item in items:
-                        day = item.get("day")
-                        time = item.get("time")
-                        activity = item.get("activity", "")
-                        event_name = item.get("eventName", "")
+                    for c, d in enumerate(days):
+                        table.setHorizontalHeaderItem(c, QTableWidgetItem(d))
+                    # Load and place activities
+                    data = load_timeline() if callable(load_timeline) else {"timeline": []}
+                    items = data.get("timeline", []) if isinstance(data, dict) else []
+                    for it in items:
+                        day = it.get("day")
+                        time = it.get("time")
+                        activity = it.get("activity", "")
+                        event_name = it.get("eventName", "")
                         cell_text = f"{event_name}: {activity}" if event_name else activity
                         # Convert time to display header
                         try:
