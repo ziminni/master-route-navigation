@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ClassroomClassworksContent</class>
+ <widget class="QWidget" name="ClassroomClassworksContent">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>940</width>
+    <height>530</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>940</width>
+    <height>530</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>classworks</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget {
+       background-color: transparent;
+       font-family: &quot;Poppins&quot;, Arial, sans-serif;
+   }</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2">
+   <item>
+    <layout class="QVBoxLayout" name="classworkMainVerticalLayout">
+     <property name="spacing">
+      <number>15</number>
+     </property>
+     <property name="leftMargin">
+      <number>20</number>
+     </property>
+     <property name="topMargin">
+      <number>20</number>
+     </property>
+     <property name="rightMargin">
+      <number>20</number>
+     </property>
+     <property name="bottomMargin">
+      <number>20</number>
+     </property>
+     <item>
+      <layout class="QHBoxLayout" name="topBarLayout">
+       <property name="spacing">
+        <number>15</number>
+       </property>
+       <item>
+        <widget class="QToolButton" name="createButton">
+         <property name="maximumSize">
+          <size>
+           <width>100</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="contextMenuPolicy">
+          <enum>Qt::NoContextMenu</enum>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">   QToolButton {
+       background-color: #084924;
+       color: white;
+       border: none;
+       padding: 6px 12px;
+       border-radius: 5px;
+       font-weight: 600;
+       font-size: 11px;
+   }
+   QToolButton:hover {
+       background-color: #1B5E20;
+   }
+   QToolButton:pressed {
+       background-color: #0D4E12;
+   }</string>
+         </property>
+         <property name="text">
+          <string>Create</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>:/icons/baseline-add.svg</normaloff>:/icons/baseline-add.svg</iconset>
+         </property>
+         <property name="popupMode">
+          <enum>QToolButton::MenuButtonPopup</enum>
+         </property>
+         <property name="toolButtonStyle">
+          <enum>Qt::ToolButtonTextBesideIcon</enum>
+         </property>
+         <property name="arrowType">
+          <enum>Qt::NoArrow</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::MinimumExpanding</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>60</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QComboBox" name="filterComboBox">
+       <property name="maximumSize">
+        <size>
+         <width>276</width>
+         <height>40</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QComboBox {
+       border: 1px solid #D0D7DE;
+       border-radius: 4px;
+       padding: 5px 8px;
+       background-color: white;
+       font-size: 12px;
+   }
+   QComboBox:hover {
+       border-color: #A8A8A8;
+   }
+   QComboBox::drop-down {
+       border: none;
+       width: 20px;
+   }
+
+	QComboBox::down-arrow {
+       image: none;
+       border-left: 4px solid transparent;
+       border-right: 4px solid transparent;
+       border-top: 4px solid #666;
+   }
+
+</string>
+       </property>
+       <item>
+        <property name="text">
+         <string>All items</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Material</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Assessment</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QScrollArea" name="topicScrollArea">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="baseSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QScrollArea {
+       border: none;
+       background-color: transparent;
+   }
+   QScrollBar:vertical {
+       border: none;
+       background: #F1F1F1;
+       width: 8px;
+       border-radius: 4px;
+   }
+   QScrollBar::handle:vertical {
+       background: #C1C1C1;
+       border-radius: 4px;
+       min-height: 20px;
+   }</string>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::NoFrame</enum>
+       </property>
+       <property name="widgetResizable">
+        <bool>true</bool>
+       </property>
+       <widget class="QWidget" name="scrollAreaWidgetContents">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>882</width>
+          <height>370</height>
+         </rect>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <layout class="QVBoxLayout" name="topicListLayout">
+           <property name="spacing">
+            <number>4</number>
+           </property>
+           <property name="topMargin">
+            <number>9</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <spacer name="verticalSpacer">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../../../src/icons.qrc"/>
+  <include location="../../../../../src/icons.qrc"/>
+ </resources>
+ <connections/>
+</ui>

@@ -1,0 +1,163 @@
+{
+  "parents": [
+    {
+      "id": 1,
+      "name": "Dashboard",
+      "mains": [
+        {
+          "id": 1,
+          "name": "Dashboard",
+          "function": "Dashboard()",
+          "path": "views.Dashboard.Dashboard",
+          "access": ["admin", "faculty", "staff", "student"],
+          "modulars": []
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Academics",
+      "mains": [
+        {
+          "id": 2,
+          "name": "Classes",
+          "function": "()",
+          "path": "",
+          "access": ["student", "admin"],
+          "modulars":[]
+        },
+        {
+          "id": 3,
+          "name": "Schedule",
+          "function": "()",
+          "path": "",
+          "access": ["student", "admin"],
+          "modulars":[]
+        },
+        {
+          "id": 4,
+          "name": "Progress",
+          "function": "()",
+          "path": "",
+          "access": ["student", "admin"],
+          "modulars":[]
+        },
+        {
+          "id": 5,
+          "name": "Appointments",
+          "function": "Appointment_main()",
+          "path": "views.Appointments.Appointment_main",
+          "access": ["faculty","student", "admin"],
+          "modulars":[]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Organizations",
+      "mains": [
+        {
+          "id": 6,
+          "name": "Browse",
+          "function": "()",
+          "path": "",
+          "access": ["student","admin"],
+          "modulars":[]
+        },
+        {
+          "id": 7,
+          "name": "Membership",
+          "function": "()",
+          "path": "",
+          "access": ["student", "admin"],
+          "modulars":[]
+        },
+        {
+          "id": 8,
+          "name": "Events",
+          "function": "()",
+          "path": "",
+          "access": ["student", "admin"],
+          "modulars":[]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Campus",
+      "mains": [
+        {
+          "id": 9,
+          "name": "Calendar",
+          "function": "()",
+          "path": "",
+          "access": ["student", "admin"],
+          "modulars":[]
+        },
+        {
+          "id": 10,
+          "name": "Announcements",
+          "function": "()",
+          "path": "",
+          "access": ["student","admin"],
+          "modulars":[]
+        },
+        {
+          "id": 11,
+          "name": "House System",
+          "function": "()",
+          "path": "",
+          "access": ["student","admin"],
+          "modulars":[]
+        },
+        {
+          "id": 12,
+          "name": "Showcase",
+          "function": "()",
+          "path": "",
+          "access": ["student","admin"],
+          "modulars":[]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Tools",
+      "mains": [
+        {
+          "id": 13,
+          "name": "Documents",
+          "function": "()",
+          "path": "",
+          "access": ["student","admin"],
+          "modulars":[]
+        },
+        {
+          "id": 14,
+          "name": "Messages",
+          "function": "()",
+          "path": "",
+          "access": ["student","admin"],
+          "modulars":[]
+        },
+        {
+          "id": 15,
+          "name": "Student Services",
+          "function": "()",
+          "path": "",
+          "access": ["student","admin"],
+          "modulars":[]
+        },
+        {
+          "id": 16,
+          "name": "Help",
+          "function": "()",
+          "path": "",
+          "access": ["student","admin"],
+          "modulars":[]
+        }
+      ]
+    }
+
+  ]
+}
