@@ -1,6 +1,6 @@
 
 from typing import Dict, List, Optional
-from .json_paths import read_json_file, write_json_file
+from services.json_paths import read_json_file, write_json_file
 
 FILENAME = "event_timeline.json"
 

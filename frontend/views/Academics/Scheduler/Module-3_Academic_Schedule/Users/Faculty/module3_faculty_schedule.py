@@ -11,20 +11,24 @@ class ScheduleWindow(QWidget):
         # Tag role for controller visibility logic
         self.user_role = "faculty"
         # Resolve `frontend` root and load shared UI from Academic Schedule
-        frontend_root = os.path.dirname(
-            os.path.dirname(
+        try:
+            from services.json_paths import get_project_root
+            project_root = get_project_root()
+        except Exception:
+            project_root = os.path.dirname(
                 os.path.dirname(
                     os.path.dirname(
                         os.path.dirname(
                             os.path.dirname(
-                                os.path.dirname(__file__)
+                                os.path.dirname(
+                                    os.path.dirname(__file__)
+                                )
                             )
                         )
                     )
                 )
             )
-        )
-        ui_file = os.path.join(frontend_root, "ui", "Academic Schedule", "schedule.ui")
+        ui_file = os.path.join(project_root, "ui", "Academic Schedule", "schedule.ui")
         uic.loadUi(ui_file, self)
 
         # Apply QSS to this widget only
@@ -34,8 +38,8 @@ class ScheduleWindow(QWidget):
                 self.setStyleSheet(f.read())
 
         # Ensure /frontend is importable for 'controller.*' modules
-        if frontend_root not in sys.path:
-            sys.path.insert(0, frontend_root)
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
 
         # Wire signals via controller
         try:
@@ -68,20 +72,24 @@ class ScheduleWindow(QWidget):
 
 if __name__ == "__main__":
     app = QApplication([])
-    frontend_root = os.path.dirname(
-        os.path.dirname(
-        os.path.dirname(
-        os.path.dirname(
-        os.path.dirname(
-        os.path.dirname(
-        os.path.dirname(__file__)
+    try:
+        from services.json_paths import get_project_root
+        project_root = get_project_root()
+    except Exception:
+        project_root = os.path.dirname(
+            os.path.dirname(
+            os.path.dirname(
+            os.path.dirname(
+            os.path.dirname(
+            os.path.dirname(
+            os.path.dirname(__file__)
+            )
+            )
+            )
+            )
+            )
         )
-        )
-        )
-        )
-        )
-        )
-    qss_path = os.path.join(frontend_root, "assets", "qss", "module3_styles.qss")
+    qss_path = os.path.join(project_root, "assets", "qss", "module3_styles.qss")
     if os.path.exists(qss_path):
         with open(qss_path, 'r', encoding='utf-8') as f:
             app.setStyleSheet(f.read())

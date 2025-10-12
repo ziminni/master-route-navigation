@@ -51,17 +51,30 @@ class ScheduleWindow(QWidget):
             if hasattr(self, "StudentSearch"):
                 self.StudentSearch.setVisible(False)
 
-        # Apply QSS to this widget only
-        qss_path = os.path.join(frontend_root, "assets", "qss", "module3_styles.qss")
-        if os.path.exists(qss_path):
-            with open(qss_path, 'r', encoding='utf-8') as f:
-                self.setStyleSheet(f.read())
+        # Apply QSS to this widget only using project root helper (stable path)
+        try:
+            from services.json_paths import get_project_root
+            project_root = get_project_root()
+            qss_path = os.path.join(project_root, "assets", "qss", "module3_styles.qss")
+            if os.path.exists(qss_path):
+                with open(qss_path, 'r', encoding='utf-8') as f:
+                    self.setStyleSheet(f.read())
+        except Exception:
+            pass
 
         # Ensure all QTableWidgets' columns fit the table width
         self.WeekTable_2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tableWidget_2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.sem1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.sem2frame.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        # Apply UI helpers to prevent clipping (buttons/tables)
+        try:
+            from services.ui_utils import fit_all_buttons, auto_resize_all_tables
+            fit_all_buttons(self)
+            auto_resize_all_tables(self)
+        except Exception:
+            pass
 
         # Set labelTodayHeader_2 to today's day name
         today_name = datetime.now().strftime("%A")
@@ -90,10 +103,15 @@ if __name__ == "__main__":
             )
         )
     )
-    qss_path = os.path.join(frontend_root, "assets", "qss", "module3_styles.qss")
-    if os.path.exists(qss_path):
-        with open(qss_path, 'r', encoding='utf-8') as f:
-            app.setStyleSheet(f.read())
+    try:
+        from services.json_paths import get_project_root
+        project_root = get_project_root()
+        qss_path = os.path.join(project_root, "assets", "qss", "module3_styles.qss")
+        if os.path.exists(qss_path):
+            with open(qss_path, 'r', encoding='utf-8') as f:
+                app.setStyleSheet(f.read())
+    except Exception:
+        pass
     window = ScheduleWindow()
     window.show()
     app.exec()

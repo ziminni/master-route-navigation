@@ -97,6 +97,14 @@ class EventManagerStudent(QWidget):
         if hasattr(self, "Events_table") and hasattr(self.Events_table, "horizontalHeader"):
             self.Events_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
+        # Apply UI helpers to prevent clipping (buttons/tables)
+        try:
+            from services.ui_utils import fit_all_buttons, auto_resize_all_tables
+            fit_all_buttons(self)
+            auto_resize_all_tables(self)
+        except Exception:
+            pass
+
         self._load_and_render_schedules()
         # If there's an Upcoming Events button, repurpose it to switch events if multiple proposals exist
         try:
@@ -106,11 +114,16 @@ class EventManagerStudent(QWidget):
         except Exception:
             pass
 
-        # Apply QSS to this widget only
-        qss_path = os.path.join(_project_root, "assets", "qss", "module6_styles.qss")
-        if os.path.exists(qss_path):
-            with open(qss_path, 'r', encoding='utf-8') as f:
-                self.setStyleSheet(f.read())
+        # Apply QSS to this widget only (use json_paths helper to find project root)
+        try:
+            from services.json_paths import get_project_root
+            project_root = get_project_root()
+            qss_path = os.path.join(project_root, "assets", "qss", "module6_styles.qss")
+            if os.path.exists(qss_path):
+                with open(qss_path, 'r', encoding='utf-8') as f:
+                    self.setStyleSheet(f.read())
+        except Exception:
+            pass
 
     def show_attendance_page(self):
         self.stackedWidget.setCurrentIndex(1)  # Show attendance page
@@ -131,6 +144,12 @@ class EventManagerStudent(QWidget):
         timeline_items = data.get("timeline", []) if isinstance(data, dict) else []
         self._populate_weekly_from_timeline(timeline_items)
         self._populate_today_from_timeline(timeline_items)
+        # After rendering, ensure table columns/rows fit their contents
+        try:
+            from services.ui_utils import auto_resize_all_tables
+            auto_resize_all_tables(self)
+        except Exception:
+            pass
 
     def _populate_weekly_from_timeline(self, items: list[dict]) -> None:
         table = getattr(self, "EventT_Table", None)

@@ -418,11 +418,18 @@ class FacultyWindow(QWidget):
 
         try:
             import sys
-            frontend_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))))
-            if frontend_root not in sys.path:
-                sys.path.insert(0, frontend_root)
+            from services.json_paths import get_project_root
+            project_root = get_project_root()
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
         except Exception:
-            pass
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))))
+            try:
+                import sys
+                if project_root not in sys.path:
+                    sys.path.insert(0, project_root)
+            except Exception:
+                pass
 
         # Wire signals via controller
         try:
@@ -432,7 +439,7 @@ class FacultyWindow(QWidget):
             pass
 
         # Apply QSS to this widget only
-        qss_path = os.path.join(frontend_root, "assets", "qss", "module6_styles.qss")
+        qss_path = os.path.join(project_root, "assets", "qss", "module6_styles.qss")
         if os.path.exists(qss_path):
             with open(qss_path, 'r', encoding='utf-8') as f:
                 self.setStyleSheet(f.read())
@@ -453,18 +460,22 @@ class FacultyWindow(QWidget):
 # Move the __main__ block to the end and match module 3 style
 if __name__ == "__main__":
     app = QApplication([])
-    frontend_root = os.path.dirname(
-        os.path.dirname(
+    try:
+        from services.json_paths import get_project_root
+        project_root = get_project_root()
+    except Exception:
+        project_root = os.path.dirname(
             os.path.dirname(
                 os.path.dirname(
                     os.path.dirname(
-                        os.path.dirname(__file__)
+                        os.path.dirname(
+                            os.path.dirname(__file__)
+                        )
                     )
                 )
             )
         )
-    )
-    qss_path = os.path.join(frontend_root, "assets", "qss", "module6_styles.qss")
+    qss_path = os.path.join(project_root, "assets", "qss", "module6_styles.qss")
     if os.path.exists(qss_path):
         with open(qss_path, 'r', encoding='utf-8') as f:
             app.setStyleSheet(f.read())
