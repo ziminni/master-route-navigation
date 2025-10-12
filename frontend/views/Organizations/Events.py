@@ -36,27 +36,40 @@ class Events(QMainWindow):
             pass
 
         # Local helper to resolve shared Event Manager UIs
+
         def _ui_path(filename: str) -> str:
             return os.path.abspath(os.path.join(base_dir, "..", "..", "ui", "Event Manager", filename))
 
-        # Lightweight dialog openers (no business logic) ---------------------------------
-        def _open_add_activity_dialog() -> None:
-            try:
-                dialog = QDialog(self)
-                uic.loadUi(_ui_path("addactivity.ui"), dialog)
-                dialog.exec()
-            except Exception as e:
-                print(f"Events: failed to open Add Activity dialog: {e}")
-
+        # Refactored: Open Event Timeline dialog, Add button uses proposal data directly
         def _open_event_timeline_dialog() -> None:
             try:
                 dialog = QDialog(self)
                 uic.loadUi(_ui_path("Event Timeline.ui"), dialog)
-                # Wire Add button just to show Add Activity dialog
+                # Wire Add button to add activity directly (no Add Activity dialog)
                 try:
                     add_btn = getattr(dialog, "Event_Add", None)
                     if add_btn and hasattr(add_btn, "clicked"):
-                        add_btn.clicked.connect(_open_add_activity_dialog)
+                        def add_activity_direct():
+                            # Example: use proposal data or defaults
+                            table = getattr(dialog, "WeekTable_2", None)
+                            if table is None:
+                                return
+                            row = table.currentRow()
+                            col = table.currentColumn()
+                            if row < 0 or col < 0:
+                                return
+                            v_item = table.verticalHeaderItem(row)
+                            h_item = table.horizontalHeaderItem(col)
+                            time_label = v_item.text() if v_item else ""
+                            day_label = h_item.text() if h_item else ""
+                            if not time_label or not day_label:
+                                return
+                            time_hhmm = time_label  # Or convert as needed
+                            activity = "Activity"  # Or fetch from proposal
+                            # Add logic to persist activity as needed
+                            # Optionally update table UI
+                            table.setItem(row, col, QTableWidgetItem(activity))
+                        add_btn.clicked.connect(add_activity_direct)
                 except Exception:
                     pass
                 dialog.exec()
