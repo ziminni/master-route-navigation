@@ -10,14 +10,31 @@ class Schedule(QWidget):
         # Determine role and choose the appropriate Module 3 window
         is_faculty = (primary_role == "faculty") or (roles and "faculty" in roles)
         base_dir = os.path.dirname(__file__)
-        mod3_dir = os.path.join(base_dir, "Module-3_Academic_Schedule", "Users", "Faculty" if is_faculty else "Student")
-        sys.path.insert(0, mod3_dir)
-
-        # Load the shared schedule.ui directly into this widget
+        # Choose the module3 view implementation based on role and import it
+        users_folder = os.path.join(base_dir, "Module-3_Academic_Schedule", "Users", "Faculty" if is_faculty else "Student")
+        # Ensure project root is available for services imports used by the view
         project_root = os.path.abspath(os.path.join(base_dir, "..", "..", ".."))
-        ui_path = os.path.join(project_root, "ui", "Academic Schedule", "schedule.ui")
-        # Load QMainWindow-based UI as a child widget and embed it
-        loaded = uic.loadUi(ui_path)
+        try:
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+        except Exception:
+            pass
+
+        # Attempt to import the view module from file to get its ScheduleWindow class
+        try:
+            import importlib.util
+            module_filename = "module3_faculty_schedule.py" if is_faculty else "module3_student_schedule.py"
+            module_path = os.path.join(users_folder, module_filename)
+            spec = importlib.util.spec_from_file_location("module3_schedule_view", module_path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            loaded = getattr(mod, "ScheduleWindow")()
+        except Exception:
+            # Fallback to loading the shared UI directly (older behavior)
+            ui_path = os.path.join(project_root, "ui", "Academic Schedule", "schedule.ui")
+            loaded = uic.loadUi(ui_path)
+
+        # Embed the loaded widget into this container
         container = QVBoxLayout(self)
         container.setContentsMargins(0, 0, 0, 0)
         container.addWidget(loaded)
@@ -31,7 +48,7 @@ class Schedule(QWidget):
         except Exception:
             pass
 
-        # Tag role and student context on the loaded UI widget
+        # Tag role and student context on the loaded UI widget (view classes may already set this)
         try:
             setattr(loaded, "user_role", "faculty" if is_faculty else "student")
             if not is_faculty:
@@ -57,7 +74,7 @@ class Schedule(QWidget):
         except Exception:
             pass
 
-        # Wire signals via Module 3 controller
+        # Wire signals via Module 3 controller if the view didn't already
         try:
             from controller.module3.schedule_controller import wire_schedule_signals
             wire_schedule_signals(loaded)

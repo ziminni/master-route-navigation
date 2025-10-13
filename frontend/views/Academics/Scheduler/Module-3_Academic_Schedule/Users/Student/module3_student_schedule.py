@@ -1,7 +1,8 @@
 import os
 import sys
 from PyQt6 import uic
-from PyQt6.QtWidgets import QApplication, QWidget, QHeaderView
+from PyQt6.QtWidgets import QApplication, QWidget, QHeaderView, QAbstractItemView
+from PyQt6.QtCore import Qt
 from datetime import datetime
 
 class ScheduleWindow(QWidget):
@@ -75,6 +76,37 @@ class ScheduleWindow(QWidget):
             from services.ui_utils import fit_all_buttons, auto_resize_all_tables
             fit_all_buttons(self)
             auto_resize_all_tables(self)
+        except Exception:
+            pass
+
+        # Make curriculum tables scrollable
+        try:
+            self.sem1.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.sem2frame.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.sem1.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.sem2frame.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.sem1.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+            self.sem2frame.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+            self.sem1.setWordWrap(False)
+            self.sem2frame.setWordWrap(False)
+        except Exception:
+            pass
+
+        # Set per-column resize modes to make headers fit
+        try:
+            self.sem1.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            self.sem1.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            self.sem1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+            self.sem1.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+            self.sem1.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+            self.sem1.horizontalHeader().setMinimumSectionSize(60)
+
+            self.sem2frame.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            self.sem2frame.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            self.sem2frame.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+            self.sem2frame.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+            self.sem2frame.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+            self.sem2frame.horizontalHeader().setMinimumSectionSize(60)
         except Exception:
             pass
 

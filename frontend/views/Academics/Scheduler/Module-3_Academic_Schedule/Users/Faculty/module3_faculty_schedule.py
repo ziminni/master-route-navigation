@@ -2,7 +2,8 @@
 import os
 import sys
 from PyQt6 import uic
-from PyQt6.QtWidgets import QApplication, QWidget, QHeaderView
+from PyQt6.QtWidgets import QApplication, QWidget, QHeaderView, QAbstractItemView
+from PyQt6.QtCore import Qt
 from datetime import datetime
 
 class ScheduleWindow(QWidget):
@@ -58,6 +59,39 @@ class ScheduleWindow(QWidget):
         self.tableWidget_2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.sem1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.sem2frame.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        # Make curriculum tables scrollable (vertical scrolling for long lists)
+        try:
+            # vertical scrollbars as needed, use per-pixel scrolling for smoother behavior
+            self.sem1.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.sem2frame.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.sem1.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.sem2frame.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.sem1.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+            self.sem2frame.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+            # Prevent text wrapping inside cells which can expand row height unexpectedly
+            self.sem1.setWordWrap(False)
+            self.sem2frame.setWordWrap(False)
+            # Set per-column resize modes to make headers fit
+            # columns: 0=Codes, 1=Subject Titles, 2=Grades, 3=Units, 4=Pre-requisite(s)
+            try:
+                self.sem1.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+                self.sem1.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+                self.sem1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+                self.sem1.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+                self.sem1.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+                self.sem1.horizontalHeader().setMinimumSectionSize(60)
+
+                self.sem2frame.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+                self.sem2frame.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+                self.sem2frame.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+                self.sem2frame.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+                self.sem2frame.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+                self.sem2frame.horizontalHeader().setMinimumSectionSize(60)
+            except Exception:
+                pass
+        except Exception:
+            pass
 
         # Set labelTodayHeader_2 to today's day name
         today_name = datetime.now().strftime("%A")
