@@ -259,10 +259,10 @@ def create_back_button(callback=None):
     Returns:
         QPushButton: Configured back button with icon and text
     """
-    button = QPushButton(" Back")
+    button = QPushButton()
     
     # Load and set icon
-    pixmap = IconLoader.load_icon('left.png', size=(20, 20))
+    pixmap = IconLoader.load_icon('backIC.png', size=(20, 20))
     if pixmap:
         button.setIcon(QIcon(pixmap))
         button.setIconSize(QSize(20, 20))
