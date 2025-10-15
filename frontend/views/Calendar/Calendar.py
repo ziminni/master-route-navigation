@@ -337,7 +337,7 @@ class Calendar(QWidget):
                 background-color: #dee2e6;
             }
         """)
-        self.btn_search.clicked.connect(lambda: self.on_search_triggered())
+        self.btn_search.clicked.connect(self.on_search_triggered)
         controls_layout.addWidget(self.btn_search)
         
         layout.addLayout(controls_layout)
@@ -502,6 +502,7 @@ class Calendar(QWidget):
             query = self.search_bar.text().strip()
         
         if self.navigate_to_search:
+            # Pass the search query to the navigation callback
             self.navigate_to_search(query)
 
     def show_month_view(self):
