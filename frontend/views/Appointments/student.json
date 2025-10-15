@@ -19,5 +19,12 @@
         "email": "Adolf",
         "course": "Unknown Course",
         "year_level": "Unknown Year"
+    },
+    {
+        "id": 4,
+        "name": "Marcus",
+        "email": "Marcus",
+        "course": "Unknown Course",
+        "year_level": "Unknown Year"
     }
 ]

@@ -35,72 +35,11 @@ serilazer
 role.charfield(choices.data)
 
 '''
-<<<<<<< HEAD
-
-=======
->>>>>>> master
 class UserLoginAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         ser = LoginSerializer(data=request.data)
-<<<<<<< HEAD
-        ser.is_valid(raise_exception=True)
-        data = ser.validated_data
-
-        if not ser.is_valid():
-            return Response({"errors": ser.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-        user = data["user"]
-        return Response({
-            "message": "Login successful",
-            "access_token": data["access_token"],
-            "roles": data["roles"],
-            "primary_role": data["primary_role"],
-            "user": BaseUserSerializer(user).data,
-        }, status=status.HTTP_200_OK)
-
-# class UserLoginAPIView(APIView):
-#     permission_classes = [AllowAny]
-
-#     def post(self, request):
-#         identifier = request.data.get('username') 
-#         password = request.data.get('password')
-
-#         if not identifier or not password:
-#             return Response({'message': 'Username/email and password are required.'},
-#                             status=status.HTTP_400_BAD_REQUEST)
-
-#         user = authenticate(username=identifier, password=password)
-
-#         if user is None and '@' in identifier:
-#             try:
-#                 u = User.objects.get(email__iexact=identifier)
-#                 user = authenticate(username=u.username, password=password)
-#             except User.DoesNotExist:
-#                 pass
-
-#         if user is None:
-#             return Response({'message': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
-#         if not user.is_active:
-#             return Response({'message': 'Account is inactive'}, status=status.HTTP_403_FORBIDDEN)
-
-#         # retreieve roles fdrom database
-#         roles = list(user.groups.values_list('name', flat=True))
-#         # an AI-improved primary role evaluator
-#         primary_role = next((r for r in ROLE_PRIORITY if r in roles), None)
-
-#         refresh = RefreshToken.for_user(user)
-
-#         # details are returned like this
-#         return Response({
-#             'message': 'Login successful',
-#             'access_token': str(refresh.access_token),
-#             'roles': roles,
-#             'primary_role': primary_role,
-#             'username': user.username,
-#         }, status=status.HTTP_200_OK)
-=======
         ser.is_valid(raise_exception=True)          # raises 400/401 on error
         data = ser.validated_data
 
@@ -121,7 +60,6 @@ class UserLoginAPIView(APIView):
         }
         return Response(payload, status=status.HTTP_200_OK)
 
->>>>>>> master
 
 class UserProfileAPIView(APIView):
     
@@ -210,15 +148,6 @@ class DemoteRegistrarAPIView(APIView):
         return Response({"message": "User retired from Registrar"}, status=200)
     
 from .serializers import AdminUserListSerializer
-<<<<<<< HEAD
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = User.objects.all().order_by("id")
-    serializer_class = AdminUserListSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["username", "email", "first_name", "last_name"]
-    ordering_fields = ["id", "username", "email", "first_name", "last_name"]
-=======
 # class UserViewSet(viewsets.ReadOnlyModelViewSet):
 #     queryset = User.objects.all().order_by("id")
 #     serializer_class = AdminUserListSerializer
@@ -415,4 +344,3 @@ class PasswordResetConfirmView(APIView):
         # invalidate token
         pr.delete()
         return Response({"message":"Password changed."}, status=200)
->>>>>>> master
