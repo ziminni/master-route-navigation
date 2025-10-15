@@ -12,7 +12,7 @@ class Events(QMainWindow):
         is_faculty = "faculty" in normalized_roles
         is_org_officer = "org_officer" in normalized_roles
         base_dir = os.path.dirname(__file__)
-        users_root = os.path.join(base_dir, "Module-6_Event_Manager", "Users")
+        users_root = os.path.join(base_dir, "Events", "Users")
 
         # Ensure project root is on sys.path for controller/service imports
         try:
