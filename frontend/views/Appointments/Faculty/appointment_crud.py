@@ -7,11 +7,11 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 class appointment_crud:
     def __init__(self):
-        self.faculty_db = JSONCRUD('faculty.json')
-        self.student_db = JSONCRUD('student.json')
-        self.blocks_db = JSONCRUD('appointment_blocks.json')
-        self.entries_db = JSONCRUD('appointment_entries.json')
-        self.appointments_db = JSONCRUD('appointments.json')
+        self.faculty_db = JSONCRUD('frontend/views/Appointments/faculty.json')
+        self.student_db = JSONCRUD('frontend/views/Appointments/student.json')
+        self.blocks_db = JSONCRUD('frontend/views/Appointments/appointment_blocks.json')
+        self.entries_db = JSONCRUD('frontend/views/Appointments/appointment_entries.json')
+        self.appointments_db = JSONCRUD('frontend/views/Appointments/appointments.json')
 
     # ===========================
     # FACULTY MANAGEMENT
