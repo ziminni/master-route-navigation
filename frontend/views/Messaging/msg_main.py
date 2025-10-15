@@ -334,13 +334,13 @@ class MainApp(QtWidgets.QMainWindow):
         # Realtime updates (rebuild current filter view)
         self.start_inquiry_realtime_updates()
 
-    def connect_header_actions(self):
-        actions = self.ui.header.profile_menu.actions()
-        for action in actions:
-            if action.text() == "My Profile":
-                action.triggered.connect(self.show_profile)
-            elif action.text() == "Log Out":
-                action.triggered.connect(self.logout)
+    # def connect_header_actions(self):
+    #     actions = self.ui.header.profile_menu.actions()
+    #     for action in actions:
+    #         if action.text() == "My Profile":
+    #             action.triggered.connect(self.show_profile)
+    #         elif action.text() == "Log Out":
+    #             action.triggered.connect(self.logout)
 
     def _get_or_create_conversation(self, uid_a: int, uid_b: int):
         for conv in self.data_manager.data.get('conversations', []):
@@ -371,16 +371,24 @@ class MainApp(QtWidgets.QMainWindow):
             self.close()
 
     def open_inquiry_dialog(self):
-        dialog = InquiryDialog(self)
-        if dialog.exec():
-            inquiry_data = dialog.get_inquiry_data()
-            if inquiry_data:
-                created_inquiry = self.data_manager.create_inquiry(inquiry_data)
-                if created_inquiry:
-                    print(f"Inquiry Created! ID: {created_inquiry['id']}")
-                    self.filter_chats(self.current_filter)
-                else:
-                    print("Failed to create inquiry")
+        print("[DEBUG] open_inquiry_dialog() triggered")
+        try:
+            dialog = InquiryDialog(self)
+            print("[DEBUG] InquiryDialog created:", dialog)
+            result = dialog.exec()
+            print("[DEBUG] Dialog exec() result:", result)
+            if result:
+                inquiry_data = dialog.get_inquiry_data()
+                if inquiry_data:
+                    created_inquiry = self.data_manager.create_inquiry(inquiry_data)
+                    if created_inquiry:
+                        print(f"Inquiry Created! ID: {created_inquiry['id']}")
+                        self.filter_chats(self.current_filter)
+                    else:
+                        print("Failed to create inquiry")
+        except Exception as e:
+            print("[ERROR] open_inquiry_dialog failed:", e)
+
 
     def filter_chats(self, filter_type: str):
         self.current_filter = filter_type

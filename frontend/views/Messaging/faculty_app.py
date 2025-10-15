@@ -15,7 +15,8 @@ This app allows faculty to:
 import sys
 from PyQt6 import QtCore, QtGui, QtWidgets
 from .data_manager import DataManager
-
+from .faculty.message_dialog import Ui_Form
+from .faculty.message_compose import Ui_Form as ComposeUI
 
 
 class FacultyMainUI(QtWidgets.QWidget):
@@ -25,12 +26,19 @@ class FacultyMainUI(QtWidgets.QWidget):
         super().__init__(parent)
         self.setObjectName("FacultyMainUI")
 
+        # Data
+        self.data_manager = DataManager()
+        self.current_faculty_id = 2  # Dr. Maria Santos
+
+       
+
+
         # Main layout
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # ===== Header =====
+        # # ===== Header =====
         # self.header = Header(parent=self)
         # self.header.setFixedHeight(84)
         # main_layout.addWidget(self.header)
@@ -56,6 +64,14 @@ class FacultyMainUI(QtWidgets.QWidget):
         content_layout.addWidget(self.faculty_content, stretch=1)
 
         main_layout.addWidget(content_widget)
+
+         # Buttons and filters
+        self.connect_buttons()
+
+        # Load
+        self.load_faculty_data()
+        self.load_messages()
+        
 
     def setup_faculty_content(self):
         """Set up the faculty content area with proper layout"""
@@ -292,93 +308,22 @@ class FacultyMainUI(QtWidgets.QWidget):
         center_layout.addWidget(self.message_widget, 1)
         faculty_layout.addWidget(center_widget, stretch=1)
 
-    def add_sidebar(self, sidebar_widget):
-        sidebar_widget.setParent(self.sidebar_container)
-        self.sidebar_container_layout.addWidget(sidebar_widget)
-
-    def update_sidebar_width(self, is_collapsed):
-        if is_collapsed:
-            self.sidebar_container.setFixedWidth(60)
-        else:
-            self.sidebar_container.setFixedWidth(250)
-
-
-class FacultyApp(QtWidgets.QMainWindow):
-    """
-    Main faculty application window.
-    """
-
-    def __init__(self):
-        super().__init__()
-
-        # Data
-        self.data_manager = DataManager()
-        self.current_faculty_id = 2  # Dr. Maria Santos
-
-        # UI
-        self.ui = FacultyMainUI()
-        self.setCentralWidget(self.ui)
-
-        # # Sidebar
-        # self.sidebar = Sidebar()
-        # self.ui.add_sidebar(self.sidebar)
-        # self.sidebar.toggle_btn.clicked.connect(self.on_sidebar_toggle)
-
-        # Header actions
-        # self.connect_header_actions()
-
-        # Buttons and filters
-        self.connect_buttons()
-
-        # Load
-        self.load_faculty_data()
-        self.load_messages()
-
-        # Window props
-        self.setWindowTitle("Faculty Messaging Center - CISC Virtual Hub")
-        self.setMinimumSize(1280, 800)
+   
 
     def connect_buttons(self):
-        self.ui.push_all.clicked.connect(lambda: self.filter_messages("all"))
-        self.ui.push_unread.clicked.connect(lambda: self.filter_messages("unread"))
-        self.ui.push_acadin.clicked.connect(lambda: self.filter_messages("academic"))
-        self.ui.push_assgt.clicked.connect(lambda: self.filter_messages("assignment"))
-        self.ui.push_office.clicked.connect(lambda: self.filter_messages("office"))
+        self.push_all.clicked.connect(lambda: self.filter_messages("all"))
+        self.push_unread.clicked.connect(lambda: self.filter_messages("unread"))
+        self.push_acadin.clicked.connect(lambda: self.filter_messages("academic"))
+        self.push_assgt.clicked.connect(lambda: self.filter_messages("assignment"))
+        self.push_office.clicked.connect(lambda: self.filter_messages("office"))
 
-        self.ui.push_compose.clicked.connect(self.compose_message)
+        self.push_compose.clicked.connect(self.compose_message)
 
-        self.ui.comboBox_prio.currentTextChanged.connect(self.apply_filters)
-        self.ui.comboBox_stat.currentTextChanged.connect(self.apply_filters)
+        self.comboBox_prio.currentTextChanged.connect(self.apply_filters)
+        self.comboBox_stat.currentTextChanged.connect(self.apply_filters)
 
-        self.ui.lineEdit_faculty.textChanged.connect(self.search_messages)
+        self.lineEdit_faculty.textChanged.connect(self.search_messages)
 
-    def connect_header_actions(self):
-        actions = self.ui.header.profile_menu.actions()
-        for action in actions:
-            if action.text() == "My Profile":
-                action.triggered.connect(self.show_profile)
-            elif action.text() == "Log Out":
-                action.triggered.connect(self.logout)
-
-    def show_profile(self):
-        QtWidgets.QMessageBox.information(self, "Profile", "Profile feature coming soon!")
-
-    def logout(self):
-        reply = QtWidgets.QMessageBox.question(
-            self,
-            "Logout",
-            "Are you sure you want to logout?",
-            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
-        )
-        if reply == QtWidgets.QMessageBox.StandardButton.Yes:
-            self.close()
-
-    # def on_sidebar_toggle(self):
-    #     from PyQt6.QtCore import QTimer
-    #     QTimer.singleShot(50, self.update_sidebar_container)
-
-    # def update_sidebar_container(self):
-    #     self.ui.update_sidebar_width(self.sidebar.is_collapsed)
 
     def load_faculty_data(self):
         faculty = self.data_manager.get_user(self.current_faculty_id)
@@ -425,7 +370,7 @@ class FacultyApp(QtWidgets.QMainWindow):
 
     def display_items(self):
         """Render cards in the persistent top-aligned scroll area"""
-        layout = self.ui.messages_list_layout
+        layout = self.messages_list_layout
 
         # Clear old cards but keep final stretch
         while layout.count() > 1:
@@ -542,28 +487,28 @@ class FacultyApp(QtWidgets.QMainWindow):
 
         self.show_message_overlay(item)
 
-        # dialog = QtWidgets.QDialog(self)
-        # ui = Ui_Form()
-        # ui.setupUi(dialog)
-        # dialog.setWindowTitle(f"{item.get('type', 'Message').title()} Details")
+        dialog = QtWidgets.QDialog(self)
+        ui = Ui_Form()
+        ui.setupUi(dialog)
+        dialog.setWindowTitle(f"{item.get('type', 'Message').title()} Details")
 
-        # # Populate fields
-        # ui.label_header.setText(item.get('title', ''))
-        # ui.label_recipient.setText(f"From: {item.get('sender', 'Unknown')}")
-        # sender_email = item.get('sender_email', '')
-        # ui.label_email.setText(f"({sender_email})" if sender_email else "")
-        # ui.label_day.setText(item.get('date', ''))  # or a relative string if you prefer
-        # ui.textEdit_body.setPlainText(item.get('content', ''))
+        # Populate fields
+        ui.label_header.setText(item.get('title', ''))
+        ui.label_recipient.setText(f"From: {item.get('sender', 'Unknown')}")
+        sender_email = item.get('sender_email', '')
+        ui.label_email.setText(f"({sender_email})" if sender_email else "")
+        ui.label_day.setText(item.get('date', ''))  # or a relative string if you prefer
+        ui.textEdit_body.setPlainText(item.get('content', ''))
 
         # Wire close button
-        # ui.btn_close.clicked.connect(dialog.accept)
+        ui.btn_close.clicked.connect(dialog.accept)
 
         # Optional: wire actions
         # ui.btn_reply.clicked.connect(lambda: ...)
         # ui.btn_resolve.clicked.connect(lambda: ...)
         # ui.btn_fwd.clicked.connect(lambda: ...)
 
-        # dialog.exec()
+        dialog.exec()
 
     def filter_messages(self, filter_type):
         print(f"Filtering by: {filter_type}")
@@ -585,8 +530,8 @@ class FacultyApp(QtWidgets.QMainWindow):
         self.apply_filters()  # also applies the combo filters
 
     def apply_filters(self):
-        priority_filter = self.ui.comboBox_prio.currentText()
-        status_filter = self.ui.comboBox_stat.currentText()
+        priority_filter = self.comboBox_prio.currentText()
+        status_filter = self.comboBox_stat.currentText()
 
         filtered = self.filtered_items.copy()
 
@@ -615,7 +560,8 @@ class FacultyApp(QtWidgets.QMainWindow):
         self.apply_filters()  # keep combo filters active
 
     def compose_message(self):
-        QtWidgets.QMessageBox.information(self, "Compose Message", "Compose message feature coming soon!")
+        self.message_app = ComposeUI()
+        self.message_app.show()
 
     def show_message_overlay(self, item: dict):
     # Full-window dimmed overlay, child of central area (no separate OS window)
@@ -629,61 +575,29 @@ class FacultyApp(QtWidgets.QMainWindow):
         overlay.raise_()
 
         # Build your Ui_Form on the overlay
-        # # ui = Ui_Form()
-        # ui.setupUi(overlay)
+        ui = Ui_Form()
+        ui.setupUi(overlay)
 
-        # # Populate fields
-        # ui.label_header.setText(item.get("title", ""))
-        # ui.label_recipient.setText(f"From: {item.get('sender', 'Unknown')}")
-        # sender_email = item.get("sender_email", "")
-        # ui.label_email.setText(f"({sender_email})" if sender_email else "")
-        # ui.label_day.setText(item.get("date", ""))
-        # ui.textEdit_body.setPlainText(item.get("content", ""))
+        # Populate fields
+        ui.label_header.setText(item.get("title", ""))
+        ui.label_recipient.setText(f"From: {item.get('sender', 'Unknown')}")
+        sender_email = item.get("sender_email", "")
+        ui.label_email.setText(f"({sender_email})" if sender_email else "")
+        ui.label_day.setText(item.get("date", ""))
+        ui.textEdit_body.setPlainText(item.get("content", ""))
 
-        # # Center the message card
-        # frame = ui.message_frame
-        # frame.adjustSize()
-        # ow, oh = overlay.width(), overlay.height()
-        # fw, fh = frame.width(), frame.height()
-        # frame.move(max(0, (ow - fw) // 2), max(0, (oh - fh) // 2))
+        # Center the message card
+        frame = ui.message_frame
+        frame.adjustSize()
+        ow, oh = overlay.width(), overlay.height()
+        fw, fh = frame.width(), frame.height()
+        frame.move(max(0, (ow - fw) // 2), max(0, (oh - fh) // 2))
 
-        # # Close behaviors
-        # ui.btn_close.clicked.connect(overlay.deleteLater)
-        # def overlay_mousePressEvent(e):
-        #     # Close only if clicking outside the white card
-        #     if not frame.geometry().contains(e.pos()):
-        #         overlay.deleteLater()
-        # overlay.mousePressEvent = overlay_mousePressEvent
+        # Close behaviors
+        ui.btn_close.clicked.connect(overlay.deleteLater)
+        def overlay_mousePressEvent(e):
+            # Close only if clicking outside the white card
+            if not frame.geometry().contains(e.pos()):
+                overlay.deleteLater()
+        overlay.mousePressEvent = overlay_mousePressEvent
 
-def main():
-    app = QtWidgets.QApplication(sys.argv)
-    app.setStyle('Fusion')
-
-    try:
-        with open("sidebar_styles.qss", "r") as f:
-            app.setStyleSheet(f.read())
-        print("✅ QSS stylesheet loaded successfully")
-    except FileNotFoundError:
-        print("⚠️  sidebar_styles.qss not found, using default styles")
-        app.setStyleSheet("""
-            QMainWindow, QWidget {
-                background-color: #f8f9fa;
-                color: #333333;
-            }
-        """)
-    except Exception as e:
-        print(f"❌ Error loading QSS: {e}")
-        app.setStyleSheet("""
-            QMainWindow, QWidget {
-                background-color: #f8f9fa;
-                color: #333333;
-            }
-        """)
-
-    window = FacultyApp()
-    window.show()
-    sys.exit(app.exec())
-
-
-if __name__ == "__main__":
-    main()

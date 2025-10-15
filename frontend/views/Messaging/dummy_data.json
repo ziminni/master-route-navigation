@@ -2,455 +2,61 @@
   "users": [
     {
       "id": 1,
-      "name": "Carlos Fidel Castro",
-      "email": "carlos.castro@student.cmu.edu.ph",
+      "username": "admin",
+      "name": "Administrator",
+      "email": "admin@cmu.edu.ph",
+      "role": "admin",
+      "department": "Administration",
+      "status": "online",
+      "last_seen": "2025-10-15T08:00:00Z",
+      "avatar": "images/admin.png"
+    },
+    {
+      "id": 2,
+      "username": "Adolf",
+      "name": "Adolf Hitler",
+      "email": "adolfhitler@cmu.edu.ph",
       "role": "student",
       "department": "Computer Science",
+      "program": "BS IT",
+      "section": "IT-1A",
       "year_level": "3rd Year",
       "status": "online",
-      "last_seen": "2024-01-15T10:30:00Z",
+      "last_seen": "2025-10-15T09:00:00Z",
       "avatar": "images/cmu.png"
     },
     {
-      "id": 2,
-      "name": "Dr. Maria Santos",
-      "email": "maria.santos@faculty.cmu.edu.ph",
-      "role": "faculty",
-      "department": "Information Technology",
-      "specialization": "Database Systems",
+      "id": 3,
+      "username": "Donald",
+      "name": "Donald Trump",
+      "email": "donaldtrump@cmu.edu.ph",
+      "role": "staff",
+      "department": "Computer Science",
+      "position": "Registrar",
       "status": "online",
-      "last_seen": "2024-01-15T11:15:00Z",
+      "last_seen": "2025-10-15T09:30:00Z",
+      "avatar": "images/staff1.png"
+    },
+    {
+      "id": 4,
+      "username": "Kim",
+      "name": "Kim Jong Un",
+      "email": "kimjongun@cmu.edu.ph",
+      "role": "faculty",
+      "department": "Computer Science",
+      "position": "Instructor 1",
+      "status": "online",
+      "last_seen": "2025-10-15T10:00:00Z",
       "avatar": "images/faculty1.png"
-    },
-    {
-      "id": 3,
-      "name": "Prof. John Rodriguez",
-      "email": "john.rodriguez@faculty.cmu.edu.ph",
-      "role": "faculty",
-      "department": "Computer Science",
-      "specialization": "Software Engineering",
-      "status": "away",
-      "last_seen": "2024-01-15T09:45:00Z",
-      "avatar": "images/faculty2.png"
-    },
-    {
-      "id": 4,
-      "name": "Andre Louie",
-      "email": "andre.louie@student.cmu.edu.ph",
-      "role": "student",
-      "department": "Information Technology",
-      "year_level": "2nd Year",
-      "status": "offline",
-      "last_seen": "2024-01-14T16:20:00Z",
-      "avatar": "images/student1.png"
-    },
-    {
-      "id": 5,
-      "name": "Sarah Johnson",
-      "email": "sarah.johnson@student.cmu.edu.ph",
-      "role": "student",
-      "department": "Computer Science",
-      "year_level": "4th Year",
-      "status": "online",
-      "last_seen": "2024-01-15T12:00:00Z",
-      "avatar": "images/student2.png"
-    },
-    {
-      "name": "John Doe",
-      "email": "john.doe@student.cmu.edu.ph",
-      "role": "student",
-      "department": "Computer Science",
-      "year_level": "2nd Year",
-      "status": "online",
-      "id": 6,
-      "created_at": "2025-10-08T06:47:27.322760"
-    },
-    {
-      "name": "John Doe",
-      "email": "john.doe@student.cmu.edu.ph",
-      "role": "student",
-      "department": "Computer Science",
-      "year_level": "2nd Year",
-      "status": "online",
-      "id": 7,
-      "created_at": "2025-10-08T06:47:30.702306"
     }
   ],
-  "messages": [
-    {
-      "id": 1,
-      "sender_id": 1,
-      "receiver_id": 2,
-      "subject": "Database Assignment Help",
-      "content": "Good morning Dr. Santos, I'm having trouble with the normalization part of our database assignment. Could you please explain the third normal form concept?",
-      "message_type": "academic",
-      "priority": "normal",
-      "status": "pending",
-      "is_read": true,
-      "created_at": "2024-01-15T10:30:00Z",
-      "updated_at": "2025-10-13T07:03:15.340308",
-      "attachments": [],
-      "conversation_id": 1
-    },
-    {
-      "id": 2,
-      "sender_id": 2,
-      "receiver_id": 1,
-      "subject": "Re: Database Assignment Help",
-      "content": "Hello Carlos! I'd be happy to help you with database normalization. Let's schedule a meeting during my office hours tomorrow at 2 PM.",
-      "message_type": "academic",
-      "priority": "normal",
-      "status": "sent",
-      "is_read": true,
-      "created_at": "2024-01-15T11:15:00Z",
-      "updated_at": "2024-01-15T11:15:00Z",
-      "attachments": [],
-      "conversation_id": 1
-    },
-    {
-      "id": 3,
-      "sender_id": 4,
-      "receiver_id": 3,
-      "subject": "Software Engineering Project",
-      "content": "Professor Rodriguez, our group is working on the final project and we need clarification on the requirements for the user interface design.",
-      "message_type": "academic",
-      "priority": "high",
-      "status": "pending",
-      "is_read": false,
-      "created_at": "2024-01-15T09:45:00Z",
-      "updated_at": "2024-01-15T09:45:00Z",
-      "attachments": [],
-      "conversation_id": 2
-    },
-    {
-      "id": 4,
-      "sender_id": 5,
-      "receiver_id": 2,
-      "subject": "Grade Inquiry",
-      "content": "Dr. Santos, I would like to discuss my midterm exam grade. I believe there might be an error in the calculation.",
-      "message_type": "administrative",
-      "priority": "urgent",
-      "status": "pending",
-      "is_read": false,
-      "created_at": "2024-01-15T12:00:00Z",
-      "updated_at": "2024-01-15T12:00:00Z",
-      "attachments": [],
-      "conversation_id": 3
-    },
-    {
-      "id": 5,
-      "sender_id": 1,
-      "receiver_id": 5,
-      "subject": "Study Group Meeting",
-      "content": "Hey Sarah! Are you free to meet up for our study group this weekend? We need to prepare for the upcoming exams.",
-      "message_type": "general",
-      "priority": "normal",
-      "status": "sent",
-      "is_read": true,
-      "created_at": "2024-01-14T16:20:00Z",
-      "updated_at": "2024-01-14T16:20:00Z",
-      "attachments": [],
-      "conversation_id": 4
-    },
-    {
-      "sender_id": 1,
-      "receiver_id": 2,
-      "subject": "Hello from DataManager",
-      "content": "This is a test message created using our data manager!",
-      "message_type": "general",
-      "priority": "normal",
-      "status": "sent",
-      "is_read": false,
-      "id": 6,
-      "created_at": "2025-10-08T06:47:27.325252",
-      "updated_at": "2025-10-08T06:47:27.325260",
-      "conversation_id": 1
-    },
-    {
-      "sender_id": 1,
-      "receiver_id": 2,
-      "subject": "Hello from DataManager",
-      "content": "This is a test message created using our data manager!",
-      "message_type": "general",
-      "priority": "normal",
-      "status": "sent",
-      "is_read": false,
-      "id": 7,
-      "created_at": "2025-10-08T06:47:30.704970",
-      "updated_at": "2025-10-08T06:47:30.704992",
-      "conversation_id": 1
-    },
-    {
-      "sender_id": 1,
-      "receiver_id": 2,
-      "conversation_id": 6,
-      "content": "Test message for data persistence verification",
-      "message_type": "general",
-      "priority": "normal",
-      "status": "sent",
-      "is_read": false,
-      "id": 8,
-      "created_at": "2025-10-09T10:05:57.730481",
-      "updated_at": "2025-10-09T10:05:57.730506"
-    },
-    {
-      "sender_id": 1,
-      "receiver_id": 2,
-      "conversation_id": 1,
-      "content": "asfda",
-      "message_type": "general",
-      "priority": "normal",
-      "status": "sent",
-      "is_read": false,
-      "id": 9,
-      "created_at": "2025-10-09T13:18:02.026820",
-      "updated_at": "2025-10-09T13:18:02.026855"
-    },
-    {
-      "sender_id": 1,
-      "receiver_id": 2,
-      "conversation_id": 1,
-      "content": "asdf",
-      "message_type": "general",
-      "priority": "normal",
-      "status": "sent",
-      "is_read": true,
-      "id": 10,
-      "created_at": "2025-10-09T13:18:12.276803",
-      "updated_at": "2025-10-10T16:08:23.025357"
-    },
-    {
-      "sender_id": 1,
-      "receiver_id": 2,
-      "conversation_id": 1,
-      "content": "sfd",
-      "message_type": "general",
-      "priority": "normal",
-      "status": "sent",
-      "is_read": true,
-      "id": 11,
-      "created_at": "2025-10-09T13:18:16.443664",
-      "updated_at": "2025-10-10T15:58:15.024216"
-    },
-    {
-      "sender_id": 1,
-      "receiver_id": 4,
-      "conversation_id": 2,
-      "content": "huy",
-      "message_type": "general",
-      "priority": "normal",
-      "status": "sent",
-      "is_read": false,
-      "id": 12,
-      "created_at": "2025-10-10T06:21:22.028608",
-      "updated_at": "2025-10-10T06:21:22.029088"
-    }
-  ],
+  "messages": [],
   "inquiries": [
-    {
-      "id": 1,
-      "student_id": 1,
-      "faculty_id": 2,
-      "inquiry_type": "academic",
-      "subject": "Database Normalization Concepts",
-      "description": "I need help understanding the different normal forms in database design, specifically 3NF and BCNF.",
-      "priority": "normal",
-      "status": "pending",
-      "created_at": "2024-01-15T10:30:00Z",
-      "updated_at": "2024-01-15T10:30:00Z",
-      "response": null,
-      "response_date": null
-    },
-    {
-      "id": 2,
-      "student_id": 4,
-      "faculty_id": 3,
-      "inquiry_type": "technical",
-      "subject": "IDE Configuration Issues",
-      "description": "I'm having trouble setting up my development environment for the software engineering course. The IDE keeps crashing.",
-      "priority": "high",
-      "status": "in_progress",
-      "created_at": "2024-01-14T14:20:00Z",
-      "updated_at": "2024-01-15T09:30:00Z",
-      "response": "I'll help you troubleshoot this. Let's check your system requirements first.",
-      "response_date": "2024-01-15T09:30:00Z"
-    },
-    {
-      "id": 3,
-      "student_id": 5,
-      "faculty_id": 2,
-      "inquiry_type": "administrative",
-      "subject": "Grade Appeal Process",
-      "description": "I would like to know the proper procedure for appealing a grade that I believe was calculated incorrectly.",
-      "priority": "urgent",
-      "status": "resolved",
-      "created_at": "2024-01-13T11:00:00Z",
-      "updated_at": "2024-01-14T15:45:00Z",
-      "response": "The grade appeal process requires submitting a formal request to the department head within 5 business days.",
-      "response_date": "2024-01-14T15:45:00Z"
-    },
-    {
-      "student_id": 1,
-      "faculty_id": 2,
-      "inquiry_type": "general",
-      "subject": "sdf",
-      "description": "sdf",
-      "priority": "normal",
-      "status": "pending",
-      "id": 4,
-      "created_at": "2025-10-09T11:59:52.183774",
-      "updated_at": "2025-10-09T11:59:52.183800"
-    },
-    {
-      "student_id": 1,
-      "faculty_id": 2,
-      "inquiry_type": "technical",
-      "subject": "123123",
-      "description": "123",
-      "priority": "normal",
-      "status": "pending",
-      "id": 5,
-      "created_at": "2025-10-09T12:38:24.809053",
-      "updated_at": "2025-10-09T12:38:24.809087"
-    },
-    {
-      "student_id": 1,
-      "faculty_id": 2,
-      "inquiry_type": "general",
-      "subject": "Asd",
-      "description": "234",
-      "priority": "urgent",
-      "status": "pending",
-      "id": 6,
-      "created_at": "2025-10-09T12:42:15.208514",
-      "updated_at": "2025-10-09T12:42:15.208540"
-    },
-    {
-      "student_id": 1,
-      "faculty_id": 2,
-      "inquiry_type": "general",
-      "subject": ";,",
-      "description": "hv",
-      "priority": "normal",
-      "status": "pending",
-      "id": 7,
-      "created_at": "2025-10-10T13:03:05.532734",
-      "updated_at": "2025-10-10T13:03:05.532914"
-    }
+   
   ],
-  "notifications": [
-    {
-      "id": 1,
-      "user_id": 1,
-      "title": "New Message Received",
-      "message": "You have received a new message from Dr. Maria Santos",
-      "type": "message",
-      "is_read": false,
-      "created_at": "2024-01-15T11:15:00Z"
-    },
-    {
-      "id": 2,
-      "user_id": 2,
-      "title": "New Inquiry Received",
-      "message": "Carlos Castro has submitted a new academic inquiry",
-      "type": "inquiry",
-      "is_read": false,
-      "created_at": "2024-01-15T10:30:00Z"
-    },
-    {
-      "id": 3,
-      "user_id": 1,
-      "title": "Assignment Due Soon",
-      "message": "Database Design Assignment is due in 2 days",
-      "type": "reminder",
-      "is_read": true,
-      "created_at": "2024-01-13T09:00:00Z"
-    },
-    {
-      "id": 4,
-      "user_id": 4,
-      "title": "System Maintenance",
-      "message": "The system will undergo maintenance tonight from 11 PM to 1 AM",
-      "type": "system",
-      "is_read": false,
-      "created_at": "2024-01-15T08:00:00Z"
-    }
-  ],
+  "notifications": [],
   "conversations": [
-    {
-      "id": 1,
-      "participants": [
-        1,
-        2
-      ],
-      "last_message_id": 2,
-      "last_activity": "2024-01-15T11:15:00Z",
-      "is_group": false,
-      "group_name": null,
-      "created_at": "2024-01-15T10:30:00Z"
-    },
-    {
-      "id": 2,
-      "participants": [
-        4,
-        3
-      ],
-      "last_message_id": 3,
-      "last_activity": "2024-01-15T09:45:00Z",
-      "is_group": false,
-      "group_name": null,
-      "created_at": "2024-01-15T09:45:00Z"
-    },
-    {
-      "id": 3,
-      "participants": [
-        5,
-        2
-      ],
-      "last_message_id": 4,
-      "last_activity": "2024-01-15T12:00:00Z",
-      "is_group": false,
-      "group_name": null,
-      "created_at": "2024-01-15T12:00:00Z"
-    },
-    {
-      "id": 4,
-      "participants": [
-        1,
-        5
-      ],
-      "last_message_id": 5,
-      "last_activity": "2024-01-14T16:20:00Z",
-      "is_group": false,
-      "group_name": null,
-      "created_at": "2024-01-14T16:20:00Z"
-    },
-    {
-      "id": 5,
-      "participants": [
-        1,
-        2,
-        3,
-        4,
-        5
-      ],
-      "last_message_id": null,
-      "last_activity": "2024-01-13T15:30:00Z",
-      "is_group": true,
-      "group_name": "CISC Study Group",
-      "created_at": "2024-01-10T10:00:00Z"
-    },
-    {
-      "participants": [
-        1,
-        2
-      ],
-      "is_group": false,
-      "last_activity": "2025-10-09T10:05:57.726502",
-      "id": 6,
-      "created_at": "2025-10-09T10:05:57.726554",
-      "updated_at": "2025-10-09T10:05:57.726557"
-    }
+    
   ],
   "departments": [
     {
@@ -470,6 +76,12 @@
       "name": "Information Systems",
       "code": "IS",
       "description": "Department of Information Systems and Management"
+    },
+    {
+      "id": 4,
+      "name": "Administration",
+      "code": "ADM",
+      "description": "University Administrative Department"
     }
   ],
   "message_categories": [
