@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 class FacultyReschedulePage_ui(QWidget):
     back = QtCore.pyqtSignal()
 
-    def __init__(self, username, roles, primary_role, token, parent=None):
+    def __init__(self, username, roles, primary_role, token, selected_appointment_id, parent=None):
         super().__init__(parent)
         self.username = username
         self.roles = roles
@@ -18,7 +18,8 @@ class FacultyReschedulePage_ui(QWidget):
         self.token = token
         self.crud = appointment_crud()
         self.faculty_id = self._get_faculty_id()
-        self.selected_appointment_id = None  # To be set externally
+        self.selected_appointment_id = selected_appointment_id  # To be set externally
+        print(f"Test: {self.selected_appointment_id}")
         self.available_days = set()  # Store available days for highlighting
         self.slot_buttons = []  # Initialize slot_buttons here
         self._setupFacultyReschedulePage()
@@ -26,6 +27,29 @@ class FacultyReschedulePage_ui(QWidget):
         self._load_appointment_details()
         self._loadAvailableSlots()  # Load available slots for calendar highlighting
         self.setFixedSize(1000, 550)
+
+    def _is_past_appointment(self, selected_date, start_time):
+        """Check if the selected appointment date and time is in the past"""
+        try:
+            # Combine date and time into a datetime object
+            appointment_datetime_str = f"{selected_date} {start_time}"
+            
+            # Parse the appointment datetime
+            if ':' in start_time:
+                time_parts = start_time.split(':')
+                if len(time_parts) == 2:  # If only HH:MM, add seconds
+                    start_time = start_time + ':00'
+                appointment_datetime_str = f"{selected_date} {start_time}"
+            
+            appointment_datetime = datetime.strptime(appointment_datetime_str, "%Y-%m-%d %H:%M:%S")
+            current_datetime = datetime.now()
+            
+            # Return True if appointment datetime is in the past
+            return appointment_datetime < current_datetime
+            
+        except Exception as e:
+            print(f"Error checking appointment datetime: {e}")
+            return False
 
     def _get_faculty_id(self):
         faculty_list = self.crud.list_faculty()
@@ -235,6 +259,10 @@ class FacultyReschedulePage_ui(QWidget):
         self.calendarWidget.setVerticalHeaderFormat(QtWidgets.QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
         self.calendarWidget.setHorizontalHeaderFormat(QtWidgets.QCalendarWidget.HorizontalHeaderFormat.NoHorizontalHeader)
         self.calendarWidget.setSelectedDate(QtCore.QDate.currentDate())
+        
+        # Set minimum date to today to prevent selecting past dates
+        self.calendarWidget.setMinimumDate(QtCore.QDate.currentDate())
+        
         self.calendarWidget.setStyleSheet("""
             QCalendarWidget { 
                 background: #ffffff; 
@@ -382,6 +410,7 @@ class FacultyReschedulePage_ui(QWidget):
     def _updateAvailableSlots(self):
         """Update available slots when date is selected"""
         date = self.calendarWidget.selectedDate()
+        selected_date_str = date.toString('yyyy-MM-dd')
         
         # Clear existing slot buttons
         for btn in self.slot_buttons:
@@ -471,8 +500,31 @@ class FacultyReschedulePage_ui(QWidget):
             btn.setFixedHeight(45)
             btn.setCheckable(True)
             btn.setProperty("schedule_entry_id", slot["id"])
-            btn.setStyleSheet(self.slot_style(default=True))
-            btn.clicked.connect(lambda checked, b=btn: self.select_slot(b))
+            btn.setProperty("start_time", slot["start_time"])
+            
+            # Check if this slot is in the past
+            is_past = self._is_past_appointment(selected_date_str, slot["start_time"])
+            
+            if is_past:
+                # Slot is in the past - disable it
+                btn.setEnabled(False)
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #ffcdd2;
+                        color: #b71c1c;
+                        border: 2px solid #f44336;
+                        border-radius: 8px;
+                        padding: 10px 20px;
+                        font: 600 11pt 'Poppins';
+                    }
+                """)
+                btn.setToolTip("This time slot has already passed")
+            else:
+                # Slot is available
+                btn.setStyleSheet(self.slot_style(default=True))
+                btn.clicked.connect(lambda checked, b=btn: self.select_slot(b))
+                btn.setToolTip("Click to select this time slot")
+            
             slots_layout.addWidget(btn)
             self.slot_buttons.append(btn)
         
@@ -480,12 +532,27 @@ class FacultyReschedulePage_ui(QWidget):
         slots_scroll.setWidget(slots_container)
         layout.insertWidget(0, slots_scroll)
         
-        if self.slot_buttons:
-            self.slot_buttons[0].setChecked(True)
-            self.slot_buttons[0].setStyleSheet(self.slot_style(selected=True))
+        # Enable the first available (non-past) slot by default
+        available_buttons = [btn for btn in self.slot_buttons if btn.isEnabled()]
+        if available_buttons:
+            available_buttons[0].setChecked(True)
+            available_buttons[0].setStyleSheet(self.slot_style(selected=True))
             self.button_4.setEnabled(True)
         else:
             self.button_4.setEnabled(False)
+            if self.slot_buttons:  # If there are slots but all are in the past
+                past_slots_label = QtWidgets.QLabel("All time slots for this date have passed")
+                past_slots_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                past_slots_label.setStyleSheet("""
+                    QLabel {
+                        font: 12pt 'Poppins';
+                        color: #d32f2f;
+                        background: #ffebee;
+                        border-radius: 8px;
+                        padding: 20px;
+                    }
+                """)
+                layout.insertWidget(0, past_slots_label)
 
     def slot_style(self, default=False, selected=False):
         """Style for slot buttons."""
@@ -533,9 +600,14 @@ class FacultyReschedulePage_ui(QWidget):
 
     def select_slot(self, button):
         """Handle slot button selection."""
+        # Only allow selection of enabled buttons
+        if not button.isEnabled():
+            return
+            
         for btn in self.slot_buttons:
-            btn.setChecked(False)
-            btn.setStyleSheet(self.slot_style(default=True))
+            if btn.isEnabled():  # Only reset style for enabled buttons
+                btn.setChecked(False)
+                btn.setStyleSheet(self.slot_style(default=True))
         button.setChecked(True)
         button.setStyleSheet(self.slot_style(selected=True))
         self.button_4.setEnabled(True)
@@ -553,8 +625,20 @@ class FacultyReschedulePage_ui(QWidget):
             QMessageBox.warning(self, "Warning", "Please select a time slot.")
             return
         
-        selected_slot = selected_slot_btn.text()
+        # Check if the selected slot is in the past
         selected_date = self.calendarWidget.selectedDate().toString('yyyy-MM-dd')
+        start_time = selected_slot_btn.property("start_time")
+        
+        if self._is_past_appointment(selected_date, start_time):
+            QMessageBox.warning(
+                self, 
+                "Invalid Time Slot", 
+                "You cannot reschedule to a past date and time. "
+                "Please select a future time slot."
+            )
+            return
+        
+        selected_slot = selected_slot_btn.text()
         
         dlg = QtWidgets.QDialog(self)
         dlg.setWindowTitle("Reschedule Appointment")
@@ -614,6 +698,15 @@ class FacultyReschedulePage_ui(QWidget):
                     QMessageBox.warning(dlg, "Error", "Invalid time slot selected.")
                     return
                 
+                # Final check to ensure the selected appointment isn't in the past
+                if self._is_past_appointment(selected_date, start_time):
+                    QMessageBox.warning(
+                        dlg,
+                        "Invalid Time Slot",
+                        "This appointment time has already passed. Please select a future time slot."
+                    )
+                    return
+                
                 appointments = self.crud.get_faculty_appointments(self.faculty_id)
                 current_appointment = next((a for a in appointments if a["id"] == self.selected_appointment_id), None)
                 
@@ -621,7 +714,7 @@ class FacultyReschedulePage_ui(QWidget):
                     result = self.crud.update_appointment(self.selected_appointment_id, {
                         "appointment_schedule_entry_id": schedule_entry_id,
                         "appointment_date": selected_date,
-                        "status": "rescheduled"
+                        "status": "approved"
                     })
                     
                     if result:

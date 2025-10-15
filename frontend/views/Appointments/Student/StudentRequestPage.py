@@ -27,6 +27,29 @@ class StudentRequestPage_ui(QWidget):
         self._setupStudentRequestPage()
         self.retranslateUi()
 
+    def _is_past_appointment(self, selected_date, start_time):
+        """Check if the selected appointment date and time is in the past"""
+        try:
+            # Combine date and time into a datetime object
+            appointment_datetime_str = f"{selected_date} {start_time}"
+            
+            # Parse the appointment datetime
+            if ':' in start_time:
+                time_parts = start_time.split(':')
+                if len(time_parts) == 2:  # If only HH:MM, add seconds
+                    start_time = start_time + ':00'
+                appointment_datetime_str = f"{selected_date} {start_time}"
+            
+            appointment_datetime = datetime.strptime(appointment_datetime_str, "%Y-%m-%d %H:%M:%S")
+            current_datetime = datetime.now()
+            
+            # Return True if appointment datetime is in the past
+            return appointment_datetime < current_datetime
+            
+        except Exception as e:
+            print(f"Error checking appointment datetime: {e}")
+            return False
+
     def set_faculty_data(self, faculty_data):
         """Set the faculty data when navigating from browse page"""
         self.selected_faculty = faculty_data
@@ -262,6 +285,9 @@ class StudentRequestPage_ui(QWidget):
                     btn.setProperty("start_time", start_time)
                     btn.setProperty("end_time", end_time)
                     
+                    # Check if this slot is in the past
+                    is_past = self._is_past_appointment(self.selected_date, start_time)
+                    
                     # Check if this slot is unavailable (booked by anyone)
                     if i in unavailable_entry_index:
                         btn.setEnabled(False)
@@ -276,6 +302,20 @@ class StudentRequestPage_ui(QWidget):
                             }
                         """)
                         btn.setToolTip("This time slot is already booked")
+                    elif is_past:
+                        # Slot is in the past - disable it
+                        btn.setEnabled(False)
+                        btn.setStyleSheet("""
+                            QPushButton {
+                                background-color: #ffcdd2;
+                                color: #b71c1c;
+                                border: 2px solid #f44336;
+                                border-radius: 8px;
+                                padding: 10px 20px;
+                                font: 600 11pt 'Poppins';
+                            }
+                        """)
+                        btn.setToolTip("This time slot has already passed")
                     else:
                         # Check if student already has an appointment for this exact slot
                         has_existing_appointment = self._check_student_has_appointment_for_slot(
@@ -588,6 +628,9 @@ class StudentRequestPage_ui(QWidget):
         """)
         self.calendarWidget.selectionChanged.connect(self._onDateSelected)
         
+        # Set minimum date to today to prevent selecting past dates
+        self.calendarWidget.setMinimumDate(QtCore.QDate.currentDate())
+        
         calendar_layout.addWidget(self.calendarWidget)
         left_layout.addWidget(self.calendarCard, 1)
         
@@ -743,6 +786,17 @@ class StudentRequestPage_ui(QWidget):
             
         if not self.selected_date:
             QMessageBox.warning(self, "Warning", "Please select a date.")
+            return
+
+        # Check if the selected appointment is in the past
+        start_time = self.selected_schedule_entry.get('start_time', '')
+        if self._is_past_appointment(self.selected_date, start_time):
+            QMessageBox.warning(
+                self, 
+                "Invalid Time Slot", 
+                "You cannot request an appointment for a past date and time. "
+                "Please select a future time slot."
+            )
             return
 
         # Double-check that student doesn't already have an appointment for this slot
@@ -1275,6 +1329,16 @@ class StudentRequestPage_ui(QWidget):
                     "Already Booked",
                     "You already have a pending or approved appointment for this time slot. "
                     "Please choose a different time."
+                )
+                return
+            
+            # Final check for past appointments
+            start_time = self.selected_schedule_entry.get('start_time', '')
+            if self._is_past_appointment(self.selected_date, start_time):
+                QtWidgets.QMessageBox.warning(
+                    dialog,
+                    "Invalid Time Slot",
+                    "This appointment time has already passed. Please select a future time slot."
                 )
                 return
             

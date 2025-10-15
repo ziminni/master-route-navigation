@@ -4,6 +4,7 @@ import os
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QMessageBox, QFileDialog
 from .appointment_crud import appointment_crud
+from .FacultyReschedulePage import FacultyReschedulePage_ui
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -22,6 +23,7 @@ class AppointmentPage_ui(QWidget):
         self.crud = appointment_crud()
         self.faculty_id = self._get_faculty_id()
         self.rows = []  # Store appointment data for easy access
+        self.selected_appointment_id = None  # Track selected appointment for rescheduling
         logging.debug(f"Initialized AppointmentPage_ui with username: {self.username}, faculty_id: {self.faculty_id}")
         
         # Create sample data if no appointments exist
@@ -56,10 +58,10 @@ class AppointmentPage_ui(QWidget):
 
     def _setupAppointmentsPage(self):
         self.setObjectName("Appointments_2")
-        appointments_layout = QtWidgets.QVBoxLayout(self)
-        appointments_layout.setContentsMargins(10, 10, 10, 10)
-        appointments_layout.setSpacing(10)
-        appointments_layout.setObjectName("appointments_layout")
+        self.appointments_layout = QtWidgets.QVBoxLayout(self)
+        self.appointments_layout.setContentsMargins(10, 10, 10, 10)
+        self.appointments_layout.setSpacing(10)
+        self.appointments_layout.setObjectName("appointments_layout")
 
         # Header with title and buttons
         header_widget = QtWidgets.QWidget()
@@ -111,7 +113,7 @@ class AppointmentPage_ui(QWidget):
         self.backButton_9.clicked.connect(self.goBackPage)
         header_layout.addWidget(self.backButton_9)
 
-        appointments_layout.addWidget(header_widget)
+        self.appointments_layout.addWidget(header_widget)
 
         # Main content widget
         self.widget_27 = QtWidgets.QWidget()
@@ -212,7 +214,7 @@ class AppointmentPage_ui(QWidget):
             self.tableWidget_8.setHorizontalHeaderItem(i, item)
             
         widget_layout.addWidget(self.tableWidget_8, 1)
-        appointments_layout.addWidget(self.widget_27, 1)
+        self.appointments_layout.addWidget(self.widget_27, 1)
         
         # Populate table
         self._populateAppointmentsTable()
@@ -698,7 +700,7 @@ class AppointmentPage_ui(QWidget):
         elif status == "approved":
             reschedule_btn = make_btn("Reschedule", "#2F80ED")
             cancel_btn = make_btn("Cancel", "#EB5757")
-            reschedule_btn.clicked.connect(lambda: self._emitReschedule(appointment_id))
+            reschedule_btn.clicked.connect(lambda: self._openReschedulePage(appointment_id))
             cancel_btn.clicked.connect(lambda: self._openCancelDialog(row_index, status, appointment_id))
             layout.addWidget(reschedule_btn)
             layout.addWidget(cancel_btn)
@@ -720,11 +722,63 @@ class AppointmentPage_ui(QWidget):
         except:
             return hex_color
 
-    def _emitReschedule(self, appointment_id):
-        """Emit signal to reschedule with appointment ID."""
-        self.selected_appointment_id = appointment_id
-        logging.debug(f"Emitting go_to_AppointmentReschedulePage with appointment_id: {appointment_id}")
-        self.go_to_AppointmentReschedulePage.emit()
+    def _openReschedulePage(self, appointment_id):
+        """Open the reschedule page for the selected appointment."""
+        try:
+            logging.debug(f"Opening reschedule page for appointment ID: {appointment_id}")
+            
+            # Store the selected appointment ID
+            self.selected_appointment_id = appointment_id
+            
+            # Create and show the reschedule page
+            self.reschedule_page = FacultyReschedulePage_ui(
+                self.username, 
+                self.roles, 
+                self.primary_role, 
+                self.token,
+                appointment_id
+            )
+            
+        
+            
+            if self.reschedule_page.selected_appointment_id:
+                # Connect the back signal from reschedule page
+                self.reschedule_page.back.connect(self._handleRescheduleBack)
+                
+                # Show the reschedule page
+                self.reschedule_page.show()
+                logging.info(f"Reschedule page opened successfully for appointment {appointment_id}")
+            else:
+                logging.error(f"Failed to set appointment ID {appointment_id} for reschedule page")
+                QMessageBox.warning(self, "Error", "Failed to open reschedule page. Please try again.")
+                self.show()  # Show the appointments page again
+                
+        except Exception as e:
+            logging.error(f"Error opening reschedule page: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to open reschedule page: {str(e)}")
+            self.show()  # Show the appointments page again
+
+    def _handleRescheduleBack(self):
+        """Handle back navigation from reschedule page."""
+        try:
+            logging.debug("Handling back from reschedule page")
+            
+            # Hide the reschedule page
+            if hasattr(self, 'reschedule_page'):
+                self.reschedule_page.hide()
+                self.reschedule_page.deleteLater()
+            
+            # Show the appointments page again
+            self.show()
+            
+            # Refresh the appointments data
+            self._refreshAppointments()
+            
+            logging.debug("Successfully returned to appointments page")
+            
+        except Exception as e:
+            logging.error(f"Error handling reschedule back: {e}")
+            self.show()  # Ensure appointments page is shown
 
     def _openApproveDialog(self, row_index, appointment_id):
         """Open dialog to approve appointment with location update feature."""
