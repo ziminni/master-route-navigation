@@ -1346,7 +1346,7 @@ class StudentRequestPage_ui(QWidget):
             uploaded_file_paths = []
             if self.uploaded_files:
                 # Create uploads directory if it doesn't exist
-                upload_dir = "uploads"
+                upload_dir = "frontend/views/Appointments/uploads"
                 if not os.path.exists(upload_dir):
                     os.makedirs(upload_dir)
                 
