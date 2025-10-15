@@ -36,10 +36,10 @@
             "status": "Upcoming"
         },
         {
-            "date_time": "10/15/2025\n9:00 AM",
-            "event": "wqewqewq",
+            "date_time": "10/15/2025\n9:30 AM",
+            "event": "Year End",
             "type": "Holiday",
-            "location": "hi",
+            "location": "CISC",
             "status": "Upcoming"
         }
     ]
