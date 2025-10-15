@@ -8,6 +8,7 @@ from PyQt6 import QtWidgets, QtCore, QtGui
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from frontend.widgets.orgs_custom_widgets.tables import ActionDelegate
+from frontend.views.Organizations.image_utils import get_image_path
 
 class User(QtWidgets.QWidget):
     def __init__(self, name: str = "User", parent: Optional[QtWidgets.QWidget] = None):
@@ -134,11 +135,17 @@ class User(QtWidgets.QWidget):
             print(f"Error saving {self.data_file}: {str(e)}")
 
     @staticmethod
-    def _get_logo_path(rel_path: str) -> str:
-        """Resolve absolute logo path, return relative path if file doesn't exist."""
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
-        abs_path = os.path.join(base_dir, rel_path)
-        return abs_path if os.path.exists(abs_path) else rel_path
+    def _get_logo_path(filename: str) -> str:
+        """
+        Resolve absolute logo path from filename.
+        
+        Args:
+            filename: Just the filename (e.g., "CISC_logo.jpeg") or "No Photo"
+            
+        Returns:
+            Full absolute path to the image in the Data directory
+        """
+        return get_image_path(filename)
 
     def set_circular_logo(self, logo_label: QtWidgets.QLabel, logo_path: str, size: int = 200, border_width: int = 4) -> None:
         """Set a circular logo with a border on the given label."""

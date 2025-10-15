@@ -1,7 +1,11 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
-from PyQt6.QtWidgets import QFileDialog
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
 import json
 import os
+
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from frontend.views.Organizations.image_utils import copy_image_to_data, get_image_path
 
 CONFIRM_STYLE = """
     border: 2px solid #084924; 
@@ -118,7 +122,8 @@ class OfficerDialog(BlurredDialog):
 
         hlayout = QtWidgets.QHBoxLayout()
         self.photo_label = QtWidgets.QLabel()
-        parent.set_circular_logo(self.photo_label, officer_data.get("photo_path", "No Photo"), size=125, border_width=4)
+        photo_path = get_image_path(officer_data.get("photo_path", "No Photo"))
+        parent.set_circular_logo(self.photo_label, photo_path, size=125, border_width=4)
         hlayout.addWidget(self.photo_label)
 
         vinfo = QtWidgets.QVBoxLayout()
@@ -156,7 +161,8 @@ class OfficerDialog(BlurredDialog):
             self.update_dialog(updated_data)
 
     def update_dialog(self, officer_data):
-        self.parent().set_circular_logo(self.photo_label, officer_data.get("photo_path", "No Photo"), size=150, border_width=4)
+        photo_path = get_image_path(officer_data.get("photo_path", "No Photo"))
+        self.parent().set_circular_logo(self.photo_label, photo_path, size=150, border_width=4)
         self.position_label.setText(officer_data.get("position", "Unknown Position"))
         self.date_label.setText(f"{officer_data.get('start_date', '07/08/2025')} - Present")
 
@@ -169,6 +175,7 @@ class BaseEditDialog(BlurredDialog):
         if hasattr(DIALOG_STYLE, 'setStyleSheet'):
             self.setStyleSheet(DIALOG_STYLE)
         self.preview_label = None
+        self.temp_image_path = None
         self._setup_ui(has_photo)
 
     def _setup_ui(self, has_photo):
@@ -186,7 +193,8 @@ class BaseEditDialog(BlurredDialog):
         self.preview_label.setStyleSheet("text-align: center;")
         self.preview_label.setFixedSize(150, 150)
         self.preview_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        photo_path = self.data.get("photo_path") if isinstance(self.data, dict) else "No Photo"
+        photo_filename = self.data.get("photo_path") if isinstance(self.data, dict) else "No Photo"
+        photo_path = get_image_path(photo_filename)
         self.parent().parent().set_circular_logo(self.preview_label, photo_path, size=150, border_width=4)
         photo_layout.addWidget(self.preview_label)
         browse_btn = QtWidgets.QPushButton("Browse Photo")
@@ -196,13 +204,13 @@ class BaseEditDialog(BlurredDialog):
         return photo_layout
 
     def browse_photo(self):
+        """Browse and select a photo file with validation."""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Photo", "", "Image Files (*.png *.jpg *.jpeg *.bmp)"
+            self, "Select Photo", "", "Image Files (*.png *.jpg *.jpeg *.bmp *.gif)"
         )
         if file_path:
-            self.data["photo_path"] = file_path
-            if "card_image_path" in self.data:
-                self.data["card_image_path"] = file_path
+            self.temp_image_path = file_path
+            # Show preview immediately
             self.parent().parent().set_circular_logo(self.preview_label, file_path, size=150, border_width=4)
 
     def _add_form_fields(self, layout):
@@ -220,7 +228,7 @@ class EditOfficerDialog(BaseEditDialog):
         layout.addWidget(QtWidgets.QLabel("Position:"))
         self.position_edit = QtWidgets.QComboBox()
         self.position_edit.setStyleSheet(EDIT_STYLE)
-        possible_positions = ["President", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer", "Member"]
+        possible_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer", "Member"]
         self.position_edit.addItems(possible_positions)
         self.position_edit.setCurrentText(self.data.get("position", ""))
         layout.addWidget(self.position_edit)
@@ -241,6 +249,22 @@ class EditOfficerDialog(BaseEditDialog):
                 QtWidgets.QMessageBox.StandardButton.Ok
             )
             return
+
+        if self.temp_image_path:
+            org_name = main_window.current_org.get("name", "Unknown")
+            new_filename = copy_image_to_data(self.temp_image_path, org_name)
+            if new_filename:
+                self.data["photo_path"] = new_filename
+                if "card_image_path" in self.data:
+                    self.data["card_image_path"] = new_filename
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Image Error",
+                    "Failed to save the selected image. Please try again with a different image.",
+                    QMessageBox.StandardButton.Ok
+                )
+                return
 
         self.data["position"] = new_position
         self.data["start_date"] = self.date_edit.text()
@@ -291,6 +315,7 @@ class BaseOrgDialog(BlurredDialog):
         self.setWindowTitle(title)
         self.setFixedSize(*fixed_size)
         self.logo_path = "No Photo"
+        self.temp_logo_path = None
         self._setup_ui()
 
     def _setup_ui(self):
@@ -367,11 +392,13 @@ class BaseOrgDialog(BlurredDialog):
         return content_layout
 
     def browse_image(self):
+        """Browse and select a logo image with validation."""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Logo Image", "", "Image Files (*.png *.jpg *.jpeg *.bmp)"
+            self, "Select Logo Image", "", "Image Files (*.png *.jpg *.jpeg *.bmp *.gif)"
         )
         if file_path:
-            self.logo_path = file_path
+            self.temp_logo_path = file_path
+            # Show preview immediately
             self.parent_window.set_circular_logo(self.preview_label, file_path)
 
     def confirm(self):
@@ -384,24 +411,43 @@ class EditOrgDialog(BaseOrgDialog):
         self.name_edit.setText(org_data.get("name", ""))
         self.brief_edit.setPlainText(org_data.get("brief", ""))
         self.desc_edit.setPlainText(org_data.get("description", ""))
-        self.parent_window.set_circular_logo(self.preview_label, self.parent_window._get_logo_path(org_data["logo_path"]))
+        logo_path = get_image_path(org_data["logo_path"])
+        self.parent_window.set_circular_logo(self.preview_label, logo_path)
 
     def _create_parent_layout(self):
         return None  # No parent selection for edit
 
     def confirm(self):
-        self.org_data["name"] = self.name_edit.text().strip()
-        if not self.org_data["name"]:
+        old_name = self.org_data.get("name", "")
+        new_name = self.name_edit.text().strip()
+        
+        if not new_name:
             QtWidgets.QMessageBox.warning(self, "Invalid Input", "Name is required.")
             return
 
+        if self.temp_logo_path:
+            # Use the new name for the folder
+            new_filename = copy_image_to_data(self.temp_logo_path, new_name)
+            if new_filename:
+                self.org_data["logo_path"] = new_filename
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Image Error",
+                    "Failed to save the selected image. Please try again with a different image.",
+                    QMessageBox.StandardButton.Ok
+                )
+                return
+
+        self.org_data["name"] = new_name
         self.org_data["brief"] = self.brief_edit.toPlainText().strip()
         self.org_data["description"] = self.desc_edit.toPlainText().strip()
-        self.org_data["logo_path"] = self.logo_path
 
+        self.parent_window.ui.org_name.setText(self.org_data["name"])
         self.parent_window.ui.brief_label.setText(self.org_data["brief"])
         self.parent_window.ui.obj_label.setText(self.org_data["description"])
-        self.parent_window.set_circular_logo(self.parent_window.ui.logo, self.org_data["logo_path"])
+        logo_path = get_image_path(self.org_data["logo_path"])
+        self.parent_window.set_circular_logo(self.parent_window.ui.logo, logo_path)
 
         self.parent_window.save_data()
         self.accept()
@@ -418,14 +464,25 @@ class CreateOrgDialog(BaseOrgDialog):
 
         brief = self.brief_edit.toPlainText().strip()
         description = self.desc_edit.toPlainText().strip()
-        logo_path = self.logo_path
+        
+        logo_filename = "No Photo"
+        if self.temp_logo_path:
+            logo_filename = copy_image_to_data(self.temp_logo_path, name)
+            if not logo_filename:
+                QMessageBox.warning(
+                    self,
+                    "Image Error",
+                    "Failed to save the selected image. Please try again with a different image.",
+                    QMessageBox.StandardButton.Ok
+                )
+                return
 
         new_org = {
             "id": None,
             "name": name,
             "is_joined": False,
             "is_branch": self.is_branch,
-            "logo_path": logo_path,
+            "logo_path": logo_filename,
             "brief": brief,
             "description": description,
             "events": [],

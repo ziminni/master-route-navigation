@@ -2,6 +2,7 @@ from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QPainterPath, QColor, QPainter
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect
+import os
 
 STYLE_GREEN_BTN = "background-color: #084924; color: white; border-radius: 5px; padding-top: 10px;padding-bottom: 10px; font-weight: bold;"
 STYLE_RED_BTN = "background-color: #EB5757; color: white; border-radius: 5px;"
@@ -20,6 +21,25 @@ def create_rounded_pixmap(source_pixmap, radius=10):
     painter.drawPixmap(0, 0, source_pixmap)
     painter.end()
     return rounded
+
+def resolve_image_path(relative_path):
+    """Resolve relative image path to absolute path in Data folder."""
+    if relative_path == "No Photo" or not relative_path:
+        return "No Photo"
+    
+    # If it's already an absolute path that exists, return it
+    if os.path.isabs(relative_path) and os.path.exists(relative_path):
+        return relative_path
+    
+    # Resolve from Data folder
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    data_path = os.path.join(base_dir, "views", "Organizations", "Data", relative_path)
+    
+    if os.path.exists(data_path):
+        return data_path
+    
+    # Fallback to relative path
+    return relative_path
 
 class JoinedOrgCard(QtWidgets.QFrame):
     def __init__(self, logo_path, org_data, main_window):
@@ -50,12 +70,13 @@ class JoinedOrgCard(QtWidgets.QFrame):
         logo_label.setMinimumSize(200, 200)
         logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         logo_label.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
-        logo_label.setStyleSheet("border: none; background-color: transparent;")  # Ensure transparent bg for smooth edges
+        logo_label.setStyleSheet("border: none; background-color: transparent;")
 
-        if logo_path != "No Photo":
-            pixmap = QPixmap(logo_path).scaled(200, 200, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
+        resolved_logo_path = resolve_image_path(logo_path)
+        
+        if resolved_logo_path != "No Photo":
+            pixmap = QPixmap(resolved_logo_path).scaled(200, 200, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
             if not pixmap.isNull():
-                # Use the helper to create a smoothly rounded pixmap
                 rounded_pixmap = create_rounded_pixmap(pixmap, 10)
                 logo_label.setPixmap(rounded_pixmap)
             else:
@@ -102,8 +123,10 @@ class CollegeOrgCard(QtWidgets.QFrame):
         logo_label.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         logo_label.setStyleSheet("border: none; background-color: transparent;")
 
-        if logo_path != "No Photo":
-            pixmap = QPixmap(logo_path).scaled(200, 200, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
+        resolved_logo_path = resolve_image_path(logo_path)
+        
+        if resolved_logo_path != "No Photo":
+            pixmap = QPixmap(resolved_logo_path).scaled(200, 200, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
             if not pixmap.isNull():
                 rounded_pixmap = create_rounded_pixmap(pixmap, 10)
                 logo_label.setPixmap(rounded_pixmap)
@@ -168,7 +191,8 @@ class OfficerCard(QtWidgets.QFrame):
         image_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.AlignmentFlag.AlignVCenter)
 
         if "card_image_path" in officer_data and officer_data["card_image_path"] != "No Photo":
-            pixmap = QPixmap(officer_data["card_image_path"]).scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
+            resolved_image_path = resolve_image_path(officer_data["card_image_path"])
+            pixmap = QPixmap(resolved_image_path).scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
             if not pixmap.isNull():
                 image_label.setPixmap(pixmap)
             else:
