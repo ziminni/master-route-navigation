@@ -142,7 +142,7 @@ class DayView(QWidget):
                 background-color: #dee2e6;
             }
         """)
-        self.btn_search.clicked.connect(self.on_search_triggered)
+        self.btn_search.clicked.connect(lambda: self.on_search_triggered())
         view_layout.addWidget(self.btn_search)
         
         layout.addLayout(view_layout)
