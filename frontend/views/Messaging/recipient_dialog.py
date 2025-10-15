@@ -129,7 +129,11 @@ class Ui_Form(object):
         all_users = self.data_manager.get_all_users()
         for user in all_users:
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             if user.get('role') in ['faculty', 'admin', 'officer', 'staff']:
+=======
+            if user.get('role') in ['faculty', 'admin', 'officer']:
+>>>>>>> Stashed changes
 =======
             if user.get('role') in ['faculty', 'admin', 'officer']:
 >>>>>>> Stashed changes
@@ -142,6 +146,10 @@ class Ui_Form(object):
                 })
         return recipients
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 =======
 
 >>>>>>> Stashed changes
@@ -152,6 +160,10 @@ class Ui_Form(object):
             item = QtWidgets.QListWidgetItem(display_text)
             item.setData(QtCore.Qt.ItemDataRole.UserRole, recipient)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+            
+>>>>>>> Stashed changes
 =======
             
 >>>>>>> Stashed changes
