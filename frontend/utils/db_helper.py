@@ -56,16 +56,6 @@ class NavigationDataHelper:
                             raise ValueError(f"Invalid 'function' field in modular item {modular['id']}: must be a string ending with '()'")
                         if "path" not in modular or not isinstance(modular["path"], str):
                             raise ValueError(f"Missing or invalid 'path' field in modular item {modular['id']}")
-                        # Validate add-ons if present
-                        for addon in modular.get("add-ons", []):
-                            if "id" not in addon:
-                                raise ValueError(f"Missing 'id' field in add-on item for modular {modular['id']}")
-                            if "function" not in addon or not isinstance(addon["function"], str) or not addon["function"].endswith("()"):
-                                raise ValueError(f"Invalid 'function' field in add-on item {addon['id']}: must be a string ending with '()'")
-                            if "path" not in addon or not isinstance(addon["path"], str):
-                                raise ValueError(f"Missing or invalid 'path' field in add-on item {addon['id']}")
-                            if "access" not in addon or not (isinstance(addon["access"], str) or isinstance(addon["access"], list)):
-                                raise ValueError(f"Invalid 'access' field in add-on item {addon['id']}")
 
             self._data = data
             print(f"✓ Navigation data loaded from {absolute_path}, parents found: {len(data['parents'])}")
@@ -96,16 +86,6 @@ class NavigationDataHelper:
                     if modular["id"] == modular_id:
                         return modular.get("path", "")
         print(f"NavigationDataHelper: No path found for modular ID {modular_id}")
-        return ""
-
-    def get_path_for_addon(self, addon_id):
-        for parent in self.data["parents"]:
-            for main in parent["mains"]:
-                for modular in main.get("modulars", []):
-                    for addon in modular.get("add-ons", []):
-                        if addon["id"] == addon_id:
-                            return addon.get("path", "")
-        print(f"NavigationDataHelper: No path found for add-on ID {addon_id}")
         return ""
 
     def get_all_parents(self):
@@ -190,18 +170,11 @@ class NavigationDataHelper:
             for p in self.data["parents"]
             for m in p["mains"]
         )
-        addon_count = sum(
-            len(mod.get("add-ons", []))
-            for p in self.data["parents"]
-            for m in p["mains"]
-            for mod in m.get("modulars", [])
-        )
         return {
             "parents": parent_count,
             "mains": main_count,
             "modulars": modular_count,
-            "add-ons": addon_count,
-            "total": parent_count + main_count + modular_count + addon_count
+            "total": parent_count + main_count + modular_count
         }
 
 # Global instance and convenience functions
@@ -245,6 +218,3 @@ def get_path_for_main(main_id):
 
 def get_path_for_modular(modular_id):
     return _nav_helper.get_path_for_modular(modular_id)
-
-def get_path_for_addon(addon_id):
-    return _nav_helper.get_path_for_addon(addon_id)
