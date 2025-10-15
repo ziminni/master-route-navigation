@@ -123,6 +123,11 @@ def _populate_schedule(window: object) -> None:
     data = load_schedule(student_id)
     _populate_weekly_table(getattr(window, "WeekTable_2", None), data, window)
     _populate_today(window, student_id) #added student_id to refer to the current user
+    # If faculty searched for a student, restrict YearBox to that student's year
+    try:
+        _restrict_years(window)
+    except Exception:
+        pass
     _populate_curriculum(window)
 
 
@@ -237,16 +242,27 @@ def _fill_semester_table(table: QTableWidget, sem: dict) -> None:
 
 def _restrict_years(window: object) -> None:
     role = getattr(window, "user_role", "faculty")
-    if role != "student":
-        return
     box = getattr(window, "YearBox", None)
     if not box or not hasattr(box, "count"):
         return
-    # Prefer dynamic lookup by student_id from JSON if available
+    # Determine which student id to use for restriction:
+    # - If the current UI is a student, use its student_id attribute
+    # - Otherwise (faculty), if a StudentSearch is visible and has text, use that searched id
     student_year = getattr(window, "student_year", None)
-    if not student_year and hasattr(window, "student_id") and window.student_id:
+    student_id_target = None
+    if role == "student":
+        student_id_target = getattr(window, "student_id", None)
+    else:
+        # faculty/other roles: use StudentSearch when visible and non-empty
         try:
-            student_year = get_student_year(window.student_id) or "1st Year"
+            if hasattr(window, "StudentSearch") and window.StudentSearch.isVisible() and window.StudentSearch.text().strip():
+                student_id_target = window.StudentSearch.text().strip()
+        except Exception:
+            student_id_target = None
+
+    if not student_year and student_id_target:
+        try:
+            student_year = get_student_year(student_id_target) or "1st Year"
         except Exception:
             student_year = "1st Year"
     if not student_year:
