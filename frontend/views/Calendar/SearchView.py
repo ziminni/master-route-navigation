@@ -100,68 +100,6 @@ class SearchView(QWidget):
         
         controls_layout.addStretch()
         
-        # Semester dropdown
-        semester_label = QLabel("Semester:")
-        semester_label.setStyleSheet("font-weight: bold; color: #084924; font-size: 14px;")
-        controls_layout.addWidget(semester_label)
-        
-        self.combo_semester = QComboBox()
-        self.combo_semester.setMinimumWidth(120)
-        self.combo_semester.addItems(["1st Semester", "2nd Semester", "Mid year"])
-        self.combo_semester.setStyleSheet("""
-            QComboBox {
-                padding: 8px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                background-color: #084924;
-                color: white;
-                font-size: 12px;
-                font-weight: bold;
-            }
-            QComboBox:hover {
-                border-color: #FDC601;
-            }
-            QComboBox::drop-down {
-                border: 0px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: white;
-                color: #084924;
-                selection-background-color: #FDC601;
-                selection-color: white;
-            }
-        """)
-        controls_layout.addWidget(self.combo_semester)
-        
-        # View dropdown
-        view_label = QLabel("View:")
-        view_label.setStyleSheet("font-weight: bold; color: #084924; font-size: 14px;")
-        controls_layout.addWidget(view_label)
-        
-        self.combo_view = QComboBox()
-        self.combo_view.setMinimumWidth(80)
-        self.combo_view.addItems(["Month", "Day"])
-        self.combo_view.setStyleSheet("""
-            QComboBox {
-                padding: 8px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                background-color: #FDC601;
-                color: white;
-                font-size: 12px;
-                font-weight: bold;
-            }
-            QComboBox:hover {
-                border-color: #084924;
-            }
-            QComboBox QAbstractItemView {
-                background-color: white;
-                color: #084924;
-                selection-background-color: #FDC601;
-                selection-color: white;
-            }
-        """)
-        controls_layout.addWidget(self.combo_view)
         
         # Search bar
         self.search_bar = QLineEdit()
@@ -507,14 +445,20 @@ class SearchView(QWidget):
             # Apply date filtering and sorting
             upcoming_events = self._filter_upcoming_events(filtered_events)
             self.populate_upcoming_events(upcoming_events)
-    
+
+    def set_search_query_and_execute(self, query):
+        """Set the search query and execute the search immediately"""
+        if query:
+            # Set the query in the search bar
+            self.search_bar.setText(query)
+            # Execute the search
+            self.on_search_clicked()
+        
     def on_search_clicked(self):
         """Execute search - case insensitive"""
         # Get the search query and convert to lowercase for case-insensitive search
         query = self.search_bar.text().strip().lower()
         
-        print(f"SearchView: Search clicked with query: '{query}'")
-        print(f"SearchView: Total events available: {len(self.all_events)}")
         
         if not query:
             self.show_initial_message()
@@ -538,8 +482,6 @@ class SearchView(QWidget):
                 query in event_datetime):
                 results.append(event)
         
-        print(f"SearchView: Found {len(results)} matching results")
-        
         # Display results
         self.display_search_results(results, query)
     
@@ -560,7 +502,6 @@ class SearchView(QWidget):
             """)
             no_results.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.results_layout.addWidget(no_results)
-            print("SearchView: No results widget added")
             return
         
         # Color map
@@ -573,7 +514,6 @@ class SearchView(QWidget):
         
         # Add result items
         for i, event in enumerate(results):
-            print(f"SearchView: Creating result item {i+1}: {event.get('event', 'Unknown')}")
             result_item = self.create_result_item(
                 event['date_time'],
                 event['event'],
@@ -584,7 +524,6 @@ class SearchView(QWidget):
             self.results_layout.addWidget(result_item)
         
         self.results_layout.addStretch()
-        print("SearchView: All result items added")
     
     def create_result_item(self, date_time, event_name, event_type, location, color):
         """Create a single result item"""

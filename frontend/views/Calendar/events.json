@@ -5,7 +5,7 @@
             "event": "Testing Admin Adding and Edit",
             "type": "Deadline",
             "location": "N/A",
-            "status": "Cancelled"
+            "status": "Finished"
         },
         {
             "date_time": "11/1/2025\n9:00 AM",
@@ -19,6 +19,27 @@
             "event": "Testing Faculty Adding",
             "type": "Deadline",
             "location": "N/A",
+            "status": "Upcoming"
+        },
+        {
+            "date_time": "10/23/2025\n9:00 AM",
+            "event": "admin adding",
+            "type": "Academic",
+            "location": "N/A",
+            "status": "Upcoming"
+        },
+        {
+            "date_time": "10/16/2025\n7:00 AM",
+            "event": "adminadding1",
+            "type": "Holiday",
+            "location": "N/A",
+            "status": "Upcoming"
+        },
+        {
+            "date_time": "10/15/2025\n9:00 AM",
+            "event": "wqewqewq",
+            "type": "Holiday",
+            "location": "hi",
             "status": "Upcoming"
         }
     ]
