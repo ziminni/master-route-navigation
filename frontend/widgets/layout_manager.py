@@ -38,6 +38,10 @@ class LayoutManager:
         self.header.logoutRequested.connect(self._logout)
 
         self.apply_desktop_layout()
+        
+        # Connect sidebar toggle AFTER desktop layout is applied
+        # This ensures content_container exists before we try to update it
+        self.navbar.toggled.connect(self.on_sidebar_toggled)
 
     def _init_stack(self, content):
         """Ensure we have a QStackedWidget to add pages into."""
@@ -116,6 +120,7 @@ class LayoutManager:
         if self.content_container is None:
             self.content_container = QWidget()
             content_layout = QVBoxLayout(self.content_container)
+            # FIXED: Use consistent margins regardless of sidebar state
             content_layout.setContentsMargins(10, 0, 10, 10)
             content_layout.setSpacing(10)
             
@@ -130,6 +135,7 @@ class LayoutManager:
             # Stack container
             self.stack_container = QWidget()
             stack_layout = QVBoxLayout(self.stack_container)
+            # FIXED: Keep consistent left margin
             stack_layout.setContentsMargins(20, 0, 0, 0)
             stack_layout.setSpacing(0)
             stack_layout.addWidget(self.content)
@@ -147,6 +153,9 @@ class LayoutManager:
                 layout = self.stack_container.layout()
                 if layout and layout.count() == 0:
                     layout.addWidget(self.content)
+            
+            # FIXED: Reset margins to consistent values
+            self.content_container.layout().setContentsMargins(10, 0, 10, 10)
 
         # Add widgets to main layout
         self.main_layout.addWidget(self.navbar, 0, 0, 2, 1)
@@ -163,6 +172,10 @@ class LayoutManager:
             self.main_layout.setColumnStretch(0, 0)
             self.main_layout.setColumnStretch(1, 1)
             print("LayoutManager: Adjusted for expanded sidebar (280px)")
+
+        # Remove spacing between columns
+        self.main_layout.setHorizontalSpacing(0)
+        self.main_layout.setVerticalSpacing(0)
 
         # Ensure everything is visible
         self.navbar.show()
@@ -241,6 +254,24 @@ class LayoutManager:
         self.content.show()
         
         print("LayoutManager: Mobile layout applied")
+
+    def on_sidebar_toggled(self, is_collapsed):
+        """Handle sidebar collapse/expand - dynamically adjust spacing"""
+        print(f"LayoutManager: Sidebar toggled, collapsed={is_collapsed}")
+        
+        if self.current_layout_mode == "desktop":
+            # FIXED: Only adjust column width, keep margins consistent
+            if is_collapsed:
+                self.main_layout.setColumnMinimumWidth(0, 70)
+                print("LayoutManager: Adjusted for collapsed sidebar")
+            else:
+                self.main_layout.setColumnMinimumWidth(0, 280)
+                print("LayoutManager: Adjusted for expanded sidebar")
+            
+            # Force layout update without changing margins
+            self.main_layout.update()
+        else:
+            print("LayoutManager: Not in desktop mode, skipping adjustment")
 
     def _open_profile(self):
         try:
