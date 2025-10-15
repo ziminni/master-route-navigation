@@ -404,24 +404,51 @@ class ManagerBase:
         if not self.current_org:
             return
         
-        # Update in current officers
-        if "officers" in self.current_org:
-            for i, off in enumerate(self.current_org["officers"]):
-                if off["name"] == updated_officer["name"]:
-                    self.current_org["officers"][i] = updated_officer
-                    break
+        officer_positions = ["President", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
+        member_name = updated_officer["name"]
+        new_position = updated_officer["position"]
         
-        # Update in officer history
+        if "officers" in self.current_org:
+            new_officers = []
+            for off in self.current_org["officers"]:
+                if off["name"] == member_name:
+                    if new_position in officer_positions:
+                        new_officers.append(updated_officer)
+                else:
+                    new_officers.append(off)
+            self.current_org["officers"] = new_officers
+        
         if "officer_history" in self.current_org:
             for semester, offs in self.current_org["officer_history"].items():
-                for i, off in enumerate(offs):
-                    if off["name"] == updated_officer["name"]:
-                        self.current_org["officer_history"][semester][i] = updated_officer
-                        break
+                new_offs = []
+                for off in offs:
+                    if off["name"] == member_name:
+                        if new_position in officer_positions:
+                            new_offs.append(updated_officer)
+                    else:
+                        new_offs.append(off)
+                self.current_org["officer_history"][semester] = new_offs
+        
+        if new_position not in officer_positions:
+            members = self.current_org.get("members", [])
+            member_found = False
+            for i, mem in enumerate(members):
+                if mem[0] == member_name:
+                    members[i][1] = new_position 
+                    member_found = True
+                    break
+            if not member_found:
+                new_member = [
+                    member_name,
+                    new_position,
+                    "Active",
+                    updated_officer.get("start_date", QtCore.QDate.currentDate().toString("MM/dd/yyyy"))
+                ]
+                members.append(new_member)
+            self.current_org["members"] = members
         
         self.save_data()
         
-        # Reload officers for current view
         current_index = self.ui.officer_history_dp.currentIndex()
         selected_semester = self.ui.officer_history_dp.itemText(current_index)
         officers = (
