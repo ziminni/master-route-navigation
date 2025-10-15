@@ -47,16 +47,22 @@ def wire_schedule_signals(window: object) -> None:
             window.Search.clicked.connect(lambda: _populate_schedule(window))
     if hasattr(window, "Semester"):
 
+
+#Semester change
         try:
-            window.Semester.currentIndexChanged.connect(lambda _=None: _populate_today(window, student_id))
+            window.Semester.currentIndexChanged.connect(lambda _=None: _populate_schedule(window))# This fixes the issue of thhe weekly table not updating on semester change
         except Exception:
             pass
+        
+        
+        
+        
     if hasattr(window, "YearBox"):
         try:
             window.YearBox.currentIndexChanged.connect(lambda _=None: _populate_curriculum(window))
         except Exception:
             pass
-
+#consider putting some if statement here because it fires off regardless.
     # Initial populate
     _restrict_years(window)
     _populate_schedule(window)
@@ -99,6 +105,12 @@ def _format_time_display(hhmm: str) -> str:
         return hhmm
 
 
+
+
+
+
+
+
 def _populate_schedule(window: object) -> None:
     student_id = None
     role = getattr(window, "user_role", "faculty")
@@ -109,12 +121,12 @@ def _populate_schedule(window: object) -> None:
         student_id = getattr(window, "StudentSearch").text() if hasattr(window, "StudentSearch") else None
         
     data = load_schedule(student_id)
-    _populate_weekly_table(getattr(window, "WeekTable_2", None), data)
+    _populate_weekly_table(getattr(window, "WeekTable_2", None), data, window)
     _populate_today(window, student_id) #added student_id to refer to the current user
     _populate_curriculum(window)
 
 
-def _populate_weekly_table(table: QTableWidget | None, schedule: dict) -> None:
+def _populate_weekly_table(table: QTableWidget | None, schedule: dict, window) -> None:
     if not table or not isinstance(table, QTableWidget):
         return
     # Ensure table has expected dimensions (rows follow _TIMES_DISPLAY, columns follow _DAYS)
@@ -127,7 +139,12 @@ def _populate_weekly_table(table: QTableWidget | None, schedule: dict) -> None:
         item = QTableWidgetItem(day)
         table.setHorizontalHeaderItem(c, item)
 
-    weekly = schedule.get("weekly", {}) if isinstance(schedule, dict) else {}
+    sem_widj = getattr(window,"Semester", None)
+    print (f"MODULE 3 WEEKLY SEMESTER SELECTED: ", sem_widj.currentText())
+    semester = sem_widj.currentText()
+    
+    
+    weekly = schedule.get(semester, {}).get("weekly",{}) if isinstance(schedule, dict) else {}
     # Clear cells
     for r in range(len(_TIMES_DISPLAY)):
         for c in range(len(_DAYS)):
@@ -159,10 +176,17 @@ def _populate_today(window: object, student_id) -> None:
     #get date today
     daytoday = datetime.now().strftime("%A")
     #Specify selection of schedule json block using the student id and the day today
+    
+    sem_widj = getattr(window,"Semester", None) #This is the el fixo of the semester selection
+    print (f"MODULE 3 TODAY SEMESTER SELECTED: ", sem_widj.currentText())
+    semester = sem_widj.currentText()
     if not searching:
-        getusersched = schedule['schedules'][student_id]['weekly'][daytoday]if student_id in schedule['schedules'] else []
+        student_id = getattr(window, "student_id", None)
+        getusersched = schedule['schedules'][student_id][semester]['weekly'][daytoday]if student_id in schedule['schedules'] else []
     else:
-        getusersched = schedule['weekly'][daytoday] if 'weekly' in schedule else []
+        student_id = window.StudentSearch.text().strip()
+        getusersched =schedule.get(semester, {}).get('weekly', {}).get(daytoday, []) if isinstance(schedule, dict) else []
+        # getusersched = schedule[semester]['weekly'][daytoday]
     searching=False
     
     #select the json block of that day of week using the selected parameters

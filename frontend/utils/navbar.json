@@ -31,7 +31,7 @@
           "name": "Schedule",
           "function": "Schedule()",
           "path": "views.Academics.Scheduler.Schedule",
-          "access": ["student", "admin"],
+          "access": ["student", "admin","faculty"],
           "modulars":[]
         },
         {
@@ -61,7 +61,7 @@
           "name": "Browse",
           "function": "()",
           "path": "",
-          "access": ["student","admin"],
+          "access": ["student","admin","faculty"],
           "modulars":[]
         },
         {

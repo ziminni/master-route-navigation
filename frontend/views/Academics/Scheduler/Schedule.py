@@ -54,12 +54,24 @@ class Schedule(QWidget):
             if not is_faculty:
                 # Prefer a valid student_id; if username isn't an id, fallback to first student in JSON
                 from services.students_service import list_students, get_student_year
+                
+                #This calls the username instead of the actual user_id, Is actually useless if backend is considered
+                
                 student_id = username if (isinstance(username, str) and username and username.count("-") == 1) else None
+                # Find a way to get the user id data from the json from the backend
+                
+                #We currently have username and token, we need to get the student_id from the backend using the username and token
+                #Let's refer to the login process. Login process does not return student_id, only username, roles, primary_role and token
+                #It's ideal to make a service, but for now, we'll put the code here
+                #This is a temporary solution, ideally we should have a service to get the student_id. This uses the auth_service as reference
+                ###########################3 Move this to a service if possible
+
+                #########################333
                 if not student_id:
                     try:
                         students = list_students() or []
                         if students:
-                            student_id = students[0].get("studentId")
+                            student_id = students[0].get("studentId")#This will default to the first student id in students.json
                     except Exception:
                         student_id = None
                 if student_id:
