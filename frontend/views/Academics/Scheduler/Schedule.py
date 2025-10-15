@@ -11,7 +11,7 @@ class Schedule(QWidget):
         is_faculty = (primary_role == "faculty") or (roles and "faculty" in roles)
         base_dir = os.path.dirname(__file__)
         # Choose the module3 view implementation based on role and import it
-        users_folder = os.path.join(base_dir, "Module-3_Academic_Schedule", "Users", "Faculty" if is_faculty else "Student")
+        users_folder = os.path.join(base_dir, "Users", "Faculty" if is_faculty else "Student")
         # Ensure project root is available for services imports used by the view
         project_root = os.path.abspath(os.path.join(base_dir, "..", "..", ".."))
         try:
