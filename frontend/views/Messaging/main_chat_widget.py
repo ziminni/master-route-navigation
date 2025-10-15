@@ -4,7 +4,7 @@ from PyQt6.QtCore import QUrl
 import os
 import shutil
 
-from main_chat import Ui_MainWindow
+from .main_chat import Ui_MainWindow
 
 
 class MainChatWidget(QtWidgets.QWidget):

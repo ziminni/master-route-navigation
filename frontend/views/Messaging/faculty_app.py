@@ -14,8 +14,7 @@ This app allows faculty to:
 
 import sys
 from PyQt6 import QtCore, QtGui, QtWidgets
-from data_manager import DataManager
-from faculty.message_dialog import Ui_Form
+from .data_manager import DataManager
 
 
 
@@ -543,28 +542,28 @@ class FacultyApp(QtWidgets.QMainWindow):
 
         self.show_message_overlay(item)
 
-        dialog = QtWidgets.QDialog(self)
-        ui = Ui_Form()
-        ui.setupUi(dialog)
-        dialog.setWindowTitle(f"{item.get('type', 'Message').title()} Details")
+        # dialog = QtWidgets.QDialog(self)
+        # ui = Ui_Form()
+        # ui.setupUi(dialog)
+        # dialog.setWindowTitle(f"{item.get('type', 'Message').title()} Details")
 
-        # Populate fields
-        ui.label_header.setText(item.get('title', ''))
-        ui.label_recipient.setText(f"From: {item.get('sender', 'Unknown')}")
-        sender_email = item.get('sender_email', '')
-        ui.label_email.setText(f"({sender_email})" if sender_email else "")
-        ui.label_day.setText(item.get('date', ''))  # or a relative string if you prefer
-        ui.textEdit_body.setPlainText(item.get('content', ''))
+        # # Populate fields
+        # ui.label_header.setText(item.get('title', ''))
+        # ui.label_recipient.setText(f"From: {item.get('sender', 'Unknown')}")
+        # sender_email = item.get('sender_email', '')
+        # ui.label_email.setText(f"({sender_email})" if sender_email else "")
+        # ui.label_day.setText(item.get('date', ''))  # or a relative string if you prefer
+        # ui.textEdit_body.setPlainText(item.get('content', ''))
 
         # Wire close button
-        ui.btn_close.clicked.connect(dialog.accept)
+        # ui.btn_close.clicked.connect(dialog.accept)
 
         # Optional: wire actions
         # ui.btn_reply.clicked.connect(lambda: ...)
         # ui.btn_resolve.clicked.connect(lambda: ...)
         # ui.btn_fwd.clicked.connect(lambda: ...)
 
-        dialog.exec()
+        # dialog.exec()
 
     def filter_messages(self, filter_type):
         print(f"Filtering by: {filter_type}")
@@ -630,31 +629,31 @@ class FacultyApp(QtWidgets.QMainWindow):
         overlay.raise_()
 
         # Build your Ui_Form on the overlay
-        ui = Ui_Form()
-        ui.setupUi(overlay)
+        # # ui = Ui_Form()
+        # ui.setupUi(overlay)
 
-        # Populate fields
-        ui.label_header.setText(item.get("title", ""))
-        ui.label_recipient.setText(f"From: {item.get('sender', 'Unknown')}")
-        sender_email = item.get("sender_email", "")
-        ui.label_email.setText(f"({sender_email})" if sender_email else "")
-        ui.label_day.setText(item.get("date", ""))
-        ui.textEdit_body.setPlainText(item.get("content", ""))
+        # # Populate fields
+        # ui.label_header.setText(item.get("title", ""))
+        # ui.label_recipient.setText(f"From: {item.get('sender', 'Unknown')}")
+        # sender_email = item.get("sender_email", "")
+        # ui.label_email.setText(f"({sender_email})" if sender_email else "")
+        # ui.label_day.setText(item.get("date", ""))
+        # ui.textEdit_body.setPlainText(item.get("content", ""))
 
-        # Center the message card
-        frame = ui.message_frame
-        frame.adjustSize()
-        ow, oh = overlay.width(), overlay.height()
-        fw, fh = frame.width(), frame.height()
-        frame.move(max(0, (ow - fw) // 2), max(0, (oh - fh) // 2))
+        # # Center the message card
+        # frame = ui.message_frame
+        # frame.adjustSize()
+        # ow, oh = overlay.width(), overlay.height()
+        # fw, fh = frame.width(), frame.height()
+        # frame.move(max(0, (ow - fw) // 2), max(0, (oh - fh) // 2))
 
-        # Close behaviors
-        ui.btn_close.clicked.connect(overlay.deleteLater)
-        def overlay_mousePressEvent(e):
-            # Close only if clicking outside the white card
-            if not frame.geometry().contains(e.pos()):
-                overlay.deleteLater()
-        overlay.mousePressEvent = overlay_mousePressEvent
+        # # Close behaviors
+        # ui.btn_close.clicked.connect(overlay.deleteLater)
+        # def overlay_mousePressEvent(e):
+        #     # Close only if clicking outside the white card
+        #     if not frame.geometry().contains(e.pos()):
+        #         overlay.deleteLater()
+        # overlay.mousePressEvent = overlay_mousePressEvent
 
 def main():
     app = QtWidgets.QApplication(sys.argv)

@@ -5,9 +5,6 @@ import os
 import shutil
 
 from .msg_main import Ui_MainWindow
-from .data_manager import DataManager
-from .faculty_app import FacultyApp
-from .faculty.faculty_main import Ui_MainWindow as FacultyUi_MainWindow
 
 
 class Main_Chat_Widget(QtWidgets.QWidget):
@@ -33,56 +30,27 @@ class Main_Chat_Widget(QtWidgets.QWidget):
         # print(f"[DEBUG] Primary role: {self.primary_role}")
         # if self.primary_role == "faculty":
         #     print("[DEBUG] Loading FacultyApp for faculty role")
-        #     # FacultyApp is a complete widget (QMainWindow), no setupUi needed
-        #     self.ui = FacultyUi_MainWindow()
-        #     self.ui.setupUi(self)
-        #     # For FacultyApp, we need to embed it differently since it's a complete widget
+        #     # FacultyApp is a complete widget, embed it properly
+        #     # self.faculty_app = FacultyApp(parent=self)
         #     layout = QtWidgets.QVBoxLayout(self)
         #     layout.setContentsMargins(0, 0, 0, 0)
         #     layout.setSpacing(0)
-        #     layout.addWidget(self.ui)
+        #     layout.addWidget(self.faculty_app)
         # else:
+        print(f"[DEBUG] Loading Ui_MainWindow for role: {self.primary_role}")
+        # Create a temporary QMainWindow to hold the UI
+        temp_window = QtWidgets.QMainWindow()
         self.ui = Ui_MainWindow()
+        self.ui.setupUi(temp_window)
         
-        # Apply its layout *to this widget*
-        self.ui.setupUi(self)
-
-        # OPTIONAL: tweak elements AFTER setup
-        self.ui.message_widget.setStyleSheet("""
-            QWidget#message_widget {
-                background-color: white;
-                border-radius: 8px;
-                border: 1px solid #e0e0e0;
-            }""")
-        
-        # Make centralwidget/message_widget flexible and borderless
-        self.ui.centralwidget.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding
-        )
-        self.ui.centralwidget.setContentsMargins(0, 0, 0, 0)
-
-        self.ui.message_widget.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding
-        )
-        self.ui.message_widget.setStyleSheet("""
-            QWidget#message_widget {
-                background-color: white;
-                border-radius: 0px;
-                border: none;
-                padding: 10px;
-            }
-        """)
-
-        # Embed the built centralwidget into this wrapper
+        # Extract the central widget and embed it in our layout
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self.ui.centralwidget)
-
-        # Header text
-        # self.ui.name_header.setText(chat_name)
+        
+        # Wire up button connections
+        self._connect_ui_buttons()
 
         # Conversation context (must be set by MainApp)
         self.data_manager = None
@@ -90,15 +58,31 @@ class Main_Chat_Widget(QtWidgets.QWidget):
         self.other_user_id = None
         self.conversation_id = None
 
-        # # Wire actions
-        # self.ui.button_send.clicked.connect(self.handle_send)
-        # self.ui.lineedit_msg.returnPressed.connect(self.handle_send)
-        # self.ui.button_attachments.clicked.connect(self.handle_attach)
-        # self.ui.button_link.clicked.connect(self.handle_link)
-        # self.ui.lineedit_msg.setPlaceholderText("Type a message...")
-
         # Size hints
         self.setMinimumSize(400, 300)
+
+    def _connect_ui_buttons(self):
+        """Connect UI buttons to their respective methods."""
+        # Connect buttons in the nested chat_box
+        if hasattr(self.ui, 'chat_box') and hasattr(self.ui.chat_box, 'ui'):
+            chat_ui = self.ui.chat_box.ui
+            
+            # Connect send button
+            if hasattr(chat_ui, 'button_send'):
+                chat_ui.button_send.clicked.connect(self.handle_send)
+            
+            # Connect message input return key
+            if hasattr(chat_ui, 'lineedit_msg'):
+                chat_ui.lineedit_msg.returnPressed.connect(self.handle_send)
+                chat_ui.lineedit_msg.setPlaceholderText("Type a message...")
+            
+            # Connect attachment button
+            if hasattr(chat_ui, 'button_attachments'):
+                chat_ui.button_attachments.clicked.connect(self.handle_attach)
+            
+            # Connect link button
+            if hasattr(chat_ui, 'button_link'):
+                chat_ui.button_link.clicked.connect(self.handle_link)
 
     def sizeHint(self):
         return QtCore.QSize(600, 500)
@@ -112,34 +96,40 @@ class Main_Chat_Widget(QtWidgets.QWidget):
         self.current_user_id = current_user_id
         self.other_user_id = other_user_id
         self.conversation_id = conversation_id
+        
+        # Context is now stored in the launcher itself
+        # The UI components can access it through the launcher
 
     def handle_send(self):
-        print("[CTX]", self.data_manager, self.current_user_id, self.other_user_id, self.conversation_id)
+        """Handle send message functionality."""
         if not self._has_context():
             QtWidgets.QMessageBox.warning(self, "No conversation", "Select a conversation first.")
             return
 
-        text = self.ui.lineedit_msg.text().strip()
-        if not text:
-            return
+        # Access the message input from the nested chat_box
+        if hasattr(self.ui, 'chat_box') and hasattr(self.ui.chat_box, 'ui') and hasattr(self.ui.chat_box.ui, 'lineedit_msg'):
+            text = self.ui.chat_box.ui.lineedit_msg.text().strip()
+            if not text:
+                return
 
-        payload = {
-            "sender_id": self.current_user_id,
-            "receiver_id": self.other_user_id,
-            "conversation_id": self.conversation_id,
-            "content": text,
-            "message_type": "general",
-            "priority": "normal",
-            "status": "sent",
-            "is_read": False,
-        }
-        created = self.data_manager.create_message(payload)
-        if created:
-            self.append_text_bubble(created)
-            self.ui.lineedit_msg.clear()
-            self.scroll_to_bottom()
+            payload = {
+                "sender_id": self.current_user_id,
+                "receiver_id": self.other_user_id,
+                "conversation_id": self.conversation_id,
+                "content": text,
+                "message_type": "general",
+                "priority": "normal",
+                "status": "sent",
+                "is_read": False,
+            }
+            created = self.data_manager.create_message(payload)
+            if created:
+                self.append_text_bubble(created)
+                self.ui.chat_box.ui.lineedit_msg.clear()
+                self.scroll_to_bottom()
 
     def handle_attach(self):
+        """Handle file attachment functionality."""
         if not self._has_context():
             QtWidgets.QMessageBox.warning(self, "No conversation", "Select a conversation first.")
             return
@@ -179,6 +169,7 @@ class Main_Chat_Widget(QtWidgets.QWidget):
             self.scroll_to_bottom()
 
     def handle_link(self):
+        """Handle link sharing functionality."""
         if not self._has_context():
             QtWidgets.QMessageBox.warning(self, "No conversation", "Select a conversation first.")
             return
@@ -206,6 +197,7 @@ class Main_Chat_Widget(QtWidgets.QWidget):
             self.scroll_to_bottom()
 
     def append_text_bubble(self, message):
+        """Add a text message bubble to the chat."""
         is_sender = (message.get("sender_id") == self.current_user_id)
         bubble = QtWidgets.QLabel(message.get("content", ""))
         bubble.setWordWrap(True)
@@ -227,9 +219,11 @@ class Main_Chat_Widget(QtWidgets.QWidget):
 
         holder = QtWidgets.QWidget()
         holder.setLayout(row)
-        self.ui.messages_layout.insertWidget(self.ui.messages_layout.count() - 1, holder)
+        if hasattr(self.ui, 'chat_box') and hasattr(self.ui.chat_box, 'ui') and hasattr(self.ui.chat_box.ui, 'messages_layout'):
+            self.ui.chat_box.ui.messages_layout.insertWidget(self.ui.chat_box.ui.messages_layout.count() - 1, holder)
 
     def append_attachments_bubble(self, paths):
+        """Add an attachment bubble to the chat."""
         links_col = QtWidgets.QVBoxLayout()
         for p in paths:
             url = QUrl.fromLocalFile(os.path.abspath(p)).toString()
@@ -248,9 +242,11 @@ class Main_Chat_Widget(QtWidgets.QWidget):
 
         holder = QtWidgets.QWidget()
         holder.setLayout(row)
-        self.ui.messages_layout.insertWidget(self.ui.messages_layout.count() - 1, holder)
+        if hasattr(self.ui, 'chat_box') and hasattr(self.ui.chat_box, 'ui') and hasattr(self.ui.chat_box.ui, 'messages_layout'):
+            self.ui.chat_box.ui.messages_layout.insertWidget(self.ui.chat_box.ui.messages_layout.count() - 1, holder)
 
     def append_link_bubble(self, url):
+        """Add a link bubble to the chat."""
         label = QtWidgets.QLabel(f"<a href='{url}'>{url}</a>")
         label.setOpenExternalLinks(True)
         label.setStyleSheet("QLabel {background-color:#76a979; color:white; border-radius:10px; padding:10px;}")
@@ -262,18 +258,22 @@ class Main_Chat_Widget(QtWidgets.QWidget):
 
         holder = QtWidgets.QWidget()
         holder.setLayout(row)
-        self.ui.messages_layout.insertWidget(self.ui.messages_layout.count() - 1, holder)
+        if hasattr(self.ui, 'chat_box') and hasattr(self.ui.chat_box, 'ui') and hasattr(self.ui.chat_box.ui, 'messages_layout'):
+            self.ui.chat_box.ui.messages_layout.insertWidget(self.ui.chat_box.ui.messages_layout.count() - 1, holder)
 
     def clear_messages(self):
-        # Remove all widgets from messages_layout except the final stretch
-        while self.ui.messages_layout.count() > 1:
-            item = self.ui.messages_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        """Clear all messages from the chat."""
+        if hasattr(self.ui, 'chat_box') and hasattr(self.ui.chat_box, 'ui') and hasattr(self.ui.chat_box.ui, 'messages_layout'):
+            while self.ui.chat_box.ui.messages_layout.count() > 1:
+                item = self.ui.chat_box.ui.messages_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
 
     def scroll_to_bottom(self):
-        bar = self.ui.scroll_area.verticalScrollBar()
-        bar.setValue(bar.maximum())
+        """Scroll the chat to the bottom."""
+        if hasattr(self.ui, 'chat_box') and hasattr(self.ui.chat_box, 'ui') and hasattr(self.ui.chat_box.ui, 'scroll_area'):
+            bar = self.ui.chat_box.ui.scroll_area.verticalScrollBar()
+            bar.setValue(bar.maximum())
 
     def _has_context(self) -> bool:
         return all([

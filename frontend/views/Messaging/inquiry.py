@@ -169,13 +169,16 @@ class InquiryDialog(QtWidgets.QDialog):
         self.ui = Ui_InquiryDialog()
         self.ui.setupUi(self)
 
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
+        # Simplified window setup for debugging
         self.setFixedSize(420, 500)
         self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
-        self.setWindowFlags(
-            QtCore.Qt.WindowType.FramelessWindowHint |
-            QtCore.Qt.WindowType.Dialog
-        )
+        self.setWindowTitle("Create Inquiry")
+        # Temporarily remove complex window flags for debugging
+        # self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
+        # self.setWindowFlags(
+        #     QtCore.Qt.WindowType.FramelessWindowHint |
+        #     QtCore.Qt.WindowType.Dialog
+        # )
 
         # Connect buttons
         self.ui.button_cancel.clicked.connect(self.reject)
