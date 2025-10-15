@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1018</width>
+    <height>1101</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="chat_info" native="true">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>20</y>
+      <width>731</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QWidget#chat_info {
+    background-color: white;
+    border-radius: 16px;
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+}
+</string>
+    </property>
+    <widget class="QLineEdit" name="lineEdit_faculty">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>481</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QLineEdit#lineEdit_faculty {
+    background-color: #f0f0f0; /* Light gray background */
+    border-radius: 10px; /* Slightly smaller radius for a modern, clean look */
+    border: 1px solid #ccc; /* Soft light gray border */
+    padding: 5px 7px; /* Added padding for better spacing */
+    font-size: 14px; /* Adjust font size for readability */
+    color: #333; /* Dark gray text color for readability */
+}
+
+QLineEdit#lineEdit_faculty:focus {
+    border: 1px solid #084924; /* Blue border when focused (modern feel) */
+    box-shadow: 0 0 5px rgba(76, 158, 255, 0.5); /* Soft shadow effect on focus */
+}
+
+QLineEdit#lineEdit_faculty:hover {
+    border: 1px solid #888; /* Darker border when hovered */
+    background-color: #e9e9e9; /* Slightly darker background on hover */
+}
+</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBox_prio">
+     <property name="geometry">
+      <rect>
+       <x>500</x>
+       <y>10</y>
+       <width>111</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QComboBox#comboBox_prio {
+    background-color: #f7f7f7; /* Light gray background */
+    border: 1px solid #ccc; /* Soft light gray border */
+    border-radius: 5px; /* Rounded corners for a modern look */
+    padding: 5px 10px; /* Padding for spacing inside the combo box */
+    font-size: 14px; /* Font size for readability */
+    color: #333; /* Dark text color */
+    
+}
+
+QComboBox#comboBox_prio:editable {
+    background-color: white; /* White background if the combo box is editable */
+}
+
+QComboBox#comboBox_prio:hover {
+    border: 1px solid #888; /* Darker border when hovered */
+    background-color: #e9e9e9; /* Slightly darker background on hover */
+}
+
+QComboBox#comboBox_prio:focus {
+    border: 1px solid #084924; /* Blue border when focused */
+    box-shadow: 0 0 5px rgba(76, 158, 255, 0.5); /* Soft blue shadow on focus */
+}
+
+QComboBox#comboBox_prio QAbstractItemView {
+    border-radius: 10px;
+    selection-background-color: #084924; 
+    background-color: white; /* White background for the drop-down */
+    color: #333; /* Dark text color in the drop-down */
+}
+
+QComboBox#comboBox_prio QAbstractItemView::item {
+    padding: 8px 10px; /* Padding for items in the drop-down */
+}
+
+QComboBox#comboBox_prio::drop-down {
+    border-left: 1px solid #ccc; /* Light border on the drop-down arrow */
+    border-top-right-radius: 10px; /* Rounded top right corner of the drop-down */
+    border-bottom-right-radius: 10px; /* Rounded bottom right corner of the drop-down */
+}
+
+
+</string>
+     </property>
+     <item>
+      <property name="text">
+       <string>All Priorities</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Urgent</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>High</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Normal</string>
+      </property>
+     </item>
+    </widget>
+    <widget class="QComboBox" name="comboBox_stat">
+     <property name="geometry">
+      <rect>
+       <x>620</x>
+       <y>10</y>
+       <width>101</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QComboBox#comboBox_stat{
+    background-color: #f7f7f7; /* Light gray background */
+    border: 1px solid #ccc; /* Soft light gray border */
+    border-radius: 5px; /* Rounded corners for a modern look */
+    padding: 5px 10px; /* Padding for spacing inside the combo box */
+    font-size: 14px; /* Font size for readability */
+    color: #333; /* Dark text color */
+    
+}
+
+QComboBox#comboBox_stat:editable {
+    background-color: white; /* White background if the combo box is editable */
+}
+
+QComboBox#comboBox_stat:hover {
+    border: 1px solid #888; /* Darker border when hovered */
+    background-color: #e9e9e9; /* Slightly darker background on hover */
+}
+
+QComboBox#comboBox_stat:focus {
+    border: 1px solid #084924; /* Blue border when focused */
+    box-shadow: 0 0 5px rgba(76, 158, 255, 0.5); /* Soft blue shadow on focus */
+}
+
+QComboBox#comboBox_stat QAbstractItemView {
+    border-radius: 10px;
+    selection-background-color: #084924; 
+    background-color: white; /* White background for the drop-down */
+    color: #333; /* Dark text color in the drop-down */
+}
+
+QComboBox#comboBox_stat QAbstractItemView::item {
+    padding: 8px 10px; /* Padding for items in the drop-down */
+}
+
+QComboBox#comboBox_stat::drop-down {
+    border-left: 1px solid #ccc; /* Light border on the drop-down arrow */
+    border-top-right-radius: 10px; /* Rounded top right corner of the drop-down */
+    border-bottom-right-radius: 10px; /* Rounded bottom right corner of the drop-down */
+}
+
+
+</string>
+     </property>
+     <item>
+      <property name="text">
+       <string>All Status</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Pending</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Sent</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Resolved</string>
+      </property>
+     </item>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="message_widget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>80</y>
+      <width>731</width>
+      <height>781</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QWidget#message_widget {
+    background-color: white;
+    border-radius: 16px;
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+}
+</string>
+    </property>
+    <widget class="QLabel" name="label_header1_4">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>221</width>
+       <height>41</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Recent Messages</string>
+     </property>
+    </widget>
+    <widget class="Line" name="line_7">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>50</y>
+       <width>731</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="inquiry_widget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>251</width>
+      <height>571</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QWidget#inquiry_widget{
+    background-color: white;
+    border-radius: 20px;
+    border: 1px solid #dddddd;
+}
+</string>
+    </property>
+    <widget class="QWidget" name="faculty_widget1" native="true">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>251</width>
+       <height>571</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QWidget#chat_info {
+    background-color: white;
+    border-radius: 16px;
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+}
+</string>
+     </property>
+     <widget class="QLabel" name="label_header1">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>0</y>
+        <width>221</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>14</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Message Categories</string>
+      </property>
+     </widget>
+     <widget class="Line" name="line">
+      <property name="geometry">
+       <rect>
+        <x>-10</x>
+        <y>50</y>
+        <width>261</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="Line" name="line_2">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>290</y>
+        <width>251</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">Line#line_2{
+    color: #d0d0d0;                                    
+}</string>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_actions">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>310</y>
+        <width>101</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Quick Actions</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="push_compose">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>370</y>
+        <width>221</width>
+        <height>19</height>
+       </rect>
+      </property>
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QPushButton#push_compose{
+    color: black;                      
+    border: #808080;                     
+    border-radius: 5px;                        
+    font-size: 14px;
+	text-align:left;                   
+}
+
+QPushButton#push_compose:hover {
+    background-color: #005a2e; 
+	color:white;        /* Lighter green on hover */
+}
+
+QPushButton#push_compose:pressed {
+    background-color: #002d17;          /* Even darker green when pressed */
+}
+</string>
+      </property>
+      <property name="text">
+       <string>Compose Message</string>
+      </property>
+     </widget>
+     <widget class="QWidget" name="">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>70</y>
+        <width>221</width>
+        <height>201</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QPushButton" name="push_all">
+         <property name="layoutDirection">
+          <enum>Qt::LeftToRight</enum>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QPushButton#push_all{
+    color: black;                      
+    border: none;                     
+    border-radius: 5px;                        
+    font-size: 14px;   
+	text-align:left;                
+}
+
+QPushButton#push_all:hover {
+    background-color: #005a2e; 
+	color:white;        /* Lighter green on hover */
+}
+
+QPushButton#push_all:pressed {
+    background-color: #002d17;
+ 	    /* Even darker green when pressed */
+}
+</string>
+         </property>
+         <property name="text">
+          <string>All Messages</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="push_unread">
+         <property name="layoutDirection">
+          <enum>Qt::LeftToRight</enum>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QPushButton#push_unread{
+    color: black;                      
+    border: none;                     
+    border-radius: 5px;                        
+    font-size: 14px;   
+	text-align:left;                
+}
+
+QPushButton#push_unread:hover {
+    background-color: #005a2e;
+	color:white;          /* Lighter green on hover */
+}
+
+QPushButton#push_unread:pressed {
+    background-color: #002d17;
+	    /* Even darker green when pressed */
+}
+</string>
+         </property>
+         <property name="text">
+          <string>Unread</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="push_acadin">
+         <property name="layoutDirection">
+          <enum>Qt::LeftToRight</enum>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QPushButton#push_acadin{
+    color: black;                      
+    border: none;                     
+    border-radius: 5px;                        
+    font-size: 14px; 
+	text-align:left;                  
+}
+
+QPushButton#push_acadin:hover {
+    background-color: #005a2e;
+	color:white;         /* Lighter green on hover */
+}
+
+QPushButton#push_acadin:pressed {
+    background-color: #002d17;          /* Even darker green when pressed */
+}
+</string>
+         </property>
+         <property name="text">
+          <string>Academic Inquiries</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="push_assgt">
+         <property name="layoutDirection">
+          <enum>Qt::LeftToRight</enum>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QPushButton#push_assgt{
+    color: black;                      
+    border: none;                     
+    border-radius: 5px;                        
+    font-size: 14px;
+	text-align:left;                   
+}
+
+QPushButton#push_assgt:hover {
+    background-color: #005a2e;
+	color:white;          /* Lighter green on hover */
+}
+
+QPushButton#push_assgt:pressed {
+    background-color: #002d17;          /* Even darker green when pressed */
+}
+</string>
+         </property>
+         <property name="text">
+          <string>Assignment Help</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="push_office">
+         <property name="layoutDirection">
+          <enum>Qt::LeftToRight</enum>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QPushButton#push_office{
+    color: black;                      
+    border: none;                     
+    border-radius: 5px;                        
+    font-size: 14px;
+	text-align:left;                   
+}
+
+QPushButton#push_office:hover {
+    background-color: #005a2e; 
+	color:white;
+	     /* Lighter green on hover */
+}
+
+QPushButton#push_office:pressed {
+    background-color: #002d17; 
+         /* Even darker green when pressed */
+}
+</string>
+         </property>
+         <property name="text">
+          <string>Office Hours</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1018</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

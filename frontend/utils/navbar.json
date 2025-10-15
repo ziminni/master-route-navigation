@@ -135,8 +135,8 @@
         {
           "id": 14,
           "name": "Messages",
-          "function": "()",
-          "path": "",
+          "function": "Main_Chat_Widget()",
+          "path": "views.Messaging.launcher",
           "access": ["student","admin"],
           "modulars":[]
         },
