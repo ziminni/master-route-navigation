@@ -220,6 +220,13 @@
                             "card_image_path": "No Photo",
                             "photo_path": "No Photo",
                             "start_date": "10/07/2025"
+                        },
+                        {
+                            "name": "Oliver Green",
+                            "position": "Treasurer",
+                            "card_image_path": "No Photo",
+                            "photo_path": "No Photo",
+                            "start_date": "10/15/2025"
                         }
                     ],
                     "members": [
@@ -234,14 +241,15 @@
                             "Secretary",
                             "Active",
                             "2025-10-07"
-                        ]
-                    ],
-                    "applicants": [
+                        ],
                         [
                             "Oliver Green",
-                            "Member"
+                            "Treasurer",
+                            "Active",
+                            "2025-10-15"
                         ]
-                    ]
+                    ],
+                    "applicants": []
                 },
                 {
                     "id": 202,
@@ -277,17 +285,30 @@
                 {
                     "name": "Ruben, Stephen Joseph",
                     "position": "Vice - Internal Chairperson",
-                    "card_image_path": "frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
-                    "photo_path": "frontend\\assets\\organization\\sample_officers\\Chairperson.jpg",
+                    "card_image_path": "C:/Users/Yuri/Desktop/master-route-navigation/frontend/assets/organization/sample_officers/Chairperson.jpg",
+                    "photo_path": "C:/Users/Yuri/Desktop/master-route-navigation/frontend/assets/organization/sample_officers/Chairperson.jpg",
                     "start_date": "07/08/2025"
+                },
+                {
+                    "name": "Sophia Martinez",
+                    "position": "Vice - External Chairperson",
+                    "card_image_path": "No Photo",
+                    "photo_path": "No Photo",
+                    "start_date": "10/15/2025"
                 }
             ],
             "members": [
                 [
                     "Sophia Martinez",
-                    "Member",
+                    "Vice - External Chairperson",
                     "Active",
                     "2025-09-27"
+                ],
+                [
+                    "Ruben, Stephen Joseph",
+                    "Vice - Internal Chairperson",
+                    "Active",
+                    "07/08/2025"
                 ]
             ],
             "applicants": [],

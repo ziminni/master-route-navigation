@@ -184,8 +184,10 @@ class User(QtWidgets.QWidget):
         self.ui.status_btn.setText("Active")
         self.ui.org_name.setText(org_data["name"])
         self.ui.org_type.setText("Branch" if org_data["is_branch"] else "Organization")
-        self.ui.brief_label.setText(org_data.get("brief", "No brief available"))
-        self.ui.obj_label.setText(org_data.get("description", "No description available"))
+        brief_content = org_data.get("brief", "")
+        self.ui.brief_label.setText(brief_content if brief_content else "No brief overview.")
+        description_content = org_data.get("description", "")
+        self.ui.obj_label.setText(description_content if description_content else "No objectives.")
         
         branches = org_data.get("branches")
         if branches is None or not isinstance(branches, list):
@@ -234,8 +236,14 @@ class User(QtWidgets.QWidget):
             if item := self.ui.verticalLayout_14.takeAt(0).widget():
                 item.deleteLater()
 
-        for event in events:
-            self.ui.verticalLayout_14.addWidget(EventCard(event, self))
+        if not events:
+            no_events_label = QtWidgets.QLabel("No upcoming events.")
+            no_events_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            no_events_label.setStyleSheet("font-size: 16px; color: #666;")
+            self.ui.verticalLayout_14.addWidget(no_events_label)
+        else:
+            for event in events:
+                self.ui.verticalLayout_14.addWidget(EventCard(event, self))
 
         self.ui.verticalLayout_14.addStretch()
         self.ui.scroll_area_events.verticalScrollBar().setValue(0)
