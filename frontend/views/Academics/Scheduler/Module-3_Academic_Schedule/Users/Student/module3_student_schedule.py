@@ -14,24 +14,30 @@ class ScheduleWindow(QWidget):
         self.student_id = "2025-00001"
         # Example: this student is in 2nd Year; restrict YearBox to 1st-2nd
         self.student_year = "2nd Year"
+        def _find_project_root_with_ui(start_dir: str) -> str:
+            """Walk upward from start_dir until a directory that contains a 'ui' folder is found.
+
+            Returns the found directory or falls back to the nearest frontend parent.
+            """
+            cur = os.path.abspath(start_dir)
+            while True:
+                if os.path.isdir(os.path.join(cur, "ui")):
+                    return cur
+                parent = os.path.dirname(cur)
+                if parent == cur:
+                    # give up — return closest reasonable fallback
+                    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+                cur = parent
+
+        project_root = None
         try:
             from services.json_paths import get_project_root
             project_root = get_project_root()
         except Exception:
-            project_root = os.path.dirname(
-                os.path.dirname(
-                    os.path.dirname(
-                        os.path.dirname(
-                            os.path.dirname(
-                                os.path.dirname(__file__)
-                            )
-                        )
-                    )
-                )
-            )
-        ui_file = os.path.abspath(
-            os.path.join(project_root, "ui", "Academic Schedule", "schedule.ui")
-        )
+            # Fall back to searching upward for a directory that contains 'ui'
+            project_root = _find_project_root_with_ui(os.path.dirname(__file__))
+
+        ui_file = os.path.join(project_root, "ui", "Academic Schedule", "schedule.ui")
         uic.loadUi(ui_file, self)
 
         if project_root not in sys.path:

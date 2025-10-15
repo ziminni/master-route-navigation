@@ -12,23 +12,23 @@ class ScheduleWindow(QWidget):
         # Tag role for controller visibility logic
         self.user_role = "faculty"
         # Resolve `frontend` root and load shared UI from Academic Schedule
+        def _find_project_root_with_ui(start_dir: str) -> str:
+            cur = os.path.abspath(start_dir)
+            while True:
+                if os.path.isdir(os.path.join(cur, "ui")):
+                    return cur
+                parent = os.path.dirname(cur)
+                if parent == cur:
+                    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+                cur = parent
+
+        project_root = None
         try:
             from services.json_paths import get_project_root
             project_root = get_project_root()
         except Exception:
-            project_root = os.path.dirname(
-                os.path.dirname(
-                    os.path.dirname(
-                        os.path.dirname(
-                            os.path.dirname(
-                                os.path.dirname(
-                                    os.path.dirname(__file__)
-                                )
-                            )
-                        )
-                    )
-                )
-            )
+            project_root = _find_project_root_with_ui(os.path.dirname(__file__))
+
         ui_file = os.path.join(project_root, "ui", "Academic Schedule", "schedule.ui")
         uic.loadUi(ui_file, self)
 
