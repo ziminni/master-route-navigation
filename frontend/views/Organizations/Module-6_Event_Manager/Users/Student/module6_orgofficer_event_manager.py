@@ -56,7 +56,8 @@ class EventTimelineDialog(QDialog):
             self.Event_Edit.clicked.connect(lambda: self._edit_and_close(lambda: self._edit_timeline(update_timeline_item)))
         if hasattr(self, "Event_Delete"):
             if hide_add and reschedule_dialog and hasattr(reschedule_dialog, "_delete_selected_proposal"):
-                self.Event_Delete.clicked.connect(lambda: (reschedule_dialog._delete_selected_proposal(), self.accept()))
+                # Delete proposal and close both the reschedule dialog and this timeline dialog
+                self.Event_Delete.clicked.connect(lambda: (reschedule_dialog._delete_selected_proposal(), reschedule_dialog.accept(), self.accept()))
             elif delete_timeline_item:
                 self.Event_Delete.clicked.connect(lambda: self._delete_and_close(delete_timeline_item))
         if load_timeline and hasattr(self, "WeekTable_2"):
