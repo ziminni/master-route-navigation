@@ -1,5 +1,6 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 """
 CISC Virtual Hub Launcher (Unified Window Version)
 ==================================================
@@ -27,6 +28,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
 =======
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtCore import QUrl
@@ -46,6 +49,9 @@ class Main_Chat_Widget(QtWidgets.QWidget):
 
         # Optional: Store session info if needed
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -54,6 +60,7 @@ class Main_Chat_Widget(QtWidgets.QWidget):
         self.primary_role = primary_role
         self.token = token
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
          # Initialize DataManager with session info
@@ -210,6 +217,8 @@ class Main_Chat_Widget(QtWidgets.QWidget):
 
 
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
         # The rest of your initialization code...
@@ -465,6 +474,10 @@ class Main_Chat_Widget(QtWidgets.QWidget):
             self.other_user_id is not None,
             self.conversation_id is not None
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+        ])
+>>>>>>> Stashed changes
+=======
         ])
 >>>>>>> Stashed changes
 =======
