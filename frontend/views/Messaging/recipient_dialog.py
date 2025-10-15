@@ -128,7 +128,11 @@ class Ui_Form(object):
         recipients = []
         all_users = self.data_manager.get_all_users()
         for user in all_users:
+<<<<<<< Updated upstream
             if user.get('role') in ['faculty', 'admin', 'officer', 'staff']:
+=======
+            if user.get('role') in ['faculty', 'admin', 'officer']:
+>>>>>>> Stashed changes
                 recipients.append({
                     'id': user.get('id'),
                     'name': user.get('name'),
@@ -137,12 +141,20 @@ class Ui_Form(object):
                     'department': user.get('department', 'Unknown')
                 })
         return recipients
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     def populate_recipient_list(self):
         self.recipient_list.clear()
         for recipient in self.filtered_recipients:
             display_text = f"{recipient['name']} ({recipient['role'].title()})"
             item = QtWidgets.QListWidgetItem(display_text)
             item.setData(QtCore.Qt.ItemDataRole.UserRole, recipient)
+<<<<<<< Updated upstream
+=======
+            
+>>>>>>> Stashed changes
             self.recipient_list.addItem(item)
 
     def filter_recipients(self, text):
