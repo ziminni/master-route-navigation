@@ -142,7 +142,7 @@ class Faculty(ManagerBase, User):
         
         card = CollegeOrgCard(
             self._get_logo_path(org_data["logo_path"]), 
-            org_data["description"],
+            org_data["name"],
             org_data, 
             self
         )

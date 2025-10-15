@@ -807,7 +807,7 @@ QScrollBar:vertical {
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>280</width>
+                 <width>334</width>
                  <height>650</height>
                 </rect>
                </property>
@@ -939,8 +939,14 @@ QScrollBar:vertical {
                   </property>
                  </spacer>
                 </item>
-                <item>
+                <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
                  <widget class="QLabel" name="org_name">
+                  <property name="maximumSize">
+                   <size>
+                    <width>300</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="font">
                    <font>
                     <family>Arial</family>
@@ -975,8 +981,14 @@ QScrollBar:vertical {
                   </property>
                  </widget>
                 </item>
-                <item>
+                <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
                  <widget class="QLabel" name="org_type">
+                  <property name="maximumSize">
+                   <size>
+                    <width>300</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="font">
                    <font>
                     <family>Arial</family>
@@ -1048,8 +1060,14 @@ QScrollBar:vertical {
                      </property>
                     </widget>
                    </item>
-                   <item alignment="Qt::AlignHCenter">
+                   <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
                     <widget class="QLabel" name="brief_label">
+                     <property name="maximumSize">
+                      <size>
+                       <width>300</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
                      <property name="text">
                       <string>BriefContent</string>
                      </property>
@@ -1074,8 +1092,14 @@ QScrollBar:vertical {
                      </property>
                     </widget>
                    </item>
-                   <item alignment="Qt::AlignHCenter">
+                   <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
                     <widget class="QLabel" name="obj_label">
+                     <property name="maximumSize">
+                      <size>
+                       <width>300</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
                      <property name="text">
                       <string>ObjectivesContent</string>
                      </property>
@@ -1100,8 +1124,14 @@ QScrollBar:vertical {
                      </property>
                     </widget>
                    </item>
-                   <item alignment="Qt::AlignHCenter">
+                   <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
                     <widget class="QLabel" name="obj_label_2">
+                     <property name="maximumSize">
+                      <size>
+                       <width>300</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
                      <property name="text">
                       <string>BranchList</string>
                      </property>
@@ -1571,7 +1601,7 @@ QScrollBar:vertical {
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>280</width>
+                 <width>226</width>
                  <height>628</height>
                 </rect>
                </property>

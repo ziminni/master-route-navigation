@@ -98,14 +98,13 @@ class CollegeOrgCard(QtWidgets.QFrame):
         logo_label = QtWidgets.QLabel()
         logo_label.setMaximumSize(200, 200)
         logo_label.setMinimumSize(200, 200)
-        logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.AlignmentFlag.AlignHCenter)
         logo_label.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
-        logo_label.setStyleSheet("border: none; background-color: transparent;")  # Ensure transparent bg for smooth edges
+        logo_label.setStyleSheet("border: none; background-color: transparent;")
 
         if logo_path != "No Photo":
             pixmap = QPixmap(logo_path).scaled(200, 200, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
             if not pixmap.isNull():
-                # Use the helper to create a smoothly rounded pixmap
                 rounded_pixmap = create_rounded_pixmap(pixmap, 10)
                 logo_label.setPixmap(rounded_pixmap)
             else:
@@ -115,8 +114,12 @@ class CollegeOrgCard(QtWidgets.QFrame):
 
         desc_label = QtWidgets.QLabel()
         desc_label.setStyleSheet("border: none; background-color: transparent;")
+        
+        desc_label.setMaximumHeight(16)
+        
         desc_label.setText(description)
         desc_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        
         desc_label.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         desc_label.setWordWrap(True)
 
