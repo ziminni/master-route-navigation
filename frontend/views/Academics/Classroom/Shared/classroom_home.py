@@ -81,7 +81,7 @@ class ClassroomHome(QtWidgets.QWidget):
 
             # Set card info
             card_ui.course_code_label.setText(cls['code'])  # e.g., "IT 2A"
-            card_ui.course_code_section_label.setText(f"Section: {cls.get('section_name', 'N/A')}")
+            card_ui.course_code_section_label.setText(cls.get('section_name', 'N/A'))
             card_ui.instructor_label.setText(cls['instructor'])
 
             # Connect click event

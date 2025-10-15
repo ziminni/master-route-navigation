@@ -79,9 +79,11 @@ class ItemWidget(QWidget):
             }
         """)
         title_label.setWordWrap(True)
-        title_label.setMinimumHeight(20)
-        title_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        layout.addWidget(title_label)
+        # title_label.setMinimumHeight(20)
+        title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        title_label.setMinimumWidth(100)  # Give it some minimum width
+        layout.addWidget(title_label, 1)
+
 
         # Spacer
         spacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -100,7 +102,8 @@ class ItemWidget(QWidget):
                 font-family: "Poppins", Arial, sans-serif;
             }
         """)
-        date_label.setMinimumHeight(16)
+        # date_label.setMinimumHeight(16)
+        date_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         layout.addWidget(date_label)
 
         # Menu Button (for faculty/admin)

@@ -1,0 +1,45 @@
+{
+    "users": [
+        {
+            "id": 1,
+            "username": "Marcus",
+            "first_name": "Marcus",
+            "last_name": "Mercer",
+            "institutional_id": "456456456",
+            "email": "immarcusmercer@gmail.com",
+            "role_type": "student",
+            "role": "student"
+        },
+        {
+            "id": 2,
+            "username": "Donald",
+            "first_name": "Donald",
+            "last_name": "Trump",
+            "institutional_id": "123123123",
+            "email": "donaldtrump@cmu.edu.ph",
+            "role_type": "staff",
+            "role": "staff"
+        },
+        {
+            "id": 3,
+            "username": "Kim",
+            "first_name": "Kim",
+            "last_name": "Jong Un",
+            "institutional_id": "789789789",
+            "email": "kimjongun@cmu.edu.ph",
+            "role_type": "faculty",
+            "role": "faculty"
+        },
+        {
+            "id": 4,
+            "username": "admin",
+            "first_name": "Admin",
+            "last_name": "User",
+            "institutional_id": "ADM-0001",
+            "email": "admin@cmu.edu.ph",
+            "role_type": "admin",
+            "role": "admin"
+        }
+    ],
+    "last_updated": "2025-10-15T00:00:00"
+}

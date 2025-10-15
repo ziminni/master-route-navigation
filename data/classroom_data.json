@@ -220,6 +220,21 @@
             "score": null,
             "date": "2025-10-14T22:17:20",
             "author": "admin"
+        },
+        {
+            "id": 8,
+            "topic_id": null,
+            "class_id": 1,
+            "title": "testing",
+            "content": "testing",
+            "type": "material",
+            "attachment": {
+                "name": "requirements.txt",
+                "type": "FILE"
+            },
+            "score": null,
+            "date": "Oct 15",
+            "author": "Kim"
         }
     ],
     "sections": [
@@ -248,5 +263,15 @@
             "updated_at": "2025-10-08T21:15:30.827471"
         }
     ],
-    "enrollments": []
+    "enrollments": [],
+    "syllabus": [
+        {
+            "id": 1,
+            "class_id": 1,
+            "title": "Syllabus",
+            "content": "please read",
+            "author": "Kim",
+            "date": "2025-10-15 15:45:11"
+        }
+    ]
 }

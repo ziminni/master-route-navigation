@@ -32,6 +32,7 @@ class ClassroomClassworks(QWidget):
     post_selected = pyqtSignal(dict)
     post_created = pyqtSignal() 
     navigate_to_form = pyqtSignal(str, object)
+    syllabus_created = pyqtSignal()  # ADD THIS NEW SIGNAL
 
     def __init__(self, cls, username, roles, primary_role, token, post_controller, parent=None):
         super().__init__(parent)
@@ -422,6 +423,8 @@ class ClassroomClassworks(QWidget):
         ):
             print("Syllabus created successfully")
             self.refresh_posts()
+            # EMIT THE SYLLABUS CREATED SIGNAL
+            self.syllabus_created.emit()
             if hasattr(self, 'stream_view'):
                 self.stream_view.refresh_syllabus()
             dialog.accept()

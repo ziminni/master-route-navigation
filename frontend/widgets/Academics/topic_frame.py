@@ -14,7 +14,7 @@ class TopicFrame(QFrame):
         self.user_role = user_role
         self.setObjectName(f"topicItemFrame_{id(self)}")
         self.setMinimumHeight(80)
-        self.setMaximumHeight(80)
+        # self.setMaximumHeight(80)
         self.setStyleSheet("""
             QFrame {
                 background-color: white;

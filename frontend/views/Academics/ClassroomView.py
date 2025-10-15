@@ -144,6 +144,11 @@ class ClassroomView(QWidget):
         self.classworks_view.post_created.connect(self.stream_view.refresh_posts)
         # Stream → Classworks: New post created in Stream, refresh Classworks  
         self.stream_view.post_created.connect(self.classworks_view.refresh_posts)
+        self.classworks_view.syllabus_created.connect(self.stream_view.refresh_syllabus)
+        self.classworks_view.syllabus_created.connect(self.stream_view.refresh_posts)
+        # Set up bidirectional references
+        self.classworks_view.set_stream_reference(self.stream_view)
+        self.stream_view.set_classworks_reference(self.classworks_view)
         
         # Create placeholder views for other tabs (to be implemented)
         students_view = QWidget()      # Students management (future)

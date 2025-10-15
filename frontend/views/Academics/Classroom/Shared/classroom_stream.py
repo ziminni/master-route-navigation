@@ -594,6 +594,23 @@ class ClassroomStream(QWidget):
         self.load_posts()
         self.load_syllabus()
 
+    def refresh_syllabus(self):
+        """Refresh syllabus display (called after creation)"""
+        print("Refreshing syllabus in stream...")
+        try:
+            self.load_syllabus()
+            # Also force a layout update
+            if hasattr(self.ui, 'syllabusFrame'):
+                self.ui.syllabusFrame.update()
+                self.ui.syllabusFrame.repaint()
+        except Exception as e:
+            print(f"Error refreshing syllabus: {e}")
+
+    def refresh_all(self):
+        """Refresh both posts and syllabus"""
+        self.refresh_posts()
+        self.refresh_syllabus()
+        
     # Also update the set_classworks_reference method:
     def set_classworks_reference(self, classworks_view):
         self.classworks_view = classworks_view
