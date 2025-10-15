@@ -17,6 +17,12 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# Directory for image uploads
+MEDIA_ROOT = os.path.join(BASE_DIR, "frontend", "assets","uploads")
+MEDIA_URL = "/uploads/"
+
+# >>>>>>> master
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 

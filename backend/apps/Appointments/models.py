@@ -28,5 +28,3 @@ class Appointment(models.Model):
     updated_at = models.DateTimeField(auto_now=True) 
     image_path = models.CharField(max_length=100)
 
-
-    
