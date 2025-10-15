@@ -11,28 +11,44 @@ class AuthService:
         """Authenticate user by sending a POST request to the Django backend."""
         payload = {"identifier": username, "password": password}
         try:
-            resp = requests.post(self.base_url, json=payload, timeout=10)
-        
+            resp = requests.post(self.base_url, json=payload, timeout=10, headers={"Accept":"application/json"})
+            raw_text = resp.text
             try:
                 body = resp.json()
             except ValueError:
                 body = {}
 
             if resp.status_code == 200:
-                token = body.get("access_token")
+                token = body.get("access") or body.get("access_token")
                 roles = body.get("roles", [])
                 primary_role = body.get("primary_role")
                 return LoginResult(True, username=username, token=token, roles=roles, primary_role=primary_role)
 
-            msg = body.get("message") or body.get("detail")
-            if not msg and "errors" in body:
-                msg = body["errors"]
-            if not msg:
-                msg = f"HTTP {resp.status_code}"
+            # explicit handling
+            if resp.status_code == 401:
+                return LoginResult(False, error=body.get("detail") or "Invalid username or password.")
+            if resp.status_code == 400:
+                if isinstance(body, dict) and any(isinstance(v, list) for v in body.values()):
+                    msg = "; ".join(f"{k}: {', '.join(map(str, v))}" for k, v in body.items() if isinstance(v, list))
+                else:
+                    msg = body.get("detail") or body.get("message") or "Invalid request."
+                return LoginResult(False, error=msg)
+            if resp.status_code == 429:
+                return LoginResult(False, error="Too many attempts. Try again later.")
+            if 500 <= resp.status_code <= 599:
+                detail = body.get("detail") or ""
+                return LoginResult(False, error=f"Server error ({resp.status_code}). {detail}".strip())
+
+            msg = body.get("message") or body.get("detail") or f"HTTP {resp.status_code}"
             return LoginResult(False, error=msg)
 
+        except requests.Timeout:
+            return LoginResult(False, error="Request timed out. Check your connection.")
+        except requests.ConnectionError:
+            return LoginResult(False, error="Cannot reach backend. Check server status.")
         except requests.RequestException as e:
-            return LoginResult(False, error=f"Cannot reach backend: {e}")
+            return LoginResult(False, error=f"Network error: {e}")
+
 
     # def login(self, username, password):
     #     """Authenticate user by sending a POST request to the Django backend."""

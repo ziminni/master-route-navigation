@@ -6,7 +6,7 @@ import os
 import sys
 
 class Router:
-    def __init__(self, user_role, user_session=None):
+    def __init__(self, user_role, user_session=None, on_logout=None):
         # Ensure sys.path includes project root
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         if project_root not in sys.path:
@@ -21,6 +21,15 @@ class Router:
         self.page_map = {}
         self._page_classes = self._build_page_classes()
         self._preload_pages()
+        self.on_logout = on_logout 
+
+    def request_full_logout(self):
+        if isinstance(self.user_session, dict):
+            self.user_session.clear()
+        self.user_role = ""
+        self.clear_pages()
+        if callable(self.on_logout):
+            self.on_logout()
 
     def _build_page_classes(self):
         """Parse navbar.json 'function' and use path helper methods to build {id_or_key: ClassObject} map."""
@@ -172,3 +181,62 @@ class Router:
         layout.addStretch()
         widget.setLayout(layout)
         return widget
+    
+    def _resolve_login_class(self):
+        """Return LoginWidget class from common paths."""
+        candidates = [
+            # ("views.Users.Login.login", "LoginWidget"),
+            ("views.Login.login", "LoginWidget"),
+            # ("frontend.views.Users.Login.login", "LoginWidget"),
+            # ("frontend.views.Login.login", "LoginWidget"),
+        ]
+        for mod, cls in candidates:
+            try:
+                m = import_module(mod)
+                return getattr(m, cls)
+            except Exception:
+                continue
+        return None
+
+    def go_to_login(self, clear_session=True):
+        """Show the login screen and handle re-entry on success."""
+        if clear_session and isinstance(self.user_session, dict):
+            self.user_session.clear()
+        self.user_role = ""
+
+        # wipe current stack
+        self.clear_pages()
+
+        LoginWidget = self._resolve_login_class()
+        if LoginWidget is None:
+            w = self._create_default_widget("Login", "Login module not found.")
+            idx = self.stack.addWidget(w)
+            self.page_map["login"] = idx
+            self.stack.setCurrentIndex(idx)
+            return
+
+        login = LoginWidget()
+
+        # if the widget emits login_successful(payload), rebuild pages
+        if hasattr(login, "login_successful"):
+            def _on_success(payload: dict):
+                user = payload.get("user", {})
+                self.user_session = {
+                    "username": user.get("username") or payload.get("username", ""),
+                    "roles": payload.get("roles", []),
+                    "primary_role": payload.get("primary_role") or user.get("primary_role", ""),
+                    "token": payload.get("access") or payload.get("access_token") or payload.get("token", ""),
+                }
+                self.user_role = self.user_session.get("primary_role", "")
+                self.clear_pages()
+                self._preload_pages()
+                # jump to first non-default page if any
+                for k, idx2 in self.page_map.items():
+                    if k != "access_denied":
+                        self.stack.setCurrentIndex(idx2)
+                        break
+            login.login_successful.connect(_on_success)
+
+        idx = self.stack.addWidget(login)
+        self.page_map["login"] = idx
+        self.stack.setCurrentIndex(idx)

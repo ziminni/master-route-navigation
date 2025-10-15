@@ -21,6 +21,7 @@ START_HEIGHT = 1080
 MIN_WIDTH = 800
 MIN_HEIGHT = 800
 
+API_BASE = "http://127.0.0.1:8000"  # or your BASE_API_URL
 
 class ResetPasswordWidget(QWidget):
     back_to_signin_requested = pyqtSignal()
@@ -426,18 +427,25 @@ class ResetPasswordWidget(QWidget):
                 
         except Exception as e:
             print(f"Error in force_stay_on_page: {e}")
+
     def send_otp_clicked(self):
-        # Disable send button and start cooldown
-        self.send_otp_btn.setEnabled(False)
-        self.resend_otp_btn.hide()
-        self.otp_timer_label.show()
-        self.otp_seconds_left = 60
-        self.update_otp_timer()
-        self.otp_timer.start(1000)  # Update every second
-        
-        # Here you would typically send the OTP to the user's email
-        # For now, we'll just show a success message
-        self.show_otp_sent_message()
+        email = self.email_input.text().strip()
+        if not email:
+            return
+        try:
+            import requests
+            self.send_otp_btn.setEnabled(False)
+            requests.post(f"{API_BASE}/api/users/password/otp/request/", json={"email": email}, timeout=8)
+            # start cooldown UI exactly as you do now
+            self.resend_otp_btn.hide()
+            self.otp_seconds_left = 60
+            self.otp_timer_label.show()
+            self.update_otp_timer()
+            self.otp_timer.start(1000)
+            self.show_otp_sent_message()
+        finally:
+            pass
+
     
     def update_otp_timer(self):
         try:
@@ -478,92 +486,109 @@ class ResetPasswordWidget(QWidget):
             self.otp_success_label.hide()
     
     def validate_otp_and_proceed(self):
+        email = self.email_input.text().strip()
+        otp   = self.otp_input.text().strip()
+        if not email or len(otp) < 4:
+            self.otp_error_label.setText("Enter a valid OTP.")
+            self.otp_error_label.show(); return
         try:
-            print("=== OTP VALIDATION STARTED ===")  # Debug print
-            
-            # Hide previous error messages
-            self.otp_error_label.hide()
-            
-            # Get OTP input
-            otp_input = self.otp_input.text().strip()
-            print(f"OTP input received: '{otp_input}'")  # Debug print
-            
-            # Simple validation (you can replace this with actual OTP validation)
-            if not otp_input:
-                self.otp_error_label.setText("Please enter the OTP code.")
+            import requests
+            r = requests.post(f"{API_BASE}/api/users/password/otp/verify/",
+                            json={"email": email, "otp": otp}, timeout=8)
+            if r.ok:
+                self.reset_token = r.json().get("reset_token")
+                self.show_change_password_ui()
+            else:
+                self.otp_error_label.setText(r.json().get("detail","Invalid OTP."))
                 self.otp_error_label.show()
-                print("OTP validation failed: empty input")  # Debug print
-                return
-                
-            if len(otp_input) < 4:
-                self.otp_error_label.setText("OTP code must be at least 4 characters.")
-                self.otp_error_label.show()
-                print("OTP validation failed: too short")  # Debug print
-                return
-            
-            # For demo purposes, accept any 4+ character OTP
-            # In real implementation, validate against sent OTP
-            print(f"OTP validated successfully: {otp_input}")  # Debug print
-            print("About to call show_change_password_ui()")  # Debug print
-            
-            # Use QTimer to delay the UI change and prevent immediate crash
-            QTimer.singleShot(100, self.show_change_password_ui)
-            
-        except Exception as e:
-            print(f"ERROR in OTP validation: {e}")  # Debug print
-            import traceback
-            traceback.print_exc()  # Print full error traceback
-            # Show error message instead of crashing
-            self.otp_error_label.setText("An error occurred. Please try again.")
+        except Exception:
+            self.otp_error_label.setText("Network error."); self.otp_error_label.show()
             self.otp_error_label.show()
-    
+        
     def validate_and_change_password(self):
         # Hide previous messages
         self.error_label.hide()
         self.success_label.hide()
-        
-        # Reset border styles
-        base_style = "border: 1px solid #ccc; border-radius: 6px; padding: 10px;"
+
+        base_style  = "border: 1px solid #ccc; border-radius: 6px; padding: 10px;"
         error_style = "border: 2px solid red; border-radius: 6px; padding: 10px;"
-        
-        new_password = self.new_password_input.text().strip()
+
+        new_password     = self.new_password_input.text().strip()
         reenter_password = self.reenter_password_input.text().strip()
-        
-        # Validation
+
+        # Client-side validation
         if not new_password:
             self.error_label.setText("New password is required.")
             self.error_label.show()
             self.new_password_input.setStyleSheet(error_style)
             return
-            
-        if len(new_password) < 6:
-            self.error_label.setText("Password must be at least 6 characters long.")
+        if len(new_password) < 8:
+            self.error_label.setText("Password must be at least 8 characters.")
             self.error_label.show()
             self.new_password_input.setStyleSheet(error_style)
             return
-            
         if new_password != reenter_password:
-            self.error_label.setText("Passwords do not match. Please re-enter correctly.")
+            self.error_label.setText("Passwords do not match.")
             self.error_label.show()
             self.reenter_password_input.setStyleSheet(error_style)
             return
-            
-        # Reset border styles
+
+        # reset styles
         self.new_password_input.setStyleSheet(base_style)
         self.reenter_password_input.setStyleSheet(base_style)
-        
-        # Show success message
-        self.success_label.setText("Password changed successfully! Redirecting to login...")
-        self.success_label.show()
-        
-        # Clear inputs
-        self.new_password_input.clear()
-        self.reenter_password_input.clear()
-        
-        # Redirect to login after 2 seconds
-        QTimer.singleShot(2000, self.request_back_to_signin)
-    
+
+        # Guard: need a reset token from the OTP verify step
+        token = getattr(self, "reset_token", None)
+        if not token:
+            self.error_label.setText("Reset token missing. Please verify OTP again.")
+            self.error_label.show()
+            return
+
+        # Call API
+        self.change_password_btn.setEnabled(False)
+        try:
+            import requests
+            url = f"{API_BASE.rstrip('/')}/api/users/password/reset/"  # make sure this endpoint exists
+            payload = {"token": token, "new_password": new_password}
+            r = requests.post(url, json=payload, timeout=10)
+
+            if r.ok:
+                self.success_label.setText("Password changed! Redirecting to login…")
+                self.success_label.show()
+                self.new_password_input.clear()
+                self.reenter_password_input.clear()
+                QTimer.singleShot(2000, self.request_back_to_signin)
+                return
+
+            # Show server error
+            try:
+                msg = (r.json() or {}).get("detail") or r.text
+            except Exception:
+                msg = r.text or "Could not reset password."
+            self.error_label.setText(msg[:300])
+            self.error_label.show()
+
+        except Exception:
+            self.error_label.setText("Network error. Please try again.")
+            self.error_label.show()
+        finally:
+            self.change_password_btn.setEnabled(True)
+
+
     def request_back_to_signin(self, event=None):
-        if hasattr(self, 'otp_timer') and self.otp_timer.isActive():
-            self.otp_timer.stop()
+        try:
+            if hasattr(self, 'otp_timer') and self.otp_timer.isActive():
+                self.otp_timer.stop()
+            if hasattr(self, 'keep_alive_timer') and self.keep_alive_timer.isActive():
+                self.keep_alive_timer.stop()
+        except Exception:
+            pass
         self.back_to_signin_requested.emit()
+        
+    def closeEvent(self, e):
+        try:
+            if hasattr(self, 'otp_timer'): self.otp_timer.stop()
+            if hasattr(self, 'keep_alive_timer'): self.keep_alive_timer.stop()
+        finally:
+            super().closeEvent(e)
+

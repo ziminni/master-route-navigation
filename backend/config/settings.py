@@ -141,11 +141,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Directory for image uploads
-MEDIA_ROOT = os.path.join(BASE_DIR, "frontend", "assets","uploads")
+MEDIA_ROOT = os.path.join(BASE_DIR.parent, "frontend", "assets","uploads")
 MEDIA_URL = "/uploads/"
 
 # Quick-start development settings - unsuitable for production
@@ -308,3 +307,15 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
 }
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Test Only (OTP Sending)
+import os
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'janmarcpulmones24@gmail.com'      # your@gmail.com
+EMAIL_HOST_PASSWORD = 'sopg utsv eizo jocd'#  16-char app pw
+DEFAULT_FROM_EMAIL = f"CISC Hub <{EMAIL_HOST_USER}>"
+EMAIL_TIMEOUT = 10

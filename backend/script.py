@@ -45,15 +45,15 @@ else:
     print("Admin already exists")
 if not User.objects.filter(username="Adolf").exists():
     user1 = User.objects.create_user(
-    username="Adolf",
-    email="adolfhitler@cmu.edu.ph",
+    username="Marcus",
+    email="immarcusmercer@gmail.com",
     password="password123",
-    first_name="Adolf",
-    last_name="Hitler",
+    first_name="Marcus",
+    last_name="Mercer",
     institutional_id="456456456",
     role_type="student",
     )
-    assign_role("Adolf", "student")
+    assign_role("Marcus", "student")
 
     #DEfault program and section, for example rani
     prog, _ = Program.objects.get_or_create(program_name="BS IT")
@@ -120,7 +120,7 @@ else:
     print("Account already exists. Aborting creation...")
 
 # Verify creation
-for ident in ("admin","Adolf", "Donald", "Kim"):
+for ident in ("admin","Marcus", "Donald", "Kim"):
     u = get_user(ident)
     if u:
         print(f"Verified creation for Username: {u.get_username()} ID: {u.id}")

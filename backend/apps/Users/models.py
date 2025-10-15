@@ -28,7 +28,12 @@ class Section(models.Model):
 
     def __str__(self):
         return self.section_name
-    
+
+import uuid
+def user_avatar_upload_to(instance, filename):
+    ext = filename.split('.')[-1].lower()
+    return f"profile_pics/users/{instance.pk}/avatar-{uuid.uuid4().hex[:8]}.{ext}"
+
 class BaseUser(AbstractUser):
     """Custom model that would inherit and extend the AbstractBaseUser"""
     middle_name = models.CharField(max_length=50, blank=True, null=True)
@@ -73,3 +78,78 @@ class StaffProfile(models.Model):
 
     def __str__(self):
         return f"StaffProfile<{self.user_id}>"
+
+
+# simple models for resume builder functionality
+class TimeStamped(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    class Meta: abstract = True
+
+class Education(TimeStamped):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_educations")
+    degree = models.CharField(max_length=200, blank=True)
+    school = models.CharField(max_length=200)
+    city = models.CharField(max_length=120, blank=True)
+    start_month = models.CharField(max_length=20, blank=True)
+    start_year = models.CharField(max_length=4, blank=True)
+    end_month = models.CharField(max_length=20, blank=True)
+    end_year = models.CharField(max_length=4, blank=True)
+    description = models.TextField(blank=True)
+
+class Experience(TimeStamped):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_experiences")
+    job_title = models.CharField(max_length=200)
+    employer = models.CharField(max_length=200, blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    start_month = models.CharField(max_length=20, blank=True)
+    start_year = models.CharField(max_length=4, blank=True)
+    end_month = models.CharField(max_length=20, blank=True)
+    end_year = models.CharField(max_length=4, blank=True)
+    description = models.TextField(blank=True)
+
+class Skill(TimeStamped):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_skills")
+    name = models.CharField(max_length=200)
+    level = models.CharField(max_length=30, blank=True)  # Beginner|Intermediate|Advanced|Expert
+    award = models.CharField(max_length=200, blank=True)
+    date_received = models.CharField(max_length=40, blank=True)
+    presenter = models.CharField(max_length=200, blank=True)
+
+class Interest(TimeStamped):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_interests")
+    name = models.CharField(max_length=200)
+
+
+# For the OTP-based password recovery (models)
+import uuid, hashlib, random, string
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+
+class PasswordReset(models.Model):
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    code_hash  = models.CharField(max_length=128)     
+    expires_at = models.DateTimeField()
+    attempts   = models.PositiveIntegerField(default=0)
+    verified   = models.BooleanField(default=False)
+    reset_token= models.CharField(max_length=64, blank=True, null=True) 
+
+    @staticmethod
+    def new_code():
+        return ''.join(random.choices(string.digits, k=6))
+
+    @staticmethod
+    def hash(s: str) -> str:
+        return hashlib.sha256(s.encode()).hexdigest()
+
+    @classmethod
+    def create_for(cls, user):
+        otp = cls.new_code()
+        obj = cls.objects.create(
+            user=user,
+            code_hash=cls.hash(otp),
+            expires_at=timezone.now() + timedelta(minutes=10),
+        )
+        return obj, otp

@@ -169,9 +169,6 @@ class LoginWidget(QWidget):
 
     def open_reset_password_window(self, event):
         self.forgot_password_requested.emit()
-        self.forgot_password = ResetPasswordWidget()
-        self.forgot_password.show()
-        self.close()
     
     # def closeEvent(self, event):
     #     if QMessageBox.question(self, "Exit", "Are you sure you want to exit?",

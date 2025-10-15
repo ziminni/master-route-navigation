@@ -1,5 +1,5 @@
 from PyQt6 import uic
-from PyQt6.QtWidgets import QWidget, QApplication, QMenu, QScrollArea
+from PyQt6.QtWidgets import QWidget, QApplication, QMenu, QScrollArea, QLabel, QVBoxLayout
 from PyQt6.QtGui import QAction, QPixmap
 from PyQt6.QtCore import Qt, pyqtSignal
 import os
@@ -152,6 +152,6 @@ if __name__ == "__main__":
         "score": "10"
     }
     view_assessment = ViewAssessment(assessment_data, "faculty")
-    view_assessment.setFixedSize(940, 530)  # Match main window size for testing
+    view_assessment.setMinimumSize(940, 530)  # Match main window size for testing
     view_assessment.show()
     sys.exit(app.exec())
