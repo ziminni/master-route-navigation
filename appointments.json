@@ -1,26 +1,26 @@
 [
-    {
-        "student_id": 3,
-        "appointment_schedule_entry_id": 1,
-        "additional_details": "dfgdfg",
-        "address": "Faculty Office",
-        "status": "approved",
-        "appointment_date": "2025-10-20",
-        "created_at": "2025-10-12 23:50:01.062795",
-        "updated_at": "2025-10-12 23:51:10.127312",
-        "image_path": "",
-        "id": 3
-    },
-    {
-        "student_id": 3,
-        "appointment_schedule_entry_id": 2,
-        "additional_details": "sdaf",
-        "address": "Faculty Office",
-        "status": "canceled",
-        "appointment_date": "2025-10-27",
-        "created_at": "2025-10-15 11:01:04.165344",
-        "updated_at": "2025-10-15 12:41:59.770529",
-        "image_path": "",
-        "id": 2
-    }
+  {
+    "student_id": 3,
+    "appointment_schedule_entry_id": 2,
+    "additional_details": "dfgdfg",
+    "address": "Faculty Office",
+    "status": "approved",
+    "appointment_date": "2025-10-27",
+    "created_at": "2025-10-12 23:50:01.062795",
+    "updated_at": "2025-10-15 14:11:55.905266",
+    "image_path": "",
+    "id": 3
+  },
+  {
+    "student_id": 3,
+    "appointment_schedule_entry_id": 2,
+    "additional_details": "sdaf",
+    "address": "Faculty Office",
+    "status": "canceled",
+    "appointment_date": "2025-10-27",
+    "created_at": "2025-10-15 11:01:04.165344",
+    "updated_at": "2025-10-15 12:41:59.770529",
+    "image_path": "",
+    "id": 2
+  }
 ]

@@ -744,7 +744,7 @@ class FacultyReschedulePage_ui(QWidget):
         dialog = QtWidgets.QDialog(self)
         dialog.setWindowTitle("Success")
         dialog.setModal(True)
-        dialog.setFixedSize(350, 200)
+        dialog.setFixedSize(450, 300)
         dialog.setStyleSheet("QDialog { background-color: white; border-radius: 10px; }")
         
         layout = QtWidgets.QVBoxLayout(dialog)
