@@ -1,11 +1,10 @@
-from pathlib import Path
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QGraphicsDropShadowEffect, QMenu, QListWidget, QListWidgetItem, QApplication
 )
 from PyQt6.QtGui import QPixmap, QFont, QIcon, QAction
 from PyQt6.QtCore import Qt, QSize, QEvent
-from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import pyqtSignal
 
 
 # Custom notification popup with filtering
@@ -107,6 +106,8 @@ class NotificationPopup(QWidget):
                 font.setBold(True)
                 item.setFont(font)
             self.notification_list.addItem(item)
+
+
 
 
 # Custom mail popup with filtering
@@ -221,13 +222,10 @@ class MailPopup(QWidget):
 
 
 class Header(QWidget):
-    profileRequested = QtCore.pyqtSignal()
-    logoutRequested  = QtCore.pyqtSignal()
-    def __init__(self, parent=None, session: dict | None = None, user: dict | None = None):
+    open_profile = pyqtSignal()
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.session = session or {}
-        self.user    = user or {}
-        self.setFixedHeight(100)
+        self.setFixedHeight(84)
         self.setObjectName("HeaderRoot")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
@@ -254,40 +252,10 @@ class Header(QWidget):
         layout.setSpacing(15)
         layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
-        # Image paths (mimicking LoginWidget)
-        BASE_DIR = Path(__file__).resolve().parents[2]  # projectname/
-        ASSETS_DIR = BASE_DIR / "frontend" /"assets" / "images"    # projectname/frontend/assets/images/
-
-        # Debug paths
-        print(f"Current working directory: {Path.cwd()}")
-        print(f"Script directory: {Path(__file__).resolve().parent}")
-        print(f"Assets directory: {ASSETS_DIR}")
-
-        # Image filenames (adjust if needed based on actual files)
-        cisc_path = ASSETS_DIR / "cisc.png"
-        mail_path = ASSETS_DIR / "mail.png"
-        bell_path = ASSETS_DIR / "bell.png"
-        cmu_path = ASSETS_DIR / "cmu.png"
-
-        # Debug image existence
-        for path in [cisc_path, mail_path, bell_path, cmu_path]:
-            print(f"Checking image: {path}, Exists: {path.exists()}")
-
         # --- Logo + Title ---
         logo = QLabel()
-        if cisc_path.exists():
-            pixmap = QPixmap(str(cisc_path))
-            if pixmap.isNull():
-                print(f"Error: Failed to load {cisc_path} (possibly corrupt or not a valid image)")
-                logo.setText("CISC Logo Error")
-                logo.setStyleSheet("color: red; font-size: 12px;")
-            else:
-                logo.setPixmap(pixmap.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio,
-                                            Qt.TransformationMode.SmoothTransformation))
-        else:
-            print(f"Error: {cisc_path} not found")
-            logo.setText("CISC Logo Missing")
-            logo.setStyleSheet("color: red; font-size: 12px;")
+        logo.setPixmap(QPixmap("images/cisc.png").scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio,
+                                                          Qt.TransformationMode.SmoothTransformation))
 
         title_box = QVBoxLayout()
         title_box.setContentsMargins(0, 0, 0, 0)
@@ -318,8 +286,8 @@ class Header(QWidget):
         layout.addWidget(vline())
 
         # --- Icons ---
-        self.mail_button = self._icon_button(mail_path)
-        self.bell_button = self._icon_button(bell_path)
+        self.mail_button = self._icon_button("images/mail.png")
+        self.bell_button = self._icon_button("images/bell.png")
         layout.addWidget(self.mail_button)
         layout.addWidget(self.bell_button)
         layout.addWidget(vline())
@@ -343,127 +311,12 @@ class Header(QWidget):
         if app:
             app.installEventFilter(self)
 
-        self.set_user(session=self.session, user=self.user)
-
-    def _build_profile(self):
-        profile_widget = QWidget()
-        layout = QHBoxLayout(profile_widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
-        layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-
-        # avatar
-        self.avatar_lbl = QLabel()
-        self.avatar_lbl.setFixedSize(36, 36)
-        self.avatar_lbl.setStyleSheet("border-radius:18px;")
-        self._set_default_avatar()
-
-        # name + role
-        info_widget = QWidget()
-        info_layout = QVBoxLayout(info_widget)
-        info_layout.setContentsMargins(0, 0, 0, 0)
-        info_layout.setSpacing(0)
-
-        self.name_lbl = QLabel("—")
-        self.name_lbl.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-        self.name_lbl.setStyleSheet("color:#111827;")
-
-        self.role_lbl = QLabel("—")
-        self.role_lbl.setFont(QFont("Segoe UI", 8))
-        self.role_lbl.setStyleSheet("color:#6b7280;")
-
-        info_layout.addWidget(self.name_lbl)
-        info_layout.addWidget(self.role_lbl)
-
-        # dropdown
-        self.dropdown_button = QPushButton("▼")
-        self.dropdown_button.setObjectName("DropdownArrow")
-        self.dropdown_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.dropdown_button.setFixedSize(28, 28)
-
-        layout.addWidget(self.avatar_lbl)
-        layout.addWidget(info_widget)
-        layout.addWidget(self.dropdown_button)
-        return profile_widget
-
     
-    def set_user(self, session: dict | None = None, user: dict | None = None):
-        if session is not None:
-            self.session = session
-        if user is not None:
-            self.user = user
-        self._apply_user_to_ui()
-
-    # header.py
-    def _apply_user_to_ui(self):
-        s = self.session or {}
-        data = (s.get("user") or self.user or {})
-        # fall back to top-level session fields if needed
-        if not data:
-            data = {
-                "full_name": s.get("full_name"),
-                "username":  s.get("username"),
-                "primary_role": s.get("primary_role"),
-                "profile_picture": s.get("profile_picture"),
-            }
-
-        name = (data.get("full_name") or data.get("username") or "User").strip() or "User"
-        role = (data.get("primary_role") or "—").title()
-        self.name_lbl.setText(name)
-        self.role_lbl.setText(role)
-
-        url = data.get("profile_picture")
-        if url:
-            # make relative URLs work too
-            if not url.startswith(("http://","https://")):
-                base = (s.get("api_base") or "http://127.0.0.1:8000").rstrip("/")
-                url = f"{base}{url if url.startswith('/') else f'/uploads/{url}'}"
-            self._set_avatar_from_url(url)
-        else:
-            self._set_default_avatar()
-
-    def _set_default_avatar(self):
-        cmu_path = Path(__file__).resolve().parents[2] / "frontend" / "assets" / "images" / "cmu.png"
-        pix = QPixmap(str(cmu_path)) if cmu_path.exists() else QPixmap()
-        self._set_avatar_pixmap(pix)
-
-    def _set_avatar_from_url(self, url: str):
-        try:
-            import requests, time
-            # tiny cache-bust
-            sep = "&" if "?" in url else "?"
-            r = requests.get(f"{url}{sep}v={int(time.time())}", timeout=6)
-            r.raise_for_status()
-            pix = QPixmap(); pix.loadFromData(r.content)
-            self._set_avatar_pixmap(pix)
-        except Exception:
-            self._set_default_avatar()
-
-    def _set_avatar_pixmap(self, pix: QPixmap):
-        if pix and not pix.isNull():
-            pix = pix.scaled(
-                36, 36,
-                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            self.avatar_lbl.setPixmap(pix)
-
 
     # Icon button utility
     def _icon_button(self, path):
         btn = QPushButton()
-        if path.exists():
-            icon = QIcon(str(path))
-            if icon.isNull():
-                print(f"Error: Failed to load {path} (possibly corrupt or not a valid image)")
-                btn.setText("X")
-                btn.setStyleSheet("color: red; font-size: 12px;")
-            else:
-                btn.setIcon(icon)
-        else:
-            print(f"Error: {path} not found")
-            btn.setText("X")
-            btn.setStyleSheet("color: red; font-size: 12px;")
+        btn.setIcon(QIcon(path))
         btn.setIconSize(QSize(18, 18))
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setFixedSize(36, 36)
@@ -474,68 +327,56 @@ class Header(QWidget):
         return btn
 
     # User profile widget
-    # def _build_profile(self):
-    #     profile_widget = QWidget()
-    #     layout = QHBoxLayout(profile_widget)
-    #     layout.setContentsMargins(0, 0, 0, 0)
-    #     layout.setSpacing(10)
-    #     layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+    def _build_profile(self):
+        profile_widget = QWidget()
+        layout = QHBoxLayout(profile_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+        layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
-    #     avatar = QLabel()
-    #     cmu_path = Path(__file__).resolve().parents[2] /"frontend" / "assets" / "images" / "cmu.png"
-    #     if cmu_path.exists():
-    #         pixmap = QPixmap(str(cmu_path))
-    #         if pixmap.isNull():
-    #             print(f"Error: Failed to load {cmu_path} (possibly corrupt or not a valid image)")
-    #             avatar.setText("CMU Logo Error")
-    #             avatar.setStyleSheet("color: red; font-size: 12px;")
-    #         else:
-    #             avatar.setPixmap(pixmap.scaled(36, 36,
-    #                                         Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-    #                                         Qt.TransformationMode.SmoothTransformation))
-    #     else:
-    #         print(f"Error: {cmu_path} not found")
-    #         avatar.setText("CMU Logo Missing")
-    #         avatar.setStyleSheet("color: red; font-size: 12px;")
-    #     avatar.setFixedSize(36, 36)
-    #     avatar.setStyleSheet("border-radius:18px;")
+        avatar = QLabel()
+        avatar.setPixmap(QPixmap("images/cmu.png").scaled(36, 36,
+                                                           Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                                                           Qt.TransformationMode.SmoothTransformation))
+        avatar.setFixedSize(36, 36)
+        avatar.setStyleSheet("border-radius:18px;")
 
-    #     info_widget = QWidget()
-    #     info_layout = QVBoxLayout(info_widget)
-    #     info_layout.setContentsMargins(0, 0, 0, 0)
-    #     info_layout.setSpacing(0)
+        info_widget = QWidget()
+        info_layout = QVBoxLayout(info_widget)
+        info_layout.setContentsMargins(0, 0, 0, 0)
+        info_layout.setSpacing(0)
 
-    #     name = QLabel("CARLOS FIDEL CASTRO")
-    #     name.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-    #     name.setStyleSheet("color:#111827;")
-    #     role = QLabel("Student")
-    #     role.setFont(QFont("Segoe UI", 8))
-    #     role.setStyleSheet("color:#6b7280;")
+        name = QLabel("CARLOS FIDEL CASTRO")
+        name.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        name.setStyleSheet("color:#111827;")
+        role = QLabel("Student")
+        role.setFont(QFont("Segoe UI", 8))
+        role.setStyleSheet("color:#6b7280;")
 
-    #     info_layout.addWidget(name)
-    #     info_layout.addWidget(role)
+        info_layout.addWidget(name)
+        info_layout.addWidget(role)
 
-    #     self.dropdown_button = QPushButton("▼")
-    #     self.dropdown_button.setObjectName("DropdownArrow")
-    #     self.dropdown_button.setCursor(Qt.CursorShape.PointingHandCursor)
-    #     self.dropdown_button.setFixedSize(28, 28)
+        self.dropdown_button = QPushButton("▼")
+        self.dropdown_button.setObjectName("DropdownArrow")
+        self.dropdown_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.dropdown_button.setFixedSize(28, 28)
 
-    #     layout.addWidget(avatar)
-    #     layout.addWidget(info_widget)
-    #     layout.addWidget(self.dropdown_button)
-    #     return profile_widget
+        layout.addWidget(avatar)
+        layout.addWidget(info_widget)
+        layout.addWidget(self.dropdown_button)
+        return profile_widget
 
+    # Profile menu
     def _build_profile_menu(self):
-        self.profile_menu = QtWidgets.QMenu(self)
+        self.profile_menu = QMenu(self)
         self.profile_menu.setStyleSheet("""
             QMenu { background-color:#FFFFFF; border:1px solid #d1d5db; }
             QMenu::item { padding:10px 20px; color:#374151; }
             QMenu::item:selected { background-color:#f3f4f6; }
         """)
-        act_profile = self.profile_menu.addAction("Profile")
-        act_logout  = self.profile_menu.addAction("Logout")
-        act_profile.triggered.connect(self.profileRequested.emit)
-        act_logout.triggered.connect(self.logoutRequested.emit)
+        self.profile_menu.addAction(QAction("My Profile", self))
+        self.profile_menu.addSeparator()
+        self.profile_menu.addAction(QAction("Log Out", self))
 
     # Notification menu
     def _build_notification_menu(self):
