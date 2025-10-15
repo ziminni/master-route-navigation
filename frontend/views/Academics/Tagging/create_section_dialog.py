@@ -26,6 +26,7 @@ class CreateSectionDialog(QDialog):
         # Store whether we're in edit mode
         self.is_edit_mode = section_data is not None
         self.section_data = section_data
+        self._is_initializing = True # flag to prevent autofill everytime dialog is opened
 
         # Set window title based on mode
         title_text = "Edit Section" if self.is_edit_mode else "Create Section"
@@ -82,8 +83,9 @@ class CreateSectionDialog(QDialog):
         main_layout.addWidget(title)
 
         # Section input
-        section_label = QLabel("Section")
+        section_label = QLabel("Name")
         self.section_input = QLineEdit()
+        self.section_input.setPlaceholderText("A")
         main_layout.addWidget(section_label)
         main_layout.addWidget(self.section_input)
 
@@ -91,9 +93,8 @@ class CreateSectionDialog(QDialog):
         program_label = QLabel("Program Title")
         self.program_combo = QComboBox()
         self.program_combo.addItems([
-            "BS Computer Science",
             "BS Information Technology",
-            "BS Data Science"
+            "BS Data Science",
             "BS Information Systems"
         ])
         main_layout.addWidget(program_label)
@@ -106,6 +107,13 @@ class CreateSectionDialog(QDialog):
         main_layout.addWidget(curriculum_label)
         main_layout.addWidget(self.curriculum_combo)
 
+        # Curriculum dropdown
+        track_label = QLabel("Track")
+        self.track_combo = QComboBox()
+        self.track_combo.addItems(["N/A", "Data Networking", "Information Management", "Software Development"])
+        main_layout.addWidget(track_label)
+        main_layout.addWidget(self.track_combo)
+
         # Grid layout for Year, Capacity, and Lecture
         grid_layout = QGridLayout()
         grid_layout.setHorizontalSpacing(20)
@@ -113,7 +121,7 @@ class CreateSectionDialog(QDialog):
 
         year_label = QLabel("Year")
         self.year_combo = QComboBox()
-        self.year_combo.addItems(["1st", "2nd", "3rd", "4th"])
+        self.year_combo.addItems(["1st", "2nd", "3rd", "4th", "N/A (Petition)"])
         self.year_combo.setMaximumWidth(20)  # Different width for grid combobox
         grid_layout.addWidget(year_label, 0, 0)
         grid_layout.addWidget(self.year_combo, 1, 0)
@@ -123,6 +131,7 @@ class CreateSectionDialog(QDialog):
         self.capacity_input = QSpinBox()
         self.capacity_input.setMinimum(1)
         self.capacity_input.setMaximum(50)
+        self.capacity_input.setValue(50)
         # # Different width for grid combobox
         grid_layout.addWidget(capacity_label, 0, 1)
         grid_layout.addWidget(self.capacity_input, 1, 1)
@@ -168,8 +177,18 @@ class CreateSectionDialog(QDialog):
 
         # Connect signals
         cancel_btn.clicked.connect(self.reject)
-        action_btn.clicked.connect(self.accept)
+        action_btn.clicked.connect(self.handle_create_or_update)
         draft_btn.clicked.connect(self.handle_draft)
+
+        # for fields with dynamic default values based on other field values
+        self.type_combo.currentTextChanged.connect(self._handle_type_changed)
+        self.remarks_combo.currentTextChanged.connect(self._handle_remarks_changed)
+
+        # Populate fields if in edit mode
+        if self.is_edit_mode and section_data:
+            self._populate_fields(section_data)
+
+        self._is_initializing = False
 
     def _populate_fields(self, section_data: Dict) -> None:
         """
@@ -217,6 +236,77 @@ class CreateSectionDialog(QDialog):
         except Exception as e:
             logger.exception(f"Error populating section fields: {e}")
 
+    def _validate_input(self) -> tuple[bool, str]:
+        """
+        Validate user input before creating/updating section.
+
+        Returns:
+            tuple: (is_valid, error_message)
+        """
+        section = self.section_input.text().strip().upper()
+        remarks = self.remarks_combo.currentText().strip()
+
+        # Check if section field is empty
+        if not section:
+            return False, "Section field cannot be empty."
+
+        if remarks == "Regular":
+            # Check if section contains only a single letter
+            if not section.isalpha() or len(section) != 1:
+                return False, "Section field must contain only contain a letter (e.g.,'A', 'B', 'C', 'D')."
+        elif remarks == "Petition":
+            # Assume petition section names are 'PS99', 'PS100', etc.
+            valid_start = section[0:2]
+            if valid_start != "PS":
+                return False, "Invalid section name format, must start with 'PS'."
+            if len(section) > 5:
+                return False, "Invalid section field length."
+
+        return True, ""
+
+    def _handle_type_changed(self, type_value:str) -> None:
+        """
+        Handle type change to automatically set default capacity.
+        Only applies during user interaction, not during initialization.
+
+        Args:
+            type_value: The selected type (Lecture/Laboratory)
+        """
+        # Don't override capacity during initialization or edit mode
+        if self._is_initializing:
+            return
+
+        if type_value == "Lecture":
+            self.capacity_input.setValue(50)
+        elif type_value == "Laboratory":
+            self.capacity_input.setValue(25)
+
+    def _handle_remarks_changed(self, remarks: str) -> None:
+        """
+        Handle remarks change to provide hint or validation.
+
+        Args:
+            remarks: The selected remarks (Regular/Petition)
+        """
+        if self._is_initializing:
+            return
+
+
+        if remarks == "Petition":
+            # Clear input
+            if self.section_input.text() and len(self.section_input.text()) == 1:
+                self.section_input.clear()  # Clear single letter if switching to Petition
+            self.section_input.setPlaceholderText("PS99")
+
+            self.year_combo.setCurrentIndex(4)
+        elif remarks == "Regular":
+            # Clear if not matching Regular format
+            current_text = self.section_input.text()
+            if current_text and (not current_text.isalpha() or len(current_text) != 1):
+                self.section_input.clear()
+            self.section_input.setPlaceholderText("A")
+            self.year_combo.setCurrentIndex(0)
+
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             event.ignore()
@@ -227,6 +317,23 @@ class CreateSectionDialog(QDialog):
         """Handle draft button clicked."""
         pass
 
+    def handle_create_or_update(self):
+        """Handle create/update button click with validation."""
+        from PyQt6.QtWidgets import QMessageBox
+
+        is_valid, error_message = self._validate_input()
+
+        if not is_valid:
+            QMessageBox.warning(
+                self,
+                "Invalid Input",
+                error_message,
+                QMessageBox.StandardButton.Ok
+            )
+            return  # Don't close dialog
+
+        self.accept()  # Close dialog with success
+
     def get_data(self) -> Dict:
         """
         Retrieve section data from form fields.
@@ -236,9 +343,10 @@ class CreateSectionDialog(QDialog):
         """
 
         data = {
-            "section": self.section_input.text(),
+            "section": self.section_input.text().upper(),
             "program": self.program_combo.currentText(),
             "curriculum": self.curriculum_combo.currentText(),
+            "track": self.track_combo.currentText(),
             "year": self.year_combo.currentText(),
             "capacity": self.capacity_input.value(),
             "type": self.type_combo.currentText(),

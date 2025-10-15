@@ -55,7 +55,13 @@ class ClassesController(QObject):
     # CREATE OPERATIONS
     # =========================================================================
 
-    def handle_create_class(self, dialog: CreateClassDialog) -> bool:
+    def handle_create_class(self, dialog: CreateClassDialog) -> tuple[bool, Optional[str]]:
+        """
+             Handle class creation from dialog.
+
+             Returns:
+                 tuple: (success: bool, error_message: Optional[str])
+        """
         try:
             logger.info("Entered handle_create_class method.")
             class_data = dialog.get_data()
@@ -65,12 +71,20 @@ class ClassesController(QObject):
             self.model.add_class(created_class)
 
             self.class_created.emit(class_data)
-            return True
+            return True, None
 
         except Exception as e:
-            logger.exception(f"{e}")
+            from frontend.services.Academics.Tagging.class_service import ScheduleConflictError
 
-        return False
+            if isinstance(e, ScheduleConflictError):
+                # Return conflict message instead of failing silently
+                error_msg = str(e)
+                logger.warning(f"Schedule conflict: {error_msg}")
+                return False, error_msg
+            else:
+                # Other errors
+                logger.exception(f"Error creating class: {e}")
+                return False, f"An error occurred: {str(e)}"
 
     # =========================================================================
     # UPDATE OPERATION
@@ -92,7 +106,7 @@ class ClassesController(QObject):
             logger.exception(f"Error retrieving class {class_id}: {e}")
             return None
 
-    def handle_update_class(self, class_id: int, class_data: dict) -> bool:
+    def handle_update_class(self, class_id: int, class_data: dict) ->  tuple[bool, Optional[str]]:
         """
         Handle class update from dialog.
 
@@ -101,7 +115,7 @@ class ClassesController(QObject):
             class_data: Updated class data
 
         Returns:
-            bool: True if update successful, False otherwise
+            tuple: (success: bool, error_message: Optional[str])
         """
         try:
             logger.info(f"Attempting to update class ID {class_id}")
@@ -113,11 +127,18 @@ class ClassesController(QObject):
 
             self.class_updated.emit(updated_class)
             logger.info(f"Successfully updated class ID {class_id}")
-            return True
+            return True, None
 
         except Exception as e:
-            logger.exception(f"Error updating class {class_id}: {e}")
-            return False
+            from frontend.services.Academics.Tagging.class_service import ScheduleConflictError
+
+            if isinstance(e, ScheduleConflictError):
+                error_msg = str(e)
+                logger.warning(f"Schedule conflict during update: {error_msg}")
+                return False, error_msg
+            else:
+                logger.exception(f"Error updating class {class_id}: {e}")
+                return False, f"An error occurred: {str(e)}"
 
     # =========================================================================
     # DELETE OPERATION

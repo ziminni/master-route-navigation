@@ -50,7 +50,7 @@ class SectionsPage(QWidget):
 
         # Header with title and add button
         header_layout = QHBoxLayout()
-        title = QLabel("Sections")
+        title = QLabel("Sections (First Semester, A.Y. 2025-2026)")
         title.setFont(QFont("Segoe UI", 18, QFont.Weight.DemiBold))
         title.setStyleSheet("color: #2d2d2d;")
         header_layout.addWidget(title)
@@ -72,7 +72,24 @@ class SectionsPage(QWidget):
             }
         """)
 
+        self.archive_btn = QPushButton("Archive All")
+        self.archive_btn.setFixedHeight(40)
+        self.archive_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #1e5631;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        font-size: 13px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: #2d5a3d;
+                    }
+                """)
+
         header_layout.addWidget(self.add_btn)
+        header_layout.addWidget(self.archive_btn)
         layout.addLayout(header_layout)
 
         # Table
@@ -119,14 +136,15 @@ class SectionsPage(QWidget):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Actions column (now index 7)
-        self.table.setColumnWidth(7, 150)  # Actions
+        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)  # Actions column (now index 8)
+        self.table.setColumnWidth(8, 150)  # Actions
         self.table.setColumnWidth(0, 60)   # No.
         self.table.setColumnWidth(1, 80)   # Section
         self.table.setColumnWidth(2, 200)  # Program
-        self.table.setColumnWidth(3, 60)   # Year
-        self.table.setColumnWidth(4, 100)  # Type
-        self.table.setColumnWidth(5, 80)   # Capacity
+        self.table.setColumnWidth(3, 150)  # Track
+        self.table.setColumnWidth(4, 60)   # Year
+        self.table.setColumnWidth(5, 100)  # Type
+        self.table.setColumnWidth(6, 80)   # Capacity
 
         self.table.verticalHeader().setDefaultSectionSize(60)
 
@@ -170,6 +188,7 @@ class SectionsPage(QWidget):
             QPushButton {
                 background-color: #ffc107;
                 color: #2d2d2d;
+                padding: 4px 12px;
                 border-radius: 4px;
                 font-weight: bold;
                 font-size: 12px;
@@ -187,6 +206,7 @@ class SectionsPage(QWidget):
             QPushButton {
                 background-color: #dc3545;
                 color: white;
+                padding: 4px 12px;
                 border-radius: 4px;
                 font-weight: bold;
                 font-size: 12px;
@@ -213,7 +233,7 @@ class SectionsPage(QWidget):
         """
         # Find which row this button belongs to
         for row in range(self.model.rowCount()):
-            index = self.model.index(row, 7)
+            index = self.model.index(row, 8)
             widget = self.table.indexWidget(index)
             if widget and button in widget.findChildren(QPushButton):
                 self.handle_edit(row)
@@ -228,7 +248,7 @@ class SectionsPage(QWidget):
         """
         # Find which row this button belongs to
         for row in range(self.model.rowCount()):
-            index = self.model.index(row, 7)
+            index = self.model.index(row, 8)
             widget = self.table.indexWidget(index)
             if widget and button in widget.findChildren(QPushButton):
                 self.handle_delete(row)
@@ -247,7 +267,7 @@ class SectionsPage(QWidget):
         """
         for row in range(self.model.rowCount()):
             button_widget = self._create_action_buttons(row)
-            self.table.setIndexWidget(self.model.index(row, 7), button_widget)
+            self.table.setIndexWidget(self.model.index(row, 8), button_widget)
 
     def load_sections(self):
         pass 
@@ -358,7 +378,7 @@ class SectionsPage(QWidget):
             row: Row index to refresh
         """
         button_widget = self._create_action_buttons(row)
-        self.table.setIndexWidget(self.model.index(row, 7), button_widget)
+        self.table.setIndexWidget(self.model.index(row, 8), button_widget)
 
     def handle_refresh(self):
         pass 

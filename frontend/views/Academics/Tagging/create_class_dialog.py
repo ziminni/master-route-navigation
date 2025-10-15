@@ -47,31 +47,34 @@ class ScheduleWidget(QWidget):
         self.start_time = QTimeEdit()
         self.start_time.setDisplayFormat("hh:mm AP")
         self.start_time.setTime(QTime(9, 0))  # Default 9:00 AM
-        self.start_time.setMinimumWidth(100)
+        self.start_time.setMinimumWidth(130)
         layout.addWidget(QLabel("from"))
         layout.addWidget(self.start_time)
-        
+
         # End time
         self.end_time = QTimeEdit()
         self.end_time.setDisplayFormat("hh:mm AP")
         self.end_time.setTime(QTime(10, 30))  # Default 10:30 AM
-        self.end_time.setMinimumWidth(100)
+        self.end_time.setMinimumWidth(130)
         layout.addWidget(QLabel("to"))
         layout.addWidget(self.end_time)
-        
+
         # Remove button
         self.remove_btn = QPushButton("✕")
-        self.remove_btn.setFixedSize(30, 30)
+        self.remove_btn.setFixedSize(35, 35)
         self.remove_btn.setStyleSheet("""
             QPushButton {
-                background-color: #f44336;
+                background-color: #dc3545;
                 color: white;
                 border: none;
+                border-radius: 4px;
                 font-weight: bold;
-                font-size: 10px;
+                font-size: 16px;
+                margin: 0px;
+                padding: 0px;
             }
             QPushButton:hover {
-                background-color: #da190b;
+                background-color: #c82333;
             }
         """)
         self.remove_btn.clicked.connect(self.remove_clicked)
@@ -182,11 +185,115 @@ class CreateClassDialog(QDialog):
     
     def setup_ui(self):
         """Set up the user interface."""
+        # Apply global stylesheet
+        self.setStyleSheet("""
+            QLabel {
+                color: #2d2d2d;
+                font-size: 14px;
+            }
+            QLineEdit, QComboBox, QSpinBox, QTimeEdit {
+                border: 1px solid #cccccc;
+                border-radius: 5px;
+                padding: 6px 10px;
+                background-color: #f9f9f9;
+                min-height: 30px;
+                font-size: 14px;
+            }
+            QComboBox QAbstractItemView {
+                font-size: 14px;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+                height: 5px;
+            }
+            QPushButton {
+                background-color: #1e5631;
+                color: white;
+                padding: 8px 18px;
+                border-radius: 5px;
+                font-weight: bold;
+                font-size: 14px;
+                border: none;
+                min-width: 100px;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background-color: #2d5a3d;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #cccccc;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                color: #1e5631;
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #f0f0f0;
+                width: 12px;
+                border-radius: 6px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #1e5631;
+                min-height: 30px;
+                border-radius: 6px;
+                margin: 2px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #2d5a3d;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            QScrollBar:horizontal {
+                border: none;
+                background: #f0f0f0;
+                height: 12px;
+                border-radius: 6px;
+                margin: 0px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #1e5631;
+                min-width: 30px;
+                border-radius: 6px;
+                margin: 2px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #2d5a3d;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                border: none;
+                background: none;
+                width: 0px;
+            }
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                background: none;
+            }
+        """)
+
         main_layout = QVBoxLayout()
-        
+        main_layout.setContentsMargins(25, 25, 25, 25)
+        main_layout.setSpacing(5)
+
         # Title - dynamic based on mode
-        title_text = "Edit Class" if self.is_edit_mode else "Create New Class"
+        title_text = "Edit Class" if self.is_edit_mode else "Create Class"
         title_label = QLabel(title_text)
+        from PyQt6.QtGui import QFont
+        title_label.setFont(QFont("Segoe UI", 18, QFont.Weight.DemiBold))
+        title_label.setStyleSheet("color: #1e5631; margin-bottom: 10px;")
         main_layout.addWidget(title_label)
         
         # Scrollable area for form
@@ -200,25 +307,31 @@ class CreateClassDialog(QDialog):
         # Basic Information Group
         basic_group = QGroupBox("Basic Information")
         basic_layout = QFormLayout()
-        
-        self.code_edit = QLineEdit()
-        self.code_edit.setPlaceholderText("e.g., IT57, CS101")
-        self.code_edit.setMaxLength(10)
-        basic_layout.addRow("Class Code*:", self.code_edit)
-        
-        self.title_edit = QLineEdit()
-        self.title_edit.setPlaceholderText("e.g., Database Management Systems")
-        basic_layout.addRow("Class Title*:", self.title_edit)
-        
-        self.units_spin = QSpinBox()
-        self.units_spin.setRange(1, 6)
-        self.units_spin.setValue(3)
-        self.units_spin.setSuffix(" units")
-        basic_layout.addRow("Units*:", self.units_spin)
-        
+
         self.section_combo = QComboBox()
         self.populate_sections()
         basic_layout.addRow("Section*:", self.section_combo)
+
+        self.code_combo = QComboBox()
+        self.code_combo.setPlaceholderText("Select a course")
+        basic_layout.addRow("Class Code*:", self.code_combo)
+
+        self.title_edit = QLineEdit()
+        self.title_edit.setPlaceholderText("Auto-filled based on course code")
+        self.title_edit.setReadOnly(True)
+        self.title_edit.setStyleSheet("background-color: #e9ecef;")
+        basic_layout.addRow("Class Title*:", self.title_edit)
+
+        self.units_spin = QSpinBox()
+        self.units_spin.setRange(1, 6)
+        self.units_spin.setValue(3)
+        self.units_spin.setSuffix(" units") if self.units_spin.value() > 1 else self.units_spin.setSuffix(" unit")
+        self.units_spin.setReadOnly(True)
+        self.units_spin.setStyleSheet("background-color: #e9ecef;")
+        self.units_spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
+        basic_layout.addRow("Units*:", self.units_spin)
+        
+
         
         basic_group.setLayout(basic_layout)
         scroll_layout.addWidget(basic_group)
@@ -229,7 +342,6 @@ class CreateClassDialog(QDialog):
         
         schedule_header = QHBoxLayout()
         schedule_label = QLabel("Class Schedule (add multiple time slots)")
-        schedule_label.setStyleSheet("font-weight: bold;")
         schedule_header.addWidget(schedule_label)
         schedule_header.addStretch()
         
@@ -259,7 +371,7 @@ class CreateClassDialog(QDialog):
         scroll_layout.addWidget(schedule_group)
         
         # Location & Instructor Group
-        location_group = QGroupBox("Location & Instructor")
+        location_group = QGroupBox("Other Details")
         location_layout = QFormLayout()
         
         self.room_edit = QLineEdit()
@@ -290,7 +402,7 @@ class CreateClassDialog(QDialog):
         self.create_btn.setDefault(True)
         self.create_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #1e5631;
                 color: white;
                 padding: 8px 20px;
                 border: none;
@@ -310,7 +422,7 @@ class CreateClassDialog(QDialog):
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #f0f0f0;
+                background-color: #45a049;
             }
         """)
 
@@ -318,7 +430,7 @@ class CreateClassDialog(QDialog):
         self.draft_btn.setDefault(True)
         self.draft_btn.setStyleSheet("""
                     QPushButton {
-                        background-color: #4CAF50;
+                        background-color: #1e5631;
                         color: white;
                         padding: 8px 20px;
                         border: none;
@@ -333,11 +445,19 @@ class CreateClassDialog(QDialog):
         button_layout.addWidget(self.cancel_btn)
         button_layout.addWidget(self.draft_btn)
         button_layout.addWidget(self.create_btn)
+
+        # Connect signals for dynamic course code dropdown
+        self.section_combo.currentIndexChanged.connect(self._handle_section_changed)
+        self.code_combo.currentIndexChanged.connect(self._handle_code_changed)
+
+        # Trigger initial population if section is already selected
+        if self.section_combo.count() > 0:
+            self._handle_section_changed(0)
         
         main_layout.addLayout(button_layout)
         self.setLayout(main_layout)
         
-        # Connect signals
+        # Connect signals to action buttons
         self.create_btn.clicked.connect(self.validate_and_accept)
         self.cancel_btn.clicked.connect(self.reject)
         self.draft_btn.clicked.connect(self.handle_draft)
@@ -396,13 +516,13 @@ class CreateClassDialog(QDialog):
         try:
             # Populate basic information
             if 'code' in class_data:
-                self.code_edit.setText(str(class_data['code']))
-
-            if 'title' in class_data:
-                self.title_edit.setText(str(class_data['title']))
-
-            if 'units' in class_data:
-                self.units_spin.setValue(int(class_data['units']))
+                # Find and select the matching course in dropdown
+                code_to_find = str(class_data['code'])
+                for i in range(self.code_combo.count()):
+                    course = self.code_combo.itemData(i)
+                    if course and course.get('code') == code_to_find:
+                        self.code_combo.setCurrentIndex(i)
+                        break
 
             # Populate section
             if 'section_id' in class_data:
@@ -456,14 +576,16 @@ class CreateClassDialog(QDialog):
     def validate_and_accept(self):
         """Validate input and accept dialog if valid."""
         # Check required fields
-        if not self.code_edit.text().strip():
-            self.code_edit.setFocus()
-            self.code_edit.setStyleSheet("border: 2px solid red;")
+        if self.code_combo.currentData() is None:
+            self.code_combo.setFocus()
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Validation Error", "Please select a course code.")
             return
         
         if not self.title_edit.text().strip():
             self.title_edit.setFocus()
-            self.title_edit.setStyleSheet("border: 2px solid red;")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Validation Error", "Please select a course code to auto-fill the title.")
             return
         
         if not self.room_edit.text().strip():
@@ -481,8 +603,6 @@ class CreateClassDialog(QDialog):
             return
         
         # Reset styling
-        self.code_edit.setStyleSheet("")
-        self.title_edit.setStyleSheet("")
         self.room_edit.setStyleSheet("")
         self.instructor_edit.setStyleSheet("")
         
@@ -499,6 +619,10 @@ class CreateClassDialog(QDialog):
         section_id = self.section_combo.currentData()
         if section_id is None:
             section_id = -1  # Fallback
+
+        # Get course code from selected course
+        course_data = self.code_combo.currentData()
+        code = course_data['code'] if course_data else ""
         
         # Collect all schedules
         schedules = []
@@ -506,7 +630,7 @@ class CreateClassDialog(QDialog):
             schedules.append(widget.get_schedule_data())
         
         data = {
-            'code': self.code_edit.text().strip().upper(),
+            'code': code,
             'title': self.title_edit.text().strip(),
             'units': self.units_spin.value(),
             'section_id': section_id,
@@ -532,3 +656,230 @@ class CreateClassDialog(QDialog):
         """
         self.sections = sections
         self.populate_sections()
+
+    def _get_selected_section_data(self) -> Optional[Dict]:
+        """
+        Get the full section data for the currently selected section.
+
+        Returns:
+            Section dictionary or None
+        """
+        section_id = self.section_combo.currentData()
+        if section_id is None:
+            return None
+
+        for section in self.sections:
+            if section.get('id') == section_id:
+                return section
+        return None
+
+    def _filter_courses_by_section(self, year: str, track: str) -> List[Dict]:
+        """
+        Filter courses based on section year and track.
+
+        Args:
+            year: Year level (e.g., "1st", "2nd", "N/A (Petition)")
+            track: Track name (e.g., "Software Development", "N/A")
+
+        Returns:
+            List of course dictionaries
+        """
+        filtered_courses = []
+        semester = "First Semester"  # Hardcoded for now
+
+        if year == "N/A (Petition)":
+            # Add all courses from all years for current semester
+            for yr in ["1st", "2nd", "3rd", "4th"]:
+                if yr in self.bsit_curriculum and semester in self.bsit_curriculum[yr]:
+                    filtered_courses.extend(self.bsit_curriculum[yr][semester])
+
+            # Add all electives from all tracks
+            if "Electives" in self.bsit_curriculum:
+                for track_name in self.bsit_curriculum["Electives"]:
+                    filtered_courses.extend(self.bsit_curriculum["Electives"][track_name])
+        else:
+            # Add courses for specific year and semester
+            if year in self.bsit_curriculum and semester in self.bsit_curriculum[year]:
+                filtered_courses = self.bsit_curriculum[year][semester].copy()
+
+            # Add track-specific electives if applicable (for 3rd and 4th year)
+            if (year == "4th" or year == "3rd")  and track != "N/A":
+                track_key = track + " Track"
+                if "Electives" in self.bsit_curriculum and track_key in self.bsit_curriculum["Electives"]:
+                    filtered_courses.extend(self.bsit_curriculum["Electives"][track_key])
+
+        logger.debug(f"Filtered {len(filtered_courses)} courses for year={year}, track={track}")
+        return filtered_courses
+
+    def _populate_course_dropdown(self, courses: List[Dict]) -> None:
+        """
+        Populate code dropdown with filtered courses.
+
+        Args:
+            courses: List of course dictionaries
+        """
+        self.code_combo.clear()
+        self.code_combo.addItem("-- Select a course --", None)
+
+        for course in courses:
+            display_text = f"{course['code']} - {course['title']}"
+            self.code_combo.addItem(display_text, course)
+
+        logger.debug(f"Populated code dropdown with {len(courses)} courses")
+
+    def _handle_section_changed(self, index: int) -> None:
+        """
+        Handle section dropdown change to filter available courses.
+
+        Args:
+            index: Selected index in section dropdown
+        """
+        # Clear course selection and auto-filled fields
+        self.code_combo.clear()
+        self.title_edit.clear()
+        self.units_spin.setValue(3)
+
+        section_data = self._get_selected_section_data()
+        if not section_data:
+            self.code_combo.addItem("-- No section selected --", None)
+            self.code_combo.setEnabled(False)
+            return
+
+        # Enable code dropdown
+        self.code_combo.setEnabled(True)
+
+        # Extract year and track
+        year = section_data.get('year', '1st')
+        track = section_data.get('track', 'N/A')
+
+        logger.info(f"Section changed: year={year}, track={track}")
+
+        # Filter and populate courses
+        filtered_courses = self._filter_courses_by_section(year, track)
+        self._populate_course_dropdown(filtered_courses)
+
+    def _handle_code_changed(self, index: int) -> None:
+        """
+        Handle course code dropdown change to auto-fill title and units.
+
+        Args:
+            index: Selected index in code dropdown
+        """
+        course_data = self.code_combo.currentData()
+
+        if course_data is None:
+            # Placeholder or no selection
+            self.title_edit.clear()
+            self.units_spin.setValue(3)
+            return
+
+        # Auto-fill title and units from course data
+        self.title_edit.setText(course_data['title'])
+        self.units_spin.setValue(course_data['units'])
+
+        logger.debug(f"Course selected: {course_data['code']} - {course_data['title']}")
+
+    # Hard coded data for simplicity, will improve later
+    bsit_curriculum = {
+        "1st": {
+            "First Semester": [
+                {"code": "GEC 11", "title": "Understanding the Self", "units": 3},
+                {"code": "GEC 14", "title": "Mathematics in the Modern World", "units": 3},
+                {"code": "GEC 15", "title": "Purposive Communication", "units": 3},
+                {"code": "GEC 16", "title": "Art Appreciation", "units": 3},
+                {"code": "PE 31", "title": "Movement Enhancement (PATH-FIT I)", "units": 2},
+                {"code": "NSTP 1", "title": "National Service Training Program I", "units": 3},
+                {"code": "ITCC 41", "title": "Introduction to Computing", "units": 3},
+                {"code": "ITCC 43", "title": "Computer Programming 1", "units": 3}
+            ],
+            "Second Semester": [
+                {"code": "GEC 12", "title": "Readings in Philippine History", "units": 3},
+                {"code": "GEC 13", "title": "The Contemporary World", "units": 3},
+                {"code": "GEC 18", "title": "Ethics", "units": 3},
+                {"code": "GEC 19", "title": "The Life and Works of Jose Rizal", "units": 3},
+                {"code": "GEE 16", "title": "The Entrepreneurial Mind", "units": 3},
+                {"code": "PE 32", "title": "Fitness Exercise (PATH-FIT II)", "units": 2},
+                {"code": "NSTP 2", "title": "National Service Training Program II", "units": 3},
+                {"code": "ITCC 42", "title": "Computer Programming 2", "units": 3},
+                {"code": "ITCC 44", "title": "Discrete Structures", "units": 3}
+            ]
+        },
+
+        "2nd": {
+            "First Semester": [
+                {"code": "ITCC 45", "title": "Computer Programming 3 (OOP)", "units": 3},
+                {"code": "ITCC 47", "title": "Data Structures and Algorithms", "units": 3},
+                {"code": "IT 51", "title": "Computer Architecture", "units": 3},
+                {"code": "IT 57", "title": "Fundamentals of Networking", "units": 3},
+                {"code": "IT 59", "title": "Web Systems and Technologies 1", "units": 3},
+                {"code": "GEC 17", "title": "Science, Technology and Society", "units": 3},
+                {"code": "GEE 11", "title": "Environmental Science", "units": 3},
+                {"code": "PE 33", "title": "Physical Activities Towards Health and Fitness III", "units": 2}
+            ],
+            "Second Semester": [
+                {"code": "ITCC 46", "title": "Information Management", "units": 3},
+                {"code": "ITCC 48", "title": "Application Development and Emerging Technologies", "units": 3},
+                {"code": "IT 52", "title": "Operating Systems", "units": 3},
+                {"code": "IT 58", "title": "Routing and Switching", "units": 3},
+                {"code": "IT 60", "title": "Web Systems and Technologies 2", "units": 3},
+                {"code": "STAT 22", "title": "Elementary Statistics and Probability", "units": 3},
+                {"code": "GEE 15", "title": "Gender and Society", "units": 3},
+                {"code": "PE 34", "title": "Physical Activities Towards Health and Fitness IV", "units": 2}
+            ]
+        },
+
+        "3rd": {
+            "First Semester": [
+                {"code": "IT 65", "title": "Software Engineering", "units": 3},
+                {"code": "IT 57", "title": "Introduction to Human Computer Interaction", "units": 3},
+                {"code": "IT 61", "title": "Fundamentals of Database Systems", "units": 3},
+                {"code": "IT 63", "title": "Multimedia Technologies", "units": 3},
+                {"code": "IT 95", "title": "Research Methods for IT", "units": 3},
+                {"code": "IT 62", "title": "Systems Administration and Maintenance", "units": 3}
+            ],
+            "Second Semester": [
+                {"code": "IT 58", "title": "Emerging Technologies in HCI", "units": 3},
+                {"code": "IT 56", "title": "Systems Integration and Architecture", "units": 3},
+                {"code": "IT 99", "title": "Technopreneurship", "units": 1},
+                {"code": "IT 100.1", "title": "IT Capstone Project and Research 1", "units": 3},
+                {"code": "IT 62", "title": "IT Trips and Seminar", "units": 1},
+
+            ]
+        },
+
+        "4th": {
+            "First Semester": [
+                {"code": "IT 67", "title": "Information Assurance and Security 2", "units": 3},
+                {"code": "IT 69", "title": "Professional Elective 1", "units": 3},
+                {"code": "IT 71", "title": "Professional Elective 2", "units": 3},
+                {"code": "IT 100.2", "title": "IT Capstone Project and Research 2", "units": 3}
+            ],
+            "Second Semester": [
+                {"code": "IT 98", "title": "Practicum (486 Hours)", "units": 6}
+            ]
+        },
+
+        "Electives": {
+            "Software Development Track": [
+                {"code": "ITSD 81", "title": "Desktop Application Development", "units": 3},
+                {"code": "ITSD 82", "title": "Mobile Application Development 1", "units": 3},
+                {"code": "ITSD 83", "title": "Web Software Tools", "units": 3},
+                {"code": "ITSD 84", "title": "Mobile Application Development 2", "units": 3},
+                {"code": "ITSD 85", "title": "Special Topics in Software Development", "units": 3}
+            ],
+            "Data Network Track": [
+                {"code": "ITDN 81", "title": "Scaling Networks", "units": 3},
+                {"code": "ITDN 82", "title": "Connecting Networks", "units": 3},
+                {"code": "ITDN 83", "title": "Network Security", "units": 3},
+                {"code": "ITDN 84", "title": "Internet of Things", "units": 3},
+                {"code": "ITDN 85", "title": "Special Topics in Networking", "units": 3}
+            ],
+            "Information Management Track": [
+                {"code": "ITIM 81", "title": "Programming for Data Science and AI", "units": 3},
+                {"code": "ITIM 82", "title": "Data Mining", "units": 3},
+                {"code": "ITIM 83", "title": "Big Data Analytics", "units": 3},
+                {"code": "ITIM 84", "title": "Intelligent Systems", "units": 3},
+                {"code": "ITIM 85", "title": "Special Topics in Information Management", "units": 3}
+            ]
+        }
+    }

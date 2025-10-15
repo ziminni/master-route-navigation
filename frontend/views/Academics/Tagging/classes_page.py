@@ -40,7 +40,7 @@ class ClassesPage(QWidget):
         
         # Header with title and controls
         header_layout = QHBoxLayout()
-        title = QLabel("Classes")
+        title = QLabel("Classes (First Semester, A.Y. 2025-2026)")
         title.setFont(QFont("Segoe UI", 18, QFont.Weight.DemiBold))
         title.setStyleSheet("color: #2d2d2d;")
         header_layout.addWidget(title)
@@ -303,8 +303,38 @@ class ClassesPage(QWidget):
             logger.info(f"Sections: {sections}")
             dialog = CreateClassDialog(self, sections)
 
-            if dialog.exec():
-                success = self.controller.handle_create_class(dialog)
+            while True:
+                if dialog.exec():
+                    success, error_message = self.controller.handle_create_class(dialog)
+
+                    if success:
+                        # Class created successfully, exit loop
+                        from PyQt6.QtWidgets import QMessageBox
+                        QMessageBox.information(
+                            self,
+                            "Success",
+                            "Class created successfully!",
+                            QMessageBox.StandardButton.Ok
+                        )
+                        break
+                    else:
+                        # Show error dialog and keep the create dialog open
+                        from PyQt6.QtWidgets import QMessageBox
+                        reply = QMessageBox.critical(
+                            self,
+                            "Error Creating Class",
+                            f"{error_message}\n\nWould you like to modify the class details?",
+                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                            QMessageBox.StandardButton.Yes
+                        )
+
+                        if reply == QMessageBox.StandardButton.No:
+                            # User doesn't want to fix, exit loop
+                            break
+                            # If Yes, loop continues and dialog reopens
+                else:
+                    # User cancelled
+                    break
 
         except Exception as e:
             logger.exception(f"An error occured while creating a class: {e}")
@@ -316,24 +346,75 @@ class ClassesPage(QWidget):
         Args:
             row: Row index in the table
         """
+        # try:
+        #     class_id = self.model.get_class_id(row)
+        #     class_data = self.controller.get_class_by_id(class_id)
+        #
+        #     if not class_data:
+        #         logger.error(f"Class data not found for row {row}")
+        #         return
+        #
+        #     sections = self.section_service.get_all()
+        #     dialog = CreateClassDialog(self, sections, class_data)
+        #     dialog.setWindowTitle("Edit Class")
+        #
+        #     if dialog.exec():
+        #         updated_data = dialog.get_data()
+        #         success = self.controller.handle_update_class(class_id, updated_data)
+        #
+        #         if success:
+        #             self._refresh_row_buttons(row)
+        #
+        # except Exception as e:
+        #     logger.exception(f"Error editing class at row {row}: {e}")
+
+        # Get data directly from model
         try:
-            class_id = self.model.get_class_id(row)
-            class_data = self.controller.get_class_by_id(class_id)
+            class_data = self.model.get_class_data(row)
 
             if not class_data:
                 logger.error(f"Class data not found for row {row}")
                 return
 
+            class_id = class_data.get('id')
+            logger.info(f"Editing class ID {class_id} from row {row}")
+
             sections = self.section_service.get_all()
             dialog = CreateClassDialog(self, sections, class_data)
             dialog.setWindowTitle("Edit Class")
 
-            if dialog.exec():
-                updated_data = dialog.get_data()
-                success = self.controller.handle_update_class(class_id, updated_data)
+            while True:  # Loop to allow user to fix conflicts
+                if dialog.exec():
+                    updated_data = dialog.get_data()
+                    success, error_message = self.controller.handle_update_class(class_id, updated_data)
 
-                if success:
-                    self._refresh_row_buttons(row)
+                    if success:
+                        self._refresh_row_buttons(row)
+                        from PyQt6.QtWidgets import QMessageBox
+                        QMessageBox.information(
+                            self,
+                            "Success",
+                            "Class updated successfully!",
+                            QMessageBox.StandardButton.Ok
+                        )
+                        break
+                    else:
+                        # Show error dialog
+                        from PyQt6.QtWidgets import QMessageBox
+                        reply = QMessageBox.critical(
+                            self,
+                            "Error Updating Class",
+                            f"{error_message}\n\nWould you like to modify the class details?",
+                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                            QMessageBox.StandardButton.Yes
+                        )
+
+                        if reply == QMessageBox.StandardButton.No:
+                            break
+                        # If Yes, loop continues
+                else:
+                    # User cancelled
+                    break
 
         except Exception as e:
             logger.exception(f"Error editing class at row {row}: {e}")

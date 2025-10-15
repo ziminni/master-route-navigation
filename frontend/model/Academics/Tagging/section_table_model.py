@@ -22,6 +22,7 @@ class SectionsTableModel(QAbstractTableModel):
             "No.",
             "Section",
             "Program",
+            "Track",
             "Year",
             "Type",
             "Capacity",
@@ -46,12 +47,12 @@ class SectionsTableModel(QAbstractTableModel):
         if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
 
-        # Actions column (index 7) contains widgets, not data
-        if index.column() == 7:
+        # Actions column (index 8) contains widgets, not data
+        if index.column() == 8:
             return None
 
         section = self._sections[index.row()]
-        keys = ["id", "section", "program", "year", "type", "capacity", "remarks"]
+        keys = ["id", "section", "program", "track", "year", "type", "capacity", "remarks"]
         return section.get(keys[index.column()], "")
     
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):

@@ -50,7 +50,7 @@ class SectionService:
     }
 
     VALID_TYPES = {'Lecture', 'Laboratory', 'Hybrid'}
-    VALID_YEARS = {'1st', '2nd', '3rd', '4th', '5th'}
+    VALID_YEARS = {'1st', '2nd', '3rd', '4th', '5th', 'N/A (Petition)'}
 
     def __init__(self, json_file: str = "data/classroom_data.json"):  # CHANGED: unified file
         """
