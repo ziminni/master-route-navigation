@@ -916,7 +916,7 @@ class AppointmentPage_ui(QWidget):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(20)
 
-        title = QtWidgets.QLabel("Are you sure you want to deny this appointment?")
+        title = QtWidgets.QLabel("Are you sure you want to deny this \nappointment?")
         title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("QLabel { color: #2b2b2b; font: 600 12pt 'Poppins'; }")
         layout.addWidget(title)
@@ -987,7 +987,7 @@ class AppointmentPage_ui(QWidget):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(20)
 
-        title = QtWidgets.QLabel("Are you sure you want to cancel this appointment?")
+        title = QtWidgets.QLabel("Are you sure you want to cancel this \nappointment?")
         title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("QLabel { color: #2b2b2b; font: 600 12pt 'Poppins'; }")
         layout.addWidget(title)
