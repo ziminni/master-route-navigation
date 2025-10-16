@@ -208,24 +208,48 @@ cd backend
 ## Project Structure
 
 ```
-master-merging/
-├── .venv/                      # Virtual environment (auto-generated)
-├── backend/                    # Django backend
-│   ├── apps/                   # Django apps (Academics, Users, etc.)
-│   ├── config/                 # Django configuration
-│   ├── common/                 # Shared utilities
-│   ├── middleware/             # Custom middleware
-│   ├── manage.py               # Django management script
-│   ├── script.py               # Automated setup script
-│   └── db.sqlite3              # SQLite database (auto-generated)
-├── frontend/                   # PyQt6 frontend
-│   ├── views/                  # UI views
-│   ├── widgets/                # Custom widgets
-│   ├── controller/             # Business logic controllers
-│   ├── services/               # API service layer
-│   ├── assets/                 # Images, stylesheets
-│   └── main.py                 # Frontend entry point
-├── requirements.txt            # Python dependencies
-├── launch.py                   # Launch script for both apps
-└── README.md                   # This file
+root/
+├── backend/
+│   ├── api/
+│   ├── apps/
+│   │   ├── Academics/
+│   │   ├── Admin/
+│   │   ├── Announcements/
+│   │   ├── Appointments/
+│   │   ├── Calendar/
+│   │   ├── Dashboard/
+│   │   ├── Documents/
+│   │   ├── Feedback/
+│   │   ├── House/
+│   │   ├── Links/
+│   │   ├── Messaging/
+│   │   ├── Organizations/
+│   │   ├── Showcase/
+│   │   └── Users/
+│   ├── common/
+│   ├── config/
+│   ├── core/
+│   ├── docs/
+│   ├── middleware/
+│   ├── tests/
+│   ├── db.sqlite3
+│   ├── manage.py
+│   └── script.py
+├── frontend/
+│   ├── assets/
+│   ├── controller/
+│   ├── database/
+│   ├── docs/
+│   ├── Mock/
+│   ├── model/
+│   ├── router/
+│   ├── services/
+│   ├── ui/
+│   ├── utils/
+│   ├── views/
+│   ├── widgets/
+│   └── main.py
+├── launch.py
+├── README.md
+└── requirements.txt
 ```
