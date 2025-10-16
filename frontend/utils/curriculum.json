@@ -1,0 +1,57 @@
+{
+  "years": [
+    {
+      "year": "1st Year",
+      "semesters": [
+        {
+          "name": "1st Semester",
+          "subjects": [
+            {"code": "MATH101", "title": "Calculus I", "grade": "", "units": 3, "prerequisites": []},
+            {"code": "CS101", "title": "Introduction to Computing", "grade": "", "units": 3, "prerequisites": []}
+          ]
+        },
+        {
+          "name": "2nd Semester",
+          "subjects": [
+            {"code": "MATH102", "title": "Calculus II", "grade": "", "units": 3, "prerequisites": ["MATH101"]},
+            {"code": "CS102", "title": "Programming Fundamentals", "grade": "", "units": 3, "prerequisites": ["CS101"]}
+          ]
+        }
+      ]
+    },
+    {
+      "year": "2nd Year",
+      "semesters": [
+        {
+          "name": "1st Semester",
+          "subjects": [
+            {"code": "STAT201", "title": "Statistics", "grade": "", "units": 3, "prerequisites": ["MATH102"]},
+            {"code": "CS201", "title": "Data Structures", "grade": "", "units": 3, "prerequisites": ["CS102"]}
+          ]
+        },
+        {
+          "name": "2nd Semester",
+          "subjects": [
+            {"code": "CS202", "title": "Algorithms", "grade": "", "units": 3, "prerequisites": ["CS201"]},
+            {"code": "PHYS201", "title": "Physics II", "grade": "", "units": 3, "prerequisites": []}
+          ]
+        }
+      ]
+    },
+    {
+      "year": "3rd Year",
+      "semesters": [
+        {"name": "1st Semester", "subjects": [{"code": "CS301", "title": "Operating Systems", "grade": "", "units": 3, "prerequisites": ["CS202"]}]},
+        {"name": "2nd Semester", "subjects": [{"code": "CS302", "title": "Databases", "grade": "", "units": 3, "prerequisites": ["CS201"]}]}
+      ]
+    },
+    {
+      "year": "4th Year",
+      "semesters": [
+        {"name": "1st Semester", "subjects": [{"code": "CS401", "title": "Software Engineering", "grade": "", "units": 3, "prerequisites": ["CS302"]}]},
+        {"name": "2nd Semester", "subjects": [{"code": "CS402", "title": "Capstone Project", "grade": "", "units": 6, "prerequisites": ["CS401"]}]}
+      ]
+    }
+  ]
+}
+

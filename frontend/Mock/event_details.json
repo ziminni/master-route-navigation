@@ -1,0 +1,184 @@
+[
+  {
+    "id": 1,
+    "title": "General Assembly",
+    "poster": [
+      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/generalassembly.jpg"
+    ],
+    "content": "The College of Information Sciences and Computing Student Council invites all students to the annual General Assembly! This marks the start of another academic year full of opportunities and collaboration.",
+    "details": [
+      "📅 Date: September 10, 2025",
+      "🕒 Time: 9:00 AM – 12:00 NN",
+      "📍 Venue: CISC Building, Function Hall",
+      "",
+      "Join us as we welcome new members of the CISC community and present the exciting line-up of events for the semester.",
+      "",
+      "Program Highlights:",
+      "1. Welcome message from the Dean",
+      "2. Presentation of the CISC-SC Officers",
+      "3. Introduction to House System and Points",
+      "4. Overview of upcoming events and competitions",
+      "",
+      "Let’s start the year informed, united, and inspired!",
+      "",
+      "Pubmat by: CISC-SC",
+      "#CISC #GeneralAssembly #WelcomeBack"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "College Assembly",
+    "poster": [
+      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/collegeassembly.png"
+    ],
+    "content": "The College Assembly serves as a platform for open communication between students, faculty, and administration.",
+    "details": [
+      "📅 Date: September 18, 2025",
+      "🕒 Time: 2:00 PM – 4:00 PM",
+      "📍 Venue: CISC Building, AVR Room",
+      "",
+      "This event aims to address student concerns, present academic updates, and strengthen collaboration within the college.",
+      "",
+      "Agenda:",
+      "1. Department updates from program chairs",
+      "2. Student feedback and Q&A session",
+      "3. Announcement of upcoming activities",
+      "",
+      "Your voice matters—attend and be heard!",
+      "",
+      "Pubmat by: CISC-SC",
+      "#CISC #CollegeAssembly #TogetherWeGrow"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Valorant",
+    "poster": [
+      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/valorant.png"
+    ],
+    "content": "Lock in your agents and get ready for battle! The CISC E-Sports Committee proudly presents the Valorant Tournament 2025.",
+    "details": [
+      "📅 Date: August 12, 2025",
+      "🕒 Time: 1:00 PM onwards",
+      "📍 Venue: CISC Game Arena",
+      "",
+      "Compete for glory and points for your house in this fast-paced 5v5 shooter.",
+      "",
+      "Rules:",
+      "1. Each team must consist of 5 players (same house).",
+      "2. Standard tournament format: Best of 3 per round.",
+      "3. No toxicity—sportsmanship is a must.",
+      "",
+      "Top teams will receive medals, points, and prizes!",
+      "",
+      "Pubmat by: E-Sports Committee",
+      "#CISC #Valorant #Esports"
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Dota 2",
+    "poster": [
+      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/dota2.png"
+    ],
+    "content": "Prepare for another round of thrilling e-sports competition — the CISC Dota 2 Tournament 2025!",
+    "details": [
+      "📅 Date: August 15, 2025",
+      "🕒 Time: 12:00 NN onwards",
+      "📍 Venue: CISC Game Arena",
+      "",
+      "Teams will battle it out in the classic 5v5 Dota 2 format to earn points for their respective houses.",
+      "",
+      "Rules:",
+      "1. Best of 1 elimination; finals are Best of 3.",
+      "2. Teams must use official student accounts.",
+      "3. No pausing except for technical issues.",
+      "",
+      "Who will dominate the lanes this year? Let’s find out!",
+      "",
+      "Pubmat by: E-Sports Committee",
+      "#CISC #Dota2 #Esports"
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Mobile Legends: Bang Bang",
+    "poster": [
+      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/mlbb.png"
+    ],
+    "content": "CISC’s favorite mobile tournament returns! Assemble your team and join the Mobile Legends: Bang Bang showdown.",
+    "details": [
+      "📅 Date: August 20, 2025",
+      "🕒 Time: 9:00 AM onwards",
+      "📍 Venue: CISC Game Arena",
+      "",
+      "Each team represents their house in a thrilling 5v5 match to earn valuable house points.",
+      "",
+      "Rules:",
+      "1. Each team must be composed of CISC students.",
+      "2. Best of 3 matches per round.",
+      "3. Draft pick mode only.",
+      "",
+      "Let’s see who will take the title of CISC’s strongest ML team!",
+      "",
+      "Pubmat by: E-Sports Committee",
+      "#CISC #MobileLegends #Esports"
+    ]
+  },
+  {
+    "id": 6,
+    "title": "Volleyball",
+    "poster": [
+      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/volleyball.png"
+    ],
+    "content": "Get ready to spike, serve, and score! The CISC Intramural Volleyball Tournament is here.",
+    "details": [
+      "📅 Date: September 5, 2025",
+      "🕒 Time: 8:00 AM onwards",
+      "📍 Venue: University Gymnasium",
+      "",
+      "Cheer for your house as they compete in this exciting sporting event filled with energy and teamwork.",
+      "",
+      "Rules:",
+      "1. Each house must field a minimum of 6 players.",
+      "2. Standard volleyball rules apply.",
+      "3. Best of 3 sets per match.",
+      "",
+      "Who will be crowned the CISC Volleyball Champions?",
+      "",
+      "Pubmat by: Sports Committee",
+      "#CISC #Volleyball #Intramurals"
+    ]
+  },
+  {
+    "id": 7,
+    "title": "Bayanihan 2025 – 1st Session",
+    "poster": [
+      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/Bayanihan pic.jpg",
+      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/areas.jpg"
+    ],
+    "content": "In preparation for the upcoming AACCUP Accreditation, the College of Information Sciences and Computing is calling all houses to unite for our Bayanihan Cleanup Drive!",
+    "details": [
+      "📅 Date: August 11, 2025",
+      "🕒 Time: 8:00 AM – 12:00 PM",
+      "📍 Venue: CISC Building",
+      "",
+      "Attendance will be checked.",
+      "Point System:",
+      "1. Points will be awarded based on attendance, cleanliness of your assigned area after the activity, and completeness of cleaning equipment brought.",
+      "2. The house with the most attendees, well-maintained cleaning area, and complete tools will earn the highest points!",
+      "3. These points will contribute to your overall house standings for future competitions and events.",
+      "4. Please bring your own cleaning equipment (broom, dustpan, mop, trash bags, etc.) — this will also be checked and counted for points.",
+      "",
+      "Cleaning Assignments:",
+      "Java – Left Wing",
+      "Perl – Front & Back Areas",
+      "Python – Right Wing",
+      "",
+      "Let’s work together, make our college shine, and show the Bayanihan spirit at its best!",
+      "",
+      "Pubmat by: Shekinah Solon",
+      "#CISC #CSCo #AACCUP #Bayanihan2025"
+    ]
+  }
+]
