@@ -89,9 +89,9 @@
         {
           "id": 9,
           "name": "Calendar",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
+          "function": "MainCalendar()",
+          "path": "views.Calendar.MainCalendar",
+          "access": ["admin", "faculty", "staff", "student"],
           "modulars":[]
         },
         {
