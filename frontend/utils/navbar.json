@@ -105,8 +105,8 @@
         {
           "id": 11,
           "name": "House System",
-          "function": "()",
-          "path": "",
+          "function": "HouseMain()",
+          "path": "views.House.HouseMain",
           "access": ["student","admin"],
           "modulars":[]
         },
@@ -127,8 +127,8 @@
         {
           "id": 13,
           "name": "Documents",
-          "function": "()",
-          "path": "",
+          "function": "DocumentsView()",
+          "path": "views.Documents.Documents",
           "access": ["student","admin"],
           "modulars":[]
         },
