@@ -1,0 +1,8 @@
+{
+  "title": "House Standings & Performance",
+  "data": [
+    { "house": "House of Python", "points": 2450 },
+    { "house": "House of Java", "points": 2200 },
+    { "house": "House of Perl", "points": 1950 }
+  ]
+}
