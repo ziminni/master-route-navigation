@@ -33,10 +33,6 @@ class LayoutManager:
         self.header.logoutRequested.connect(self._logout)
 
         self.apply_desktop_layout()
-        
-        # Connect sidebar toggle AFTER desktop layout is applied
-        # This ensures content_container exists before we try to update it
-        self.navbar.toggled.connect(self.on_sidebar_toggled)
 
     def _init_stack(self, content):
         """Ensure we have a QStackedWidget to add pages into."""
@@ -85,41 +81,27 @@ class LayoutManager:
             self.header = header.Header()
             print(f"LayoutManager: Created Header, visible: {self.header.isVisible()}")
 
-        # Create or reuse content container
-        if self.content_container is None:
-            self.content_container = QWidget()
-            content_layout = QVBoxLayout(self.content_container)
-            content_layout.setContentsMargins(10, 0, 10, 10)
-            content_layout.setSpacing(10)
-            
-            # Header container
-            self.header_container = QWidget()
-            self.header_container.setStyleSheet("background: transparent;")
-            header_layout = QVBoxLayout(self.header_container)
-            header_layout.setContentsMargins(12, 0, 12, 12)
-            header_layout.addWidget(self.header)
-            content_layout.addWidget(self.header_container)
-            
-            # Stack container
-            self.stack_container = QWidget()
-            stack_layout = QVBoxLayout(self.stack_container)
-            stack_layout.setContentsMargins(20, 0, 0, 0)
-            stack_layout.setSpacing(0)
-            stack_layout.addWidget(self.content)
-            content_layout.addWidget(self.stack_container, 1)
-            
-            self.content_container.setStyleSheet("background: #ffffff;")
-        else:
-            # Ensure widgets are properly parented (in case they were unparented)
-            if self.header.parent() != self.header_container:
-                layout = self.header_container.layout()
-                if layout and layout.count() == 0:
-                    layout.addWidget(self.header)
-            
-            if self.content.parent() != self.stack_container:
-                layout = self.stack_container.layout()
-                if layout and layout.count() == 0:
-                    layout.addWidget(self.content)
+        # Create content container with header and stacked widget
+        content_container = QWidget()
+        content_layout = QVBoxLayout(content_container)
+        content_layout.setContentsMargins(10, 0, 10, 10)  # sidebar & header margin
+        content_layout.setSpacing(10)
+
+        # Add header with its own container for styling
+        header_container = QWidget()
+        header_container.setStyleSheet("background: transparent;")
+        header_layout = QVBoxLayout(header_container)
+        header_layout.setContentsMargins(12, 0, 12, 12)  # Add padding for shadow
+        header_layout.addWidget(self.header)
+        content_layout.addWidget(header_container)
+
+        # Add stacked widget
+        stack_container = QWidget()
+        stack_layout = QVBoxLayout(stack_container)
+        stack_layout.setContentsMargins(20, 0, 0, 0)
+        stack_layout.setSpacing(0)
+        stack_layout.addWidget(self.content)
+        content_layout.addWidget(stack_container, 1)
 
         # Add widgets to main layout
         self.main_layout.addWidget(self.navbar, 0, 0, 2, 1)
@@ -137,12 +119,7 @@ class LayoutManager:
             self.main_layout.setColumnStretch(1, 1)
             print("LayoutManager: Adjusted for expanded sidebar (280px)")
 
-        # Ensure everything is visible
-        self.navbar.show()
-        self.content_container.show()
-        self.header.show()
-        self.content.show()
-        
+        content_container.setStyleSheet("background: #ffffff;")
         self.main_layout.invalidate()
         print("LayoutManager: Desktop layout applied")
 
@@ -187,7 +164,51 @@ class LayoutManager:
         self.navbar.setFixedHeight(100)
         content_container.setStyleSheet("background: #ffffff;")
         print("LayoutManager: Mobile layout applied")
+    # def _open_profile(self):
+    #     w = self.pages.get("profile")
+    #     if w is None:
+    #         w = ProfileWidget(session=self.session)  # pass what your widget expects
+    #         self.stack.addWidget(w)
+    #         self.pages["profile"] = w
+    #     self.stack.setCurrentWidget(w)
 
+    # def _logout(self):
+    #     # purge tokens and return to login
+    #     self.session.clear()              # implement .clear() in your session/auth store
+    #     self.router.go_to_login()
+
+    # def _open_profile(self):
+    #     # lazy import for both possible paths
+    #     try:
+    #         from views.Users.Login.user_profile import ProfileWidget
+    #     except Exception:
+    #         from views.Login.user_profile import ProfileWidget
+
+    #     w = self.pages.get("profile")
+    #     if w is None:
+    #         w = ProfileWidget()
+    #         self.stack.addWidget(w)
+    #         self.pages["profile"] = w
+    #     self.stack.setCurrentWidget(w)
+    # def _open_profile(self):
+    #     try:
+    #         from views.Login.user_profile import ProfileWidget
+    #     except Exception:
+    #         from views.Users.Login.user_profile import ProfileWidget 
+    #     w = getattr(self, "pages", {}).get("profile")
+    #     if w is None:
+    #         w = ProfileWidget(session=getattr(self.router, "user_session", {}))
+    #         if not hasattr(self, "pages"): self.pages = {}
+    #         self.stack.addWidget(w); self.pages["profile"] = w
+    #     self.stack.setCurrentWidget(w)
+    # def _open_profile(self):
+    #     from views.Login.user_profile import ProfileWidget
+    #     w = getattr(self, "pages", {}).get("profile")
+    #     if w is None:
+    #         w = ProfileWidget(session=getattr(self.router, "user_session", {}))
+    #         if not hasattr(self, "pages"): self.pages = {}
+    #         self.stack.addWidget(w); self.pages["profile"] = w
+    #     self.stack.setCurrentWidget(w)
     def _open_profile(self):
         # robust import (matches your other files)
         try:

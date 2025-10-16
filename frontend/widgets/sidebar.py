@@ -1,5 +1,5 @@
 import os
-from PyQt6.QtCore import Qt, QPoint, pyqtSignal
+from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QScrollArea, QWidget, QSizePolicy
 from utils.db_helper import get_all_parents, get_main_by_parent, get_modular_by_main, get_access_level
 
@@ -142,9 +142,6 @@ class CollapsibleSection(QFrame):
         menu.exec(QPoint(popup_x, popup_y))
 
 class Sidebar(QFrame):
-    # CRITICAL FIX: Add signal to notify when sidebar is toggled
-    toggled = pyqtSignal(bool)  # Emits True when collapsed, False when expanded
-    
     def __init__(self, router, user_role):
         super().__init__()
         self.is_collapsed = True  # Start collapsed
@@ -298,7 +295,6 @@ class Sidebar(QFrame):
             self.setStyleSheet("#sidebarMain { background: #1e4d2b; }")
 
     def toggleDrawer(self, force_open=False):
-        """FIXED: Toggle sidebar and emit signal to LayoutManager"""
         if self.is_collapsed or force_open:
             # Expand
             self.setFixedWidth(280)
@@ -308,10 +304,6 @@ class Sidebar(QFrame):
                 section.close()
                 section.main_btn.setText(section.full_button_text)
             print("Sidebar: Expanded")
-            
-            # Emit signal to LayoutManager
-            self.toggled.emit(False)  # False = expanded
-            
         else:
             # Collapse
             self.setFixedWidth(70)
@@ -321,9 +313,6 @@ class Sidebar(QFrame):
                 section.close()
                 section.main_btn.setText(section.icon)
             print("Sidebar: Collapsed")
-            
-            # Emit signal to LayoutManager
-            self.toggled.emit(True)  # True = collapsed
 
         # Notify parent to update layout
         self.updateGeometry()
