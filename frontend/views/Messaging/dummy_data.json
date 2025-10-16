@@ -1,4 +1,5 @@
 {
+<<<<<<< Updated upstream
   "users": [
     {
       "id": 1,
@@ -58,6 +59,13 @@
   "conversations": [
     
   ],
+=======
+  "users": [],
+  "messages": [],
+  "inquiries": [],
+  "notifications": [],
+  "conversations": [],
+>>>>>>> Stashed changes
   "departments": [
     {
       "id": 1,
@@ -76,12 +84,15 @@
       "name": "Information Systems",
       "code": "IS",
       "description": "Department of Information Systems and Management"
+<<<<<<< Updated upstream
     },
     {
       "id": 4,
       "name": "Administration",
       "code": "ADM",
       "description": "University Administrative Department"
+=======
+>>>>>>> Stashed changes
     }
   ],
   "message_categories": [

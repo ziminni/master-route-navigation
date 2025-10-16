@@ -30,7 +30,11 @@ class Ui_MainWindow(object):
         content_layout.setContentsMargins(0, 16, 0, 16)
         content_layout.setSpacing(16)
 
+<<<<<<< Updated upstream
         # # ===== Sidebar placeholder =====
+=======
+        # ===== Sidebar placeholder =====
+>>>>>>> Stashed changes
         # self.sidebar_container = QtWidgets.QWidget(parent=content_widget)
         # self.sidebar_container.setFixedWidth(250)
         # self.sidebar_container.setObjectName("sidebar_container")
@@ -190,16 +194,25 @@ class Ui_MainWindow(object):
         # Default message label
         self.label_8 = QtWidgets.QLabel("No message found!")
         self.label_8.setFont(QtGui.QFont("Arial", 20))
+<<<<<<< Updated upstream
         self.label_8.setStyleSheet("color: black;")
+=======
+>>>>>>> Stashed changes
         self.label_8.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         message_layout.addWidget(self.label_8)
 
         content_layout.addWidget(self.message_widget)
         self.message_widget.show()
 
+<<<<<<< Updated upstream
         # ===== Load MainChatWidget =====
         try:
             self.chat_box = MainChatWidget(parent=content_widget, chat_name="Welcome Chat")
+=======
+        try:
+            self.chat_box = MainChatWidget(parent=content_widget, chat_name="Welcome Chat")
+            
+>>>>>>> Stashed changes
             content_layout.addWidget(self.chat_box)
             self.chat_box.hide()
             self.chat_info.setFixedWidth(260)
@@ -209,6 +222,10 @@ class Ui_MainWindow(object):
             error_label.setStyleSheet("color: red; font-weight: bold;")
             content_layout.addWidget(error_label)
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
         # ===== Contact Info Panel =====
         self.contact_info = QtWidgets.QWidget(parent=content_widget)
         self.contact_info.setFixedWidth(250)
@@ -296,6 +313,7 @@ class Ui_MainWindow(object):
         main_layout.addWidget(content_widget)
         MainWindow.setCentralWidget(self.centralwidget)
 
+<<<<<<< Updated upstream
 
 
 class MainApp(QtWidgets.QMainWindow):
@@ -307,6 +325,35 @@ class MainApp(QtWidgets.QMainWindow):
         # Data manager
         self.data_manager = DataManager()
         self.current_user_id = 1  # Carlos Fidel Castro
+=======
+    # def add_sidebar(self, sidebar_widget):
+    #     sidebar_widget.setParent(self.sidebar_container)
+    #     self.sidebar_container_layout.addWidget(sidebar_widget)
+
+    # def update_sidebar_width(self, is_collapsed):
+    #     if is_collapsed:
+    #         self.sidebar_container.setFixedWidth(60)
+    #     else:
+    #         self.sidebar_container.setFixedWidth(250)
+
+
+class MainApp(QtWidgets.QMainWindow):
+    def __init__(self, username="", roles=None, primary_role="", token="", parent=None):
+        super().__init__(parent)
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+
+        # Store user session data
+        self.username = username
+        self.roles = roles or []  # prevent mutable default
+        self.primary_role = primary_role
+        self.token = token
+
+        # Data manager
+        self.data_manager = DataManager()
+        # Get current user ID from session data - we'll need to map username to user ID
+        self.current_user_id = self._get_user_id_from_session()
+>>>>>>> Stashed changes
 
         # # Sidebar
         # self.sidebar = Sidebar()
@@ -325,6 +372,24 @@ class MainApp(QtWidgets.QMainWindow):
         self.ui.search_recipt.textChanged.connect(self.search_chats)
         self.ui.chat_list.itemClicked.connect(self.on_chat_selected)
 
+<<<<<<< Updated upstream
+=======
+        # ===== Load MainChatWidget with session data =====
+        try:
+            self.chat_box = MainChatWidget(
+                username=self.username,
+                roles=self.roles,
+                primary_role=self.primary_role,
+                token=self.token,
+                parent=self, 
+                chat_name="Welcome Chat"
+            )
+            # The chat_box will be added to the UI later when needed
+            self.chat_box.hide()
+        except Exception as e:
+            print(f"Error loading chat widget: {e}")
+
+>>>>>>> Stashed changes
         # Initial load
         self.current_filter = "all"
         self.load_chats_from_database()
@@ -334,6 +399,32 @@ class MainApp(QtWidgets.QMainWindow):
         # Realtime updates (rebuild current filter view)
         self.start_inquiry_realtime_updates()
 
+<<<<<<< Updated upstream
+=======
+    def _get_user_id_from_session(self):
+        """Get user ID from session data by matching username"""
+        if not self.username:
+            return 1  # Fallback to default user ID
+        
+        # Look for user in data manager by username
+        for user in self.data_manager.data.get('users', []):
+            if user.get('name') == self.username or user.get('email', '').split('@')[0] == self.username:
+                return user.get('id', 1)
+        
+        # If not found, create a new user entry based on session data
+        user_data = {
+            'name': self.username,
+            'email': f"{self.username}@cmu.edu.ph",
+            'role': self.primary_role,
+            'department': 'Computer Science',  # Default department
+            'status': 'online',
+            'last_seen': self.data_manager._get_current_timestamp()
+        }
+        
+        created_user = self.data_manager.create_user(user_data)
+        return created_user.get('id', 1) if created_user else 1
+
+>>>>>>> Stashed changes
     # def connect_header_actions(self):
     #     actions = self.ui.header.profile_menu.actions()
     #     for action in actions:
@@ -371,6 +462,7 @@ class MainApp(QtWidgets.QMainWindow):
             self.close()
 
     def open_inquiry_dialog(self):
+<<<<<<< Updated upstream
         print("[DEBUG] open_inquiry_dialog() triggered")
         try:
             dialog = InquiryDialog(self)
@@ -389,6 +481,18 @@ class MainApp(QtWidgets.QMainWindow):
         except Exception as e:
             print("[ERROR] open_inquiry_dialog failed:", e)
 
+=======
+        dialog = InquiryDialog(self)
+        if dialog.exec():
+            inquiry_data = dialog.get_inquiry_data()
+            if inquiry_data:
+                created_inquiry = self.data_manager.create_inquiry(inquiry_data)
+                if created_inquiry:
+                    print(f"Inquiry Created! ID: {created_inquiry['id']}")
+                    self.filter_chats(self.current_filter)
+                else:
+                    print("Failed to create inquiry")
+>>>>>>> Stashed changes
 
     def filter_chats(self, filter_type: str):
         self.current_filter = filter_type
@@ -756,3 +860,33 @@ class MainApp(QtWidgets.QMainWindow):
             for m in msgs
         )
 
+<<<<<<< Updated upstream
+=======
+
+# Wrapper class for router compatibility
+class MessagingWidget(QtWidgets.QWidget):
+    """Wrapper class to make messaging module compatible with router system"""
+    def __init__(self, username="", roles=None, primary_role="", token="", parent=None):
+        super().__init__(parent)
+        roles = roles or []  # prevent mutable default
+        
+        # Optional: Store session info if needed
+        self.username = username
+        self.roles = roles
+        self.primary_role = primary_role
+        self.token = token
+        
+        # Create the main messaging app
+        self.messaging_app = MainApp(username, roles, primary_role, token, parent)
+        
+        # Create a layout and add the messaging app's central widget
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        # Add the messaging app's central widget to this widget
+        central_widget = self.messaging_app.centralWidget()
+        layout.addWidget(central_widget)
+        self.setLayout(layout)
+
+>>>>>>> Stashed changes

@@ -1,6 +1,7 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 """
 CISC Virtual Hub Launcher (Unified Window Version)
 ==================================================
@@ -30,6 +31,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtCore import QUrl
@@ -44,12 +47,20 @@ from .faculty.faculty_main import Ui_MainWindow as FacultyUi_MainWindow
 
 class Main_Chat_Widget(QtWidgets.QWidget):
     def __init__(self, username="", roles=None, primary_role="", token="", parent=None, chat_name="Chat"):
+<<<<<<< Updated upstream
+=======
+        print(f"[DEBUG] Main_Chat_Widget constructor called with primary_role='{primary_role}'")
+        print(f"[DEBUG] All parameters: username='{username}', roles={roles}, primary_role='{primary_role}', token='{token}'")
+>>>>>>> Stashed changes
         super().__init__(parent)
         roles = roles or []  # prevent mutable default
 
         # Optional: Store session info if needed
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -59,6 +70,7 @@ class Main_Chat_Widget(QtWidgets.QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
+<<<<<<< Updated upstream
 
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
@@ -221,6 +233,10 @@ class Main_Chat_Widget(QtWidgets.QWidget):
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
+=======
+        print(f"[DEBUG] Stored primary_role as: '{self.primary_role}'")
+
+>>>>>>> Stashed changes
         # The rest of your initialization code...
         self.setContentsMargins(0, 0, 0, 0)
         self.setStyleSheet("QWidget { border: none; background: transparent; }")
@@ -230,7 +246,16 @@ class Main_Chat_Widget(QtWidgets.QWidget):
         )
 
         # Load UI based on primary role
+<<<<<<< Updated upstream
         print(f"[DEBUG] Primary role: {self.primary_role}")
+=======
+        print(f"[DEBUG] Primary role: '{self.primary_role}' (type: {type(self.primary_role)})")
+        print(f"[DEBUG] Checking if '{self.primary_role}' == 'faculty': {self.primary_role == 'faculty'}")
+        
+        # Show a message box to confirm the code is running
+        QtWidgets.QMessageBox.information(None, "Debug", f"Primary role: '{self.primary_role}'")
+        
+>>>>>>> Stashed changes
         if self.primary_role == "faculty":
             print("[DEBUG] Loading FacultyApp for faculty role")
             # FacultyApp is a complete widget (QMainWindow), no setupUi needed
@@ -475,6 +500,10 @@ class Main_Chat_Widget(QtWidgets.QWidget):
             self.conversation_id is not None
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+        ])
+>>>>>>> Stashed changes
+=======
         ])
 >>>>>>> Stashed changes
 =======

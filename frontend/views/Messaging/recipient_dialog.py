@@ -131,7 +131,11 @@ class Ui_Form(object):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             if user.get('role') in ['faculty', 'admin', 'officer', 'staff']:
+=======
+            if user.get('role') in ['faculty', 'admin', 'officer']:
+>>>>>>> Stashed changes
 =======
             if user.get('role') in ['faculty', 'admin', 'officer']:
 >>>>>>> Stashed changes
@@ -152,6 +156,10 @@ class Ui_Form(object):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 =======
 
 >>>>>>> Stashed changes
@@ -170,6 +178,7 @@ class Ui_Form(object):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
             
 >>>>>>> Stashed changes
@@ -178,6 +187,9 @@ class Ui_Form(object):
 >>>>>>> Stashed changes
 =======
             
+>>>>>>> Stashed changes
+=======
+            item.setForeground(QtGui.QBrush(QtGui.QColor('black')))
 >>>>>>> Stashed changes
             self.recipient_list.addItem(item)
 
