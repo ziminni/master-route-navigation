@@ -6,11 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QPixmap, QFont, QIcon, QAction
 from PyQt6.QtCore import Qt, QSize, QEvent
 from PyQt6 import QtCore, QtWidgets
-<<<<<<< HEAD
-
-=======
 from views.Feedback.FeedbackPage import FeedbackBox  # Import FeedbackBox
->>>>>>> origin/master
 
 # Custom notification popup with filtering
 class NotificationPopup(QWidget):
@@ -402,10 +398,6 @@ class Header(QWidget):
             self.user = user
         self._apply_user_to_ui()
 
-<<<<<<< HEAD
-    # header.py
-=======
->>>>>>> origin/master
     def _apply_user_to_ui(self):
         s = self.session or {}
         data = (s.get("user") or self.user or {})
@@ -428,11 +420,7 @@ class Header(QWidget):
             # make relative URLs work too
             if not url.startswith(("http://","https://")):
                 base = (s.get("api_base") or "http://127.0.0.1:8000").rstrip("/")
-<<<<<<< HEAD
-                url = f"{base}{url if url.startswith('/') else f'/uploads/{url}'}"
-=======
                 url = f"{base}{url if url.startswith('/') else f'/Uploads/{url}'}"
->>>>>>> origin/master
             self._set_avatar_from_url(url)
         else:
             self._set_default_avatar()
