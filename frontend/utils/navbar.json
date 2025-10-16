@@ -105,8 +105,8 @@
         {
           "id": 11,
           "name": "House System",
-          "function": "()",
-          "path": "",
+          "function": "HouseMain()",
+          "path": "views.House.HouseMain",
           "access": ["student","admin"],
           "modulars":[]
         },
