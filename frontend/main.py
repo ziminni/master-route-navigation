@@ -1,4 +1,6 @@
 import sys
+import os
+
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget
 from views.Login.login import LoginWidget
 from services.auth_service import AuthService
