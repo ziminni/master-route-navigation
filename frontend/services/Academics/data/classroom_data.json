@@ -1,0 +1,336 @@
+{
+    "users": [
+        {
+            "id": 1,
+            "name": "Carlos Fidel G. Castro",
+            "role": "faculty"
+        },
+        {
+            "id": 2,
+            "name": "Bob Ross",
+            "role": "student"
+        },
+        {
+            "id": 3,
+            "name": "Alice Wonderland",
+            "role": "admin"
+        }
+    ],
+    "classes": [
+        {
+            "id": 1,
+            "code": "ITSD81",
+            "title": "DESKTOP APPLICATION DEVELOPMENT LECTURE",
+            "units": 3,
+            "section_id": 1,
+            "schedules": [
+                {
+                    "day": "Monday",
+                    "start_time": "09:00 AM",
+                    "end_time": "10:30 AM"
+                }
+            ],
+            "room": "CISC Laboratory 24",
+            "name": "Desktop Application Development Lecture",
+            "instructor": "Kim",
+            "type": "Lecture",
+            "section_name": "BSCS-3C",
+            "schedule": "FRIDAY - 8:00 - 10:00 AM",
+            "date_created": "2025-08-18"
+        },
+        {
+            "code": "ITSD83",
+            "title": "Mobile Application Development 1",
+            "units": 3,
+            "section_id": 1,
+            "schedules": [
+                {
+                    "day": "Monday",
+                    "start_time": "09:00 AM",
+                    "end_time": "10:30 AM"
+                }
+            ],
+            "room": "CISC Laboratory 24",
+            "instructor": "Juan Dela Cruz",
+            "type": "Lecture",
+            "id": 2,
+            "section_name": "BSCS-3C",
+            "created_at": "2025-10-08T18:57:12.159138",
+            "updated_at": "2025-10-08T18:57:12.159138",
+            "instructor_id": "faculty_2"
+        },
+        {
+            "code": "IT 65",
+            "title": "Software Engineering",
+            "units": 3,
+            "section_id": 1,
+            "schedules": [
+                {
+                    "day": "Monday",
+                    "start_time": "07:00 AM",
+                    "end_time": "10:30 AM"
+                },
+                {
+                    "day": "Monday",
+                    "start_time": "09:00 AM",
+                    "end_time": "10:30 AM"
+                },
+                {
+                    "day": "Monday",
+                    "start_time": "09:00 AM",
+                    "end_time": "10:30 AM"
+                }
+            ],
+            "room": "Room 301",
+            "instructor": "65464566",
+            "type": "Lecture",
+            "id": 4,
+            "section_name": "BSIT-3C",
+            "created_at": "2025-10-15T18:50:52.428959",
+            "updated_at": "2025-10-15T19:06:39.068720",
+            "instructor_id": "faculty_4"
+        }
+    ],
+    "topics": [
+        {
+            "id": 1,
+            "class_id": 1,
+            "title": "Week 1",
+            "type": "material"
+        },
+        {
+            "id": 2,
+            "class_id": 1,
+            "title": "Week 2",
+            "type": "assessment"
+        },
+        {
+            "id": 3,
+            "class_id": 1,
+            "title": "Chapter 1",
+            "type": "material",
+            "created_at": "2025-09-26 08:39:42"
+        },
+        {
+            "id": 4,
+            "class_id": 2,
+            "title": "Midterms",
+            "type": "material",
+            "created_at": "2025-09-26 08:50:08"
+        }
+    ],
+    "posts": [
+        {
+            "id": 0,
+            "topic_id": null,
+            "class_id": 1,
+            "title": "Syllabus",
+            "content": "",
+            "type": "material",
+            "attachment": {
+                "name": "Syllabus",
+                "type": "PDF"
+            },
+            "score": null,
+            "date": "2025-08-18 10:00:00",
+            "author": null
+        },
+        {
+            "id": 1,
+            "topic_id": 1,
+            "class_id": 1,
+            "title": "Desktop Project Guidelines",
+            "content": "Please ensure that the task is completed according to the requirements provided...",
+            "type": "material",
+            "attachment": {
+                "name": "Desktop project guidelines",
+                "type": "PDF"
+            },
+            "score": null,
+            "date": "2025-08-18 12:00:00",
+            "author": "Kim"
+        },
+        {
+            "id": 2,
+            "topic_id": 2,
+            "class_id": 1,
+            "title": "Assessment 1",
+            "content": "Complete the exercises...",
+            "type": "assessment",
+            "attachment": {
+                "name": "Assessment 1",
+                "type": "PDF"
+            },
+            "score": 10,
+            "date": "2025-08-19 09:00:00",
+            "author": "Kim"
+        },
+        {
+            "id": 3,
+            "class_id": 1,
+            "topic_id": 2,
+            "title": "try1",
+            "content": "dsadsad",
+            "type": "material",
+            "author": "Kim",
+            "date": "2025-10-06 01:47:29",
+            "attachment": null,
+            "score": null
+        },
+        {
+            "id": 1,
+            "topic_id": null,
+            "class_id": 3,
+            "title": "Hello",
+            "content": "Hello",
+            "type": "material",
+            "attachment": {
+                "name": "requirements.txt",
+                "type": "FILE"
+            },
+            "score": null,
+            "date": "2025-10-10T01:35:06",
+            "author": "admin"
+        },
+        {
+            "id": 2,
+            "topic_id": 4,
+            "class_id": 2,
+            "title": "Chapter 1: Introduction",
+            "content": "Please read and study.",
+            "type": "material",
+            "attachment": {
+                "name": "requirements.txt",
+                "type": "FILE"
+            },
+            "score": null,
+            "date": "2025-10-10T07:34:38",
+            "author": "admin"
+        },
+        {
+            "id": 3,
+            "topic_id": null,
+            "class_id": 1,
+            "title": "example",
+            "content": "hello",
+            "type": "material",
+            "attachment": {
+                "name": "requirements.txt",
+                "type": "FILE"
+            },
+            "score": null,
+            "date": "2025-10-13T12:41:04",
+            "author": "admin"
+        },
+        {
+            "id": 4,
+            "topic_id": null,
+            "class_id": 1,
+            "title": "example material",
+            "content": "hello hello",
+            "type": "material",
+            "attachment": {
+                "name": "README.md",
+                "type": "FILE"
+            },
+            "score": null,
+            "date": "2025-10-14T21:43:30",
+            "author": "admin"
+        },
+        {
+            "id": 5,
+            "topic_id": null,
+            "class_id": 1,
+            "title": "example example",
+            "content": "aefaefeaf",
+            "type": "material",
+            "attachment": {
+                "name": "README.md",
+                "type": "FILE"
+            },
+            "score": null,
+            "date": "2025-10-14T22:17:20",
+            "author": "admin"
+        },
+        {
+            "id": 8,
+            "topic_id": null,
+            "class_id": 1,
+            "title": "testing",
+            "content": "testing",
+            "type": "material",
+            "attachment": {
+                "name": "requirements.txt",
+                "type": "FILE"
+            },
+            "score": null,
+            "date": "Oct 15",
+            "author": "Kim"
+        }
+    ],
+    "sections": [
+        {
+            "section": "C",
+            "program": "BS Information Technology",
+            "curriculum": "2023-2024",
+            "year": "3rd",
+            "capacity": 50,
+            "type": "Lecture",
+            "remarks": "Regular",
+            "id": 1,
+            "created_at": "2025-10-08T21:13:33.717558",
+            "updated_at": "2025-10-15T18:36:54.723806",
+            "track": "N/A"
+        },
+        {
+            "section": "B",
+            "program": "BS Information Technology",
+            "curriculum": "2023-2024",
+            "track": "Data Networking",
+            "year": "1st",
+            "capacity": 50,
+            "type": "Lecture",
+            "remarks": "Regular",
+            "id": 5,
+            "created_at": "2025-10-15T17:03:08.623815",
+            "updated_at": "2025-10-15T17:03:08.623815"
+        },
+        {
+            "section": "G",
+            "program": "BS Information Technology",
+            "curriculum": "2023-2024",
+            "track": "N/A",
+            "year": "1st",
+            "capacity": 50,
+            "type": "Lecture",
+            "remarks": "Regular",
+            "id": 8,
+            "created_at": "2025-10-16T19:49:01.333297",
+            "updated_at": "2025-10-16T19:52:38.992358"
+        },
+        {
+            "section": "D",
+            "program": "BS Information Technology",
+            "curriculum": "2023-2024",
+            "track": "N/A",
+            "year": "1st",
+            "capacity": 50,
+            "type": "Lecture",
+            "remarks": "Regular",
+            "id": 10,
+            "created_at": "2025-10-16T20:10:46.235260",
+            "updated_at": "2025-10-16T20:10:46.235260"
+        }
+    ],
+    "enrollments": [],
+    "syllabus": [
+        {
+            "id": 1,
+            "class_id": 1,
+            "title": "Syllabus",
+            "content": "please read",
+            "author": "Kim",
+            "date": "2025-10-15 15:45:11"
+        }
+    ]
+}

@@ -1,0 +1,41 @@
+{
+    "collections": [
+        {
+            "id": 1,
+            "name": "Syllabus",
+            "icon": "folder1.png",
+            "description": "Course syllabi and curriculum documents",
+            "files": [],
+            "created_at": "2025-10-16 23:41:26",
+            "created_by": "system"
+        },
+        {
+            "id": 2,
+            "name": "Memo",
+            "icon": "folder1.png",
+            "description": "Official memorandums and announcements",
+            "files": [],
+            "created_at": "2025-10-16 23:41:26",
+            "created_by": "system"
+        },
+        {
+            "id": 3,
+            "name": "Forms",
+            "icon": "folder1.png",
+            "description": "Administrative forms and templates",
+            "files": [],
+            "created_at": "2025-10-16 23:41:26",
+            "created_by": "system"
+        },
+        {
+            "id": 4,
+            "name": "Others",
+            "icon": "folder1.png",
+            "description": "Miscellaneous documents and files",
+            "files": [],
+            "created_at": "2025-10-16 23:41:26",
+            "created_by": "system"
+        }
+    ],
+    "next_collection_id": 5
+}
