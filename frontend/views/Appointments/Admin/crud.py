@@ -8,10 +8,13 @@ class JSONCRUD:
     
     def _ensure_file_exists(self):
         """Ensure the JSON file exists with empty list if not present"""
-        os.makedirs(os.path.dirname(self.filename), exist_ok=True)
-        if not os.path.exists(self.filename):
-            with open(self.filename, 'w') as f:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        abs_path = os.path.join(base_dir, os.path.basename(self.filename))
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        if not os.path.exists(abs_path):
+            with open(abs_path, 'w') as f:
                 json.dump([], f)
+        self.filename = abs_path
     
     def _read_data(self):
         """Read all data from JSON file"""

@@ -8,7 +8,7 @@ import os
 from datetime import datetime
 
 class GradeDataManager:
-    def __init__(self, data_file='frontend/services/Academics/data/grades_data.json'):
+    def __init__(self, data_file='services/Academics/data/grades_data.json'):
         self.data_file = data_file
         self.ensure_data_file()
     
