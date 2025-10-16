@@ -1,0 +1,8 @@
+{
+  "organizers": [
+    {"id": "CSS", "name": "Computer Science Society"},
+    {"id": "EEG", "name": "Electrical Engineering Guild"},
+    {"id": "BIO", "name": "Biology Club"}
+  ]
+}
+

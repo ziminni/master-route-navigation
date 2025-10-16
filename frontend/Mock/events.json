@@ -1,0 +1,59 @@
+[
+  {
+    "id": 1,
+    "title": "General Assembly",
+    "event_type": "Behavioral Event",
+    "desc": "College of Information Sciences and Computing - Student Council (CISC-SC)",
+    "date": "2025-09-10",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/generalassembly.jpg"
+  },
+  {
+    "id": 2,
+    "title": "College Assembly",
+    "event_type": "Behavioral Event",
+    "desc": "College of Information Sciences and Computing - Student Council (CISC-SC)",
+    "date": "2025-09-18",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/collegeassembly.png"
+  },
+  {
+    "id": 3,
+    "title": "Valorant",
+    "event_type": "Competition Event",
+    "desc": "College of Information Sciences and Computing - Student Council (CISC-SC)",
+    "date": "2025-08-12",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/valorant.png"
+    
+  },
+  {
+    "id": 4,
+    "title": "Dota2",
+    "event_type": "Competition Event",
+    "desc": "College of Information Sciences and Computing - Student Council (CISC-SC)",
+    "date": "2025-08-15",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/dota2.png"
+  },
+  {
+    "id": 5,
+    "title": "Mobile Legends: Bang Bang",
+    "event_type": "Competition Event",
+    "desc": "College of Information Sciences and Computing - Student Council (CISC-SC)",
+    "date": "2025-08-20",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/mlbb.png"
+  },
+  {
+    "id": 6,
+    "title": "Volleyball",
+    "event_type": "Competition Event",
+    "desc": "College of Information Sciences and Computing - Student Council (CISC-SC)",
+    "date": "2025-09-05",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/volleyball.png"
+  },
+  {
+    "id": 7,
+    "title": "Bayanihan",
+    "event_type": "Behavioral Event",
+    "desc": "College of Information Sciences and Computing - Student Council (CISC-SC)",
+    "date": "2025-09-25",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/Bayanihan pic.jpg"
+  }
+]

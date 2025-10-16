@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "title": "General Assembly – 1st Session",
+    "date": "August 11, 2025",
+    "time": "8:00 AM – 12:00 PM",
+    "location": "CISC Building",
+    "details": "The College of Information Sciences and Computing held its General Assembly to discuss upcoming academic programs, competitions, and initiatives. Attendance and participation contribute to house points for the semester.",
+    "adviser": "Prof. Maria Santos",
+    "participants": ["Student 1", "Student 2", "Student 3", "Student 4", "Student 5"]
+  },
+  {
+    "id": 2,
+    "title": "Bayanihan 2025 – 1st Session",
+    "date": "August 11, 2025",
+    "time": "8:00 AM – 12:00 PM",
+    "location": "CISC Building",
+    "details": "In preparation for the upcoming AACCUP Accreditation, the College of Information Sciences and Computing is calling all houses to unite for our Bayanihan Cleanup Drive! Attendance, cleanliness, and completeness of tools are scored for points contributing to overall standings.",
+    "adviser": "Prof. Juan Dela Cruz",
+    "participants": ["Student 1", "Student 2", "Student 3", "Student 4", "Student 5", "Student 6"]
+  },
+  {
+    "id": 3,
+    "title": "Valorant Inter-House Tournament",
+    "date": "September 12, 2025",
+    "time": "1:00 PM – 5:00 PM",
+    "location": "Computer Laboratory 3",
+    "details": "The Valorant tournament brought together skilled players from each house in a best-of-three competition format. The event promoted teamwork, communication, and strategic thinking among participants.",
+    "adviser": "Prof. Jose Mendoza",
+    "participants": ["Player 1", "Player 2", "Player 3", "Player 4", "Player 5"]
+  },
+  {
+    "id": 4,
+    "title": "College Assembly 2025",
+    "date": "October 2, 2025",
+    "time": "9:00 AM – 11:00 AM",
+    "location": "CISC Auditorium",
+    "details": "A general assembly highlighting house achievements, leadership announcements, and future plans for the CISC community. Recognition was given to active members and competition winners.",
+    "adviser": "Prof. Anna Reyes",
+    "participants": ["Student 1", "Student 2", "Student 3", "Student 4"]
+  }
+]
