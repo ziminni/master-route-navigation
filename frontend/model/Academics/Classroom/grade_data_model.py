@@ -11,7 +11,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 try:
-    from data.grade_manager import GradeDataManager
+    from .data.grade_manager import GradeDataManager
 except ImportError:
     print("Warning: Could not import GradeDataManager")
     GradeDataManager = None

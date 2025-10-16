@@ -4,7 +4,7 @@ from typing import List, Dict, Optional
 from datetime import datetime
 
 class PostService:
-    def __init__(self, data_file="frontend/services/Academics/data/classroom_data.json"):
+    def __init__(self, data_file="services/Academics/data/classroom_data.json"):
         self.data_file = data_file
     
     def _load_data(self):

@@ -106,8 +106,8 @@ class ClassroomView(QWidget):
         
         # === SERVICE LAYER SETUP ===
         # Create data services and controller for shared data access
-        post_service = PostService("frontend/services/Academics/data/classroom_data.json")      # Handles post CRUD operations
-        topic_service = TopicService("frontend/services/Academics/data/classroom_data.json")    # Handles topic management
+        post_service = PostService("services/Academics/data/classroom_data.json")      # Handles post CRUD operations
+        topic_service = TopicService("services/Academics/data/classroom_data.json")    # Handles topic management
         
         # Create post controller that coordinates between services and views
         post_controller = PostController(

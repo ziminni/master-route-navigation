@@ -126,7 +126,7 @@ class ClassService:
 
     def __init__(
             self,
-            json_file: str = "frontend/services/Academics/data/classroom_data.json",  # CHANGED: unified file
+            json_file: str = "services/Academics/data/classroom_data.json",  # CHANGED: unified file
             section_service=None
     ):
         """
