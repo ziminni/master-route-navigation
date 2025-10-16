@@ -1,0 +1,78 @@
+{
+  "items": [
+    {
+      "category": "Organization",
+      "title": "Supreme Student Council",
+      "blurb": "The Supreme Student Council is the highest governing body of student organizations.",
+      "url": "https://ssc.cmu.edu.ph",
+      "email": "ssc@cmu.edu.ph",
+      "location": "maramag",
+      "contact": "",
+      "image": "assets/uploads/0fe5c3dcccad4ca6bb41cd1aa454e1f6.png",
+      "services": [],
+      "draft": true
+    },
+    {
+      "category": "Organization",
+      "title": "CISC",
+      "blurb": "QWERTYUIOP",
+      "url": "poiuytrew",
+      "email": "1234567890",
+      "location": "Maramag",
+      "contact": "0123456789",
+      "image": "C:/Users/Mae/Downloads/Logo with tech blues and vibrant greens (1) (1).png",
+      "services": [],
+      "draft": true
+    },
+    {
+      "category": "Dorm",
+      "title": "12345678",
+      "blurb": "",
+      "url": "",
+      "email": "",
+      "location": "",
+      "contact": "",
+      "image": "",
+      "services": [],
+      "draft": true
+    },
+    {
+      "category": "Office",
+      "title": "sample",
+      "blurb": "sample data",
+      "url": "qertyuiop",
+      "email": "qwertyuiop[",
+      "location": "Dologon",
+      "contact": "09636480205",
+      "image": "C:/Users/Mae/Downloads/2025promptlist.webp",
+      "services": [
+        {
+          "desc": "sample blood",
+          "name": "Blood donation"
+        },
+        {
+          "desc": "just do it",
+          "name": "nike"
+        }
+      ],
+      "draft": false
+    },
+    {
+      "category": "Organization",
+      "title": "CSCO",
+      "blurb": "11",
+      "url": "lms.cisc",
+      "email": "csco",
+      "location": "CISC",
+      "contact": "0932 385 0223",
+      "image": "C:/Users/Mae/Downloads/download (1).png",
+      "services": [
+        {
+          "desc": "kape",
+          "name": "KAPIT BISIG"
+        }
+      ],
+      "draft": true
+    }
+  ]
+}
