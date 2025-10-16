@@ -45,9 +45,9 @@
         {
           "id": 5,
           "name": "Progress",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
+          "function": "Progress()",
+          "path": "views.Progress.Progress",
+          "access": ["student", "admin", "faculty"],
           "modulars":[]
         },
         {
