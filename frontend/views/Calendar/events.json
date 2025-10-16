@@ -21,6 +21,7 @@
             "location": "N/A",
             "status": "Upcoming"
 <<<<<<< HEAD
+<<<<<<< HEAD
         },
         {
             "date_time": "10/23/2025\n9:00 AM",
@@ -42,6 +43,8 @@
             "type": "Holiday",
             "location": "CISC",
             "status": "Upcoming"
+=======
+>>>>>>> parent of aabbac4 (error handling)
 =======
 >>>>>>> parent of aabbac4 (error handling)
         }
