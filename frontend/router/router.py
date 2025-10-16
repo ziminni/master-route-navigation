@@ -2,241 +2,175 @@ from PyQt6.QtWidgets import QStackedWidget, QLabel, QVBoxLayout, QWidget
 from PyQt6.QtGui import QFont
 from utils.db_helper import NavigationDataHelper, get_path_for_main, get_path_for_modular
 from importlib import import_module
-import os
-import sys
+import os, sys
 
 class Router:
-    def __init__(self, user_role, user_session=None, on_logout=None):
-        # Ensure sys.path includes project root
+    def __init__(self, user_role: str | None, user_session: dict | None = None):
+        # sys.path: project root
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         if project_root not in sys.path:
             sys.path.append(project_root)
         print(f"Router: Added {project_root} to sys.path")
-        print(f"Router: sys.path: {sys.path}")
 
         self.stack = QStackedWidget()
         self.nav_helper = NavigationDataHelper(json_file="navbar.json")
-        self.user_role = user_role
-        self.user_session = user_session or {}  # Store session data
-        self.page_map = {}
+
+        self.user_session = user_session or {}
+        self.user_role = self._resolve_role(user_role)
+
+        self.page_map: dict[str, int] = {}
+        self.allowed_keys: set[str] = set()
+
         self._page_classes = self._build_page_classes()
         self._preload_pages()
-        self.on_logout = on_logout 
 
-    def request_full_logout(self):
-        if isinstance(self.user_session, dict):
-            self.user_session.clear()
-        self.user_role = ""
-        self.clear_pages()
-        if callable(self.on_logout):
-            self.on_logout()
+    # ---------- role from token (Module 7) ----------
+    def _resolve_role(self, fallback: str | None) -> str:
+        try:
+            from utils import session
+            role = session.get_role()
+            print(f"Router: role from token = {role}")
+            return role
+        except Exception as e:
+            print(f"Router: session.get_role() unavailable ({e}); using fallback = {fallback}")
+            if not fallback:
+                raise RuntimeError("No role available. Ensure token is set via utils.session.set_token().")
+            return fallback
 
-    def _build_page_classes(self):
-        """Parse navbar.json 'function' and use path helper methods to build {id_or_key: ClassObject} map."""
-        page_classes = {}
+    # ---------- imports ----------
+    def _build_page_classes(self) -> dict[str, type]:
+        page_classes: dict[str, type] = {}
 
-        # Handle parent
-        for parent in self.nav_helper.data["parents"]:
-            parent_name = parent["name"]
-            parent_id = parent["id"]
-            print(f"Router: Processing parent '{parent_name}' (ID: {parent_id})")
+        for parent in self.nav_helper.data.get("parents", []):
+            parent_id = parent.get("id")
+            print(f"Router: Processing parent ID {parent_id}")
 
-            # Handle mains
-            for main in parent["mains"]:
-                main_id = main["id"]
-                function_str = main["function"]
-                class_name = function_str.replace("()", "")
+            for main in parent.get("mains", []):
+                main_id = main.get("id")
+                func = (main.get("function") or "").replace("()", "")
                 module_path = get_path_for_main(main_id)
-                print(f"Router: Path for main ID {main_id} ({class_name}): {module_path}")
+                print(f"Router: main {main_id} -> {module_path}.{func}")
 
-                try:
-                    if module_path:
-                        file_path = module_path.replace(".", "/") + ".py"
-                        abs_file_path = os.path.abspath(file_path)
-                        print(f"Router: Attempting to import {module_path}, file: {abs_file_path}, exists: {os.path.exists(abs_file_path)}")
+                if module_path and func:
+                    try:
                         module = import_module(module_path)
-                        page_class = getattr(module, class_name)
-                        page_classes[f"main_{main_id}"] = page_class
-                        print(f"Router: Successfully imported {class_name} for main ID {main_id}")
-                    else:
-                        print(f"Router: No path found for main ID {main_id}, skipping {class_name}")
-                except (ImportError, AttributeError) as e:
-                    print(f"Router: Failed to import {class_name} from {module_path}: {e}")
+                        page_classes[f"main_{main_id}"] = getattr(module, func)
+                        print(f"Router: Imported class {func} for main_{main_id}")
+                    except Exception as e:
+                        print(f"Router: Import failed for main_{main_id}: {e}")
 
-                # Handle modulars
-                if "modulars" in main:  # Check for modulars key
-                    for modular in main["modulars"]:
-                        mod_id = modular["id"]
-                        function_str = modular.get("function", "")
-                        module_path = get_path_for_modular(mod_id)
-                        print(f"Router: Path for modular ID {mod_id}: {module_path}")
-                        if function_str and module_path:
-                            class_name = function_str.replace("()", "")
-                            try:
-                                file_path = module_path.replace(".", "/") + ".py"
-                                abs_file_path = os.path.abspath(file_path)
-                                print(f"Router: Attempting to import {module_path} for modular, file: {abs_file_path}, exists: {os.path.exists(abs_file_path)}")
-                                module = import_module(module_path)
-                                page_class = getattr(module, class_name)
-                                page_classes[f"mod_{main_id}_{mod_id}"] = page_class
-                                print(f"Router: Successfully imported {class_name} for modular ID {mod_id}")
-                            except (ImportError, AttributeError) as e:
-                                print(f"Router: Failed to import modular {class_name} from {module_path}: {e}")
-                else:
-                    print(f"Router: No 'modulars' key found for main ID {main_id}, skipping modulars")
+                # modulars
+                for modular in main.get("modulars", []):
+                    mod_id = modular.get("id")
+                    mfunc = (modular.get("function") or "").replace("()", "")
+                    mpath = get_path_for_modular(mod_id)
+                    print(f"Router: modular {mod_id} -> {mpath}.{mfunc}")
+
+                    if mpath and mfunc:
+                        try:
+                            module = import_module(mpath)
+                            page_classes[f"mod_{main_id}_{mod_id}"] = getattr(module, mfunc)
+                            print(f"Router: Imported class {mfunc} for mod_{main_id}_{mod_id}")
+                        except Exception as e:
+                            print(f"Router: Import failed for mod_{main_id}_{mod_id}: {e}")
 
         return page_classes
 
-    def _preload_pages(self):
-        # Default "Access Denied" page
-        access_denied_widget = self._create_default_widget("Access Denied", "You do not have permission to view this page.")
-        self.stack.addWidget(access_denied_widget)
-        self.page_map["access_denied"] = 0
-
-        # Valid roles for access
-        valid_roles = {"admin", "staff", "faculty", "student"}
-
-        # Load pages from navbar.json
-        for parent in self.nav_helper.data["parents"]:
-            for main in parent["mains"]:
-                main_id = main["id"]
-                access = main["access"]
-                name = main["name"]
-                key = f"main_{main_id}"
-                if (isinstance(access, str) and access == self.user_role and self.user_role in valid_roles) or \
-                (isinstance(access, list) and self.user_role in access and self.user_role in valid_roles):
-                    print(f"Router: Loading page {key} with access {access} for user_role {self.user_role}")
-                    page_class = self._page_classes.get(key)
-                    if page_class:
-                        # Pass user session data to dashboard initialization
-                        page = page_class(
-                            username=self.user_session.get("username", ""),
-                            roles=self.user_session.get("roles", []),
-                            primary_role=self.user_session.get("primary_role", ""),
-                            token=self.user_session.get("token", "")
-                        )
-                    else:
-                        page = self._create_default_widget(name, f"Page for {name}")
-                    index = self.stack.addWidget(page)
-                    self.page_map[key] = index
-                    print(f"Router: Added {key} to page_map at index {index}")
-
-                # Load modulars
-                if "modulars" in main:
-                    for modular in main["modulars"]:
-                        mod_id = modular["id"]
-                        mod_name = modular["name"]
-                        mod_key = f"mod_{main_id}_{mod_id}"
-                        if (isinstance(access, str) and access == self.user_role and self.user_role in valid_roles) or \
-                        (isinstance(access, list) and self.user_role in access and self.user_role in valid_roles):
-                            print(f"Router: Loading modular {mod_key} with access {access} for user_role {self.user_role}")
-                            page_class = self._page_classes.get(mod_key)
-                            if page_class:
-                                # Pass user session data to modulars
-                                page = page_class(
-                                    username=self.user_session.get("username", ""),
-                                    roles=self.user_session.get("roles", []),
-                                    primary_role=self.user_session.get("primary_role", ""),
-                                    token=self.user_session.get("token", "")
-                                )
-                            else:
-                                page = self._create_default_widget(mod_name, f"Sub-page for {mod_name}")
-                            index = self.stack.addWidget(page)
-                            self.page_map[mod_key] = index
-                            print(f"Router: Added {mod_key} to page_map at index {index}")
-
-    def navigate(self, page_id, is_modular=False, parent_main_id=None):
-        key = f"mod_{parent_main_id}_{page_id}" if is_modular else f"main_{page_id}"
-        index = self.page_map.get(key)
-        print(f"Router: Navigating to {key}, index: {index}, page_map: {self.page_map}")
-        if index is not None:
-            self.stack.setCurrentWidget(self.stack.widget(index))
-            
-        else:
-            missing_page = self._create_default_widget("⚠️ Missing Page", f"No page found for ID {key}")
-            index = self.stack.addWidget(missing_page)
-            self.page_map[key] = index
-            self.stack.setCurrentWidget(missing_page)
-
-    def clear_pages(self):
-        while self.stack.count() > 0:
-            widget = self.stack.widget(0)
-            self.stack.removeWidget(widget)
-            widget.deleteLater()
-        self.page_map.clear()
+    # ---------- preload allowed pages ----------
+    def _preload_pages(self) -> None:
+        # Access Denied baseline
         access_denied = self._create_default_widget("Access Denied", "You do not have permission to view this page.")
-        self.stack.addWidget(access_denied)
-        self.page_map["access_denied"] = 0
+        self.access_denied_index = self.stack.addWidget(access_denied)
+        self.page_map["access_denied"] = self.access_denied_index
 
-    def _create_default_widget(self, title, desc):
-        """Fallback widget if class not found."""
-        widget = QWidget()
-        layout = QVBoxLayout()
-        t = QLabel(title)
-        t.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        d = QLabel(desc)
-        d.setFont(QFont("Arial", 12))
-        layout.addWidget(t)
-        layout.addWidget(d)
-        layout.addStretch()
-        widget.setLayout(layout)
-        return widget
-    
-    def _resolve_login_class(self):
-        """Return LoginWidget class from common paths."""
-        candidates = [
-            # ("views.Users.Login.login", "LoginWidget"),
-            ("views.Login.login", "LoginWidget"),
-            # ("frontend.views.Users.Login.login", "LoginWidget"),
-            # ("frontend.views.Login.login", "LoginWidget"),
-        ]
-        for mod, cls in candidates:
+        role = self.user_role
+
+        for parent in self.nav_helper.data.get("parents", []):
+            for main in parent.get("mains", []):
+                main_id = main.get("id")
+                main_name = main.get("name", f"Main {main_id}")
+                if self._is_allowed(main.get("access"), role):
+                    key = f"main_{main_id}"
+                    page = self._instantiate_page(key, main_name, f"Page for {main_name}")
+                    idx = self.stack.addWidget(page)
+                    self.page_map[key] = idx
+                    self.allowed_keys.add(key)
+                    print(f"Router: Added {key} (idx {idx})")
+
+                # each modular uses its OWN access list
+                for modular in main.get("modulars", []):
+                    mod_id = modular.get("id")
+                    mod_name = modular.get("name", f"Mod {mod_id}")
+                    if self._is_allowed(modular.get("access"), role):
+                        mkey = f"mod_{main_id}_{mod_id}"
+                        page = self._instantiate_page(mkey, mod_name, f"Sub-page for {mod_name}")
+                        idx = self.stack.addWidget(page)
+                        self.page_map[mkey] = idx
+                        self.allowed_keys.add(mkey)
+                        print(f"Router: Added {mkey} (idx {idx})")
+
+    # ---------- helpers ----------
+    @staticmethod
+    def _is_allowed(access, role: str) -> bool:
+        # access may be list[str], str, or missing
+        if access is None:
+            return True  # treat missing as open; backend still enforces
+        if isinstance(access, str):
+            return access == role
+        if isinstance(access, list):
+            return role in access
+        return False
+
+    def _instantiate_page(self, key: str, title_fallback: str, desc_fallback: str) -> QWidget:
+        page_class = self._page_classes.get(key)
+        if page_class:
             try:
-                m = import_module(mod)
-                return getattr(m, cls)
-            except Exception:
-                continue
-        return None
+                return page_class(
+                    username=self.user_session.get("username", ""),
+                    roles=self.user_session.get("roles", []),
+                    primary_role=self.user_session.get("primary_role", ""),
+                    token=self.user_session.get("token", "")
+                )
+            except Exception as e:
+                print(f"Router: constructing {key} failed: {e}")
+        return self._create_default_widget(title_fallback, desc_fallback)
 
-    def go_to_login(self, clear_session=True):
-        """Show the login screen and handle re-entry on success."""
-        if clear_session and isinstance(self.user_session, dict):
-            self.user_session.clear()
-        self.user_role = ""
+    # ---------- navigation with guard ----------
+    def navigate(self, page_id: int, is_modular: bool = False, parent_main_id: int | None = None):
+        key = f"mod_{parent_main_id}_{page_id}" if is_modular else f"main_{page_id}"
+        print(f"Router: navigate -> {key}")
 
-        # wipe current stack
-        self.clear_pages()
-
-        LoginWidget = self._resolve_login_class()
-        if LoginWidget is None:
-            w = self._create_default_widget("Login", "Login module not found.")
-            idx = self.stack.addWidget(w)
-            self.page_map["login"] = idx
-            self.stack.setCurrentIndex(idx)
+        if key not in self.allowed_keys:
+            print(f"Router: {key} not allowed for role={self.user_role}. Deny.")
+            self.stack.setCurrentIndex(self.access_denied_index)
             return
 
-        login = LoginWidget()
+        idx = self.page_map.get(key)
+        if idx is None:
+            print(f"Router: {key} not preloaded. Deny.")
+            self.stack.setCurrentIndex(self.access_denied_index)
+            return
 
-        # if the widget emits login_successful(payload), rebuild pages
-        if hasattr(login, "login_successful"):
-            def _on_success(payload: dict):
-                user = payload.get("user", {})
-                self.user_session = {
-                    "username": user.get("username") or payload.get("username", ""),
-                    "roles": payload.get("roles", []),
-                    "primary_role": payload.get("primary_role") or user.get("primary_role", ""),
-                    "token": payload.get("access") or payload.get("access_token") or payload.get("token", ""),
-                }
-                self.user_role = self.user_session.get("primary_role", "")
-                self.clear_pages()
-                self._preload_pages()
-                # jump to first non-default page if any
-                for k, idx2 in self.page_map.items():
-                    if k != "access_denied":
-                        self.stack.setCurrentIndex(idx2)
-                        break
-            login.login_successful.connect(_on_success)
-
-        idx = self.stack.addWidget(login)
-        self.page_map["login"] = idx
         self.stack.setCurrentIndex(idx)
+
+    # ---------- maintenance ----------
+    def clear_pages(self):
+        while self.stack.count() > 0:
+            w = self.stack.widget(0)
+            self.stack.removeWidget(w)
+            w.deleteLater()
+        self.page_map.clear()
+        self.allowed_keys.clear()
+        access_denied = self._create_default_widget("Access Denied", "You do not have permission to view this page.")
+        self.access_denied_index = self.stack.addWidget(access_denied)
+        self.page_map["access_denied"] = self.access_denied_index
+
+    # ---------- default widget ----------
+    def _create_default_widget(self, title: str, desc: str) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout()
+        t = QLabel(title); t.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        d = QLabel(desc);  d.setFont(QFont("Arial", 12))
+        lay.addWidget(t); lay.addWidget(d); lay.addStretch()
+        w.setLayout(lay)
+        return w
