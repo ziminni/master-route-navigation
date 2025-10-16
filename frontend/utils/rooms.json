@@ -1,9 +1,0 @@
-{
-  "rooms": [
-    {"buildingId": "ENG", "name": "ENG-201", "capacity": 60},
-    {"buildingId": "ENG", "name": "ENG-105", "capacity": 40},
-    {"buildingId": "SCI", "name": "SCI-301", "capacity": 80},
-    {"buildingId": "LIB", "name": "LIB-ConfA", "capacity": 20}
-  ]
-}
-

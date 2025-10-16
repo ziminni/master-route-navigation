@@ -1,8 +1,0 @@
-{
-  "buildings": [
-    {"id": "ENG", "name": "Engineering Building"},
-    {"id": "SCI", "name": "Science Hall"},
-    {"id": "LIB", "name": "Library"}
-  ]
-}
-

@@ -1,1 +1,0 @@
-#Dialog setting for grading system
