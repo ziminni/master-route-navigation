@@ -8,6 +8,7 @@ class JSONCRUD:
 
     def _ensure_file_exists(self):
         """Create an empty JSON file if it doesn't exist."""
+        os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
         if not os.path.exists(self.file_path):
             with open(self.file_path, 'w') as f:
                 json.dump([], f)
