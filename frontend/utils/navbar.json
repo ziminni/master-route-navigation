@@ -114,10 +114,10 @@
         {
           "id": 12,
           "name": "Showcase",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
+          "function": "ShowcaseRouter()",
+          "path": "views.Showcase.Showcase",
+          "access": ["admin","faculty","staff","student"],
+          "modulars": []
         }
       ]
     },
