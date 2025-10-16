@@ -1,0 +1,26 @@
+{
+  "members": [
+    { "name": "Jan Eduard B. Sanchez", "role": "House Leader", "avatar": "man1.png" },
+    { "name": "Shauntie Velasco", "role": "Vice-House Leader", "avatar": "woman1.png" },
+    { "name": "Kyrie Angelo Santos", "role": "Secretary", "avatar": "woman2.png" },
+    { "name": "Enzo Gabriel Ortega", "role": "Member", "avatar": "man1.png" },
+    { "name": "Kobe Adrian Cruz", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Eliana Rose Bautista", "role": "Member", "avatar": "woman2.png" },
+    { "name": "Avery Nicole Velasco", "role": "Member", "avatar": "man1.png" },
+    { "name": "Neo Adrian Castillo", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Jaden Isaiah Cruz", "role": "Member", "avatar": "woman2.png" },
+    { "name": "Luna Faye Ramirez", "role": "Member", "avatar": "man1.png" },
+    { "name": "Enzo Miguel Gutierrez", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Liam Gabriel Santos", "role": "Member", "avatar": "woman2.png" },
+    { "name": "Theo Rafael Mendoza", "role": "Member", "avatar": "man1.png" },
+    { "name": "Ezekiel Zeke Ramirez", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Alicia Mae Cruz", "role": "Member", "avatar": "woman2.png" },
+    { "name": "Randy Paul Delos", "role": "Member", "avatar": "man1.png" },
+    { "name": "Marisol Carreon", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Gabe Santillan", "role": "Member", "avatar": "woman2.png" },
+    { "name": "Jaden Elijah Ramos", "role": "Member", "avatar": "man1.png" },
+    { "name": "Bella Ysabel Torres", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Jiro Lorenzo Aguilar", "role": "Member", "avatar": "man1.png" },
+    { "name": "Julian Mateo Ortega", "role": "Member", "avatar": "man1.png" }
+  ]
+}

@@ -1,18 +1,19 @@
 import os
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QScrollArea, QWidget, QSizePolicy
 from utils.db_helper import get_all_parents, get_main_by_parent, get_modular_by_main, get_access_level
 
 class CollapsibleSection(QFrame):
     def __init__(self, icon, text, router, user_role, parent_sidebar=None,
-                sub_indent=20, sub_spacing=2, sub_button_padding=8):
+                 sub_indent=20, sub_spacing=2, sub_button_padding=8):
         super().__init__()
         self.router = router
         self.user_role = user_role
         self.parent_sidebar = parent_sidebar
         self.is_open = False
         self.sub_items = []
-        self.full_button_text = f"{icon}  {text}"
+        self.full_button_text = f"{text}"
         self.icon = icon
         self.sub_button_padding = sub_button_padding
 
@@ -23,13 +24,15 @@ class CollapsibleSection(QFrame):
         self.main_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.main_btn.setObjectName("sectionMainButton")
         self.main_btn.clicked.connect(self.toggle)
-        # Set button text based on sidebar collapse state
+        # Set button icon and text based on sidebar collapse state
         if self.parent_sidebar and self.parent_sidebar.is_collapsed:
-            self.main_btn.setText(self.icon)
-            print(f"CollapsibleSection: Set button text to icon '{self.icon}' for collapsed sidebar")
+            self.main_btn.setIcon(self.icon)
+            self.main_btn.setText("")
+            print(f"CollapsibleSection: Set button icon only for collapsed sidebar")
         else:
+            self.main_btn.setIcon(self.icon)
             self.main_btn.setText(self.full_button_text)
-            print(f"CollapsibleSection: Set button text to '{self.full_button_text}'")
+            print(f"CollapsibleSection: Set button icon and text to '{self.full_button_text}'")
 
         # Sub-Items Container
         self.sub_container = QFrame()
@@ -49,7 +52,7 @@ class CollapsibleSection(QFrame):
                 for main_id, main_name, _, access, _ in mains:
                     # Check if user_role is in access (string or list)
                     if (isinstance(access, str) and (access == self.user_role or self.user_role == "super_admin")) or \
-                    (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
+                       (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
                         print(f"CollapsibleSection: Adding main '{main_name}' (ID: {main_id}) to section '{text}'")
 
                         # Container for the sub-item row
@@ -108,23 +111,26 @@ class CollapsibleSection(QFrame):
         else:
             self.is_open = not self.is_open
             self.sub_container.setVisible(self.is_open)
-            print(f"CollapsibleSection: Toggled section '{self.main_btn.text()}' to {'open' if self.is_open else 'closed'}")
+            print(f"CollapsibleSection: Toggled section '{self.full_button_text}' to {'open' if self.is_open else 'closed'}")
 
     def open(self):
         self.is_open = True
         self.sub_container.setVisible(True)
         self.main_btn.setText(self.full_button_text)
-        print(f"CollapsibleSection: Opened section, set text to '{self.full_button_text}'")
+        self.main_btn.setIcon(self.icon)
+        print(f"CollapsibleSection: Opened section, set text to '{self.full_button_text}' and icon")
 
     def close(self):
         self.is_open = False
         self.sub_container.setVisible(False)
         if self.parent_sidebar.is_collapsed:
-            self.main_btn.setText(self.icon)
-            print(f"CollapsibleSection: Closed section, set text to icon '{self.icon}'")
+            self.main_btn.setText("")
+            self.main_btn.setIcon(self.icon)
+            print(f"CollapsibleSection: Closed section, set icon only for collapsed sidebar")
         else:
             self.main_btn.setText(self.full_button_text)
-            print(f"CollapsibleSection: Closed section, set text to '{self.full_button_text}'")
+            self.main_btn.setIcon(self.icon)
+            print(f"CollapsibleSection: Closed section, set text to '{self.full_button_text}' and icon")
 
     def show_house_system_popup(self, button, modulars, main_id):
         menu = QMenu(self)
@@ -142,6 +148,9 @@ class CollapsibleSection(QFrame):
         menu.exec(QPoint(popup_x, popup_y))
 
 class Sidebar(QFrame):
+    # CRITICAL FIX: Add signal to notify when sidebar is toggled
+    toggled = pyqtSignal(bool)  # Emits True when collapsed, False when expanded
+    
     def __init__(self, router, user_role):
         super().__init__()
         self.is_collapsed = True  # Start collapsed
@@ -222,18 +231,25 @@ class Sidebar(QFrame):
                 for _, _, _, access, _ in mains
             )
             if has_accessible_main:
-                icon_map = {
-                    "Dashboard": "🏠",
-                    "Academics": "📚", 
-                    "Organizations": "👥",
-                    "Campus": "🏫",
-                }
-                icon = icon_map.get(parent_name, "🛠️")
+                project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+                icon_path = os.path.join(project_root, "frontend", "assets", "images", "sidebar", f"{parent_name.lower().replace(' ', '_')}_icon.png")
+                default_icon_path = os.path.join(project_root, "frontend", "assets", "images", "sidebar", "default_icon.png")
+
+                if os.path.exists(icon_path):
+                    icon = QIcon(QPixmap(icon_path).scaled(34, 34, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                    print(f"Sidebar: Found icon at {icon_path}")
+                else:
+                    print(f"Sidebar: Icon not found at {icon_path}, using default")
+                    if os.path.exists(default_icon_path):
+                        icon = QIcon(QPixmap(default_icon_path).scaled(34, 34, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                    else:
+                        icon = QIcon()
+                        print(f"Sidebar: Default icon not found at {default_icon_path}")
 
                 section = CollapsibleSection(icon, parent_name, self.router, self.user_role, self)
                 self.sections.append(section)
                 self.content_layout.addWidget(section)
-                print(f"Sidebar: Added section '{parent_name}' with icon '{icon}'")
+                print(f"Sidebar: Added section '{parent_name}' with icon")
 
         self.content_layout.addStretch()
 
@@ -282,7 +298,7 @@ class Sidebar(QFrame):
                 #sidebarHeaderLabel { background: transparent; color: #333333; font-size: 16px; font-weight: bold; }
                 #toggleButton { background: transparent; color: #333; font-size: 18px; border-radius: 6px; }
                 #toggleButton:hover { background: rgba(51,51,51,0.1); }
-                #sectionMainButton { color: white; text-align: left; padding: 10px; }
+                #sectionMainButton { color: white; text-align: left; padding: 10px; qproperty-iconSize: 34px 34px; }
                 #subContainer { background: transparent; }
                 #subRowContainer { background: transparent; }
                 #subMainButton { color: white; text-align: left; }
@@ -295,6 +311,7 @@ class Sidebar(QFrame):
             self.setStyleSheet("#sidebarMain { background: #1e4d2b; }")
 
     def toggleDrawer(self, force_open=False):
+        """FIXED: Toggle sidebar and emit signal to LayoutManager"""
         if self.is_collapsed or force_open:
             # Expand
             self.setFixedWidth(280)
@@ -303,7 +320,12 @@ class Sidebar(QFrame):
             for section in self.sections:
                 section.close()
                 section.main_btn.setText(section.full_button_text)
+                section.main_btn.setIcon(section.icon)
             print("Sidebar: Expanded")
+            
+            # Emit signal to LayoutManager
+            self.toggled.emit(False)  # False = expanded
+            
         else:
             # Collapse
             self.setFixedWidth(70)
@@ -311,8 +333,12 @@ class Sidebar(QFrame):
             self.header_label.setVisible(False)
             for section in self.sections:
                 section.close()
-                section.main_btn.setText(section.icon)
+                section.main_btn.setText("")
+                section.main_btn.setIcon(section.icon)
             print("Sidebar: Collapsed")
+            
+            # Emit signal to LayoutManager
+            self.toggled.emit(True)  # True = collapsed
 
         # Notify parent to update layout
         self.updateGeometry()
