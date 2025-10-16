@@ -4,7 +4,7 @@ __pycache__/
 db.sqlite3
 *.sqlite3
 
-backend/migrations/001_initial.py
+backend/migrations/0001_initial.py
 
 # ==========Module 12 - Document Vault and Form Repository==========
 frontend/views/Documents/FileStorage/**/*
