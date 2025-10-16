@@ -1,0 +1,45 @@
+/* Module 3 (Academic Schedule) Stylesheet */
+
+QWidget {
+    background-color: #f6fbf8; /* soft neutral to pair with primary green */
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    color: #222;
+}
+
+QHeaderView::section {
+    background-color: #def0e6; /* pale green header */
+    color: #084924; /* primary */
+    font-weight: bold;
+    border: 1px solid #b6dec9; /* green-tinted border */
+}
+
+QTableWidget {
+    gridline-color: #b6dec9;
+    selection-background-color: #cfeede; /* soft green selection */
+    selection-color: #222;
+}
+
+QPushButton {
+    background-color: #084924; /* primary */
+    color: white;
+    border-radius: 5px;
+    padding: 5px 15px;
+    font-weight: 500;
+}
+QPushButton:hover {
+    background-color: #0b6132; /* slightly lighter/different green for hover */
+}
+
+QLineEdit, QComboBox, QDateEdit, QTimeEdit, QDoubleSpinBox {
+    border: 1px solid #b6dec9;
+    border-radius: 4px;
+    padding: 3px 6px;
+    background: #fff;
+}
+
+QLabel[role="header"] {
+    font-size: 18px;
+    font-weight: bold;
+    color: #084924;
+}
