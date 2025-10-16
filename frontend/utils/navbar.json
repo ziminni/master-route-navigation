@@ -59,9 +59,9 @@
         {
           "id": 6,
           "name": "Browse",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin","faculty"],
+          "function": "Browse()",
+          "path": "views.Organizations.browse",
+          "access": ["student","admin", "faculty"],
           "modulars":[]
         },
         {
