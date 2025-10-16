@@ -1,9 +1,5 @@
 from PyQt6 import QtCore, QtWidgets
-<<<<<<< Updated upstream
 from .recipient_dialog import RecipientDialog  # generated from recipient_dialog.ui
-=======
-from .recipient_dialog import RecipientDialog   # generated from recipient_dialog.ui
->>>>>>> Stashed changes
 
 
 # ============================
@@ -46,49 +42,31 @@ class Ui_InquiryDialog(object):
         self.push_admin = QtWidgets.QRadioButton("Administrative")
         self.push_tech = QtWidgets.QRadioButton("Technical")
         self.push_gen = QtWidgets.QRadioButton("General")
-<<<<<<< Updated upstream
+        self.push_acad.setStyleSheet("color: black")
+        self.push_admin.setStyleSheet("color: black")
+        self.push_gen.setStyleSheet("color: black")
+        self.push_tech.setStyleSheet("color: black")
         self.push_gen.setChecked(True)
-=======
-        self.push_acad.setStyleSheet("color: black;")
-        self.push_admin.setStyleSheet("color: black;")
-        self.push_tech.setStyleSheet("color: black;")
-        self.push_gen.setStyleSheet("color: black;")
-
-        
-        # Set default selection
-        self.push_gen.setChecked(True)
-        
->>>>>>> Stashed changes
         self.type_layout.addWidget(self.push_acad, 0, 0)
         self.type_layout.addWidget(self.push_tech, 0, 1)
         self.type_layout.addWidget(self.push_admin, 1, 0)
         self.type_layout.addWidget(self.push_gen, 1, 1)
         self.form_layout.addLayout(self.type_layout)
 
-<<<<<<< Updated upstream
-        # # Recipient
-        # self.label_to = QtWidgets.QLabel("Send to")
-        # self.form_layout.addWidget(self.label_to)
-=======
         # Recipient
         self.label_to = QtWidgets.QLabel("Send to")
+        self.label_to.setStyleSheet("color: black")
         self.form_layout.addWidget(self.label_to)
-        self.label_to.setStyleSheet("color: black;")
->>>>>>> Stashed changes
 
         self.recipient_layout = QtWidgets.QHBoxLayout()
         self.search_recipt = QtWidgets.QLineEdit()
         self.search_recipt.setPlaceholderText("Enter recipient...")
-<<<<<<< Updated upstream
+        self.search_recipt.setStyleSheet("color: black")
         self.search_recipt.setReadOnly(True)
 
         # self.recipient_label = QtWidgets.QLabel("No recipient selected")
         # self.recipient_label.setStyleSheet("font-weight: bold; color: #084924;")
 
-=======
-
-        # partial push button no icons yet
->>>>>>> Stashed changes
         self.btn_select_recipient = QtWidgets.QPushButton("△")
         self.btn_select_recipient.setStyleSheet("""
             QPushButton {
@@ -97,25 +75,13 @@ class Ui_InquiryDialog(object):
                 border: none;
                 font-size: 20px;
             }
-<<<<<<< Updated upstream
             QPushButton:hover { color: #005a2e; }
             QPushButton:pressed { color: #002d17; }
-=======
-            QPushButton:hover {
-                color: #005a2e;
-            }
-            QPushButton:pressed {
-                color: #002d17;
-            }
->>>>>>> Stashed changes
         """)
         self.btn_select_recipient.setToolTip("Select Recipient")
 
         self.recipient_layout.addWidget(self.search_recipt)
-<<<<<<< Updated upstream
         # self.recipient_layout.addWidget(self.recipient_label)
-=======
->>>>>>> Stashed changes
         self.recipient_layout.addWidget(self.btn_select_recipient)
         self.form_layout.addLayout(self.recipient_layout)
 
@@ -125,17 +91,11 @@ class Ui_InquiryDialog(object):
         self.checkBox = QtWidgets.QRadioButton("Normal")
         self.checkBox_2 = QtWidgets.QRadioButton("High")
         self.checkBox_3 = QtWidgets.QRadioButton("Urgent")
-<<<<<<< Updated upstream
+        self.checkBox.setStyleSheet("color: black")
+        self.checkBox_2.setStyleSheet("color: black")
+        self.checkBox_3.setStyleSheet("color: black")
+        self.label_priority.setStyleSheet("color: black")
         self.checkBox.setChecked(True)
-=======
-        self.checkBox.setStyleSheet("color: black;")
-        self.checkBox_2.setStyleSheet("color: black;")
-        self.checkBox_3.setStyleSheet("color: black;")
-        
-        # Set default selection
-        self.checkBox.setChecked(True)
-        
->>>>>>> Stashed changes
         self.priority_layout.addWidget(self.checkBox)
         self.priority_layout.addWidget(self.checkBox_2)
         self.priority_layout.addWidget(self.checkBox_3)
@@ -144,27 +104,17 @@ class Ui_InquiryDialog(object):
 
         # Subject
         self.label_sub = QtWidgets.QLabel("Subject")
+        self.label_sub.setStyleSheet("color: black")
         self.search_sub = QtWidgets.QLineEdit()
-<<<<<<< Updated upstream
+        self.search_sub.setStyleSheet("color: black")
         self.form_layout.addWidget(self.label_sub)
         self.form_layout.addWidget(self.search_sub)
 
         # Message
         self.label_msg = QtWidgets.QLabel("Detailed message")
+        self.label_msg.setStyleSheet("color: black")
         self.search_msg = QtWidgets.QTextEdit()
-=======
-        self.label_sub.setStyleSheet("color: black;")
-
-        self.form_layout.addWidget(self.label_sub)
-        self.form_layout.addWidget(self.search_sub)
-
-
-        # Message
-        self.label_msg = QtWidgets.QLabel("Detailed message")
-        self.search_msg = QtWidgets.QLineEdit()
-        self.label_msg.setStyleSheet("color: black;")
-
->>>>>>> Stashed changes
+        self.search_msg.setStyleSheet("color: black")
         self.form_layout.addWidget(self.label_msg)
         self.form_layout.addWidget(self.search_msg)
 
@@ -181,37 +131,43 @@ class Ui_InquiryDialog(object):
         self.checkBox_4 = QtWidgets.QCheckBox("Request read receipt")
         self.checkBox_5 = QtWidgets.QCheckBox("Send copy to my email")
         self.checkBox_6 = QtWidgets.QCheckBox("Mark as confidential")
-<<<<<<< Updated upstream
-=======
-        self.label_opts.setStyleSheet("color: black;")
-        self.checkBox_4.setStyleSheet("color: black;")
-        self.checkBox_5.setStyleSheet("color: black;")
-        self.checkBox_6.setStyleSheet("color: black;")
-
->>>>>>> Stashed changes
+        self.label_opts.setStyleSheet("color: black")
+        self.checkBox_4.setStyleSheet("color: black")
+        self.checkBox_5.setStyleSheet("color: black")
+        self.checkBox_6.setStyleSheet("color: black")
         self.form_layout.addWidget(self.label_opts)
         self.form_layout.addWidget(self.checkBox_4)
         self.form_layout.addWidget(self.checkBox_5)
         self.form_layout.addWidget(self.checkBox_6)
 
-<<<<<<< Updated upstream
         # Bottom Buttons
-=======
-        # Bottom Buttons (Cancel / Create)
->>>>>>> Stashed changes
         self.button_layout = QtWidgets.QHBoxLayout()
         self.button_cancel = QtWidgets.QPushButton("Cancel")
         self.button_create = QtWidgets.QPushButton("Create")
+        self.button_cancel.setStyleSheet("""
+            QPushButton {
+                background-color: #f0f0f0;
+                color: #333;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                padding: 5px 15px;
+                                         }
+        """)
+        self.button_create.setStyleSheet("""
+            QPushButton {
+                background-color: #f0f0f0;
+                color: #333;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                padding: 5px 15px;
+                                         }
+        """)
         self.button_layout.addStretch(1)
         self.button_layout.addWidget(self.button_cancel)
         self.button_layout.addWidget(self.button_create)
         self.form_layout.addLayout(self.button_layout)
 
-<<<<<<< Updated upstream
         # Add the card to main layout
-=======
-        # Add the form card to the main layout
->>>>>>> Stashed changes
         self.main_layout.addWidget(self.inquiry_widget)
 
 
@@ -219,7 +175,7 @@ class Ui_InquiryDialog(object):
 # Inquiry Dialog Wrapper
 # ============================
 class InquiryDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, current_user_id=2):
         super().__init__(parent)
         self.ui = Ui_InquiryDialog()
         self.ui.setupUi(self)
@@ -235,12 +191,12 @@ class InquiryDialog(QtWidgets.QDialog):
         # Connect buttons
         self.ui.button_cancel.clicked.connect(self.reject)
         self.ui.button_create.clicked.connect(self.create_inquiry)
-<<<<<<< Updated upstream
         self.ui.btn_select_recipient.clicked.connect(self.open_recipient_dialog)
 
         # Initialize data
         self.inquiry_data = None
         self.recipient = None
+        self.current_user_id = current_user_id  # Placeholder for actual user context
 
     # ----------------------------
     # # Recipient Methods
@@ -258,31 +214,12 @@ class InquiryDialog(QtWidgets.QDialog):
             selected = dialog.get_selected_recipient()
             if selected:
                 self.set_recipient(selected)
-=======
-
-        # ✅ Connect recipient selector button
-        self.ui.btn_select_recipient.clicked.connect(self.open_recipient_dialog)
-        
-        # Initialize inquiry data
-        self.inquiry_data = None
-
-    def open_recipient_dialog(self):
-        print("🧪 Opening recipient dialog...")  # DEBUG LOG
-        dialog = RecipientDialog(self)
-        print("✅ Dialog created")
-        if dialog.exec():
-            selected = dialog.get_selected_recipient()
-            if selected:
-                self.ui.search_recipt.setText(selected['name'])
-                self.selected_recipient = selected
->>>>>>> Stashed changes
                 print("✅ Recipient selected:", selected)
             else:
                 QtWidgets.QMessageBox.warning(self, "No Selection", "Please select a recipient.")
         else:
             print("❌ Recipient dialog canceled")
 
-<<<<<<< Updated upstream
     # ----------------------------
     # Inquiry Data Methods
     # ----------------------------
@@ -296,73 +233,49 @@ class InquiryDialog(QtWidgets.QDialog):
         message = self.ui.search_msg.toPlainText().strip()
         if not subject or not message:
             QtWidgets.QMessageBox.warning(self, "Validation Error",
-                                          "Please fill in all required fields (Subject, Message)")
+                                        "Please fill in all required fields (Subject, Message)")
             return
 
+       # Determine correct role-based key
+        recipient_role = self.recipient.get('role')
+        recipient_id = self.recipient.get('id')
+
+        # Dynamically assign recipient based on role
+        recipient_field = None
+        if recipient_role == 'faculty':
+            recipient_field = 'faculty_id'
+        elif recipient_role == 'staff':
+            recipient_field = 'staff_id'
+        elif recipient_role == 'admin':
+            recipient_field = 'admin_id'
+        else:
+            QtWidgets.QMessageBox.warning(self, "Invalid Recipient", "Selected recipient has an unsupported role.")
+            return
+
+        # Create the inquiry data
         self.inquiry_data = {
-            'student_id': 1,  # replace with actual current user
-            'faculty_id': self.recipient['id'],
+            'student_id': self.current_user_id,
+            recipient_field: recipient_id,  # ✅ dynamically set key here
             'inquiry_type': self.get_selected_inquiry_type(),
             'subject': subject,
             'description': message,
             'priority': self.get_selected_priority(),
             'status': 'pending'
         }
+
         self.accept()
+
 
     def get_inquiry_data(self):
         return self.inquiry_data
 
     def get_selected_inquiry_type(self):
-=======
-
-    
-    def create_inquiry(self):
-        """Create inquiry with data from the form"""
-        # Get form data
-        inquiry_type = self.get_selected_inquiry_type()
-        recipient_name = self.ui.search_recipt.text().strip()
-        priority = self.get_selected_priority()
-        subject = self.ui.search_sub.text().strip()
-        message = self.ui.search_msg.text().strip()
-        
-        # Validate required fields
-        if not recipient_name or not subject or not message:
-            QtWidgets.QMessageBox.warning(self, "Validation Error", 
-                                        "Please fill in all required fields (Recipient, Subject, Message)")
-            return
-        
-        # For now, we'll use a default faculty ID (you can enhance this later)
-        faculty_id = 2  # Dr. Maria Santos
-        
-        # Create inquiry data
-        self.inquiry_data = {
-            'student_id': 1,  # Current user (you can get this from parent)
-            'faculty_id': faculty_id,
-            'inquiry_type': inquiry_type,
-            'subject': subject,
-            'description': message,
-            'priority': priority,
-            'status': 'pending'
-        }
-        
-        # Accept the dialog
-        self.accept()
-    
-    def get_inquiry_data(self):
-        """Return the inquiry data for the parent to use"""
-        return self.inquiry_data
-    
-    def get_selected_inquiry_type(self):
-        """Get the selected inquiry type from the buttons"""
->>>>>>> Stashed changes
         if self.ui.push_acad.isChecked():
             return 'academic'
         elif self.ui.push_admin.isChecked():
             return 'administrative'
         elif self.ui.push_tech.isChecked():
             return 'technical'
-<<<<<<< Updated upstream
         else:
             return 'general'
 
@@ -373,19 +286,3 @@ class InquiryDialog(QtWidgets.QDialog):
             return 'high'
         else:
             return 'normal'
-=======
-        elif self.ui.push_gen.isChecked():
-            return 'general'
-        else:
-            return 'general'  # Default
-    
-    def get_selected_priority(self):
-        """Get the selected priority from the checkboxes"""
-        if self.ui.checkBox_3.isChecked():  # Urgent
-            return 'urgent'
-        elif self.ui.checkBox_2.isChecked():  # High
-            return 'high'
-        else:  # Normal (default)
-            return 'normal'
-
->>>>>>> Stashed changes

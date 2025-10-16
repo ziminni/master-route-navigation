@@ -1,5 +1,4 @@
 {
-<<<<<<< Updated upstream
   "users": [
     {
       "id": 1,
@@ -51,21 +50,103 @@
       "avatar": "images/faculty1.png"
     }
   ],
-  "messages": [],
+  "messages": [
+    {
+      "conversation_id": 1,
+      "sender_id": 2,
+      "content": "[New Inquiry] aewqeq: qweqweqw",
+      "timestamp": "2025-10-16T12:03:24.014591",
+      "status": "unread"
+    },
+    {
+      "conversation_id": 2,
+      "sender_id": 2,
+      "content": "[New Inquiry] wqeqwqw: qweqwewqeq",
+      "timestamp": "2025-10-16T12:03:41.234238",
+      "status": "unread"
+    },
+    {
+      "conversation_id": 3,
+      "sender_id": 2,
+      "content": "[New Inquiry] asdadas: asdasdas",
+      "timestamp": "2025-10-16T12:11:17.061542",
+      "status": "unread"
+    }
+  ],
   "inquiries": [
-   
+    {
+      "student_id": 2,
+      "staff_id": 3,
+      "inquiry_type": "general",
+      "subject": "aewqeq",
+      "description": "qweqweqw",
+      "priority": "normal",
+      "status": "pending",
+      "id": 1,
+      "created_at": "2025-10-16T12:03:24.014591",
+      "updated_at": "2025-10-16T12:03:24.014620",
+      "conversation_id": 1
+    },
+    {
+      "student_id": 2,
+      "admin_id": 1,
+      "inquiry_type": "general",
+      "subject": "wqeqwqw",
+      "description": "qweqwewqeq",
+      "priority": "normal",
+      "status": "pending",
+      "id": 2,
+      "created_at": "2025-10-16T12:03:41.234238",
+      "updated_at": "2025-10-16T12:03:41.234248",
+      "conversation_id": 2
+    },
+    {
+      "student_id": 2,
+      "faculty_id": 4,
+      "inquiry_type": "general",
+      "subject": "asdadas",
+      "description": "asdasdas",
+      "priority": "normal",
+      "status": "pending",
+      "id": 3,
+      "created_at": "2025-10-16T12:11:17.061542",
+      "updated_at": "2025-10-16T12:11:17.061567",
+      "conversation_id": 3
+    }
   ],
   "notifications": [],
   "conversations": [
-    
+    {
+      "id": 1,
+      "participants": [
+        2,
+        3
+      ],
+      "title": "aewqeq",
+      "created_at": "2025-10-16T12:03:24.014591",
+      "updated_at": "2025-10-16T12:03:24.014620"
+    },
+    {
+      "id": 2,
+      "participants": [
+        2,
+        1
+      ],
+      "title": "wqeqwqw",
+      "created_at": "2025-10-16T12:03:41.234238",
+      "updated_at": "2025-10-16T12:03:41.234248"
+    },
+    {
+      "id": 3,
+      "participants": [
+        2,
+        4
+      ],
+      "title": "asdadas",
+      "created_at": "2025-10-16T12:11:17.061542",
+      "updated_at": "2025-10-16T12:11:17.061567"
+    }
   ],
-=======
-  "users": [],
-  "messages": [],
-  "inquiries": [],
-  "notifications": [],
-  "conversations": [],
->>>>>>> Stashed changes
   "departments": [
     {
       "id": 1,
@@ -84,15 +165,12 @@
       "name": "Information Systems",
       "code": "IS",
       "description": "Department of Information Systems and Management"
-<<<<<<< Updated upstream
     },
     {
       "id": 4,
       "name": "Administration",
       "code": "ADM",
       "description": "University Administrative Department"
-=======
->>>>>>> Stashed changes
     }
   ],
   "message_categories": [

@@ -38,10 +38,10 @@ class MainChatWidget(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Policy.Expanding
         )
         self.ui.message_widget.setStyleSheet("""
-            QWidget#message_widget {
+             QWidget#message_widget {
                 background-color: white;
-                border-radius: 0px;
-                border: none;
+                border-radius: 10px;
+                border: 1px solid #ccc;
                 padding: 10px;
             }
         """)

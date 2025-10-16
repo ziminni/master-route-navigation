@@ -135,15 +135,9 @@
         {
           "id": 14,
           "name": "Messages",
-<<<<<<< Updated upstream
           "function": "LauncherWindow()",
           "path": "views.Messaging.launcher",
           "access": ["student","faculty","admin"],
-=======
-          "function": "MessagingWidget()",
-          "path": "views.Messaging.msg_main",
-          "access": ["student","admin","faculty","staff"],
->>>>>>> Stashed changes
           "modulars":[]
         },
         {

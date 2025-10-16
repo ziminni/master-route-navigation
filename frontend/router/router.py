@@ -7,7 +7,6 @@ import sys
 
 class Router:
     def __init__(self, user_role, user_session=None):
-        print("Gwapo")
         # Ensure sys.path includes project root
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         if project_root not in sys.path:
@@ -22,7 +21,6 @@ class Router:
         self.page_map = {}
         self._page_classes = self._build_page_classes()
         self._preload_pages()
-       
 
     def _build_page_classes(self):
         """Parse navbar.json 'function' and use path helper methods to build {id_or_key: ClassObject} map."""
@@ -139,7 +137,6 @@ class Router:
                             print(f"Router: Added {mod_key} to page_map at index {index}")
 
     def navigate(self, page_id, is_modular=False, parent_main_id=None):
-
         key = f"mod_{parent_main_id}_{page_id}" if is_modular else f"main_{page_id}"
         index = self.page_map.get(key)
         print(f"Router: Navigating to {key}, index: {index}, page_map: {self.page_map}")

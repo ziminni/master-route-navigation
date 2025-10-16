@@ -7,6 +7,8 @@
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtGui import QIcon  # Required for setting icons
+from pathlib import Path
+
 
 
 class Ui_MainWindow(object):
@@ -58,10 +60,12 @@ class Ui_MainWindow(object):
 
         header_row.addLayout(header_left)
         header_row.addStretch()
+        BASE_DIR = Path(__file__).resolve().parent
+        ICON_DIR = BASE_DIR / "images"
 
         # toolButton with icon (dots.png)
         self.toolButton = QtWidgets.QToolButton(parent=self.message_widget)
-        self.toolButton.setIcon(QIcon("images/dots.png"))
+        self.toolButton.setIcon(QIcon(str(ICON_DIR / "dots.png")))
         self.toolButton.setIconSize(QtCore.QSize(24, 24))
         self.toolButton.setObjectName("toolButton")
         header_row.addWidget(self.toolButton)
@@ -99,14 +103,14 @@ class Ui_MainWindow(object):
 
         # Attachments button with icon
         self.button_attachments = QtWidgets.QToolButton(parent=self.message_widget)
-        self.button_attachments.setIcon(QIcon("images/open-folder.png"))
+        self.button_attachments.setIcon(QIcon(str(ICON_DIR / "open-folder.png")))
         self.button_attachments.setIconSize(QtCore.QSize(24, 24))
         self.button_attachments.setObjectName("button_attachments")
         input_row.addWidget(self.button_attachments)
 
         # Link button with icon
         self.button_link = QtWidgets.QToolButton(parent=self.message_widget)
-        self.button_link.setIcon(QIcon("images/link.png"))
+        self.button_link.setIcon(QIcon(str(ICON_DIR / "link.png")))
         self.button_link.setIconSize(QtCore.QSize(24, 24))
         self.button_link.setObjectName("button_link")
         input_row.addWidget(self.button_link)
@@ -137,7 +141,7 @@ class Ui_MainWindow(object):
 
         # Send button with icon
         self.button_send = QtWidgets.QToolButton(parent=self.message_widget)
-        self.button_send.setIcon(QIcon("images/send.png"))
+        self.button_send.setIcon(QIcon(str(ICON_DIR / "send.png")))
         self.button_send.setIconSize(QtCore.QSize(24, 24))
         self.button_send.setObjectName("button_send")
         input_row.addWidget(self.button_send)
@@ -170,11 +174,3 @@ class Ui_MainWindow(object):
         self.button_send.setText(_translate("MainWindow", ""))
 
 
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec())

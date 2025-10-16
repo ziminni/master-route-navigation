@@ -34,6 +34,7 @@ class RecipientDialog(QtWidgets.QDialog):
             self.accept()
         else:
             QtWidgets.QMessageBox.warning(self, "No Selection", "Please select a recipient first.")
+            
 
     def get_selected_recipient(self):
         return self.selected_recipient
@@ -47,8 +48,8 @@ class Ui_Form(object):
         self.header_widget.setGeometry(QtCore.QRect(10, 10, 371, 41))
         self.header_widget.setStyleSheet("""
             QWidget#header_widget {
-                background-color: #084924;
-                color: white;
+                background-color: #transparent;
+                color: black;
                 padding: 10px;
                 font-size: 16px;
                 font-family: "Poppins";
@@ -58,11 +59,14 @@ class Ui_Form(object):
 
         self.recipient_label = QtWidgets.QLabel(parent=self.header_widget)
         self.recipient_label.setGeometry(QtCore.QRect(10, -10, 300, 61))
+
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(14)
         self.recipient_label.setFont(font)
         self.recipient_label.setText("Select Recipient...")
+        self.recipient_label.setObjectName("recipient_label")
+        self.recipient_label.setStyleSheet("color: black;")
 
         self.recipient_search = QtWidgets.QLineEdit(parent=Dialog)
         self.recipient_search.setGeometry(QtCore.QRect(10, 50, 371, 31))
@@ -71,6 +75,9 @@ class Ui_Form(object):
             QLineEdit {
                 border: 1px solid #ccc;
                 font-family: "Segoe UI", sans-serif;
+                padding: 5px;
+                background-color: transparent;
+                color: black;
             }
         """)
 
@@ -97,6 +104,7 @@ class Ui_Form(object):
             QListWidget::item {
                 padding: 8px;
                 border-bottom: 1px solid #f0f0f0;
+                color: black;
             }
             QListWidget::item:hover {
                 background-color: #f5f5f5;
@@ -113,6 +121,7 @@ class Ui_Form(object):
             QtWidgets.QDialogButtonBox.StandardButton.Cancel |
             QtWidgets.QDialogButtonBox.StandardButton.Ok
         )
+        self.buttonBox.setStyleSheet("color: black;")
         self.buttonBox.setObjectName("buttonBox")
 
         # Load and populate data
@@ -128,23 +137,7 @@ class Ui_Form(object):
         recipients = []
         all_users = self.data_manager.get_all_users()
         for user in all_users:
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
             if user.get('role') in ['faculty', 'admin', 'officer', 'staff']:
-=======
-            if user.get('role') in ['faculty', 'admin', 'officer']:
->>>>>>> Stashed changes
-=======
-            if user.get('role') in ['faculty', 'admin', 'officer']:
->>>>>>> Stashed changes
-=======
-            if user.get('role') in ['faculty', 'admin', 'officer']:
->>>>>>> Stashed changes
-=======
-            if user.get('role') in ['faculty', 'admin', 'officer']:
->>>>>>> Stashed changes
                 recipients.append({
                     'id': user.get('id'),
                     'name': user.get('name'),
@@ -153,44 +146,12 @@ class Ui_Form(object):
                     'department': user.get('department', 'Unknown')
                 })
         return recipients
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
-=======
-
->>>>>>> Stashed changes
-=======
-
->>>>>>> Stashed changes
-=======
-
->>>>>>> Stashed changes
     def populate_recipient_list(self):
         self.recipient_list.clear()
         for recipient in self.filtered_recipients:
             display_text = f"{recipient['name']} ({recipient['role'].title()})"
             item = QtWidgets.QListWidgetItem(display_text)
             item.setData(QtCore.Qt.ItemDataRole.UserRole, recipient)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-            
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
-=======
-            item.setForeground(QtGui.QBrush(QtGui.QColor('black')))
->>>>>>> Stashed changes
             self.recipient_list.addItem(item)
 
     def filter_recipients(self, text):
