@@ -1,10 +1,8 @@
 import os
 import json
-import sys
 import copy
 from typing import List, Dict, Optional
 from PyQt6 import QtWidgets, QtCore, QtGui
-
 from widgets.orgs_custom_widgets.tables import ActionDelegate
 from .image_utils import get_image_path
 

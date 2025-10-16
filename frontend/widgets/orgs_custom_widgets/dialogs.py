@@ -283,7 +283,7 @@ class EditMemberDialog(BlurredDialog):
         main_layout.addWidget(QtWidgets.QLabel("Position:"))
         self.position_edit = QtWidgets.QComboBox()
         self.position_edit.setStyleSheet(EDIT_STYLE)
-        possible_positions = ["President", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer", "Member"]
+        possible_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer", "Member"]
         self.position_edit.addItems(possible_positions)
         self.position_edit.setCurrentText(member_data[1])
         main_layout.addWidget(self.position_edit)

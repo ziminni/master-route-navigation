@@ -1,7 +1,4 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
-import os, sys
-# project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-# sys.path.insert(0, project_root)
 
 from .student_organization import Student
 from .faculty_organization import Faculty

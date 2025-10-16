@@ -15,24 +15,40 @@
                     "is_joined": false,
                     "is_branch": true,
                     "logo_path": "IT_Branch/Sample_Org.png",
-                    "brief": "Section for IT enthusiasts.",
+                    "brief": "For IT enthusiasts.",
                     "description": "Focus on IT.",
                     "events": [],
-                    "officers": [],
+                    "officers": [
+                        {
+                            "name": "Alex Brown",
+                            "position": "Chairperson",
+                            "card_image_path": "No Photo",
+                            "photo_path": "No Photo",
+                            "start_date": "10/16/2025"
+                        },
+                        {
+                            "name": "Sofia Davis",
+                            "position": "Vice - Internal Chairperson",
+                            "card_image_path": "No Photo",
+                            "photo_path": "No Photo",
+                            "start_date": "10/16/2025"
+                        }
+                    ],
                     "members": [
                         [
                             "Alex Brown",
-                            "Member",
+                            "Chairperson",
                             "Active",
                             "2025-10-15"
-                        ]
-                    ],
-                    "applicants": [
+                        ],
                         [
                             "Sofia Davis",
-                            "Member"
+                            "Vice - Internal Chairperson",
+                            "Active",
+                            "2025-10-16"
                         ]
-                    ]
+                    ],
+                    "applicants": []
                 },
                 {
                     "id": 102,
@@ -71,13 +87,6 @@
             ],
             "officers": [
                 {
-                    "name": "Ruben, Stephen Joseph",
-                    "position": "Treasurer",
-                    "card_image_path": "CISCo/Chairperson_1.jpg",
-                    "photo_path": "CISCo/Chairperson_1.jpg",
-                    "start_date": "07/08/2025"
-                },
-                {
                     "name": "Pescasio, Jacob Hermon",
                     "position": "Vice - Internal Chairperson",
                     "card_image_path": "CISCo/Internal.jpg",
@@ -101,9 +110,9 @@
                 {
                     "name": "Yuri Salise",
                     "position": "Chairperson",
-                    "card_image_path": "No Photo",
-                    "photo_path": "No Photo",
-                    "start_date": "10/04/2025"
+                    "card_image_path": "CISCO/539b13a0b78fc74642a4aac26720be2a_1.jpg",
+                    "photo_path": "CISCO/539b13a0b78fc74642a4aac26720be2a_1.jpg",
+                    "start_date": "10/16/2025"
                 }
             ],
             "members": [
@@ -139,7 +148,7 @@
                 ],
                 [
                     "Ruben, Stephen Joseph",
-                    "Vice - Internal Chairperson",
+                    "Member",
                     "Active",
                     "07/08/2025"
                 ],
@@ -337,7 +346,7 @@
             "name": "Chess Club",
             "is_joined": false,
             "is_branch": false,
-            "logo_path": "No Photo",
+            "logo_path": "Chess_Club/Sample_Org_3.png",
             "brief": "Club for chess players.",
             "description": "Play and learn chess.",
             "branches": [
@@ -396,16 +405,16 @@
             "officers": [
                 {
                     "name": "Ira Turner",
-                    "position": "Vice - Internal Chairperson",
-                    "card_image_path": "No Photo",
-                    "photo_path": "No Photo",
-                    "start_date": "10/08/2025"
+                    "position": "Chairperson",
+                    "card_image_path": "Chess_Club/k43ob_5_c.jpg",
+                    "photo_path": "Chess_Club/k43ob_5_c.jpg",
+                    "start_date": "10/16/2025"
                 }
             ],
             "members": [
                 [
                     "Ira Turner",
-                    "Vice - Internal Chairperson",
+                    "Chairperson",
                     "Active",
                     "2024-03-01"
                 ],
@@ -566,18 +575,30 @@
                     "brief": "Focus on conservation efforts.",
                     "description": "Promote conservation practices.",
                     "events": [],
-                    "officers": [],
-                    "members": [],
-                    "applicants": [
+                    "officers": [
+                        {
+                            "name": "Benjamin Nguyen",
+                            "position": "Chairperson",
+                            "card_image_path": "No Photo",
+                            "photo_path": "No Photo",
+                            "start_date": "10/16/2025"
+                        }
+                    ],
+                    "members": [
                         [
                             "Benjamin Nguyen",
-                            "Member"
+                            "Chairperson",
+                            "Active",
+                            "2025-10-16"
                         ],
                         [
                             "Lily Patel",
-                            "Member"
+                            "Member",
+                            "Active",
+                            "2025-10-16"
                         ]
-                    ]
+                    ],
+                    "applicants": []
                 }
             ],
             "events": [
@@ -653,6 +674,37 @@
             "logo_path": "No Photo",
             "members": [],
             "name": "Just Bingo Plus my Location Sir",
+            "officer_history": {},
+            "officers": []
+        },
+        {
+            "applicants": [],
+            "branches": [
+                {
+                    "id": 701,
+                    "name": "North",
+                    "is_joined": false,
+                    "is_branch": true,
+                    "logo_path": "North/75f00fc9656aa5020b3c11bc9ba69dee.jpg",
+                    "brief": "",
+                    "description": "",
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [],
+                    "officer_history": {},
+                    "parent_id": 7
+                }
+            ],
+            "brief": "",
+            "description": "",
+            "events": [],
+            "id": 7,
+            "is_branch": false,
+            "is_joined": false,
+            "logo_path": "Radiant/compass_image.png",
+            "members": [],
+            "name": "Radiant",
             "officer_history": {},
             "officers": []
         }

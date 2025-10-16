@@ -331,7 +331,7 @@ class ManagerBase:
             # Update member position
             self.current_org["members"][original_index][1] = new_position
             
-            officer_positions = ["President", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
+            officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
             
             if new_position in officer_positions:
                 # Check if member is already in officers list
@@ -404,7 +404,7 @@ class ManagerBase:
         if not self.current_org:
             return
         
-        officer_positions = ["President", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
+        officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
         member_name = updated_officer["name"]
         new_position = updated_officer["position"]
         

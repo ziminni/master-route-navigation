@@ -136,7 +136,7 @@ class CollegeOrgCard(QtWidgets.QFrame):
             logo_label.setText("No Logo")
 
         desc_label = QtWidgets.QLabel()
-        desc_label.setStyleSheet("border: none; background-color: transparent;")
+        desc_label.setStyleSheet("border: none; background-color: transparent; font-weight: bold;")
         
         desc_label.setMaximumHeight(16)
         
@@ -201,7 +201,7 @@ class OfficerCard(QtWidgets.QFrame):
             image_label.setText("No Image")
 
         name_label = QtWidgets.QLabel(officer_data.get("name", "Unknown"))
-        name_label.setStyleSheet("border: none;")
+        name_label.setStyleSheet("border: none; font-weight: bold;")
         name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
         position_label = QtWidgets.QLabel(officer_data.get("position", "Unknown Position"))

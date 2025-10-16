@@ -1,15 +1,14 @@
 from PyQt6 import QtWidgets, QtGui, QtCore
-import sys
+from PyQt6.QtCore import QTimer
 import os
-
-# project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-# sys.path.append(project_root)
 
 from typing import Dict
 from .user import User
 from .manager_base import ManagerBase
 from widgets.orgs_custom_widgets.dialogs import OfficerDialog, CreateOrgDialog
 from ui.Organization.org_main_ui import Ui_Widget
+from ui.Organization.audit_logs_ui import Ui_audit_logs_widget
+from ui.Organization.generate_reports_ui import Ui_generate_reports_widget
 
 class Admin(ManagerBase, User):
     """Admin view with full management capabilities and additional admin features."""
@@ -30,8 +29,17 @@ class Admin(ManagerBase, User):
         self._setup_admin_menu()
         self._setup_create_button()
         
+        # NEW: Load and add audit logs and generate reports pages to stacked widget
+        self._setup_audit_logs_page()
+        self._setup_generate_reports_page()
+        
         self._setup_connections()
         self.load_orgs()
+
+    def showEvent(self, event):
+        """Override showEvent to ensure proper initial positioning after the widget is shown."""
+        super().showEvent(event)
+        QTimer.singleShot(0, self._reposition_create_button)
     
     def _setup_admin_menu(self) -> None:
         """Set up the admin menu button with dropdown options beside the search bar."""
@@ -119,32 +127,121 @@ class Admin(ManagerBase, User):
         if self.ui.stacked_widget.currentIndex() == 0:
             self._reposition_create_button()
     
+    # NEW: Setup audit logs page
+    def _setup_audit_logs_page(self) -> None:
+        """Load the audit logs UI as a new stacked widget page."""
+        self.audit_logs_page = QtWidgets.QWidget()
+        self.audit_logs_ui = Ui_audit_logs_widget()
+        self.audit_logs_ui.setupUi(self.audit_logs_page)
+        
+        # Wire up shared elements (e.g., back button returns to landing)
+        self.audit_logs_ui.audit_back_btn.clicked.connect(lambda: self.ui.stacked_widget.setCurrentIndex(0))
+        
+        # TODO: Wire up search and table (e.g., connect audit_search_btn to load_audit_logs_data)
+        # Example: self.audit_logs_ui.audit_search_btn.clicked.connect(self.load_audit_logs_data)
+        # self.audit_logs_ui.audit_line_edit.textChanged.connect(self._perform_audit_search)
+        
+        # Add to stacked widget (index 3; adjust if other pages are added)
+        self.ui.stacked_widget.addWidget(self.audit_logs_page)
+    
+    # NEW: Setup generate reports page
+    def _setup_generate_reports_page(self) -> None:
+        """Load the generate reports UI as a new stacked widget page."""
+        self.reports_page = QtWidgets.QWidget()
+        self.reports_ui = Ui_generate_reports_widget()
+        self.reports_ui.setupUi(self.reports_page)
+        
+        # Wire up shared elements (e.g., back button returns to landing)
+        self.reports_ui.back_btn_reports.clicked.connect(lambda: self.ui.stacked_widget.setCurrentIndex(0))
+        
+        # TODO: Wire up dropdowns and buttons (e.g., populate select_org_dd with orgs)
+        # Example: self._populate_reports_orgs()
+        # self.reports_ui.generate_report_btn.clicked.connect(self.generate_report)
+        # self.reports_ui.download_pdf_btn.clicked.connect(self.download_pdf)
+        # self.reports_ui.download_excel_btn.clicked.connect(self.download_excel)
+        # self.reports_ui.pushButton.clicked.connect(self.select_start_date)
+        # self.reports_ui.pushButton_2.clicked.connect(self.select_end_date)
+        
+        # Add to stacked widget (index 4; adjust if other pages are added)
+        self.ui.stacked_widget.addWidget(self.reports_page)
+    
+    # UPDATE: Replace placeholders with stack navigation
     def _generate_reports(self) -> None:
-        """Handle generate reports action."""
-        # Placeholder for report generation functionality
-        QtWidgets.QMessageBox.information(
-            self,
-            "Generate Reports",
-            "Report generation feature will be implemented here."
-        )
-    
+        """Navigate to generate reports page."""
+        self.ui.stacked_widget.setCurrentIndex(4)  # Index of reports page
+
     def _open_audit_logs(self) -> None:
-        """Handle audit logs action."""
-        # Placeholder for audit logs functionality
-        QtWidgets.QMessageBox.information(
-            self,
-            "Audit Logs",
-            "Audit logs viewer will be implemented here."
-        )
-    
+        """Navigate to audit logs page."""
+        self.ui.stacked_widget.setCurrentIndex(3)  # Index of audit logs page
+
     def _open_archive(self) -> None:
         """Handle archive action."""
-        # Placeholder for archive functionality
+        # Placeholder for archive functionality (add UI/page similarly if needed)
         QtWidgets.QMessageBox.information(
             self,
             "Archive",
             "Archive management feature will be implemented here."
         )
+    
+    # NEW: Example methods for functionality (implement based on your data model)
+    def load_audit_logs_data(self, search_text: str = "") -> None:
+        """Load audit logs into the table (placeholder logic)."""
+        # TODO: Fetch from DB/file (e.g., self._load_audit_data())
+        # Model = YourTableModel(audit_data)
+        # self.audit_logs_ui.audit_table_view.setModel(Model)
+        # Apply styling: self._apply_table_style_to_audit_table()
+        pass
+
+    def _perform_audit_search(self) -> None:
+        """Handle audit logs search."""
+        search_text = self.audit_logs_ui.audit_line_edit.text().strip().lower()
+        self.load_audit_logs_data(search_text)
+
+    def _populate_reports_orgs(self) -> None:
+        """Populate organizations in the reports dropdown."""
+        orgs = self._load_data()
+        self.reports_ui.select_org_dd.clear()
+        self.reports_ui.select_org_dd.addItem("Select Organization")
+        for org in orgs:
+            if not org["is_branch"]:  # Top-level orgs only
+                self.reports_ui.select_org_dd.addItem(org["name"])
+
+    def generate_report(self) -> None:
+        """Generate report based on selections (placeholder)."""
+        org = self.reports_ui.select_org_dd.currentText()
+        report_type = self.reports_ui.report_type_dd.currentText()
+        # TODO: Generate PDF/Excel preview (e.g., using reportlab or pandas)
+        # Render preview in self.reports_ui.preview_frame (e.g., embed QWebEngineView or QLabel)
+        QtWidgets.QMessageBox.information(self, "Report Generated", f"Generated {report_type} for {org}")
+        pass
+
+    def download_pdf(self) -> None:
+        """Download report as PDF (placeholder)."""
+        # TODO: Use reportlab to generate and save PDF
+        QtWidgets.QMessageBox.information(self, "Download", "PDF download will be implemented here.")
+
+    def download_excel(self) -> None:
+        """Download report as Excel (placeholder)."""
+        # TODO: Use pandas/openpyxl to generate and save Excel
+        QtWidgets.QMessageBox.information(self, "Download", "Excel download will be implemented here.")
+
+    def select_start_date(self) -> None:
+        """Open date picker for start date."""
+        from PyQt6.QtWidgets import QDateEdit, QDialog
+        # TODO: Implement date selection dialog and update field
+        pass
+
+    def select_end_date(self) -> None:
+        """Open date picker for end date."""
+        from PyQt6.QtWidgets import QDateEdit, QDialog
+        # TODO: Implement date selection dialog and update field
+        pass
+
+    def _apply_table_style_to_audit_table(self) -> None:
+        """Apply modern stylesheet to the audit logs table."""
+        table = self.audit_logs_ui.audit_table_view
+        table.setAlternatingRowColors(True)
+        pass
     
     def _create_organization(self) -> None:
         """Handle create organization/branch action."""
