@@ -97,10 +97,11 @@
         {
           "id": 10,
           "name": "Announcements",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
+          "icon": "bullhorn",
+          "function": "AnnouncementsRouter()",
+          "path": "views.Announcements.Announcements",
+          "access": ["admin","faculty","staff","student"],
+          "modulars": []
         },
         {
           "id": 11,
