@@ -5,7 +5,7 @@
             "event": "Testing Admin Adding and Edit",
             "type": "Deadline",
             "location": "N/A",
-            "status": "Finished"
+            "status": "Cancelled"
         },
         {
             "date_time": "11/1/2025\n9:00 AM",
@@ -20,6 +20,7 @@
             "type": "Deadline",
             "location": "N/A",
             "status": "Upcoming"
+<<<<<<< HEAD
         },
         {
             "date_time": "10/23/2025\n9:00 AM",
@@ -41,6 +42,8 @@
             "type": "Holiday",
             "location": "CISC",
             "status": "Upcoming"
+=======
+>>>>>>> parent of aabbac4 (error handling)
         }
     ]
 }

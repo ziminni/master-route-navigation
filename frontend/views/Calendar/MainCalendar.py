@@ -92,9 +92,6 @@ class MainCalendar(QWidget):
         # Set navigation callbacks
         self.calendar_widget.navigate_to_activities = self.show_activities
         self.calendar_widget.navigate_to_search = self.show_search  # UPDATED: Now accepts query parameter
-
-        if hasattr(self.calendar_widget, 'day_view_container'):
-            self.calendar_widget.day_view_container.navigate_to_search = self.show_search
         
         if hasattr(self.activities_widget, 'navigate_back_to_calendar'):
             self.activities_widget.navigate_back_to_calendar = self.show_calendar
@@ -187,7 +184,8 @@ class MainCalendar(QWidget):
         
         # UPDATED: If search query is provided, set it and execute search
         if search_query:
-            self.search_widget.set_search_query_and_execute(search_query)
+            self.search_widget.search_bar.setText(search_query)
+            self.search_widget.on_search_clicked()
     
     def show_add_event(self):
         """Switch to add event view (admin only)"""

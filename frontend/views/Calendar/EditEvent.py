@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QMessageBox, QComboBox, QLineEdit, QTextEdit, QDateEdit, 
     QTimeEdit, QCheckBox, QFrame, QGridLayout, QScrollArea
 )
-from PyQt6.QtCore import Qt, QDate, QTime, QDateTime
+from PyQt6.QtCore import Qt, QDate, QTime
 from datetime import datetime
 
 class EditEvent(QWidget):
@@ -211,21 +211,16 @@ class EditEvent(QWidget):
         self.input_event_title.setStyleSheet(input_style)
         grid_layout.addWidget(self.input_event_title, row, 1)
         
-        label_status = QLabel("Status")
-        label_status.setStyleSheet(label_style)
-        grid_layout.addWidget(label_status, row, 2, Qt.AlignmentFlag.AlignTop)
-
-        self.combo_status = QComboBox()
-        self.combo_status.addItems([
-            "Upcoming",
-            "Ongoing",
-            "Completed",
-            "Cancelled",
-            "Pending",
-            "Holiday"
-        ])
-        self.combo_status.setStyleSheet(input_style)
-        grid_layout.addWidget(self.combo_status, row, 3)
+        label_desc = QLabel("Description")
+        label_desc.setStyleSheet(label_style)
+        grid_layout.addWidget(label_desc, row, 2, Qt.AlignmentFlag.AlignTop)
+        
+        self.input_description = QTextEdit()
+        self.input_description.setPlaceholderText("(Optional)")
+        self.input_description.setMaximumHeight(100)
+        self.input_description.setMinimumHeight(100)
+        self.input_description.setStyleSheet(input_style)
+        grid_layout.addWidget(self.input_description, row, 3)
         
         # Row 1: Event Type and Location
         row = 1
@@ -361,6 +356,25 @@ class EditEvent(QWidget):
         end_time_layout.addWidget(self.btn_end_am)
         end_time_layout.addWidget(self.btn_end_pm)
         grid_layout.addWidget(end_time_widget, row, 3)
+        
+        # Row 4: Status
+        row = 4
+        label_status = QLabel("Status")
+        label_status.setStyleSheet(label_style)
+        grid_layout.addWidget(label_status, row, 0, Qt.AlignmentFlag.AlignTop)
+        
+        self.combo_status = QComboBox()
+        self.combo_status.addItems([
+            "Upcoming",
+            "Ongoing",
+            "Completed",
+            "Cancelled",
+            "Pending",
+            "Holiday"
+        ])
+        self.combo_status.setStyleSheet(input_style)
+        grid_layout.addWidget(self.combo_status, row, 1)
+        
         form_layout.addWidget(fields_container)
 
     def setup_user_selection(self, form_layout):
@@ -481,56 +495,6 @@ class EditEvent(QWidget):
         
         form_layout.addLayout(buttons_layout)
 
-    # Event Validations
-    def validate_event_datetime(self):
-        """
-        Validate event date and time constraints.
-        Returns tuple: (is_valid: bool, error_message: str)
-        """
-        # Get start date and time
-        start_date = self.date_start.date()
-        start_time = self.time_start.time()
-        
-        # Convert to 24-hour format based on AM/PM selection
-        start_hour = start_time.hour()
-        if self.btn_start_pm.isChecked() and start_hour != 12:
-            start_hour += 12
-        elif self.btn_start_am.isChecked() and start_hour == 12:
-            start_hour = 0
-        
-        # Get end date and time
-        end_date = self.date_end.date()
-        end_time = self.time_end.time()
-        
-        # Convert to 24-hour format based on AM/PM selection
-        end_hour = end_time.hour()
-        if self.btn_end_pm.isChecked() and end_hour != 12:
-            end_hour += 12
-        elif self.btn_end_am.isChecked() and end_hour == 12:
-            end_hour = 0
-        
-        # Create full datetime objects for comparison
-        start_datetime = QDateTime(start_date, QTime(start_hour, start_time.minute()))
-        end_datetime = QDateTime(end_date, QTime(end_hour, end_time.minute()))
-        
-        # Validation 1: End datetime must be after start datetime
-        if end_datetime <= start_datetime:
-            return False, "End date and time must be after the start date and time."
-        
-        # Validation 2: Start time must be between 7 AM and 8 PM
-        if start_hour < 7 or start_hour >= 20:
-            return False, "Start time must be between 7:00 AM and 8:00 PM."
-        
-        # Validation 3: End time must be between 7 AM and 8 PM
-        if end_hour < 7 or end_hour >= 20:
-            return False, "End time must be between 7:00 AM and 8:00 PM."
-        
-        # Special case: If end time is exactly 8:00 PM (20:00), allow only if minutes are 0
-        if end_hour == 20 and end_time.minute() > 0:
-            return False, "End time cannot be later than 8:00 PM."
-        
-        return True, "" 
-
     # Event handlers
     def set_am_pm(self, selected_btn, other_btn):
         """Handle AM/PM button selection"""
@@ -624,14 +588,6 @@ class EditEvent(QWidget):
         if event_type == "Select Event Type":
             self._error("Please select an event type.")
             return
-        
-        # Validate date and time constraints
-        is_valid, error_message = self.validate_event_datetime()
-        if not is_valid:
-            self._error(error_message)
-            return
-    
-    # ... rest of the existing code stays the same
         
         # Get start date and time
         start_date = self.date_start.date()
