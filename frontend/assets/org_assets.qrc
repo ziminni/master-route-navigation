@@ -1,0 +1,22 @@
+<RCC>
+  <qresource prefix="icons">
+    <file>organization/icons/Back IC.png</file>
+    <file>organization/icons/burger_ic.png</file>
+    <file>organization/icons/calendar.png</file>
+    <file>organization/icons/search_ic.png</file>
+    <file>organization/icons/menu.png</file>
+  </qresource>
+  <qresource prefix="sample_orgs">
+    <file>organization/sample_orgs/CiSCo Logo.jpg</file>
+    <file>organization/sample_orgs/Sample Org 1.jpg</file>
+    <file>organization/sample_orgs/Sample Org 2.png</file>
+    <file>organization/sample_orgs/Sample Org 3.png</file>
+    <file>organization/sample_orgs/Sample Org.png</file>
+  </qresource>
+  <qresource prefix="sample_officers">
+    <file>organization/sample_officers/Chairperson.jpg</file>
+    <file>organization/sample_officers/External.jpg</file>
+    <file>organization/sample_officers/Internal.jpg</file>
+    <file>organization/sample_officers/Secretary.jpg</file>
+  </qresource>
+</RCC>

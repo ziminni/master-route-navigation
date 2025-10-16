@@ -1,0 +1,181 @@
+{
+  "schedules": {
+	"2025-00001": {
+	  "1st Semester": {
+		"weekly": {
+		  "Sunday": [],
+		  "Monday": [
+			{"time": "07:00", "subject": "CS102", "room": "B101"},
+			{"time": "09:00", "subject": "MATH102", "room": "A201"}
+		  ],
+		  "Tuesday": [
+			{"time": "10:00", "subject": "HIST101", "room": "C303"}
+		  ],
+		  "Wednesday": [
+			{"time": "13:00", "subject": "PE101", "room": "GYM"}
+		  ],
+		  "Thursday": [],
+		  "Friday": [
+			{"time": "08:00", "subject": "ENG101", "room": "A105"}
+		  ],
+		  "Saturday": []
+		}
+	  },
+	  "2nd Semester": {
+		"weekly": {
+		  "Sunday": [],
+		  "Monday": [
+			{"time": "08:00", "subject": "CS202", "room": "B102"}
+		  ],
+		  "Tuesday": [
+			{"time": "10:00", "subject": "STAT202", "room": "A204"}
+		  ],
+		  "Wednesday": [],
+		  "Thursday": [
+			{"time": "13:00", "subject": "ENG202", "room": "A110"}
+		  ],
+		  "Friday": [],
+		  "Saturday": []
+		}
+	  }
+	},
+	"2025-00002": {
+	  "1st Semester": {
+		"weekly": {
+		  "Sunday": [],
+		  "Monday": [],
+		  "Tuesday": [
+			{"time": "09:00", "subject": "BIO101", "room": "SCI-301"}
+		  ],
+		  "Wednesday": [],
+		  "Thursday": [],
+		  "Friday": [],
+		  "Saturday": []
+		}
+	  },
+	  "2nd Semester": {
+		"weekly": {
+		  "Sunday": [],
+		  "Monday": [
+			{"time": "08:00", "subject": "CHEM202", "room": "SCI-201"}
+		  ],
+		  "Tuesday": [],
+		  "Wednesday": [
+			{"time": "10:00", "subject": "MATH202", "room": "A201"}
+		  ],
+		  "Thursday": [],
+		  "Friday": [],
+		  "Saturday": []
+		}
+	  }
+	},
+	"2025-00003": {
+	  "1st Semester": {
+		"weekly": {
+		  "Sunday": [],
+		  "Monday": [
+			{"time": "08:00", "subject": "ENG101", "room": "A105"}
+		  ],
+		  "Tuesday": [
+			{"time": "10:00", "subject": "MATH101", "room": "A201"}
+		  ],
+		  "Wednesday": [],
+		  "Thursday": [
+			{"time": "13:00", "subject": "CS101", "room": "LAB-1"}
+		  ],
+		  "Friday": [],
+		  "Saturday": []
+		}
+	  },
+	  "2nd Semester": {
+		"weekly": {
+		  "Sunday": [],
+		  "Monday": [
+			{"time": "09:00", "subject": "CS201", "room": "LAB-2"}
+		  ],
+		  "Tuesday": [
+			{"time": "11:00", "subject": "ENG202", "room": "A102"}
+		  ],
+		  "Wednesday": [],
+		  "Thursday": [],
+		  "Friday": [
+			{"time": "14:00", "subject": "STAT201", "room": "C204"}
+		  ],
+		  "Saturday": []
+		}
+	  }
+	},
+	"2025-00004": {
+	  "1st Semester": {
+		"weekly": {
+		  "Sunday": [],
+		  "Monday": [
+			{"time": "09:00", "subject": "CS301", "room": "ENG-201"}
+		  ],
+		  "Tuesday": [],
+		  "Wednesday": [
+			{"time": "14:00", "subject": "ELEC301", "room": "ENG-105"}
+		  ],
+		  "Thursday": [],
+		  "Friday": [
+			{"time": "08:00", "subject": "HCI301", "room": "C303"}
+		  ],
+		  "Saturday": []
+		}
+	  },
+	  "2nd Semester": {
+		"weekly": {
+		  "Sunday": [],
+		  "Monday": [
+			{"time": "10:00", "subject": "CS302", "room": "ENG-204"}
+		  ],
+		  "Tuesday": [],
+		  "Wednesday": [
+			{"time": "13:00", "subject": "ELEC302", "room": "ENG-106"}
+		  ],
+		  "Thursday": [],
+		  "Friday": [
+			{"time": "15:00", "subject": "AI301", "room": "LAB-3"}
+		  ],
+		  "Saturday": []
+		}
+	  }
+	},
+	"2025-00005": {
+	  "1st Semester": {
+		"weekly": {
+		  "Sunday": [],
+		  "Monday": [
+			{"time": "10:00", "subject": "CS401", "room": "ENG-201"}
+		  ],
+		  "Tuesday": [
+			{"time": "13:00", "subject": "CAP401", "room": "LAB-2"}
+		  ],
+		  "Wednesday": [],
+		  "Thursday": [],
+		  "Friday": [
+			{"time": "15:00", "subject": "SE401", "room": "A305"}
+		  ],
+		  "Saturday": []
+		}
+	  },
+	  "2nd Semester": {
+		"weekly": {
+		  "Sunday": [],
+		  "Monday": [
+			{"time": "08:00", "subject": "CS402", "room": "ENG-205"}
+		  ],
+		  "Tuesday": [],
+		  "Wednesday": [
+			{"time": "10:00", "subject": "AI402", "room": "LAB-4"}
+		  ],
+		  "Thursday": [
+			{"time": "13:00", "subject": "CAP402", "room": "LAB-3"}
+		  ],
+		  "Friday": [],
+		  "Saturday": []
+		}
+	  }
+	}
+  }
+}

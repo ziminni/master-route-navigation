@@ -1,0 +1,10 @@
+{
+  "students": [
+    {"studentId": "2025-00001", "name": "Alex Cruz", "year": "2nd Year"},
+    {"studentId": "2025-00002", "name": "Bea Santos", "year": "1st Year"},
+    {"studentId": "2025-00003", "name": "Carlos Reyes", "year": "1st Year"},
+    {"studentId": "2025-00004", "name": "Dana Lim", "year": "3rd Year"},
+    {"studentId": "2025-00005", "name": "Evan Tan", "year": "4th Year"}
+  ]
+}
+
