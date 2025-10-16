@@ -13,9 +13,14 @@ from PyQt6.QtWidgets import (
     QSpinBox, QMessageBox
 )
 
-# DB helpers
-from db.ShowcaseDBHelper import create_project, set_project_tags, seed_images_if_missing
-from db.ShowcaseDBInitialize import db_path, ensure_bootstrap
+# DB helpers (package-safe)
+try:
+    from .db.ShowcaseDBHelper import create_project, set_project_tags, seed_images_if_missing
+    from .db.ShowcaseDBInitialize import db_path, ensure_bootstrap
+except Exception:
+    from db.ShowcaseDBHelper import create_project, set_project_tags, seed_images_if_missing
+    from db.ShowcaseDBInitialize import db_path, ensure_bootstrap
+
 
 # Optional session bridge; safe fallback without static import warnings
 import importlib

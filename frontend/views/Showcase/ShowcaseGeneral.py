@@ -148,11 +148,8 @@ class LargeCard(QFrame):
         self.img.setPixmap(_load_image(self._src, w, self.img.height()))
 
     def mouseReleaseEvent(self, e):
-        if e.button() == Qt.MouseButton.LeftButton:
-            self.parent().parent().parent().parent().parent()._open_preview(self.parent().parent().parent().items_ref, self.parent().parent().parent().index_ref)  # handled in population
         super().mouseReleaseEvent(e)
-
-    def resizeEvent(self, e): super().resizeEvent(e); self.update_image()
+        def resizeEvent(self, e): super().resizeEvent(e); self.update_image()
 
 class SmallCard(QFrame):
     def __init__(self, payload: Dict, parent: QWidget | None = None):
@@ -296,8 +293,18 @@ class TabsBar(QFrame):
 # ---------- Page ----------
 class ShowcaseGeneralPage(QWidget):
     """Read-only viewer. Search filters main column. Sidebars ignore query."""
-    def __init__(self, parent: QWidget | None = None):
+    def __init__(self,
+                 username: str | None = None,
+                 roles: List[str] | None = None,
+                 primary_role: str | None = None,
+                 token: str | None = None,
+                 parent: QWidget | None = None):
         super().__init__(parent)
+        self.username = username or ""
+        self.roles = roles or []
+        self.primary_role = primary_role or ""
+        self.token = token or ""
+        self.headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
         ensure_bootstrap()
 
         self.setObjectName("ShowcaseGeneralPage")
