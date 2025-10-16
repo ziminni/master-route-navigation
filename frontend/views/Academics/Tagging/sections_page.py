@@ -335,6 +335,18 @@ class SectionsPage(QWidget):
             from PyQt6.QtWidgets import QMessageBox
 
             section_id = self.model.get_section_id(row)
+
+            # Check if section can be edited
+            can_edit, error_message = self.controller.can_edit_section(section_id)
+            if not can_edit:
+                QMessageBox.warning(
+                    self,
+                    "Cannot Edit Section",
+                    error_message,
+                    QMessageBox.StandardButton.Ok
+                )
+                return
+
             section_data = self.controller.get_section_by_id(section_id)
 
             if not section_data:

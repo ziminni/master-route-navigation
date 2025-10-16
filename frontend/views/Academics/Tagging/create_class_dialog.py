@@ -43,21 +43,28 @@ class ScheduleWidget(QWidget):
         self.day_combo.setMinimumWidth(120)
         layout.addWidget(self.day_combo)
         
-        # Start time
+        # Start time (7 AM to 7 PM)
         self.start_time = QTimeEdit()
         self.start_time.setDisplayFormat("hh:mm AP")
-        self.start_time.setTime(QTime(9, 0))  # Default 9:00 AM
+        self.start_time.setTime(QTime(9, 0)) # Default 9:00 AM
+        self.start_time.setMinimumTime(QTime(7, 0))  # 7:00 AM minimum
+        self.start_time.setMaximumTime(QTime(18, 0))  # 6:00 PM maximum (to allow 1-hour class until 7 PM)
         self.start_time.setMinimumWidth(130)
         layout.addWidget(QLabel("from"))
         layout.addWidget(self.start_time)
 
-        # End time
+        # End time (8 AM to 7 PM)
         self.end_time = QTimeEdit()
         self.end_time.setDisplayFormat("hh:mm AP")
         self.end_time.setTime(QTime(10, 30))  # Default 10:30 AM
+        self.end_time.setMinimumTime(QTime(8, 0))  # 8:00 AM minimum (start + 1 hour)
+        self.end_time.setMaximumTime(QTime(19, 0))  # 7:00 PM maximum
         self.end_time.setMinimumWidth(130)
         layout.addWidget(QLabel("to"))
         layout.addWidget(self.end_time)
+
+        self.start_time.timeChanged.connect(self._validate_time_range)
+        self.end_time.timeChanged.connect(self._validate_time_range)
 
         # Remove button
         self.remove_btn = QPushButton("✕")
@@ -82,6 +89,29 @@ class ScheduleWidget(QWidget):
         
         layout.addStretch()
         self.setLayout(layout)
+
+    def _validate_time_range(self):
+        """
+        Validate that end time is at least 1 hour after start time.
+        Adjusts end time if necessary.
+        """
+        start = self.start_time.time()
+        end = self.end_time.time()
+
+        # Calculate minimum end time (start + 1 hour)
+        min_end_time = start.addSecs(3600)  # 3600 seconds = 1 hour
+
+        # If end time is before the minimum, adjust it
+        if end < min_end_time:
+            self.end_time.setTime(min_end_time)
+
+        # Ensure end time doesn't exceed 7 PM
+        max_time = QTime(19, 0)  # 7:00 PM
+        if self.end_time.time() > max_time:
+            self.end_time.setTime(max_time)
+            # If this forces start time to be too late, adjust start time
+            if self.start_time.time().addSecs(3600) > max_time:
+                self.start_time.setTime(QTime(18, 0))  # 6:00 PM
     
     def remove_clicked(self):
         """Handle remove button click."""
@@ -97,6 +127,10 @@ class ScheduleWidget(QWidget):
         """
         start = self.start_time.time()
         end = self.end_time.time()
+
+        if end.secsTo(start) >= -3600:  # Less than 1 hour duration
+            # just in case
+            logger.warning("Invalid schedule duration detected")
         
         return {
             'day': self.day_combo.currentText(),
@@ -377,11 +411,15 @@ class CreateClassDialog(QDialog):
         self.room_edit = QLineEdit()
         self.room_edit.setPlaceholderText("e.g., CISC Lab 1, Room 301")
         location_layout.addRow("Room*:", self.room_edit)
-        
-        self.instructor_edit = QLineEdit()
-        self.instructor_edit.setPlaceholderText("e.g., Juan Dela Cruz")
-        location_layout.addRow("Instructor*:", self.instructor_edit)
-        
+
+        # Instructor dropdown with search capability
+        self.instructor_combo = QComboBox()
+        self.instructor_combo.setEditable(True)  # Allows typing to search
+        self.instructor_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)  # Prevent adding new items
+        self.instructor_combo.setPlaceholderText("Type to search or select faculty")
+        self.populate_instructors()
+        location_layout.addRow("Instructor*:", self.instructor_combo)
+
         self.type_combo = QComboBox()
         self.type_combo.addItems(self.TYPES)
         location_layout.addRow("Type*:", self.type_combo)
@@ -472,8 +510,66 @@ class CreateClassDialog(QDialog):
             return
         
         for section in self.sections:
-            display_text = f"{section['section']} - {section['program']} ({section['year']})"
+            # Generate section name in format: BSIT-3B
+            section_name = self._generate_section_display_name(section)
+
+            # Get section type (Lecture, Laboratory, Hybrid)
+            section_type = section.get('type', 'Lecture')
+
+            # Format: BSIT-3B (Lecture)
+            display_text =  f"{section_name} ({section_type})"
             self.section_combo.addItem(display_text, section['id'])
+
+    def _generate_section_display_name(self, section: Dict) -> str:
+        """
+        Generate formatted section name from section data.
+
+        Args:
+            section: Section dictionary containing program, year, and section
+
+        Returns:
+            Formatted section name (e.g., "BSIT-3B")
+        """
+        program = section.get('program', '')
+        year = section.get('year', '')
+        section_letter = section.get('section', '')
+
+        # Generate program acronym (e.g., "BS Information Technology" -> "BSIT")
+        program_acronym = ''
+        if program:
+            words = program.split()
+            for word in words:
+                # If word is all caps (like "BS", "IT"), take the whole thing
+                if word.isupper():
+                    program_acronym += word
+                else:
+                    # Otherwise take first letter if it's uppercase
+                    if word and word[0].isupper():
+                        program_acronym += word[0]
+
+        # Extract year number (e.g., "3rd" -> "3")
+        year_num = ''
+        if year:
+            year_num = ''.join(filter(str.isdigit, year))
+
+        # Combine: PROGRAM-YEARSECTION (e.g., "BSIT-3B")
+        if program_acronym and year_num and section_letter:
+            return f"{program_acronym}-{year_num}{section_letter}"
+        elif section_letter:
+            # Fallback to just the section letter
+            return section_letter
+        else:
+            return "Unknown"
+
+    def populate_instructors(self):
+        """Populate instructor dropdown with available faculty."""
+        self.instructor_combo.clear()
+        self.instructor_combo.addItem("-- Select an instructor --", None)
+
+        for faculty_member in self.faculty:
+            # Format: ID - Name
+            display_text = f"{faculty_member['id']} - {faculty_member['name']}"
+            self.instructor_combo.addItem(display_text, faculty_member)
     
     def add_schedule(self):
         """Add a new schedule widget to the form."""
@@ -505,6 +601,47 @@ class CreateClassDialog(QDialog):
             widget.deleteLater()
             
             logger.debug(f"Removed schedule widget (remaining: {len(self.schedule_widgets)})")
+
+    def _check_duplicate_schedules(self) -> tuple[bool, Optional[str]]:
+        """
+        Check if there are duplicate schedules within this class.
+
+        Returns:
+            tuple: (has_duplicates: bool, error_message: Optional[str])
+        """
+        schedules = []
+        for widget in self.schedule_widgets:
+            schedule = widget.get_schedule_data()
+            schedules.append(schedule)
+
+        # Check for duplicates
+        seen = set()
+        duplicates = []
+
+        for schedule in schedules:
+            # Create a hashable key from schedule data
+            schedule_key = (
+                schedule['day'],
+                schedule['start_time'],
+                schedule['end_time']
+            )
+
+            if schedule_key in seen:
+                duplicate_str = f"{schedule['day']} {schedule['start_time']} - {schedule['end_time']}"
+                if duplicate_str not in duplicates:
+                    duplicates.append(duplicate_str)
+            else:
+                seen.add(schedule_key)
+
+        if duplicates:
+            error_msg = (
+                    "Duplicate schedules detected:\n\n" +
+                    "\n".join(f"• {dup}" for dup in duplicates) +
+                    "\n\nPlease remove duplicate schedule entries."
+            )
+            return True, error_msg
+
+        return False, None
 
     def _populate_fields(self, class_data: Dict) -> None:
         """
@@ -557,7 +694,16 @@ class CreateClassDialog(QDialog):
                 self.room_edit.setText(str(class_data['room']))
 
             if 'instructor' in class_data:
-                self.instructor_edit.setText(str(class_data['instructor']))
+                instructor_name = str(class_data['instructor'])
+
+                # Try to find matching faculty by name
+                found = False
+                for i in range(self.instructor_combo.count()):
+                    faculty_data = self.instructor_combo.itemData(i)
+                    if faculty_data and faculty_data.get('name') == instructor_name:
+                        self.instructor_combo.setCurrentIndex(i)
+                        found = True
+                        break
 
             if 'type' in class_data:
                 index = self.type_combo.findText(class_data['type'])
@@ -593,18 +739,33 @@ class CreateClassDialog(QDialog):
             self.room_edit.setStyleSheet("border: 2px solid red;")
             return
         
-        if not self.instructor_edit.text().strip():
-            self.instructor_edit.setFocus()
-            self.instructor_edit.setStyleSheet("border: 2px solid red;")
+        instructor_text = self.instructor_combo.currentText().strip()
+        if not instructor_text or instructor_text == "-- Select an instructor --":
+            self.instructor_combo.setFocus()
+            self.instructor_combo.setStyleSheet("border: 2px solid red;")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Validation Error", "Please select an instructor.")
             return
         
         if not self.sections:
             logger.warning("No sections available. Please create a section first.")
             return
+
+        # Check for duplicate schedules
+        has_duplicates, error_message = self._check_duplicate_schedules()
+        if has_duplicates:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self,
+                "Duplicate Schedules",
+                error_message,
+                QMessageBox.StandardButton.Ok
+            )
+            return
         
         # Reset styling
         self.room_edit.setStyleSheet("")
-        self.instructor_edit.setStyleSheet("")
+        self.instructor_combo.setStyleSheet("")
         
         self.accept()
     
@@ -628,7 +789,16 @@ class CreateClassDialog(QDialog):
         schedules = []
         for widget in self.schedule_widgets:
             schedules.append(widget.get_schedule_data())
-        
+
+        instructor_text = self.instructor_combo.currentText().strip()
+        instructor_name = instructor_text
+
+        # If format is "ID - Name", extract just the name
+        if ' - ' in instructor_text:
+            parts = instructor_text.split(' - ', 1)
+            if len(parts) == 2:
+                instructor_name = parts[1].strip()
+
         data = {
             'code': code,
             'title': self.title_edit.text().strip(),
@@ -636,7 +806,7 @@ class CreateClassDialog(QDialog):
             'section_id': section_id,
             'schedules': schedules,
             'room': self.room_edit.text().strip(),
-            'instructor': self.instructor_edit.text().strip(),
+            'instructor': instructor_name,
             'type': self.type_combo.currentText()
         }
 
@@ -779,7 +949,17 @@ class CreateClassDialog(QDialog):
 
         logger.debug(f"Course selected: {course_data['code']} - {course_data['title']}")
 
-    # Hard coded data for simplicity, will improve later
+    # Hard coded data for simplicity and demo only, will improve later
+
+    faculty = [
+        {"id": "789789789", "name": "Kim Jong Un"},
+        {"id": "2019-00001", "name": "Juan Dela Cruz"},
+        {"id": "2019-00002", "name": "Maria Santos"},
+        {"id": "2020-00003", "name": "Pedro Reyes"},
+        {"id": "2020-00004", "name": "Ana Garcia"},
+        {"id": "2021-00005", "name": "Jose Rizal"}
+    ]
+
     bsit_curriculum = {
         "1st": {
             "First Semester": [

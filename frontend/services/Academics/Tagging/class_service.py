@@ -412,6 +412,73 @@ class ClassService:
 
         return conflicts
 
+    def _check_faculty_schedule_conflicts(
+            self,
+            schedules: List[Dict],
+            instructor: str,
+            exclude_class_id: int = None
+    ) -> List[str]:
+        """
+        Check for faculty schedule conflicts.
+
+        A faculty member cannot teach multiple classes at the same time.
+
+        Args:
+            schedules: List of schedule dictionaries for the class
+            instructor: Name of the instructor
+            exclude_class_id: Class ID to exclude from conflict check (for updates)
+
+        Returns:
+            List of conflict messages
+        """
+        conflicts = []
+
+        try:
+            all_classes = self.get_all()
+
+            for existing_class in all_classes:
+                # Skip the class being updated
+                if exclude_class_id and existing_class['id'] == exclude_class_id:
+                    continue
+
+                # Only check classes taught by the same instructor
+                if existing_class.get('instructor', '').strip().lower() != instructor.strip().lower():
+                    continue
+
+                # Check for time conflicts
+                for new_schedule in schedules:
+                    for existing_schedule in existing_class.get('schedules', []):
+                        # Must be the same day
+                        if new_schedule['day'] != existing_schedule['day']:
+                            continue
+
+                        # Parse times
+                        try:
+                            new_start = self._parse_time(new_schedule['start_time'])
+                            new_end = self._parse_time(new_schedule['end_time'])
+                            exist_start = self._parse_time(existing_schedule['start_time'])
+                            exist_end = self._parse_time(existing_schedule['end_time'])
+                        except Exception as e:
+                            logger.warning(f"Error parsing time during faculty conflict check: {e}")
+                            continue
+
+                        # Check for overlap: (start1 < end2) AND (end1 > start2)
+                        if new_start < exist_end and new_end > exist_start:
+                            section_name = existing_class.get('section_name', 'Unknown')
+                            conflict_msg = (
+                                f"Faculty conflict: {instructor} is already teaching "
+                                f"{existing_class['code']} ({existing_class['title']}) "
+                                f"for section {section_name} "
+                                f"on {new_schedule['day']} "
+                                f"{existing_schedule['start_time']} - {existing_schedule['end_time']}"
+                            )
+                            conflicts.append(conflict_msg)
+
+        except Exception as e:
+            logger.error(f"Error checking faculty conflicts: {str(e)}")
+
+        return conflicts
+
     # ========================================================================
     # PUBLIC CRUD METHODS - API UNCHANGED
     # ========================================================================
@@ -466,13 +533,23 @@ class ClassService:
             self._validate_class_data(class_data, is_update=False)
 
             if check_conflicts:
-                conflicts = self._check_schedule_conflicts(
+                room_conflicts = self._check_schedule_conflicts(
                     class_data['schedules'],
                     class_data['room']
                 )
-                if conflicts:
+
+                # Check faculty conflicts
+                faculty_conflicts = self._check_faculty_schedule_conflicts(
+                    class_data['schedules'],
+                    class_data['instructor']
+                )
+
+                # Combine all conflicts
+                all_conflicts = room_conflicts + faculty_conflicts
+
+                if all_conflicts:
                     raise ScheduleConflictError(
-                        "Schedule conflicts detected:\n" + "\n".join(conflicts)
+                        "Schedule conflicts detected:\n" + "\n".join(all_conflicts)
                     )
 
             section = self.section_service.get_by_id(class_data['section_id'])
@@ -530,15 +607,25 @@ class ClassService:
             if check_conflicts:
                 schedules_to_check = class_data.get('schedules', existing_class['schedules'])
                 room_to_check = class_data.get('room', existing_class['room'])
+                instructor_to_check = class_data.get('instructor', existing_class['instructor'])
 
-                conflicts = self._check_schedule_conflicts(
+                room_conflicts = self._check_schedule_conflicts(
                     schedules_to_check,
                     room_to_check,
                     exclude_class_id=class_id
                 )
-                if conflicts:
+
+                faculty_conflicts = self._check_faculty_schedule_conflicts(
+                    schedules_to_check,
+                    instructor_to_check,
+                    exclude_class_id=class_id
+                )
+
+                all_conflicts = room_conflicts + faculty_conflicts
+
+                if all_conflicts:
                     raise ScheduleConflictError(
-                        "Schedule conflicts detected:\n" + "\n".join(conflicts)
+                        "Schedule conflicts detected:\n" + "\n".join(all_conflicts)
                     )
 
             if 'section_id' in class_data:

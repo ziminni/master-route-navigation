@@ -252,8 +252,10 @@ class CreateSectionDialog(QDialog):
 
         if remarks == "Regular":
             # Check if section contains only a single letter
-            if not section.isalpha() or len(section) != 1:
-                return False, "Section field must contain only contain a letter (e.g.,'A', 'B', 'C', 'D')."
+            if not section.isalpha() or len(section) != 2:
+                if len(section) == 2 and section[1] != "X":
+                    return False, "Section field must follow format (e.g.,'A', 'Ax', 'B', 'Bx')."
+                return False, "Section field must follow format (e.g.,'A', 'Ax', 'B', 'Bx')."
         elif remarks == "Petition":
             # Assume petition section names are 'PS99', 'PS100', etc.
             valid_start = section[0:2]
@@ -342,8 +344,14 @@ class CreateSectionDialog(QDialog):
             Dict: Section data dictionary with all fields
         """
 
+        section = self.section_input.text().strip().lower()
+        if len(section) == 2:
+            section = f"{section[0].upper()}{section[1]}"
+        else:
+            section = f"{section[0]}"
+
         data = {
-            "section": self.section_input.text().upper(),
+            "section": section,
             "program": self.program_combo.currentText(),
             "curriculum": self.curriculum_combo.currentText(),
             "track": self.track_combo.currentText(),

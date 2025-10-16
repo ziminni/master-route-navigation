@@ -137,28 +137,43 @@ class ClassesPage(QWidget):
         
         # Set reasonable column widths
         header = self.table.horizontalHeader()
-        # header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)  
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(9, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table.resizeColumnsToContents()
+        header.setMinimumSectionSize(50)
+        self.table.setColumnWidth(0, max(50, self.table.columnWidth(0)))  # No. - at least 50px
+        self.table.setColumnWidth(1, max(80, self.table.columnWidth(1)))  # Code - at least 80px
+        self.table.setColumnWidth(2, max(200, self.table.columnWidth(2)))  # Title - at least 200px
+        self.table.setColumnWidth(3, max(60, self.table.columnWidth(3)))  # Units - at least 60px
+        self.table.setColumnWidth(4, max(80, self.table.columnWidth(4)))  # Section - at least 80px
+        self.table.setColumnWidth(5, max(150, self.table.columnWidth(5)))  # Schedule - at least 150px
+        self.table.setColumnWidth(6, max(100, self.table.columnWidth(6)))  # Room - at least 100px
+        self.table.setColumnWidth(7, max(150, self.table.columnWidth(7)))  # Instructor - at least 150px
+        self.table.setColumnWidth(8, max(80, self.table.columnWidth(8)))  # Type - at least 80px
+        self.table.setColumnWidth(9, 150)
 
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
-
-        self.table.setColumnWidth(0, 10)  # No.
-        self.table.setColumnWidth(1, 60)  # Code
-        self.table.setColumnWidth(2, 200) # Title
-        self.table.setColumnWidth(3, 30)  # Units
-        self.table.setColumnWidth(4, 60)  # Section
-        self.table.setColumnWidth(5, 120) # Schedule
-        self.table.setColumnWidth(6, 60) # Room
-        self.table.setColumnWidth(7, 150) # Instructor
-        self.table.setColumnWidth(8, 80) # Type
-        self.table.setColumnWidth(9, 150)  # Actions
+        # Actions - fixed at 150px
+        # # header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        # header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        # header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        # header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        # header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
+        # header.setSectionResizeMode(9, QHeaderView.ResizeMode.Fixed)
+        #
+        # header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        # header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        # header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
+        #
+        # self.table.setColumnWidth(0, 10)  # No.
+        # self.table.setColumnWidth(1, 60)  # Code
+        # self.table.setColumnWidth(2, 200) # Title
+        # self.table.setColumnWidth(3, 30)  # Units
+        # self.table.setColumnWidth(4, 60)  # Section
+        # self.table.setColumnWidth(5, 120) # Schedule
+        # self.table.setColumnWidth(6, 60) # Room
+        # self.table.setColumnWidth(7, 150) # Instructor
+        # self.table.setColumnWidth(8, 80) # Type
+        # self.table.setColumnWidth(9, 150)  # Actions
 
         self.table.verticalHeader().setDefaultSectionSize(60)
 

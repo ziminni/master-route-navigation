@@ -160,6 +160,26 @@ class SectionsController:
             logger.exception(f"Error retrieving section {section_id}: {e}")
             return None
 
+    def can_edit_section(self, section_id: int) -> tuple[bool, Optional[str]]:
+        """
+        Check if a section can be edited (doesn't have associated classes).
+
+        Args:
+            section_id: ID of section to check
+
+        Returns:
+            tuple: (can_edit: bool, error_message: Optional[str])
+        """
+        if self._section_has_classes(section_id):
+            error_message = (
+                "This section cannot be edited because it has associated classes.\n\n"
+                "To edit this section, you must first delete or reassign all classes "
+                "associated with it."
+            )
+            return False, error_message
+
+        return True, None
+
     def handle_update_section(self, section_id: int, section_data: Dict) -> tuple[bool, Optional[str]]:
         """
         Handle section update.
@@ -173,6 +193,11 @@ class SectionsController:
         """
         try:
             logger.info(f"Attempting to update section ID {section_id}")
+
+            can_edit, error_message = self.can_edit_section(section_id)
+            if not can_edit:
+                logger.warning(f"Cannot edit section {section_id}: has associated classes")
+                return False, error_message
 
             # Validate uniqueness (excluding current section)
             validation_result, error_message = self._validate_unique_section_data_for_update(section_id, section_data)
