@@ -72,7 +72,7 @@ class StudentProfileWidget(QWidget):
         header_layout.addWidget(avatar)
 
         self.name_label = QLabel("Unknown")
-        self.name_label.setFont(QFont("Poppins", 16, QFont.Weight.Bold))
+        self.name_label.setFont(QFont("Poppins", 16, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
         self.id_label = QLabel("2023000001")
         self.course_label = QLabel("BS Information Technology")
 
@@ -94,7 +94,7 @@ class StudentProfileWidget(QWidget):
         # GRADES TABLE
         # ============================
         grade_label = QLabel("Student Grade")
-        grade_label.setFont(QFont("Poppins", 13, QFont.Weight.Bold))
+        grade_label.setFont(QFont("Poppins", 13, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
         main_layout.addWidget(grade_label)
 
         self.grade_table = QTableWidget()
@@ -130,7 +130,7 @@ class StudentProfileWidget(QWidget):
 
         for label, bar in self.progress_bars.items():
             lbl = QLabel(label)
-            lbl.setFont(QFont("Poppins", 10, QFont.Weight.Bold))
+            lbl.setFont(QFont("Poppins", 10, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
             bar.setObjectName("progressBar")
             bar.setTextVisible(True)
             progress_layout.addWidget(lbl)
@@ -142,7 +142,7 @@ class StudentProfileWidget(QWidget):
         # FACULTY NOTES SECTION
         # ============================
         notes_label = QLabel("Faculty Notes")
-        notes_label.setFont(QFont("Poppins", 13, QFont.Weight.Bold))
+        notes_label.setFont(QFont("Poppins", 13, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
         main_layout.addWidget(notes_label)
 
         notes_scroll = QScrollArea()

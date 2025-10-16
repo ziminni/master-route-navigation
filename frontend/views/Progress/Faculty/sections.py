@@ -52,7 +52,7 @@ class SectionsWidget(QWidget):
 
         # Header
         header_label = QLabel("Sections")
-        header_label.setFont(QFont("Poppins", 14, QFont.Weight.Bold))
+        header_label.setFont(QFont("Poppins", 14, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
         self.sections_layout.addWidget(header_label)
 
         # Dropdown (same style as Student)
@@ -182,7 +182,7 @@ class SectionsWidget(QWidget):
 
         section_name = section.get("section_name", "Unknown")
         section_label = QLabel(section_name)
-        section_label.setFont(QFont("Poppins", 11, QFont.Weight.Bold))
+        section_label.setFont(QFont("Poppins", 11, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
         students_label = QLabel(f"{section.get('students', 0)} STUDENTS")
         students_label.setFont(QFont("Poppins", 9))
         students_label.setStyleSheet("color: #555;")

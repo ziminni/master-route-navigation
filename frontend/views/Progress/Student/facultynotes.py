@@ -20,7 +20,7 @@ class FacultyNotesWidget(QWidget):
         main_layout.setSpacing(10)
 
         header_label = QLabel("Faculty Notes")
-        header_label.setFont(QFont("Poppins", 14, QFont.Weight.Bold))
+        header_label.setFont(QFont("Poppins", 14, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
         header_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         main_layout.addWidget(header_label)
 

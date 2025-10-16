@@ -3,8 +3,27 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
 from PyQt6.QtGui import QFont
 
 # Import views in Progress folder
-from .Student.grades import GradesWidget
-from .Faculty.sections import SectionsWidget
+try:
+    from .Student.grades import GradesWidget
+    from .Faculty.sections import SectionsWidget
+    print("✅ Progress: Successfully imported GradesWidget and SectionsWidget")
+except Exception as import_error:
+    print(f"❌ Progress: Failed to import child widgets: {import_error}")
+    import traceback
+    traceback.print_exc()
+    error_msg = str(import_error)
+    # Create dummy classes as fallback
+    class GradesWidget(QWidget):
+        def __init__(self, user_role="student"):
+            super().__init__()
+            layout = QVBoxLayout(self)
+            layout.addWidget(QLabel(f"Error loading GradesWidget: {error_msg}"))
+    
+    class SectionsWidget(QWidget):
+        def __init__(self):
+            super().__init__()
+            layout = QVBoxLayout(self)
+            layout.addWidget(QLabel(f"Error loading SectionsWidget: {error_msg}"))
 # from .Admin.(homepage file here) import (homepage file class name)
 
 
@@ -80,7 +99,7 @@ class Progress(QWidget):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         title_label = QLabel(title)
-        title_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title_label.setFont(QFont("Arial", 18, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
         desc_label = QLabel(desc)
         desc_label.setFont(QFont("Arial", 12))
         layout.addWidget(title_label)

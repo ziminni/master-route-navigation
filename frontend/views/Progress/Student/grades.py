@@ -54,7 +54,7 @@ class GradesWidget(QWidget):
 
         # Header
         header_label = QLabel("Academic Progress Tracker")
-        header_label.setFont(QFont("Poppins", 14, QFont.Weight.Bold))
+        header_label.setFont(QFont("Poppins", 14, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
         main_layout.addWidget(header_label)
 
         # Tabs
@@ -75,14 +75,18 @@ class GradesWidget(QWidget):
         tab_layout.addStretch()
         main_layout.addLayout(tab_layout)
 
-        # Semester Combo
+        # Semester Combo - smaller and aligned to the right
+        combo_layout = QHBoxLayout()
+        combo_layout.addStretch()  # Push combo to the right
         self.semester_combo = QComboBox()
         self.semester_combo.setObjectName("semesterCombo")
+        self.semester_combo.setFixedWidth(200)  # Make it smaller
         if self.semester_list:
             self.semester_combo.addItems(self.semester_list)
             self.current_semester = self.semester_list[0]
         self.semester_combo.currentTextChanged.connect(self.on_semester_changed)
-        main_layout.addWidget(self.semester_combo)
+        combo_layout.addWidget(self.semester_combo)
+        main_layout.addLayout(combo_layout)
 
         # --- StackedWidget (pages) ---
         self.stacked_widget = QStackedWidget()
@@ -152,6 +156,12 @@ class GradesWidget(QWidget):
             btn.style().unpolish(btn)
             btn.style().polish(btn)
         self.stacked_widget.setCurrentIndex(index)
+        
+        # Hide combo box when on GWA STATISTICS tab (index 1)
+        if index == 1:  # GWA STATISTICS
+            self.semester_combo.hide()
+        else:
+            self.semester_combo.show()
 
     # ---------------------------------------------------------
     def on_semester_changed(self, semester):

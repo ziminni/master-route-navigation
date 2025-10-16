@@ -2,10 +2,10 @@
 import os
 import json
 import matplotlib
-matplotlib.use('Qt5Agg')
+matplotlib.use('QtAgg')  
 import seaborn as sns
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas  
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFrame
 from PyQt6.QtCore import Qt, QFileSystemWatcher
 import pandas as pd

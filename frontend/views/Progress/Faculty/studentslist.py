@@ -50,7 +50,7 @@ class StudentsListWidget(QWidget):
         # Header bar
         header_layout = QHBoxLayout()
         title = QLabel(self.section_name)
-        title.setFont(QFont("Poppins", 14, QFont.Weight.Bold))
+        title.setFont(QFont("Poppins", 14, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
         title.setStyleSheet("color: #155724;")
 
         header_layout.addWidget(title)
