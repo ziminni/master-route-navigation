@@ -99,69 +99,7 @@ class SearchView(QWidget):
         controls_layout.addWidget(self.btn_back)
         
         controls_layout.addStretch()
-        
-        # Semester dropdown
-        semester_label = QLabel("Semester:")
-        semester_label.setStyleSheet("font-weight: bold; color: #084924; font-size: 14px;")
-        controls_layout.addWidget(semester_label)
-        
-        self.combo_semester = QComboBox()
-        self.combo_semester.setMinimumWidth(120)
-        self.combo_semester.addItems(["1st Semester", "2nd Semester", "Mid year"])
-        self.combo_semester.setStyleSheet("""
-            QComboBox {
-                padding: 8px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                background-color: #084924;
-                color: white;
-                font-size: 12px;
-                font-weight: bold;
-            }
-            QComboBox:hover {
-                border-color: #FDC601;
-            }
-            QComboBox::drop-down {
-                border: 0px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: white;
-                color: #084924;
-                selection-background-color: #FDC601;
-                selection-color: white;
-            }
-        """)
-        controls_layout.addWidget(self.combo_semester)
-        
-        # View dropdown
-        view_label = QLabel("View:")
-        view_label.setStyleSheet("font-weight: bold; color: #084924; font-size: 14px;")
-        controls_layout.addWidget(view_label)
-        
-        self.combo_view = QComboBox()
-        self.combo_view.setMinimumWidth(80)
-        self.combo_view.addItems(["Month", "Day"])
-        self.combo_view.setStyleSheet("""
-            QComboBox {
-                padding: 8px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                background-color: #FDC601;
-                color: white;
-                font-size: 12px;
-                font-weight: bold;
-            }
-            QComboBox:hover {
-                border-color: #084924;
-            }
-            QComboBox QAbstractItemView {
-                background-color: white;
-                color: #084924;
-                selection-background-color: #FDC601;
-                selection-color: white;
-            }
-        """)
-        controls_layout.addWidget(self.combo_view)
+            
         
         # Search bar
         self.search_bar = QLineEdit()

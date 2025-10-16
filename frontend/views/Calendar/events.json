@@ -5,7 +5,7 @@
             "event": "Testing Admin Adding and Edit",
             "type": "Deadline",
             "location": "N/A",
-            "status": "Cancelled"
+            "status": "Finished"
         },
         {
             "date_time": "11/1/2025\n9:00 AM",
@@ -20,6 +20,13 @@
             "type": "Deadline",
             "location": "N/A",
             "status": "Upcoming"
+        },
+        {
+            "date_time": "10/17/2025\n7:00 AM",
+            "event": "admin adding",
+            "type": "Organizational",
+            "location": "N/A",
+            "status": "Completed"
         }
     ]
 }
