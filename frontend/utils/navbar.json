@@ -53,9 +53,9 @@
         {
           "id": 6,
           "name": "Appointments",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
+          "function": "Appointment_main()",
+          "path": "views.Appointments.Appointment_main",
+          "access": ["faculty","student", "admin"],
           "modulars":[]
         }
       ]
