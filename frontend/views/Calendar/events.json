@@ -1,0 +1,25 @@
+{
+    "events": [
+        {
+            "date_time": "10/13/2025\n9:00 AM",
+            "event": "Testing Admin Adding and Edit",
+            "type": "Deadline",
+            "location": "N/A",
+            "status": "Cancelled"
+        },
+        {
+            "date_time": "11/1/2025\n9:00 AM",
+            "event": "Testing Staff Adding",
+            "type": "Organizational",
+            "location": "N/A",
+            "status": "Upcoming"
+        },
+        {
+            "date_time": "10/21/2025\n9:00 AM",
+            "event": "Testing Faculty Adding",
+            "type": "Deadline",
+            "location": "N/A",
+            "status": "Upcoming"
+        }
+    ]
+}
