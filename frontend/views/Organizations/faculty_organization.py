@@ -2,14 +2,14 @@ from PyQt6 import QtWidgets
 import sys
 import os
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-sys.path.append(project_root)
+# project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+# sys.path.append(project_root)
 
 from typing import Dict
-from frontend.views.Organizations.user import User
-from frontend.views.Organizations.manager_base import ManagerBase
-from frontend.widgets.orgs_custom_widgets.dialogs import OfficerDialog
-from frontend.ui.Organization.org_main_ui import Ui_Widget
+from .user import User
+from .manager_base import ManagerBase
+from widgets.orgs_custom_widgets.dialogs import OfficerDialog
+from ui.Organization.org_main_ui import Ui_Widget
 
 class Faculty(ManagerBase, User):
     """Faculty view with full member and applicant management capabilities."""
@@ -138,7 +138,7 @@ class Faculty(ManagerBase, User):
     def _add_college_org(self, org_data: Dict) -> None:
         """Add a college organization card to the grid."""
         from PyQt6 import QtCore
-        from frontend.widgets.orgs_custom_widgets.cards import CollegeOrgCard
+        from widgets.orgs_custom_widgets.cards import CollegeOrgCard
         
         card = CollegeOrgCard(
             self._get_logo_path(org_data["logo_path"]), 

@@ -5,10 +5,8 @@ import copy
 from typing import List, Dict, Optional
 from PyQt6 import QtWidgets, QtCore, QtGui
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from frontend.widgets.orgs_custom_widgets.tables import ActionDelegate
-from frontend.views.Organizations.image_utils import get_image_path
+from widgets.orgs_custom_widgets.tables import ActionDelegate
+from .image_utils import get_image_path
 
 class User(QtWidgets.QWidget):
     def __init__(self, name: str = "User", parent: Optional[QtWidgets.QWidget] = None):
@@ -219,7 +217,7 @@ class User(QtWidgets.QWidget):
 
     def load_officers(self, officers: List[Dict]) -> None:
         """Load officer cards into the officer grid."""
-        from frontend.widgets.orgs_custom_widgets.cards import OfficerCard
+        from widgets.orgs_custom_widgets.cards import OfficerCard
         self._clear_grid(self.ui.officer_cards_grid)
         self.officer_count = 0
         self.ui.officers_scroll_area.verticalScrollBar().setValue(0)
@@ -238,7 +236,7 @@ class User(QtWidgets.QWidget):
 
     def load_events(self, events: List[Dict]) -> None:
         """Load event cards into the events layout."""
-        from frontend.widgets.orgs_custom_widgets.cards import EventCard
+        from widgets.orgs_custom_widgets.cards import EventCard
         while self.ui.verticalLayout_14.count():
             if item := self.ui.verticalLayout_14.takeAt(0).widget():
                 item.deleteLater()

@@ -2,13 +2,13 @@ from PyQt6 import QtWidgets
 import sys
 import os
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-sys.path.append(project_root)
+# project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+# sys.path.append(project_root)
 
 from typing import Dict
-from frontend.views.Organizations.student_organization import Student
-from frontend.views.Organizations.manager_base import ManagerBase
-from frontend.widgets.orgs_custom_widgets.dialogs import OfficerDialog
+from .student_organization import Student
+from .manager_base import ManagerBase
+from widgets.orgs_custom_widgets.dialogs import OfficerDialog
 
 class Officer(ManagerBase, Student):
     """Officer view with member and applicant management capabilities."""

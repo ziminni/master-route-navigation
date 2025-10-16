@@ -130,7 +130,7 @@ class ManagerBase:
     
     def load_members(self, search_text: str = "") -> None:
         """Load and filter members into the table view with management controls."""
-        from frontend.widgets.orgs_custom_widgets.tables import ViewMembers
+        from widgets.orgs_custom_widgets.tables import ViewMembers
         
         if not self.current_org:
             return
@@ -204,7 +204,7 @@ class ManagerBase:
 
     def load_applicants(self, search_text: str = ""):
         """Load and filter applicants into the table view with action controls."""
-        from frontend.widgets.orgs_custom_widgets.tables import ViewApplicants
+        from widgets.orgs_custom_widgets.tables import ViewApplicants
         
         if not self.current_org:
             return
@@ -307,7 +307,7 @@ class ManagerBase:
     
     def edit_member(self, row: int) -> None:
         """Open dialog to edit member's position."""
-        from frontend.widgets.orgs_custom_widgets.dialogs import EditMemberDialog
+        from widgets.orgs_custom_widgets.dialogs import EditMemberDialog
         
         if not self.current_org:
             return
@@ -460,7 +460,7 @@ class ManagerBase:
     
     def open_edit_dialog(self):
         """Open the edit dialog for current org."""
-        from frontend.widgets.orgs_custom_widgets.dialogs import EditOrgDialog
+        from widgets.orgs_custom_widgets.dialogs import EditOrgDialog
         
         if self.current_org:
             dialog = EditOrgDialog(self.current_org, self)

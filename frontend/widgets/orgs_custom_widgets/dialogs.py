@@ -4,8 +4,7 @@ import json
 import os
 
 import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from frontend.views.Organizations.image_utils import copy_image_to_data, get_image_path
+from views.Organizations.image_utils import copy_image_to_data, get_image_path
 
 CONFIRM_STYLE = """
     border: 2px solid #084924; 
