@@ -1,0 +1,24 @@
+{
+  "proposals": [
+    {
+      "eventName": "12132",
+      "building": "Engineering Building",
+      "description": "12412",
+      "date": "2000-01-01",
+      "time": "00:00",
+      "roomName": "ENG-201",
+      "organizer": "Computer Science Society",
+      "budget": 12.0
+    },
+    {
+      "eventName": "LOL",
+      "building": "Engineering Building",
+      "description": "124124124",
+      "date": "2000-01-01",
+      "time": "00:00",
+      "roomName": "ENG-201",
+      "organizer": "Computer Science Society",
+      "budget": 0.0
+    }
+  ]
+}
