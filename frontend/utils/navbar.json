@@ -9,7 +9,7 @@
           "name": "Dashboard",
           "function": "Dashboard()",
           "path": "views.Dashboard.Dashboard",
-          "access": ["admin", "faculty", "staff", "student"],
+          "access": ["admin","faculty","staff","student"],
           "modulars": []
         }
       ]
@@ -18,38 +18,10 @@
       "id": 2,
       "name": "Academics",
       "mains": [
-        {
-          "id": 2,
-          "name": "Classes",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
-          "modulars":[]
-        },
-        {
-          "id": 3,
-          "name": "Schedule",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
-          "modulars":[]
-        },
-        {
-          "id": 4,
-          "name": "Progress",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
-          "modulars":[]
-        },
-        {
-          "id": 5,
-          "name": "Appointments",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
-          "modulars":[]
-        }
+        { "id": 2, "name": "Classes",      "function": "()", "path": "", "access": ["student","admin"], "modulars": [] },
+        { "id": 3, "name": "Schedule",     "function": "()", "path": "", "access": ["student","admin"], "modulars": [] },
+        { "id": 4, "name": "Progress",     "function": "()", "path": "", "access": ["student","admin"], "modulars": [] },
+        { "id": 5, "name": "Appointments", "function": "()", "path": "", "access": ["student","admin"], "modulars": [] }
       ]
     },
     {
@@ -57,66 +29,61 @@
       "name": "Organizations",
       "mains": [
         {
-          "id": 6,
-          "name": "Browse",
-          "function": "()",
-          "path": "",
+          "id": 40,
+          "name": "Organization",
+          "function": "OrganizationMain()",
+          "path": "views.Organization.Main.OrganizationMain",
           "access": ["student","admin"],
-          "modulars":[]
+          "modulars": [
+            {
+              "id": 401,
+              "name": "Student Services",
+              "function": "StudentServices()",
+              "path": "views.Organization.StudentServices.StudentServices",
+              "access": ["student"]
+            },
+            {
+              "id": 402,
+              "name": "Admin Dashboard",
+              "function": "AdminDashboard()",
+              "path": "views.Organizations.AdminDashboard.AdminDashboard",
+              "access": ["admin"]
+  }
+          ]
         },
-        {
-          "id": 7,
-          "name": "Membership",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
-          "modulars":[]
-        },
-        {
-          "id": 8,
-          "name": "Events",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
-          "modulars":[]
-        }
+        { "id": 7, "name": "Membership", "function": "()", "path": "", "access": ["student","admin"], "modulars": [] },
+        { "id": 8, "name": "Events",     "function": "()", "path": "", "access": ["student","admin"], "modulars": [] }
       ]
     },
     {
       "id": 4,
       "name": "Campus",
       "mains": [
-        {
-          "id": 9,
-          "name": "Calendar",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
-          "modulars":[]
-        },
-        {
-          "id": 10,
-          "name": "Announcements",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
-        },
-        {
-          "id": 11,
-          "name": "House System",
-          "function": "HouseMain()",
-          "path": "views.House.HouseMain",
-          "access": ["student","admin"],
-          "modulars":[]
-        },
+        { "id": 9,  "name": "Calendar",      "function": "()", "path": "", "access": ["student","admin"], "modulars": [] },
+        { "id": 10, "name": "Announcements", "function": "()", "path": "", "access": ["student","admin"], "modulars": [] },
+        { "id": 11, "name": "House System",  "function": "()", "path": "", "access": ["student","admin"], "modulars": [] },
         {
           "id": 12,
           "name": "Showcase",
           "function": "()",
           "path": "",
           "access": ["student","admin"],
-          "modulars":[]
+          "modulars": [
+            {
+              "id": 1200,
+              "name": "Showcase Admin",
+              "function": "ShowcaseWindow()",
+              "path": "views.Showcase.ShowcaseAdmin",
+              "access": ["admin"]
+            },
+            {
+              "id": 1201,
+              "name": "Submit Project",
+              "function": "ShowcaseStudent()",
+              "path": "views.Showcase.ShowcaseStudent",
+              "access": ["student"]
+            }
+          ]
         }
       ]
     },
@@ -124,40 +91,11 @@
       "id": 5,
       "name": "Tools",
       "mains": [
-        {
-          "id": 13,
-          "name": "Documents",
-          "function": "DocumentsView()",
-          "path": "views.Documents.Documents",
-          "access": ["student","admin"],
-          "modulars":[]
-        },
-        {
-          "id": 14,
-          "name": "Messages",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
-        },
-        {
-          "id": 15,
-          "name": "Student Services",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
-        },
-        {
-          "id": 16,
-          "name": "Help",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
-        }
+        { "id": 13, "name": "Documents",        "function": "()", "path": "", "access": ["student","admin"], "modulars": [] },
+        { "id": 14, "name": "Messages",         "function": "()", "path": "", "access": ["student","admin"], "modulars": [] },
+        { "id": 15, "name": "Student Services", "function": "()", "path": "", "access": ["student","admin"], "modulars": [] },
+        { "id": 16, "name": "Help",             "function": "()", "path": "", "access": ["student","admin"], "modulars": [] }
       ]
     }
-
   ]
 }
