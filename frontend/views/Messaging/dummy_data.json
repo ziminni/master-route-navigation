@@ -1,0 +1,244 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "name": "Administrator",
+      "email": "admin@cmu.edu.ph",
+      "role": "admin",
+      "department": "Administration",
+      "status": "online",
+      "last_seen": "2025-10-15T08:00:00Z",
+      "avatar": "images/admin.png"
+    },
+    {
+      "id": 2,
+      "username": "Adolf",
+      "name": "Adolf Hitler",
+      "email": "adolfhitler@cmu.edu.ph",
+      "role": "student",
+      "department": "Computer Science",
+      "program": "BS IT",
+      "section": "IT-1A",
+      "year_level": "3rd Year",
+      "status": "online",
+      "last_seen": "2025-10-15T09:00:00Z",
+      "avatar": "images/cmu.png"
+    },
+    {
+      "id": 3,
+      "username": "Donald",
+      "name": "Donald Trump",
+      "email": "donaldtrump@cmu.edu.ph",
+      "role": "staff",
+      "department": "Computer Science",
+      "position": "Registrar",
+      "status": "online",
+      "last_seen": "2025-10-15T09:30:00Z",
+      "avatar": "images/staff1.png"
+    },
+    {
+      "id": 4,
+      "username": "Kim",
+      "name": "Kim Jong Un",
+      "email": "kimjongun@cmu.edu.ph",
+      "role": "faculty",
+      "department": "Computer Science",
+      "position": "Instructor 1",
+      "status": "online",
+      "last_seen": "2025-10-15T10:00:00Z",
+      "avatar": "images/faculty1.png"
+    }
+  ],
+  "messages": [
+    {
+      "conversation_id": 1,
+      "sender_id": 2,
+      "content": "[New Inquiry] aewqeq: qweqweqw",
+      "timestamp": "2025-10-16T12:03:24.014591",
+      "status": "unread"
+    },
+    {
+      "conversation_id": 2,
+      "sender_id": 2,
+      "content": "[New Inquiry] wqeqwqw: qweqwewqeq",
+      "timestamp": "2025-10-16T12:03:41.234238",
+      "status": "unread"
+    },
+    {
+      "conversation_id": 3,
+      "sender_id": 2,
+      "content": "[New Inquiry] asdadas: asdasdas",
+      "timestamp": "2025-10-16T12:11:17.061542",
+      "status": "unread"
+    }
+  ],
+  "inquiries": [
+    {
+      "student_id": 2,
+      "staff_id": 3,
+      "inquiry_type": "general",
+      "subject": "aewqeq",
+      "description": "qweqweqw",
+      "priority": "normal",
+      "status": "pending",
+      "id": 1,
+      "created_at": "2025-10-16T12:03:24.014591",
+      "updated_at": "2025-10-16T12:03:24.014620",
+      "conversation_id": 1
+    },
+    {
+      "student_id": 2,
+      "admin_id": 1,
+      "inquiry_type": "general",
+      "subject": "wqeqwqw",
+      "description": "qweqwewqeq",
+      "priority": "normal",
+      "status": "pending",
+      "id": 2,
+      "created_at": "2025-10-16T12:03:41.234238",
+      "updated_at": "2025-10-16T12:03:41.234248",
+      "conversation_id": 2
+    },
+    {
+      "student_id": 2,
+      "faculty_id": 4,
+      "inquiry_type": "general",
+      "subject": "asdadas",
+      "description": "asdasdas",
+      "priority": "normal",
+      "status": "pending",
+      "id": 3,
+      "created_at": "2025-10-16T12:11:17.061542",
+      "updated_at": "2025-10-16T12:11:17.061567",
+      "conversation_id": 3
+    }
+  ],
+  "notifications": [],
+  "conversations": [
+    {
+      "id": 1,
+      "participants": [
+        2,
+        3
+      ],
+      "title": "aewqeq",
+      "created_at": "2025-10-16T12:03:24.014591",
+      "updated_at": "2025-10-16T12:03:24.014620"
+    },
+    {
+      "id": 2,
+      "participants": [
+        2,
+        1
+      ],
+      "title": "wqeqwqw",
+      "created_at": "2025-10-16T12:03:41.234238",
+      "updated_at": "2025-10-16T12:03:41.234248"
+    },
+    {
+      "id": 3,
+      "participants": [
+        2,
+        4
+      ],
+      "title": "asdadas",
+      "created_at": "2025-10-16T12:11:17.061542",
+      "updated_at": "2025-10-16T12:11:17.061567"
+    }
+  ],
+  "departments": [
+    {
+      "id": 1,
+      "name": "Computer Science",
+      "code": "CS",
+      "description": "Department of Computer Science and Programming"
+    },
+    {
+      "id": 2,
+      "name": "Information Technology",
+      "code": "IT",
+      "description": "Department of Information Technology and Systems"
+    },
+    {
+      "id": 3,
+      "name": "Information Systems",
+      "code": "IS",
+      "description": "Department of Information Systems and Management"
+    },
+    {
+      "id": 4,
+      "name": "Administration",
+      "code": "ADM",
+      "description": "University Administrative Department"
+    }
+  ],
+  "message_categories": [
+    {
+      "id": 1,
+      "name": "Academic",
+      "description": "Messages related to academic matters, assignments, and coursework"
+    },
+    {
+      "id": 2,
+      "name": "Administrative",
+      "description": "Messages related to administrative processes, grades, and records"
+    },
+    {
+      "id": 3,
+      "name": "Technical",
+      "description": "Messages related to technical support and system issues"
+    },
+    {
+      "id": 4,
+      "name": "General",
+      "description": "General messages and announcements"
+    }
+  ],
+  "priority_levels": [
+    {
+      "id": 1,
+      "name": "Normal",
+      "description": "Standard priority level for regular messages",
+      "color": "#6b7280"
+    },
+    {
+      "id": 2,
+      "name": "High",
+      "description": "High priority messages that require attention",
+      "color": "#f59e0b"
+    },
+    {
+      "id": 3,
+      "name": "Urgent",
+      "description": "Urgent messages that require immediate attention",
+      "color": "#ef4444"
+    }
+  ],
+  "message_statuses": [
+    {
+      "id": 1,
+      "name": "Pending",
+      "description": "Message is waiting for response",
+      "color": "#fbbf24"
+    },
+    {
+      "id": 2,
+      "name": "Sent",
+      "description": "Message has been sent successfully",
+      "color": "#10b981"
+    },
+    {
+      "id": 3,
+      "name": "Resolved",
+      "description": "Message has been resolved and closed",
+      "color": "#6b7280"
+    },
+    {
+      "id": 4,
+      "name": "In Progress",
+      "description": "Message is being processed",
+      "color": "#3b82f6"
+    }
+  ]
+}

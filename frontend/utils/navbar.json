@@ -144,9 +144,9 @@
         {
           "id": 15,
           "name": "Messages",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
+          "function": "LauncherWindow()",
+          "path": "views.Messaging.launcher",
+          "access": ["student","faculty","admin"],
           "modulars":[]
         },
         {
