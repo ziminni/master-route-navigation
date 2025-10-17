@@ -249,7 +249,7 @@ class AdminDashboard(QWidget):
         fixed_row_layout.setSpacing(16)
 
         fixed_metrics = [
-            {"title": "Most Active Module", "value": "CISC 101", "subtitle": "Computer Science Fundamentals"},
+            {"title": "Most Active Module", "value": "CISC 101", "subtitle": "Desktop Application Development"},
             {"title": "System Uptime", "value": "99.8%", "subtitle": "Last 30 days"},
             {"title": "Total Active Users", "value": "1,247", "subtitle": "↑ 12% from last week"},
             {"title": "Active Organizations", "value": "23", "subtitle": "All departments online"},
