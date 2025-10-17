@@ -1,73 +1,97 @@
 import sys
+import os
+
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget
 from views.Login.login import LoginWidget
 from services.auth_service import AuthService
 from widgets.layout_manager import LayoutManager
 from router.router import Router
+from views.Login.resetpassword import ResetPasswordWidget
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.auth_service = AuthService()
-        self.login_widget = LoginWidget()
-        # Store session data
         self.user_session = None
+        self.router = None
+        self.layout_manager = None
+        self._show_login()
 
+    # ---------- safe resize ----------
+    def resizeEvent(self, event):
+        lm = getattr(self, "layout_manager", None)
+        if lm is not None:
+            try:
+                lm.update_layout(self.width())
+            except Exception:
+                pass
+        return super().resizeEvent(event)
+
+    # ---------- login screen ----------
+    def _show_login(self):
+        old = self.takeCentralWidget()
+        if old: old.deleteLater()
+        self.layout_manager = None
+        self.router = None
+
+        self.login_widget = LoginWidget()
         self.setCentralWidget(self.login_widget)
-
         self.setWindowTitle("CISC Virtual Hub - Login")
         self.setGeometry(100, 100, 900, 600)
 
+        # ADD THIS: go to reset screen
+        self.login_widget.forgot_password_requested.connect(self._show_reset_password)
+
+        # existing: proceed to dashboard on success
         self.login_widget.login_successful.connect(self.open_dashboard)
 
+    def _show_reset_password(self):
+        # swap central widget to the reset screen
+        old = self.takeCentralWidget()
+        if old: old.deleteLater()
+        self.layout_manager = None
+        self.router = None
+
+        self.reset_widget = ResetPasswordWidget()
+        self.reset_widget.back_to_signin_requested.connect(self._show_login)
+        self.setCentralWidget(self.reset_widget)
+        self.setWindowTitle("CISC Virtual Hub - Reset Password")
+
+    # callback used by Router on logout
+    def _return_to_login(self):
+        self._show_login()
+
+    # ---------- post-login ----------
     def open_dashboard(self, result):
-        print(f"Login OK for {result.username} | roles={result.roles} | primary={result.primary_role}")
-        # Store user session data
         self.user_session = {
             "username": result.username,
             "roles": result.roles,
             "primary_role": result.primary_role,
-            "token": result.token
+            "token": result.token,
         }
 
-        # Initialize Router with user session data
-        router = Router(
+        self.router = Router(
             user_role=self.user_session["primary_role"],
-            user_session=self.user_session
+            user_session=self.user_session,
+            on_logout=self._return_to_login,   # critical
         )
 
-        # Create main layout and content widget for LayoutManager
-        main_layout = QGridLayout()
-        content = router.stack
-        content.setStyleSheet("QStackedWidget { background: #ffffff; }")
-
-        # Create a container widget for the LayoutManager
         container = QWidget()
-        container.setLayout(main_layout)
+        grid = QGridLayout(container)
 
-        # Initialize LayoutManager with the dynamic user_role
         self.layout_manager = LayoutManager(
-            main_layout=main_layout,
-            content=content,
-            router=router,
-            user_role=self.user_session["primary_role"]
+            main_layout=grid,
+            content=self.router.stack,
+            router=self.router,
+            user_role=self.user_session["primary_role"],
         )
 
-        # Update layout based on initial window width
-        self.layout_manager.update_layout(self.width())
-        print(f"MainWindow: Initialized layout, sidebar collapsed: {self.layout_manager.navbar.is_collapsed}")
-
-        # Set the container as the central widget
         self.setCentralWidget(container)
-
-        # Connect resize event to update layout dynamically
-        self.resizeEvent = lambda event: self.layout_manager.update_layout(self.width())
-
-        # Navigate to the Dashboard page (main_id=1 in navbar.json)
-        router.navigate(page_id=1, is_modular=False)
+        self.layout_manager.update_layout(self.width())  # one-time kick
+        self.router.navigate(page_id=1, is_modular=False)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.show()
+    w = MainWindow()
+    w.show()
     sys.exit(app.exec())

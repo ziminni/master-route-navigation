@@ -1,0 +1,461 @@
+{
+  "semesters": {
+    "2024-2025 1st Sem": {
+      "grades": [
+        {
+          "subject_code": "ITCC31",
+          "description": "Computer Programming",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "MATH101",
+          "description": "Calculus I",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE101",
+          "description": "English Communication",
+          "units": 3.0,
+          "midterm": 1.25,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE102",
+          "description": "Philippine History",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "PE101",
+          "description": "Physical Education 1",
+          "units": 2.0,
+          "midterm": 1.00,
+          "finals": 1.25,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "NSTP101",
+          "description": "National Service Training Program 1",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "IT101",
+          "description": "Introduction to Information Technology",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "PHILO101",
+          "description": "Philosophy of Man",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        }
+      ]
+    },
+    "2024-2025 2nd Sem": {
+      "grades": [
+        {
+          "subject_code": "CS201",
+          "description": "Data Structures and Algorithms",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "MATH102",
+          "description": "Discrete Mathematics",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "DB101",
+          "description": "Database Management Systems",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE103",
+          "description": "Rizal's Life and Works",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "PE102",
+          "description": "Physical Education 2",
+          "units": 2.0,
+          "midterm": 1.50,
+          "finals": 1.25,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "NSTP102",
+          "description": "National Service Training Program 2",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "WEB101",
+          "description": "Web Development Fundamentals",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE104",
+          "description": "Science, Technology and Society",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        }
+      ]
+    },
+    "2025-2026 1st Sem": {
+      "grades": [
+        {
+          "subject_code": "OOP201",
+          "description": "Object-Oriented Programming",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "NET201",
+          "description": "Computer Networks",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "SE201",
+          "description": "Software Engineering",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "ELEC101",
+          "description": "Mobile Application Development",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE105",
+          "description": "Ethics",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "STAT201",
+          "description": "Statistics and Probability",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "HCI201",
+          "description": "Human Computer Interaction",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE106",
+          "description": "Contemporary World",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        }
+      ]
+    },
+    "2025-2026 2nd Sem": {
+      "grades": [
+        {
+          "subject_code": "AI301",
+          "description": "Artificial Intelligence",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "IS301",
+          "description": "Information Security",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "ELEC102",
+          "description": "Cloud Computing",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "PROJ301",
+          "description": "IT Project Management",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE107",
+          "description": "Art Appreciation",
+          "units": 3.0,
+          "midterm": 1.50,
+          "finals": 1.25,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "ELEC103",
+          "description": "Game Development",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "SYS301",
+          "description": "Systems Analysis and Design",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE108",
+          "description": "Environmental Science",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        }
+      ]
+    },
+    "2026-2027 1st Sem": {
+      "grades": [
+        {
+          "subject_code": "CAPS401",
+          "description": "Capstone Project 1",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "ELEC104",
+          "description": "Data Science and Analytics",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "TECH401",
+          "description": "Emerging Technologies",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "PROF401",
+          "description": "Professional Ethics in IT",
+          "units": 3.0,
+          "midterm": 1.50,
+          "finals": 1.25,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE109",
+          "description": "Life and Works of Filipino Heroes",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "ELEC105",
+          "description": "Internet of Things",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "RES401",
+          "description": "Research Methods in IT",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE110",
+          "description": "Gender and Society",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        }
+      ]
+    },
+    "2026-2027 2nd Sem": {
+      "grades": [
+        {
+          "subject_code": "CAPS402",
+          "description": "Capstone Project 2",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "INTERN401",
+          "description": "Internship/Practicum",
+          "units": 6.0,
+          "midterm": 1.50,
+          "finals": 1.25,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "SEMI401",
+          "description": "IT Seminar",
+          "units": 2.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "ELEC106",
+          "description": "Blockchain Technology",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "ENTRE401",
+          "description": "Technopreneurship",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE111",
+          "description": "Reading in Philippine History",
+          "units": 3.0,
+          "midterm": 2.00,
+          "finals": 1.75,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "THESIS401",
+          "description": "Thesis Writing",
+          "units": 3.0,
+          "midterm": 1.75,
+          "finals": 1.50,
+          "re_exam": "",
+          "remarks": "PASSED"
+        },
+        {
+          "subject_code": "GE112",
+          "description": "Mathematics in the Modern World",
+          "units": 3.0,
+          "midterm": 2.25,
+          "finals": 2.00,
+          "re_exam": "",
+          "remarks": "PASSED"
+        }
+      ]
+    }
+  },
+  "last_updated": "2025-09-30"
+}

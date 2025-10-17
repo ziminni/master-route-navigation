@@ -1,5 +1,19 @@
 .venv/
+myenv/
+.idea/
+.vscode/
 __pycache__/
 *.pyc
 db.sqlite3
 *.sqlite3
+
+attachments/
+
+# ==========Module 12 - Document Vault and Form Repository==========
+frontend/views/Documents/FileStorage/**/*
+# BUT allow .gitkeep files to preserve directory structure
+!frontend/views/Documents/FileStorage/.gitkeep
+!frontend/views/Documents/FileStorage/**/.gitkeep
+
+# Ignore ALL mock data JSON files (user-generated data)
+frontend/views/Documents/Mock/*.json

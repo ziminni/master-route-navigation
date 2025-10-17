@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>generate_reports_widget</class>
+ <widget class="QWidget" name="generate_reports_widget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1200</width>
+    <height>801</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>600</width>
+    <height>500</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_4">
+   <item>
+    <layout class="QHBoxLayout" name="generate_reports_header">
+     <item>
+      <widget class="QPushButton" name="burgern_ic">
+       <property name="cursor">
+        <cursorShape>ArrowCursor</cursorShape>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton {
+	background-color: transparent;
+};</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../../assets/org_assets.qrc">
+         <normaloff>:/icons/organization/icons/burger_ic.png</normaloff>:/icons/organization/icons/burger_ic.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>40</width>
+         <height>40</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="header_laberl_reports">
+       <property name="font">
+        <font>
+         <family>Arial</family>
+         <pointsize>30</pointsize>
+         <kerning>true</kerning>
+        </font>
+       </property>
+       <property name="text">
+        <string>Generate Reports</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="hr_spacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>332</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="back_btn_reports">
+       <property name="styleSheet">
+        <string notr="true">QPushButton {
+	background-color: transparent;
+};</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../../assets/org_assets.qrc">
+         <normaloff>:/icons/organization/icons/Back IC.png</normaloff>:/icons/organization/icons/Back IC.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>30</width>
+         <height>30</height>
+        </size>
+       </property>
+       <property name="shortcut">
+        <string>Esc</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item alignment="Qt::AlignTop">
+    <widget class="QFrame" name="main_container">
+     <property name="styleSheet">
+      <string notr="true">QFrame {
+}
+
+#main_container {
+	background-color: white;
+	border-radius: 20px;
+};</string>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="QLabel" name="options_laberl">
+        <property name="font">
+         <font>
+          <family>Arial</family>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Options</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="hr_line">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>2</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: black;
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::HLine</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Sunken</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="options">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <item>
+          <widget class="QWidget" name="dropdown_container" native="true">
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+	padding: 10px;
+};</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <item>
+             <widget class="QWidget" name="first_row_dropdown" native="true">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QComboBox {
+	border-radius: 10px;
+	color: white;
+	background-color: #084924;
+	padding: 10px;
+};</string>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout">
+               <item alignment="Qt::AlignTop">
+                <widget class="QComboBox" name="select_org_dd">
+                 <property name="font">
+                  <font>
+                   <family>Arial</family>
+                  </font>
+                 </property>
+                 <property name="currentText">
+                  <string>Select Organizaiton</string>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>Select Organizaiton</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="report_type_dd">
+                 <property name="currentText">
+                  <string>Event History  (Default)</string>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>Event History  (Default)</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Membership</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Officer List</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Summary</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="second_row_dropdown" native="true">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton {
+	border-radius: 10px;
+	color: #084924;
+	background-color: #FDC601;
+	padding: 10px;
+	text-align: left;
+};</string>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <item>
+                <widget class="QPushButton" name="pushButton">
+                 <property name="text">
+                  <string>Start Date</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../../assets/org_assets.qrc">
+                   <normaloff>:/icons/organization/icons/calendar.png</normaloff>:/icons/organization/icons/calendar.png</iconset>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_2">
+                 <property name="text">
+                  <string>End Date</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../../assets/org_assets.qrc">
+                   <normaloff>:/icons/organization/icons/calendar.png</normaloff>:/icons/organization/icons/calendar.png</iconset>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="generate_report_btn">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton {
+	background-color: transparent;
+	border: 2px solid #084924;
+	border-radius: 10px;
+	color: #084924;
+	margin: 0px 10px 0px 10px;
+};</string>
+              </property>
+              <property name="text">
+               <string>Generate Report</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="options_spacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>402</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QWidget" name="buttom_container" native="true">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton {
+	border-radius: 10px;
+	color: #084924;
+	background-color: #FDC601;
+	padding: 10px;
+};</string>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <item alignment="Qt::AlignBottom">
+                <widget class="QPushButton" name="download_pdf_btn">
+                 <property name="text">
+                  <string>Download PDF</string>
+                 </property>
+                </widget>
+               </item>
+               <item alignment="Qt::AlignBottom">
+                <widget class="QPushButton" name="download_excel_btn">
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton {
+	color: white;
+	background-color: #084924;
+};</string>
+                 </property>
+                 <property name="text">
+                  <string>Download Excel</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item alignment="Qt::AlignTop">
+          <widget class="QWidget" name="preview_container" native="true">
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <item>
+             <widget class="QLabel" name="preview_label">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QLabel {
+	color: #084924;
+};</string>
+              </property>
+              <property name="text">
+               <string>Report Preview</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="preview_frame">
+              <property name="minimumSize">
+               <size>
+                <width>500</width>
+                <height>550</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QFrame {
+	background-color: white;
+	border-radius: 20px;
+	border: 1px solid #ccc;
+};</string>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../../assets/org_assets.qrc"/>
+ </resources>
+ <connections/>
+</ui>

@@ -77,17 +77,179 @@ V-Hub includes modules for:
 - **SQLite3**: Local development database.
 - **Other Libraries**: Matplotlib (visualization), Requests, python-dotenv, etc.
 
-## Setup
+## Quick Start
 
-1. Clone the repository.
-2. Create and activate a Python virtual environment.
-	If Policy related error occurs:
-		Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-3. Install dependencies:  
-	 `pip install -r requirements.txt`
-4. Run migrations:  
-	 `python backend/manage.py migrate`
-5. Start the server:  
-	 `python backend/manage.py runserver`
-6. Start at Login through frontent/main.py
-	 `python .\frontend\main.py`
+### First Time Setup (Automated)
+
+Run the automated setup script that will:
+- Create virtual environment
+- Install all dependencies
+- Run database migrations
+- Create default users (admin, student, staff, faculty)
+
+```powershell
+python.exe .\backend\script.py
+```
+
+**Default Users Created:**
+- **Admin**: username: `admin`, password: `admin123`
+- **Student**: username: `Marcus`, password: `password123`
+- **Staff**: username: `Donald`, password: `password123`
+- **Faculty**: username: `Kim`, password: `password123`
+
+### Running the Application
+
+Launch both backend and frontend with a single command:
+
+```powershell
+python.exe launch.py
+```
+
+This will:
+1. Start the Django backend server at `http://127.0.0.1:8000/`
+2. Wait 3 seconds for backend initialization
+3. Launch the PyQt6 desktop application
+4. Monitor both processes (close frontend window or press Ctrl+C to stop all)
+
+---
+
+## Manual Setup (Alternative)
+
+If you prefer to set up manually:
+
+### 1. Clone the Repository
+```powershell
+git clone <repository-url>
+cd master-merging
+```
+
+### 2. Create Virtual Environment
+```powershell
+python.exe -m venv .venv
+```
+
+### 3. Activate Virtual Environment
+```powershell
+.\.venv\Scripts\activate
+```
+
+**Note:** If you encounter a policy error:
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+### 4. Install Dependencies
+```powershell
+pip install -r requirements.txt
+```
+
+### 5. Run Database Migrations
+```powershell
+cd backend
+python.exe manage.py makemigrations
+python.exe manage.py migrate
+cd ..
+```
+
+### 6. Create Superuser (Optional)
+```powershell
+cd backend
+python.exe manage.py createsuperuser
+cd ..
+```
+
+### 7. Start Backend Server
+```powershell
+cd backend
+python.exe manage.py runserver
+```
+
+### 8. Start Frontend Application (in new terminal)
+```powershell
+.\.venv\Scripts\activate
+cd frontend
+python.exe main.py
+```
+
+---
+
+## Useful Commands
+
+### Reset Database & Migrations
+To completely reset your database and start fresh:
+```powershell
+python.exe .\backend\script.py
+```
+This will delete `db.sqlite3` and recreate everything from scratch.
+
+### Access Django Admin Panel
+1. Start the backend server
+2. Navigate to `http://127.0.0.1:8000/admin/`
+3. Login with admin credentials
+
+### Run Backend Only
+```powershell
+.\.venv\Scripts\python.exe .\backend\manage.py runserver
+```
+
+### Run Frontend Only
+```powershell
+.\.venv\Scripts\python.exe .\frontend\main.py
+```
+
+### Run Tests
+```powershell
+cd backend
+.\.venv\Scripts\python.exe manage.py test
+```
+
+---
+
+## Project Structure
+
+```
+root/
+├── backend/
+│   ├── api/
+│   ├── apps/
+│   │   ├── Academics/
+│   │   ├── Admin/
+│   │   ├── Announcements/
+│   │   ├── Appointments/
+│   │   ├── Calendar/
+│   │   ├── Dashboard/
+│   │   ├── Documents/
+│   │   ├── Feedback/
+│   │   ├── House/
+│   │   ├── Links/
+│   │   ├── Messaging/
+│   │   ├── Organizations/
+│   │   ├── Showcase/
+│   │   └── Users/
+│   ├── common/
+│   ├── config/
+│   ├── core/
+│   ├── docs/
+│   ├── middleware/
+│   ├── tests/
+│   ├── db.sqlite3
+│   ├── manage.py
+│   └── script.py
+├── frontend/
+│   ├── assets/
+│   ├── controller/
+│   ├── database/
+│   ├── docs/
+│   ├── Mock/
+│   ├── model/
+│   ├── router/
+│   ├── services/
+│   ├── ui/
+│   ├── utils/
+│   ├── views/
+│   ├── widgets/
+│   └── main.py
+├── launch.py
+├── README.md
+└── requirements.txt
+```

@@ -1,0 +1,90 @@
+[
+  {
+    "id": 1,
+    "title": "General Assembly",
+    "placement": 1,
+    "membersO": "189",
+    "points": 175,
+    "date": "08/11/2025",
+    "type": "Competition",
+    "desc": "College of Information Sciences and Computing Student Council - CSCO",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/generalassembly.jpg"
+  },
+  {
+    "id": 2,
+    "title": "Bayanihan",
+    "placement": 2,
+    "membersO": "140",
+    "points": 175,
+    "date": "08/11/2025",
+    "type": "Behavioral",
+    "desc": "College of Information Sciences and Computing Student Council - CSCO",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/Bayanihan pic.jpg"
+  },
+  {
+    "id": 3,
+    "title": "Valorant",
+    "placement": 2,
+    "membersO": "140",
+    "points": 175,
+    "date": "08/11/2025",
+    "type": "Behavioral",
+    "desc": "College of Information Sciences and Computing Student Council - CSCO",
+    "img":"C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/valorant.png"
+  },
+  {
+    "id": 4,
+    "title": "Bayanihan",
+    "placement": 3,
+    "membersO": "109",
+    "points": 175,
+    "date": "08/11/2025",
+    "type": "Behavioral",
+    "desc": "College of Information Sciences and Computing Student Council - CSCO",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/collegeassembly.png"
+  },
+  {
+    "id": 5,
+    "title": "Bayanihan",
+    "placement": 3,
+    "membersO": "109",
+    "points": 175,
+    "date": "08/11/2025",
+    "type": "Behavioral",
+    "desc": "College of Information Sciences and Computing Student Council - CSCO",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/collegeassembly.png"
+  },
+  {
+    "id": 6,
+    "title": "Bayanihan",
+    "placement": 3,
+    "membersO": "109",
+    "points": 175,
+    "date": "08/11/2025",
+    "type": "Behavioral",
+    "desc": "College of Information Sciences and Computing Student Council - CSCO",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/collegeassembly.png"
+  },
+  {
+    "id": 7,
+    "title": "Bayanihan",
+    "placement": 3,
+    "membersO": "109",
+    "points": 175,
+    "date": "08/11/2025",
+    "type": "Behavioral",
+    "desc": "College of Information Sciences and Computing Student Council - CSCO",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/collegeassembly.png"
+  },
+  {
+    "id": 8,
+    "title": "Bayanihan",
+    "placement": 3,
+    "membersO": "109",
+    "points": 175,
+    "date": "08/11/2025",
+    "type": "Behavioral",
+    "desc": "College of Information Sciences and Computing Student Council - CSCO",
+    "img": "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/collegeassembly.png"
+  }
+]
