@@ -1,0 +1,17 @@
+{
+  "title": "System Usage Trends",
+  "data": [
+    { "month": "Jan", "users": 850 },
+    { "month": "Feb", "users": 920 },
+    { "month": "Mar", "users": 1050 },
+    { "month": "Apr", "users": 980 },
+    { "month": "May", "users": 1150 },
+    { "month": "Jun", "users": 1200 },
+    { "month": "Jul", "users": 1100 },
+    { "month": "Aug", "users": 1300 },
+    { "month": "Sep", "users": 1250 },
+    { "month": "Oct", "users": 1400 },
+    { "month": "Nov", "users": 1350 },
+    { "month": "Dec", "users": 1500 }
+  ]
+}

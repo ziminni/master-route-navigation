@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1124</width>
+    <height>914</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="chat_info" native="true">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>100</y>
+      <width>231</width>
+      <height>771</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QWidget#chat_info {
+    background-color: white;
+    border-radius: 16px;
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+}
+</string>
+    </property>
+    <widget class="QLabel" name="label_2">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>0</y>
+       <width>91</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>18</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Chats</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="push_edit">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>20</y>
+       <width>75</width>
+       <height>24</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QPushButton#push_edit{
+    color: black;                      
+    border: none;                     
+    border-radius: 5px;                        
+    font-size: 14px;                   
+}
+
+QPushButton#push_edit:hover {
+    background-color: #005a2e;          /* Lighter green on hover */
+}
+
+QPushButton#push_edit:pressed {
+    background-color: #002d17;          /* Even darker green when pressed */
+}
+</string>
+     </property>
+     <property name="text">
+      <string>Edit</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="search_recipt">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>60</y>
+       <width>211</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QLineEdit#search_bar {
+    background-color: #f5f5f5;
+    border: 1px solid #cfcfcf;
+    border-radius: 15px;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+</string>
+     </property>
+    </widget>
+    <widget class="Line" name="line">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>90</y>
+       <width>231</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+    <widget class="QScrollBar" name="scroll_bar">
+     <property name="geometry">
+      <rect>
+       <x>210</x>
+       <y>100</y>
+       <width>16</width>
+       <height>501</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QScrollBar:vertical {
+    border: none;
+    background: transparent;
+    width: 6px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical {
+    background: #c0c0c0;
+    border-radius: 3px;
+    min-height: 20px;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+</string>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+    <widget class="QWidget" name="layoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>110</y>
+       <width>201</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="push_unread">
+        <property name="styleSheet">
+         <string notr="true">QPushButton#push_unread{
+    color: black;                      
+    border: none;                     
+    border-radius: 5px;                        
+    font-size: 14px;                   
+}
+
+QPushButton#push_unread:hover {
+    background-color: #005a2e;          /* Lighter green on hover */
+}
+
+QPushButton#push_unread:pressed {
+    background-color: #002d17;          /* Even darker green when pressed */
+}
+</string>
+        </property>
+        <property name="text">
+         <string>Unread</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="push_all">
+        <property name="styleSheet">
+         <string notr="true">QPushButton#push_all{
+    color: black;                      
+    border: none;                     
+    border-radius: 5px;                        
+    font-size: 14px;                   
+}
+
+QPushButton#push_all:hover {
+    background-color: #005a2e;          /* Lighter green on hover */
+}
+
+QPushButton#push_all:pressed {
+    background-color: #002d17;          /* Even darker green when pressed */
+}
+</string>
+        </property>
+        <property name="text">
+         <string>All</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="push_comm">
+        <property name="styleSheet">
+         <string notr="true">QPushButton#push_comm{
+    color: black;                      
+    border: none;                     
+    border-radius: 5px;                        
+    font-size: 14px;                   
+}
+
+QPushButton#push_comm:hover {
+    background-color: #005a2e;          /* Lighter green on hover */
+}
+
+QPushButton#push_comm:pressed {
+    background-color: #002d17;          /* Even darker green when pressed */
+}
+</string>
+        </property>
+        <property name="text">
+         <string>Comm</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="push_group">
+        <property name="styleSheet">
+         <string notr="true">QPushButton#push_group{
+    color: black;                      
+    border: none;                     
+    border-radius: 5px;                        
+    font-size: 14px;                   
+}
+
+QPushButton#push_group:hover {
+    background-color: #005a2e;          /* Lighter green on hover */
+}
+
+QPushButton#push_group:pressed {
+    background-color: #002d17;          /* Even darker green when pressed */
+}
+</string>
+        </property>
+        <property name="text">
+         <string>Group</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="message_widget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>250</x>
+      <y>100</y>
+      <width>621</width>
+      <height>771</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QWidget#message_widget {
+    background-color: white;
+    border-radius: 16px;
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+}
+</string>
+    </property>
+    <widget class="QPushButton" name="create_inquiry">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>370</y>
+       <width>231</width>
+       <height>51</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QPushButton#create_inquiry{
+    background-color: #003d1f;          /* Dark green background */
+    color: white;                       /* White text */
+    font-weight: bold;                  /* Bold font */
+    border: none;                       /* No default border */
+    border-radius: 10px;                /* Rounded corners */
+    padding: 8px 20px;                  /* Top/bottom + left/right padding */
+    font-size: 14px;                    /* Slightly larger font */
+}
+
+QPushButton#create_inquiry:hover {
+    background-color: #005a2e;          /* Lighter green on hover */
+}
+
+QPushButton#create_inquiry:pressed {
+    background-color: #002d17;          /* Even darker green when pressed */
+}
+</string>
+     </property>
+     <property name="text">
+      <string>Create a Inquiry</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_8">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>310</y>
+       <width>241</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>20</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>No message found!</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="contact_info" native="true">
+    <property name="geometry">
+     <rect>
+      <x>880</x>
+      <y>100</y>
+      <width>221</width>
+      <height>771</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QWidget#contact_info {
+    background-color: white;
+    border-radius: 16px;
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+}
+</string>
+    </property>
+    <widget class="QLabel" name="label_9">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>181</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>18</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Contact Info</string>
+     </property>
+    </widget>
+    <widget class="Line" name="line_2">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>60</y>
+       <width>221</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QLabel" name="msg_header">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>40</y>
+      <width>221</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Arial</family>
+      <pointsize>-1</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QLabel#msg_header {
+    color: #084924;           /* Dark green text */
+    font-size: 25px;          /* Large font */
+    font-weight: bold;        /* Bold text */
+    background-color: transparent;
+}
+</string>
+    </property>
+    <property name="text">
+     <string>Messaging Center</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1124</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

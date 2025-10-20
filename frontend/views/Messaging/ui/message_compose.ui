@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>955</width>
+    <height>637</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QFrame" name="message_frame">
+   <property name="geometry">
+    <rect>
+     <x>210</x>
+     <y>130</y>
+     <width>531</width>
+     <height>421</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QFrame#message_frame {
+    background-color: white;
+    border-radius: 16px;
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+}
+</string>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::StyledPanel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+   <widget class="QLabel" name="label_header">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>10</y>
+      <width>361</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QLabel#label_header{
+    color: #084924;           /* Dark green text */
+    font-size: 15px;          /* Large font */
+    font-weight: bold;        /* Bold text */
+    background-color: transparent;
+}
+</string>
+    </property>
+    <property name="text">
+     <string>Compose Message</string>
+    </property>
+   </widget>
+   <widget class="Line" name="line">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>30</y>
+      <width>671</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_close">
+    <property name="geometry">
+     <rect>
+      <x>614</x>
+      <y>10</y>
+      <width>41</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">#btn_close{
+    background-color: transparent;
+    color: #808080;
+    padding: 6px 14px;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+#btn_close:hover {
+     background-color: #FF0000;
+	color:white;
+}</string>
+    </property>
+    <property name="text">
+     <string>X</string>
+    </property>
+   </widget>
+   <widget class="QWidget" name="layoutWidget_2">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>380</y>
+      <width>276</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QPushButton" name="btn_cancel">
+       <property name="styleSheet">
+        <string notr="true">#btn_cancel{
+    background-color: #transparent;
+    color: black;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+#btn_cancel:hover {
+    background-color: #FF0000;
+	color:white;
+}
+</string>
+       </property>
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_send">
+       <property name="styleSheet">
+        <string notr="true">#btn_send {
+    background-color: #0056b3;
+    color: white;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+#btn_send:hover {
+    background-color: #094924;
+}
+</string>
+       </property>
+       <property name="text">
+        <string>Send Message</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_to">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>70</y>
+      <width>491</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QLineEdit#lineEdit_to {
+    background-color: #f0f0f0; /* Light gray background */
+    border-radius: 5px; /* Slightly smaller radius for a modern, clean look */
+    border: 1px solid #ccc; /* Soft light gray border */
+    padding: 5px 7px; /* Added padding for better spacing */
+    font-size: 14px; /* Adjust font size for readability */
+    color: #333; /* Dark gray text color for readability */
+}
+
+QLineEdit#lineEdit_to:focus {
+    border: 1px solid #084924; /* Blue border when focused (modern feel) */
+    box-shadow: 0 0 5px rgba(76, 158, 255, 0.5); /* Soft shadow effect on focus */
+}
+
+QLineEdit#lineEdit_to:hover {
+    border: 1px solid #888; /* Darker border when hovered */
+    background-color: #e9e9e9; /* Slightly darker background on hover */
+}
+</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>50</y>
+      <width>49</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>To:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>110</y>
+      <width>49</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Subject:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_subject">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>130</y>
+      <width>491</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QLineEdit#lineEdit_subject {
+    background-color: #f0f0f0; /* Light gray background */
+    border-radius: 5px; /* Slightly smaller radius for a modern, clean look */
+    border: 1px solid #ccc; /* Soft light gray border */
+    padding: 5px 7px; /* Added padding for better spacing */
+    font-size: 14px; /* Adjust font size for readability */
+    color: #333; /* Dark gray text color for readability */
+}
+
+QLineEdit#lineEdit_subject:focus {
+    border: 1px solid #084924; /* Blue border when focused (modern feel) */
+    box-shadow: 0 0 5px rgba(76, 158, 255, 0.5); /* Soft shadow effect on focus */
+}
+
+QLineEdit#lineEdit_subject:hover {
+    border: 1px solid #888; /* Darker border when hovered */
+    background-color: #e9e9e9; /* Slightly darker background on hover */
+}
+</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>170</y>
+      <width>49</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Priority:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>220</y>
+      <width>49</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Message:</string>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="textEdit_msg">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>240</y>
+      <width>491</width>
+      <height>131</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QTextEdit#textEdit_msg {
+    background-color: #f0f0f0; /* Light gray background */
+    border-radius: 5px; /* Slightly smaller radius for a modern, clean look */
+    border: 1px solid #ccc; /* Soft light gray border */
+    padding: 5px 7px; /* Added padding for better spacing */
+    font-size: 14px; /* Adjust font size for readability */
+    color: #333; /* Dark gray text color for readability */
+}
+
+QTextEdit#textEdit_msg:focus {
+    border: 1px solid #084924; /* Blue border when focused (modern feel) */
+    box-shadow: 0 0 5px rgba(76, 158, 255, 0.5); /* Soft shadow effect on focus */
+}
+
+QTextEdit#textEdit_msgt:hover {
+    border: 1px solid #888; /* Darker border when hovered */
+    background-color: #e9e9e9; /* Slightly darker background on hover */
+}
+</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="comboBox_prio">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>190</y>
+      <width>491</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <item>
+     <property name="text">
+      <string/>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>High Priority</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Medium Priority</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Low Priority</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLabel" name="label_placeholder">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>250</y>
+      <width>271</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">#label_placeholder{
+    color: gray;
+    font-size: 12px;
+}</string>
+    </property>
+    <property name="text">
+     <string>Type your message here....</string>
+    </property>
+   </widget>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

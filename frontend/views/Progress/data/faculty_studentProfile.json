@@ -1,0 +1,23 @@
+{
+  "2023000001": {
+    "name": "John Doe",
+    "student_id": "2023000001",
+    "course": "BS Information Technology",
+    "grades": [
+      {
+        "subject_code": "ITCS204",
+        "description": "Data Structures and Algorithms",
+        "units": 3,
+        "midterm": 1.75,
+        "finals": 1.50
+      }
+    ],
+    "progress": {
+      "Core Courses": 90,
+      "Electives": 75,
+      "Capstone Project": 60,
+      "Internship": 0,
+      "General Education": 100
+    }
+  }
+}

@@ -1,0 +1,62 @@
+[
+    {
+        "id": 1,
+        "name": "Dr. Smith",
+        "email": "smith@university.edu",
+        "department": "Computer Science"
+    },
+    {
+        "id": 2,
+        "name": "Prof. Johnson",
+        "email": "johnson@university.edu",
+        "department": "Mathematics"
+    },
+    {
+        "id": 3,
+        "name": "Dr. Brown",
+        "email": "brown@university.edu",
+        "department": "Physics"
+    },
+    {
+        "id": 4,
+        "name": "Prof. Davis",
+        "email": "davis@university.edu",
+        "department": "Chemistry"
+    },
+    {
+        "id": 5,
+        "name": "Dr. Wilson",
+        "email": "wilson@university.edu",
+        "department": "Biology"
+    },
+    {
+        "id": 6,
+        "name": "Prof. Taylor",
+        "email": "taylor@university.edu",
+        "department": "Engineering"
+    },
+    {
+        "id": 7,
+        "name": "Dr. Anderson",
+        "email": "anderson@university.edu",
+        "department": "Psychology"
+    },
+    {
+        "id": 8,
+        "name": "Prof. Martinez",
+        "email": "martinez@university.edu",
+        "department": "Sociology"
+    },
+    {
+        "id": 9,
+        "name": "Dr. Clark",
+        "email": "clark@university.edu",
+        "department": "Economics"
+    },
+    {
+        "id": 10,
+        "name": "Prof. Rodriguez",
+        "email": "rodriguez@university.edu",
+        "department": "Business"
+    }
+]

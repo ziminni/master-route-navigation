@@ -1,0 +1,8 @@
+{
+  "title": "Feedback Sentiment Analysis",
+  "data": [
+    { "sentiment": "Positive", "percentage": 65.0 },
+    { "sentiment": "Neutral", "percentage": 17.5 },
+    { "sentiment": "Negative", "percentage": 17.5 }
+  ]
+}
