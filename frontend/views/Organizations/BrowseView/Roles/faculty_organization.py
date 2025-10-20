@@ -3,8 +3,8 @@ import sys
 import os
 
 from typing import Dict
-from .user import User
-from .manager_base import ManagerBase
+from ..Base.user import User
+from ..Base.manager_base import ManagerBase
 from widgets.orgs_custom_widgets.dialogs import OfficerDialog
 from ui.Organization.org_main_ui import Ui_Widget
 

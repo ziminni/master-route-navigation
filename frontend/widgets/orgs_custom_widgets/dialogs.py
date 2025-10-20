@@ -4,7 +4,7 @@ import json
 import os
 
 import sys
-from views.Organizations.image_utils import copy_image_to_data, get_image_path
+from views.Organizations.BrowseView.Utils.image_utils import copy_image_to_data, get_image_path
 
 CONFIRM_STYLE = """
     border: 2px solid #084924; 
@@ -209,7 +209,6 @@ class BaseEditDialog(BlurredDialog):
         )
         if file_path:
             self.temp_image_path = file_path
-            # Show preview immediately
             self.parent().parent().set_circular_logo(self.preview_label, file_path, size=150, border_width=4)
 
     def _add_form_fields(self, layout):

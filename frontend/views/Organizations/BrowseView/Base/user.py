@@ -4,7 +4,7 @@ import copy
 from typing import List, Dict, Optional
 from PyQt6 import QtWidgets, QtCore, QtGui
 from widgets.orgs_custom_widgets.tables import ActionDelegate
-from .image_utils import get_image_path
+from ..Utils.image_utils import get_image_path
 
 class User(QtWidgets.QWidget):
     def __init__(self, name: str = "User", parent: Optional[QtWidgets.QWidget] = None):
@@ -16,8 +16,7 @@ class User(QtWidgets.QWidget):
         self.table = None
         self.officer_count = 0
         self.college_org_count = 0
-        self.data_file = os.path.join(os.path.dirname(__file__), 'organizations_data.json')
-
+        self.data_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'organizations_data.json')
     def _apply_table_style(self) -> None:
         """Apply modern stylesheet for the members QTableView."""
         table = self.ui.list_view
@@ -215,7 +214,7 @@ class User(QtWidgets.QWidget):
 
     def load_officers(self, officers: List[Dict]) -> None:
         """Load officer cards into the officer grid."""
-        from widgets.orgs_custom_widgets.cards import OfficerCard
+        from frontend.widgets.orgs_custom_widgets.cards import OfficerCard
         self._clear_grid(self.ui.officer_cards_grid)
         self.officer_count = 0
         self.ui.officers_scroll_area.verticalScrollBar().setValue(0)
@@ -234,7 +233,7 @@ class User(QtWidgets.QWidget):
 
     def load_events(self, events: List[Dict]) -> None:
         """Load event cards into the events layout."""
-        from widgets.orgs_custom_widgets.cards import EventCard
+        from frontend.widgets.orgs_custom_widgets.cards import EventCard
         while self.ui.verticalLayout_14.count():
             if item := self.ui.verticalLayout_14.takeAt(0).widget():
                 item.deleteLater()

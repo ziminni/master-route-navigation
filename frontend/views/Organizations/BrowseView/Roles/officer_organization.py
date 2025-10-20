@@ -2,7 +2,7 @@ from PyQt6 import QtWidgets
 
 from typing import Dict
 from .student_organization import Student
-from .manager_base import ManagerBase
+from ..Base.manager_base import ManagerBase
 from widgets.orgs_custom_widgets.dialogs import OfficerDialog
 
 class Officer(ManagerBase, Student):

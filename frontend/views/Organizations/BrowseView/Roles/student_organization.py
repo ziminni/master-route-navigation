@@ -1,12 +1,11 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
 
 from typing import Dict
-from .user import User
-from widgets.orgs_custom_widgets.cards import JoinedOrgCard, CollegeOrgCard
+from ..Base.user import User
+from widgets.orgs_custom_widgets.cards import OfficerCard, JoinedOrgCard, CollegeOrgCard
 from widgets.orgs_custom_widgets.dialogs import OfficerDialog
 from widgets.orgs_custom_widgets.tables import ViewMembers
 from ui.Organization.org_main_ui import Ui_Widget
-
 
 class Student(User):
     def __init__(self, student_name: str = "Student"):

@@ -3,8 +3,8 @@ from PyQt6.QtCore import QTimer
 import os
 
 from typing import Dict
-from .user import User
-from .manager_base import ManagerBase
+from ..Base.manager_base import ManagerBase
+from ..Base.user import User
 from widgets.orgs_custom_widgets.dialogs import OfficerDialog, CreateOrgDialog
 from ui.Organization.org_main_ui import Ui_Widget
 from ui.Organization.audit_logs_ui import Ui_audit_logs_widget
