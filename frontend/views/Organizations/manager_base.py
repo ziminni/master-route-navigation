@@ -374,7 +374,7 @@ class ManagerBase:
                 self.load_officers(officers)
     
     def kick_member(self, row: int) -> None:
-        """Remove a member from the organization."""
+        """Remove a member from the organization, with special handling for officers."""
         if not self.current_org:
             return
         
@@ -388,16 +388,48 @@ class ManagerBase:
         if original_index is None:
             return
         
-        confirm = QMessageBox.question(
-            self, "Confirm Kick",
-            f"Are you sure you want to kick {member[0]}?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
+        member_name = member[0]
+        officers = self.current_org.get("officers", [])
+        is_officer = any(o["name"] == member_name for o in officers)
         
-        if confirm == QMessageBox.StandardButton.Yes:
-            del self.current_org["members"][original_index]
-            self.save_data()
-            self.load_members(search_text)
+        if is_officer:
+            message = f"Caution: {member_name} is an officer of this {'organization' if not self.current_org.get('is_branch', False) else 'branch'}.\n\nAre you sure you want to kick them? This will remove them from both members and officers lists."
+            confirm = QMessageBox.warning(
+                self, "Confirm Kick Officer", message,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if confirm == QMessageBox.StandardButton.Yes:
+                confirm2 = QMessageBox.critical(
+                    self, "Final Confirmation", 
+                    f"Are you absolutely sure you want to remove {member_name} as an officer and member?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                
+                if confirm2 == QMessageBox.StandardButton.Yes:
+                    self.current_org["officers"] = [o for o in officers if o["name"] != member_name]
+                    del self.current_org["members"][original_index]
+                    self.save_data()
+                    self.load_members(search_text)
+                    current_index = self.ui.officer_history_dp.currentIndex()
+                    selected_semester = self.ui.officer_history_dp.itemText(current_index)
+                    officers_list = (
+                        self.current_org.get("officer_history", {}).get(selected_semester, [])
+                        if selected_semester != "Current Officers"
+                        else self.current_org.get("officers", [])
+                    )
+                    self.load_officers(officers_list)
+        else:
+            confirm = QMessageBox.question(
+                self, "Confirm Kick",
+                f"Are you sure you want to kick {member_name}?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if confirm == QMessageBox.StandardButton.Yes:
+                del self.current_org["members"][original_index]
+                self.save_data()
+                self.load_members(search_text)
     
     def update_officer_in_org(self, updated_officer: Dict) -> None:
         """Update the officer data in the current organization and save."""
