@@ -29,9 +29,9 @@
         {
           "id": 3,
           "name": "Schedule",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
+          "function": "Schedule()",
+          "path": "views.Academics.Scheduler.Schedule",
+          "access": ["student", "admin","faculty"],
           "modulars":[]
         },
         {
@@ -75,8 +75,8 @@
         {
           "id": 8,
           "name": "Events",
-          "function": "()",
-          "path": "",
+          "function": "Events()",
+          "path": "views.Organizations.Events",
           "access": ["student", "admin"],
           "modulars":[]
         }
@@ -97,10 +97,11 @@
         {
           "id": 10,
           "name": "Announcements",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
+          "icon": "bullhorn",
+          "function": "AnnouncementsRouter()",
+          "path": "views.Announcements.Announcements",
+          "access": ["admin","faculty","staff","student"],
+          "modulars": []
         },
         {
           "id": 11,

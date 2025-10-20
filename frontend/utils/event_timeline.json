@@ -1,0 +1,13 @@
+{
+  "timeline": [
+    { "day": "Monday", "time": "07:00", "activity": "Venue setup", "eventName": "AWA" },
+    { "day": "Monday", "time": "10:00", "activity": "Booth arrangement", "eventName": "AWA" },
+    { "day": "Tuesday", "time": "13:00", "activity": "Rehearsal", "eventName": "AWA" },
+    { "day": "Wednesday", "time": "09:00", "activity": "Opening ceremony", "eventName": "AWA" },
+    { "day": "Sunday", "time": "07:00", "activity": "AA", "eventName": "AWA" },
+    { "day": "Sunday", "time": "07:00", "activity": "AA", "eventName": "AWA" },
+    { "day": "Sunday", "time": "07:00", "activity": "AWA", "eventName": "AWA" },
+    { "day": "Sunday", "time": "07:00", "activity": "123", "eventName": "QWE" },
+    { "day": "Saturday", "time": "00:00", "activity": "132", "eventName": "132" }
+  ]
+}

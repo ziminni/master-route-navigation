@@ -42,6 +42,8 @@ Thumbs.db
 *.swp
 *.tmp
 
+backend/migrations/0001_initial.py
+
 # ==========Module 12 - Document Vault and Form Repository==========
 frontend/views/Documents/FileStorage/**/*
 # BUT allow .gitkeep files to preserve directory structure
