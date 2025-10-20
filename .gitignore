@@ -1,8 +1,46 @@
-.venv/
-__pycache__/
+# ---------------------------
+# Python Virtual Environments
+# ---------------------------
+venv/
+.env/
+ENV/
+env/
+*.env
+
+# ---------------------------
+# Django & Python Artifacts
+# ---------------------------
+*.log
+*.pot
 *.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite database (development)
 db.sqlite3
-*.sqlite3
+
+# Local static and media files (optional)
+staticfiles/
+media/
+
+# ---------------------------
+# IDE and Editor Settings
+# ---------------------------
+.vscode/
+.idea/
+.history
+.DS_Store
+Thumbs.db
+
+# ---------------------------
+# Miscellaneous
+# ---------------------------
+*.bak
+*.swp
+*.tmp
 
 # ==========Module 12 - Document Vault and Form Repository==========
 frontend/views/Documents/FileStorage/**/*
