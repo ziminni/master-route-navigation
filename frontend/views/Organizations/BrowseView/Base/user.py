@@ -1,7 +1,8 @@
 import os
 import json
 import copy
-from typing import List, Dict, Optional
+import datetime
+from typing import List, Dict, Optional, Tuple  # <-- MODIFIED: Added Tuple
 from PyQt6 import QtWidgets, QtCore, QtGui
 from widgets.orgs_custom_widgets.tables import ActionDelegate
 from ..Utils.image_utils import get_image_path
@@ -17,6 +18,10 @@ class User(QtWidgets.QWidget):
         self.officer_count = 0
         self.college_org_count = 0
         self.data_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'organizations_data.json')
+        # --- ADDED ---
+        self.cooldown_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'student_cooldowns.json')
+        # --- END ADDED ---
+        
     def _apply_table_style(self) -> None:
         """Apply modern stylesheet for the members QTableView."""
         table = self.ui.list_view
@@ -94,17 +99,25 @@ class User(QtWidgets.QWidget):
             return []
 
     def save_data(self) -> None:
-        """Save updated organization data back to JSON file, handling both top-level and nested branches."""
+        """Save updated self.current_org data back to JSON file."""
         if not self.current_org:
             print("No current organization to save.")
+            return
+        
+        self.save_data_for_org(self.current_org)
+
+    def save_data_for_org(self, org_to_save: Dict) -> None:
+        """Saves a specific org/branch data dict back to the JSON file."""
+        if not org_to_save or "id" not in org_to_save:
+            print("Invalid organization data provided to save.")
             return
 
         organizations = self._load_data()
         updated = False
 
         for i in range(len(organizations)):
-            if organizations[i]["id"] == self.current_org["id"]:
-                organizations[i] = copy.deepcopy(self.current_org)
+            if organizations[i]["id"] == org_to_save["id"]:
+                organizations[i] = copy.deepcopy(org_to_save)
                 updated = True
                 break
 
@@ -112,15 +125,16 @@ class User(QtWidgets.QWidget):
             for org in organizations:
                 branches = org.get("branches", [])
                 for j in range(len(branches)):
-                    if branches[j]["id"] == self.current_org["id"]:
-                        branches[j] = copy.deepcopy(self.current_org)
+                    if branches[j]["id"] == org_to_save["id"]:
+                        branches[j] = copy.deepcopy(org_to_save)
                         updated = True
                         break
                 if updated:
                     break
 
         if not updated:
-            print(f"Warning: Could not find organization/branch with ID {self.current_org['id']} to update.")
+            print(f"Warning: Could not find organization/branch with ID {org_to_save['id']} to update.")
+            return
 
         try:
             with open(self.data_file, 'w') as file:
@@ -289,3 +303,64 @@ class User(QtWidgets.QWidget):
             self.ui.joined_org_scrollable.adjustSize()
             self.ui.joined_org_scrollable.updateGeometry()
         self.update()
+
+    # --- ADDED: Global Application Cooldown Methods ---
+
+    def _load_cooldowns(self) -> Dict:
+        """Loads the student cooldown data from JSON file."""
+        try:
+            with open(self.cooldown_file, 'r') as file:
+                data = json.load(file)
+                return data if isinstance(data, dict) else {}
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {} # Return empty dict if file not found or empty
+
+    def _save_cooldowns(self, cooldowns: Dict) -> None:
+        """Saves the student cooldown data to JSON file."""
+        try:
+            with open(self.cooldown_file, 'w') as file:
+                json.dump(cooldowns, file, indent=4)
+        except Exception as e:
+            print(f"Error saving {self.cooldown_file}: {str(e)}")
+
+    def get_application_cooldown(self) -> Optional[datetime.datetime]:
+        """Gets the application cooldown end time for the current user."""
+        cooldowns = self._load_cooldowns()
+        cooldown_str = cooldowns.get(self.name) # self.name is the student name
+        if cooldown_str:
+            try:
+                return datetime.datetime.fromisoformat(cooldown_str)
+            except ValueError:
+                return None
+        return None
+
+    def set_application_cooldown(self, hours: int = 7) -> None:
+        """Sets the application cooldown for the current user."""
+        cooldowns = self._load_cooldowns()
+        cooldown_end_time = datetime.datetime.now() + datetime.timedelta(hours=hours)
+        cooldowns[self.name] = cooldown_end_time.isoformat()
+        self._save_cooldowns(cooldowns)
+        print(f"Application cooldown set for {self.name} until {cooldown_end_time.isoformat()}")
+
+    def check_application_cooldown(self) -> Tuple[bool, Optional[datetime.datetime]]:
+        """
+        Checks if the user is currently on application cooldown.
+        Also clears the cooldown if it has expired.
+        
+        Returns:
+            Tuple[bool, Optional[datetime.datetime]]: (is_on_cooldown, cooldown_end_time)
+        """
+        cooldown_end_time = self.get_application_cooldown()
+        if cooldown_end_time:
+            if datetime.datetime.now() < cooldown_end_time:
+                return True, cooldown_end_time # On cooldown
+            else:
+                # Cooldown expired, clear it
+                cooldowns = self._load_cooldowns()
+                if self.name in cooldowns:
+                    del cooldowns[self.name]
+                    self._save_cooldowns(cooldowns)
+                return False, None # Cooldown expired
+        return False, None # No cooldown
+    
+    # --- END OF ADDED METHODS ---

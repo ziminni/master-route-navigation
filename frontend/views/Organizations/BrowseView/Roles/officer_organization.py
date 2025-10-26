@@ -8,7 +8,7 @@ from widgets.orgs_custom_widgets.dialogs import OfficerDialog
 class Officer(ManagerBase, Student):
     """Officer view with member and applicant management capabilities."""
     
-    def __init__(self, officer_name: str = "Ruben, Stephen Joseph"):
+    def __init__(self, officer_name: str):
         Student.__init__(self, student_name=officer_name)
         ManagerBase.__init__(self)
         self._setup_officer_connections()

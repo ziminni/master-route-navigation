@@ -5,6 +5,7 @@ Contains shared functionality for managing members and applicants.
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtWidgets import QMessageBox
 from typing import Dict, List, Optional, Tuple
+import datetime
 
 class ManagerBase:
     """Mixin class providing member and applicant management functionality."""
@@ -138,15 +139,12 @@ class ManagerBase:
         members_data = self.current_org.get("members", [])
         officers_data = self.current_org.get("officers", [])
         
-        # Add officers to members list if not already present
         officer_names = {officer["name"] for officer in officers_data}
         existing_member_names = {member[0] for member in members_data}
         
-        # Create a combined list with officers included
         combined_members = list(members_data)
         for officer in officers_data:
             if officer["name"] not in existing_member_names:
-                # Add officer as member with their position
                 combined_members.append([
                     officer["name"],
                     officer["position"],
@@ -154,7 +152,6 @@ class ManagerBase:
                     officer.get("start_date", QtCore.QDate.currentDate().toString("yyyy-MM-dd"))
                 ])
         
-        # Update members in current_org to include officers
         self.current_org["members"] = combined_members
         
         filtered_members = [
@@ -162,12 +159,10 @@ class ManagerBase:
             if any(search_text in str(field).lower() for field in member)
         ] if search_text else combined_members
         
-        # Reset table
         self.ui.list_view.setModel(None)
         self.ui.list_view.clearSpans()
         self.ui.list_view.verticalHeader().reset()
         
-        # Set up model
         model = ViewMembers(filtered_members, is_managing=self.is_managing)
         self.ui.list_view.setModel(model)
         self.ui.list_view.horizontalHeader().setStretchLastSection(True)
@@ -175,7 +170,6 @@ class ManagerBase:
             QtWidgets.QHeaderView.ResizeMode.Stretch
         )
         
-        # Show/hide based on data
         if filtered_members:
             self.ui.list_view.show()
             self.no_member_label.hide()
@@ -185,7 +179,6 @@ class ManagerBase:
         
         self._cleanup_manage_applicants_btn()
         
-        # Add action buttons if managing
         if self.is_managing:
             for row in range(len(filtered_members)):
                 action_widget = self._create_action_widget(
@@ -215,12 +208,10 @@ class ManagerBase:
             if any(search_text in str(field).lower() for field in applicant)
         ] if search_text else applicants_data
         
-        # Reset table
         self.ui.list_view.setModel(None)
         self.ui.list_view.clearSpans()
         self.ui.list_view.verticalHeader().reset()
         
-        # Set up model
         model = ViewApplicants(filtered_applicants)
         self.ui.list_view.setModel(model)
         self.ui.list_view.horizontalHeader().setStretchLastSection(True)
@@ -228,7 +219,6 @@ class ManagerBase:
             QtWidgets.QHeaderView.ResizeMode.Stretch
         )
         
-        # Show/hide based on data
         if filtered_applicants:
             self.ui.list_view.show()
             self.no_member_label.hide()
@@ -238,7 +228,6 @@ class ManagerBase:
         
         self._cleanup_manage_applicants_btn()
         
-        # Add action buttons
         for row in range(len(filtered_applicants)):
             action_widget = self._create_action_widget(
                 "Accept", lambda checked, r=row: self.accept_applicant(r),
@@ -273,14 +262,20 @@ class ManagerBase:
         )
         
         if confirm == QMessageBox.StandardButton.Yes:
+            applicant_name = applicant[0]
+            
             self.current_org["applicants"].pop(original_index)
             self.current_org["members"].append([
-                applicant[0], applicant[1], "Active",
+                applicant_name, applicant[1], "Active",
                 QtCore.QDate.currentDate().toString("yyyy-MM-dd")
             ])
+            
+            if "kick_cooldowns" in self.current_org and applicant_name in self.current_org["kick_cooldowns"]:
+                del self.current_org["kick_cooldowns"][applicant_name]
+            
             self.save_data()
             self.load_applicants(search_text)
-    
+
     def decline_applicant(self, row: int):
         """Confirm and remove applicant from list."""
         search_text = self._get_search_text()
@@ -374,7 +369,10 @@ class ManagerBase:
                 self.load_officers(officers)
     
     def kick_member(self, row: int) -> None:
-        """Remove a member from the organization, with special handling for officers."""
+        """
+        Remove a member from the organization, with special handling for officers.
+        [FIXED] Consolidated logic and corrected cooldown implementation.
+        """
         if not self.current_org:
             return
         
@@ -392,6 +390,8 @@ class ManagerBase:
         officers = self.current_org.get("officers", [])
         is_officer = any(o["name"] == member_name for o in officers)
         
+        kick_confirmed = False
+        
         if is_officer:
             message = f"Caution: {member_name} is an officer of this {'organization' if not self.current_org.get('is_branch', False) else 'branch'}.\n\nAre you sure you want to kick them? This will remove them from both members and officers lists."
             confirm = QMessageBox.warning(
@@ -405,31 +405,44 @@ class ManagerBase:
                     f"Are you absolutely sure you want to remove {member_name} as an officer and member?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
-                
                 if confirm2 == QMessageBox.StandardButton.Yes:
+                    # Remove from officers list
                     self.current_org["officers"] = [o for o in officers if o["name"] != member_name]
-                    del self.current_org["members"][original_index]
-                    self.save_data()
-                    self.load_members(search_text)
-                    current_index = self.ui.officer_history_dp.currentIndex()
-                    selected_semester = self.ui.officer_history_dp.itemText(current_index)
-                    officers_list = (
-                        self.current_org.get("officer_history", {}).get(selected_semester, [])
-                        if selected_semester != "Current Officers"
-                        else self.current_org.get("officers", [])
-                    )
-                    self.load_officers(officers_list)
-        else:
+                    kick_confirmed = True
+            
+        else: # Not an officer
             confirm = QMessageBox.question(
                 self, "Confirm Kick",
                 f"Are you sure you want to kick {member_name}?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
-            
             if confirm == QMessageBox.StandardButton.Yes:
-                del self.current_org["members"][original_index]
-                self.save_data()
-                self.load_members(search_text)
+                kick_confirmed = True
+        
+        # --- Consolidated Kick Logic ---
+        if kick_confirmed:
+            # Remove from members list
+            del self.current_org["members"][original_index]
+            
+            # Add to kick cooldown list for this org
+            if "kick_cooldowns" not in self.current_org:
+                self.current_org["kick_cooldowns"] = {}
+            self.current_org["kick_cooldowns"][member_name] = datetime.datetime.now().isoformat()
+            
+            # Save data and reload
+            self.save_data()
+            self.load_members(search_text)
+            
+            # Reload officers if an officer was kicked
+            if is_officer:
+                current_index = self.ui.officer_history_dp.currentIndex()
+                selected_semester = self.ui.officer_history_dp.itemText(current_index)
+                current_officers = (
+                    self.current_org.get("officer_history", {}).get(selected_semester, [])
+                    if selected_semester != "Current Officers"
+                    else self.current_org.get("officers", [])
+                )
+                self.load_officers(current_officers)
     
     def update_officer_in_org(self, updated_officer: Dict) -> None:
         """Update the officer data in the current organization and save."""

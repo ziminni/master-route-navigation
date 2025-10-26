@@ -198,10 +198,19 @@
                         "start_date": "01/15/2025"
                     }
                 ]
+            },
+            "kick_cooldowns": {
+                "Marcus": "2025-10-26T17:53:51.212211"
             }
         },
         {
-            "applicants": [],
+            "applicants": [
+                [
+                    "Marcus",
+                    "Member",
+                    "2025-10-26"
+                ]
+            ],
             "branches": [
                 {
                     "applicants": [],
@@ -623,42 +632,19 @@
                 }
             ],
             "officers": [],
-            "members": [
-                [
-                    "Quinn Cook",
-                    "Chairperson",
-                    "Active",
-                    "2023-09-01"
-                ],
-                [
-                    "Riley Diaz",
-                    "Member",
-                    "Active",
-                    "2023-10-05"
-                ],
-                [
-                    "Sam Evans",
-                    "Member",
-                    "Inactive",
-                    "2023-11-10"
-                ],
-                [
-                    "Tina Foster",
-                    "Member",
-                    "Active",
-                    "2023-12-15"
-                ]
-            ],
+            "members": [],
             "applicants": [
-                [
-                    "Michael Quinn",
-                    "Member"
-                ],
                 [
                     "Aria Roberts",
                     "Member"
                 ]
-            ]
+            ],
+            "kick_cooldowns": {
+                "Quinn Cook": "2025-10-26T17:51:50.068037",
+                "Riley Diaz": "2025-10-26T17:51:52.462877",
+                "Sam Evans": "2025-10-26T17:52:44.521242",
+                "Tina Foster": "2025-10-26T17:52:51.305079"
+            }
         },
         {
             "applicants": [],

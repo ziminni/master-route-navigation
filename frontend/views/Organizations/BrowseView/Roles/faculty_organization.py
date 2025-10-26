@@ -11,7 +11,7 @@ from ui.Organization.org_main_ui import Ui_Widget
 class Faculty(ManagerBase, User):
     """Faculty view with full member and applicant management capabilities."""
     
-    def __init__(self, faculty_name: str = "Faculty Name"):
+    def __init__(self, faculty_name: str):
         User.__init__(self, name=faculty_name)
         ManagerBase.__init__(self)
         

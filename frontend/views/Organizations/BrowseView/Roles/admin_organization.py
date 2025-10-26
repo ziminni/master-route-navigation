@@ -13,7 +13,7 @@ from ui.Organization.generate_reports_ui import Ui_generate_reports_widget
 class Admin(ManagerBase, User):
     """Admin view with full management capabilities and additional admin features."""
     
-    def __init__(self, admin_name: str = "Admin Name"):
+    def __init__(self, admin_name: str):
         User.__init__(self, name=admin_name)
         ManagerBase.__init__(self)
         
@@ -108,7 +108,7 @@ class Admin(ManagerBase, User):
     def _reposition_create_button(self) -> None:
         """Helper to set the geometry of the create button based on landing_page size."""
         if hasattr(self, 'create_btn'):
-            BUTTON_WIDTH = 250
+            BUTTON_WIDTH = 260
             BUTTON_HEIGHT = 50
             MARGIN_RIGHT = 30
             MARGIN_BOTTOM = 70
