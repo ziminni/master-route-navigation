@@ -1,39 +1,106 @@
 from PyQt6 import QtWidgets, QtGui, QtCore
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QTimer, Qt, QAbstractTableModel
+from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QCalendarWidget, QFileDialog
 import os
+import json
+import datetime
 
-from typing import Dict
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import letter
+import openpyxl
+from openpyxl.styles import Font, Alignment
+from openpyxl.utils import get_column_letter
+
+from typing import Dict, List
 from ..Base.manager_base import ManagerBase
-from ..Base.user import User
-from widgets.orgs_custom_widgets.dialogs import OfficerDialog, CreateOrgDialog
-from ui.Organization.org_main_ui import Ui_Widget
+from ..Base.faculty_admin_base import FacultyAdminBase
+from widgets.orgs_custom_widgets.dialogs import CreateOrgDialog
 from ui.Organization.audit_logs_ui import Ui_audit_logs_widget
 from ui.Organization.generate_reports_ui import Ui_generate_reports_widget
 
-class Admin(ManagerBase, User):
-    """Admin view with full management capabilities and additional admin features."""
+class AuditLogModel(QAbstractTableModel):
+    """Model for displaying audit logs."""
+    def __init__(self, data: List[Dict], parent=None):
+        super().__init__(parent)
+        self._data = data
+        self._headers = ["Timestamp", "Actor", "Action", "Organization", "Subject", "Details"]
+
+    def rowCount(self, parent=QtCore.QModelIndex()) -> int:
+        return len(self._data)
+
+    def columnCount(self, parent=QtCore.QModelIndex()) -> int:
+        return len(self._headers)
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if not index.isValid():
+            return None
+        
+        try:
+            row_data = self._data[index.row()]
+            col_name = self._headers[index.column()]
+        except IndexError:
+            return None
+        
+        if role == Qt.ItemDataRole.DisplayRole:
+            value = row_data.get(col_name.lower())
+            if col_name == "Timestamp":
+                try:
+                    dt = datetime.datetime.fromisoformat(value)
+                    return dt.strftime("%Y-%m-%d %I:%M:%S %p")
+                except (ValueError, TypeError):
+                    return value
+            return value
+        
+        if role == Qt.ItemDataRole.BackgroundRole:
+            # Add alternating row colors
+            return QColor("#f6f8fa") if index.row() % 2 == 1 else QColor("white")
+
+        return None
+
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+            return self._headers[section]
+        return None
+# --- END ADDED ---
+
+
+class Admin(ManagerBase, FacultyAdminBase):
+    """
+    Admin view. Inherits from ManagerBase (for management methods) and
+    FacultyAdminBase (for the non-student UI layout).
+    Adds admin-specific features like the admin menu, create button,
+    audit logs, and report generation pages.
+    
+    MRO: Admin -> ManagerBase -> FacultyAdminBase -> OrganizationViewBase -> User
+    """
     
     def __init__(self, admin_name: str):
-        User.__init__(self, name=admin_name)
+        # Initializes FacultyAdminBase -> OrganizationViewBase -> User
+        FacultyAdminBase.__init__(self, name=admin_name)
+        # Initializes ManagerBase
         ManagerBase.__init__(self)
         
-        self.ui = Ui_Widget()
-        self.ui.setupUi(self)
-        self._apply_table_style()
-        self.ui.joined_container.setVisible(False)
+        self.report_start_date: datetime.date | None = None
+        self.report_end_date: datetime.date | None = None
         
-        self.table = self.findChild(QtWidgets.QTableView, "list_view")
-        self._setup_no_member_label()
-        self.ui.verticalLayout_17.addWidget(self.no_member_label)
+        # --- ADDED: Attributes to store last report data for export ---
+        self.last_report_logs: List[Dict] = []
+        self.last_report_org: str = ""
+        self.last_report_type: str = ""
+        self.last_report_header_text: str = ""
+        # --- END ADDED ---
         
+        # --- Admin-specific setup ---
         self._setup_admin_menu()
         self._setup_create_button()
         
-        # NEW: Load and add audit logs and generate reports pages to stacked widget
         self._setup_audit_logs_page()
         self._setup_generate_reports_page()
         
-        self._setup_connections()
+        # Load initial orgs
         self.load_orgs()
 
     def showEvent(self, event):
@@ -127,121 +194,93 @@ class Admin(ManagerBase, User):
         if self.ui.stacked_widget.currentIndex() == 0:
             self._reposition_create_button()
     
-    # NEW: Setup audit logs page
+    def _setup_no_logs_label(self) -> None:
+        """Initialize the 'No logs.' label for the audit log table."""
+        self.no_logs_label = QtWidgets.QLabel("No logs.", self.audit_logs_ui.audit_table_container)
+        self.no_logs_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.no_logs_label.setStyleSheet("font-size: 20px; color: #888;")
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Expanding
+        )
+        self.no_logs_label.setSizePolicy(sizePolicy)
+        self.audit_logs_ui.verticalLayout_17.addWidget(self.no_logs_label)
+        self.no_logs_label.hide()
+    
     def _setup_audit_logs_page(self) -> None:
         """Load the audit logs UI as a new stacked widget page."""
         self.audit_logs_page = QtWidgets.QWidget()
         self.audit_logs_ui = Ui_audit_logs_widget()
         self.audit_logs_ui.setupUi(self.audit_logs_page)
         
-        # Wire up shared elements (e.g., back button returns to landing)
-        self.audit_logs_ui.audit_back_btn.clicked.connect(lambda: self.ui.stacked_widget.setCurrentIndex(0))
+        self._setup_no_logs_label()
         
-        # TODO: Wire up search and table (e.g., connect audit_search_btn to load_audit_logs_data)
-        # Example: self.audit_logs_ui.audit_search_btn.clicked.connect(self.load_audit_logs_data)
-        # self.audit_logs_ui.audit_line_edit.textChanged.connect(self._perform_audit_search)
+        self.audit_logs_ui.audit_back_btn.clicked.connect(
+            lambda: self.ui.stacked_widget.setCurrentIndex(0)
+        )
         
-        # Add to stacked widget (index 3; adjust if other pages are added)
-        self.ui.stacked_widget.addWidget(self.audit_logs_page)
+        self.audit_logs_ui.audit_search_btn.clicked.connect(self._perform_audit_search)
+        self.audit_logs_ui.audit_line_edit.returnPressed.connect(self._perform_audit_search)
+        
+        self.ui.stacked_widget.addWidget(self.audit_logs_page) # Index 3
     
-    # NEW: Setup generate reports page
     def _setup_generate_reports_page(self) -> None:
         """Load the generate reports UI as a new stacked widget page."""
         self.reports_page = QtWidgets.QWidget()
         self.reports_ui = Ui_generate_reports_widget()
         self.reports_ui.setupUi(self.reports_page)
         
-        # Wire up shared elements (e.g., back button returns to landing)
-        self.reports_ui.back_btn_reports.clicked.connect(lambda: self.ui.stacked_widget.setCurrentIndex(0))
+        self.reports_ui.report_preview_text = QtWidgets.QPlainTextEdit(self.reports_ui.preview_frame)
+        self.reports_ui.report_preview_text.setReadOnly(True)
+        self.reports_ui.report_preview_text.setStyleSheet("background-color: transparent; border: none; font-family: 'Courier New', monospace;")
         
-        # TODO: Wire up dropdowns and buttons (e.g., populate select_org_dd with orgs)
-        # Example: self._populate_reports_orgs()
-        # self.reports_ui.generate_report_btn.clicked.connect(self.generate_report)
-        # self.reports_ui.download_pdf_btn.clicked.connect(self.download_pdf)
-        # self.reports_ui.download_excel_btn.clicked.connect(self.download_excel)
-        # self.reports_ui.pushButton.clicked.connect(self.select_start_date)
-        # self.reports_ui.pushButton_2.clicked.connect(self.select_end_date)
+        preview_layout = QtWidgets.QVBoxLayout(self.reports_ui.preview_frame)
+        preview_layout.setContentsMargins(10, 10, 10, 10)
+        preview_layout.addWidget(self.reports_ui.report_preview_text)
         
-        # Add to stacked widget (index 4; adjust if other pages are added)
-        self.ui.stacked_widget.addWidget(self.reports_page)
+        self.reports_ui.back_btn_reports.clicked.connect(
+            lambda: self.ui.stacked_widget.setCurrentIndex(0)
+        )
+        
+        self.reports_ui.generate_report_btn.clicked.connect(self.generate_report)
+        self.reports_ui.pushButton.clicked.connect(self._select_start_date) # Start Date
+        self.reports_ui.pushButton_2.clicked.connect(self._select_end_date) # End Date
+        self.reports_ui.download_pdf_btn.clicked.connect(self._download_pdf)
+        self.reports_ui.download_excel_btn.clicked.connect(self._download_excel)
+        
+        self.ui.stacked_widget.addWidget(self.reports_page) # Index 4
     
-    # UPDATE: Replace placeholders with stack navigation
+    # --- Admin Page Navigation ---
+    
     def _generate_reports(self) -> None:
         """Navigate to generate reports page."""
-        self.ui.stacked_widget.setCurrentIndex(4)  # Index of reports page
+        self._populate_reports_orgs() 
+        self.reports_ui.report_preview_text.clear()
+        self.report_start_date = None
+        self.report_end_date = None
+        self.reports_ui.pushButton.setText("Start Date")
+        self.reports_ui.pushButton_2.setText("End Date")
+        
+        # --- ADDED: Clear last report data ---
+        self.last_report_logs = []
+        self.last_report_org = ""
+        self.last_report_type = ""
+        self.last_report_header_text = ""
+        
+        self.ui.stacked_widget.setCurrentIndex(4)
 
     def _open_audit_logs(self) -> None:
         """Navigate to audit logs page."""
-        self.ui.stacked_widget.setCurrentIndex(3)  # Index of audit logs page
+        self.load_audit_logs_data()
+        self.ui.stacked_widget.setCurrentIndex(3)
 
     def _open_archive(self) -> None:
         """Handle archive action."""
-        # Placeholder for archive functionality (add UI/page similarly if needed)
         QtWidgets.QMessageBox.information(
             self,
             "Archive",
             "Archive management feature will be implemented here."
         )
-    
-    # NEW: Example methods for functionality (implement based on your data model)
-    def load_audit_logs_data(self, search_text: str = "") -> None:
-        """Load audit logs into the table (placeholder logic)."""
-        # TODO: Fetch from DB/file (e.g., self._load_audit_data())
-        # Model = YourTableModel(audit_data)
-        # self.audit_logs_ui.audit_table_view.setModel(Model)
-        # Apply styling: self._apply_table_style_to_audit_table()
-        pass
-
-    def _perform_audit_search(self) -> None:
-        """Handle audit logs search."""
-        search_text = self.audit_logs_ui.audit_line_edit.text().strip().lower()
-        self.load_audit_logs_data(search_text)
-
-    def _populate_reports_orgs(self) -> None:
-        """Populate organizations in the reports dropdown."""
-        orgs = self._load_data()
-        self.reports_ui.select_org_dd.clear()
-        self.reports_ui.select_org_dd.addItem("Select Organization")
-        for org in orgs:
-            if not org["is_branch"]:  # Top-level orgs only
-                self.reports_ui.select_org_dd.addItem(org["name"])
-
-    def generate_report(self) -> None:
-        """Generate report based on selections (placeholder)."""
-        org = self.reports_ui.select_org_dd.currentText()
-        report_type = self.reports_ui.report_type_dd.currentText()
-        # TODO: Generate PDF/Excel preview (e.g., using reportlab or pandas)
-        # Render preview in self.reports_ui.preview_frame (e.g., embed QWebEngineView or QLabel)
-        QtWidgets.QMessageBox.information(self, "Report Generated", f"Generated {report_type} for {org}")
-        pass
-
-    def download_pdf(self) -> None:
-        """Download report as PDF (placeholder)."""
-        # TODO: Use reportlab to generate and save PDF
-        QtWidgets.QMessageBox.information(self, "Download", "PDF download will be implemented here.")
-
-    def download_excel(self) -> None:
-        """Download report as Excel (placeholder)."""
-        # TODO: Use pandas/openpyxl to generate and save Excel
-        QtWidgets.QMessageBox.information(self, "Download", "Excel download will be implemented here.")
-
-    def select_start_date(self) -> None:
-        """Open date picker for start date."""
-        from PyQt6.QtWidgets import QDateEdit, QDialog
-        # TODO: Implement date selection dialog and update field
-        pass
-
-    def select_end_date(self) -> None:
-        """Open date picker for end date."""
-        from PyQt6.QtWidgets import QDateEdit, QDialog
-        # TODO: Implement date selection dialog and update field
-        pass
-
-    def _apply_table_style_to_audit_table(self) -> None:
-        """Apply modern stylesheet to the audit logs table."""
-        table = self.audit_logs_ui.audit_table_view
-        table.setAlternatingRowColors(True)
-        pass
     
     def _create_organization(self) -> None:
         """Handle create organization/branch action."""
@@ -261,177 +300,424 @@ class Admin(ManagerBase, User):
             is_branch = item == "Branch"
             dialog = CreateOrgDialog(self, is_branch=is_branch)
             dialog.exec()
-    
-    def show_officer_dialog(self, officer_data: Dict) -> None:
-        """Display officer details in a dialog."""
-        OfficerDialog(officer_data, self).exec()
-    
-    def _setup_connections(self) -> None:
-        """Set up signal-slot connections."""
-        self.ui.comboBox.currentIndexChanged.connect(self._on_combobox_changed)
-        self.ui.view_members_btn.clicked.connect(self._to_members_page)
-        self.ui.back_btn_member.clicked.connect(self._return_to_prev_page)
-        self.ui.back_btn.clicked.connect(self._return_to_prev_page)
-        self.ui.search_line.textChanged.connect(self._perform_search)
-        self.ui.search_line_3.textChanged.connect(self._perform_member_search)
-        self.ui.officer_history_dp.currentIndexChanged.connect(self._on_officer_history_changed)
-    
-    def _setup_no_member_label(self) -> None:
-        """Initialize the 'No Record(s) Found' label for members or applicants."""
-        self.no_member_label = QtWidgets.QLabel("No Record(s) Found", self.ui.list_container)
-        self.no_member_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.no_member_label.setStyleSheet("font-size: 20px;")
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Preferred, 
-            QtWidgets.QSizePolicy.Policy.Expanding
-        )
-        self.no_member_label.setSizePolicy(sizePolicy)
-        self.no_member_label.hide()
-    
-    def _perform_search(self) -> None:
-        """Handle organization/branch search."""
-        search_text = self.ui.search_line.text().strip().lower()
-        if self.ui.comboBox.currentIndex() == 0:
-            self.load_orgs(search_text)
-        else:
-            self.load_branches(search_text)
-    
-    def load_orgs(self, search_text: str = "") -> None:
-        """Load and display organizations, filtered by search text."""
-        organizations = self._load_data()
-        self._clear_grid(self.ui.college_org_grid)
-        self.college_org_count = 0
-        
-        filtered_college = [
-            org for org in organizations 
-            if not org["is_branch"] and (search_text in org["name"].lower() or not search_text)
-        ]
-        
-        for org in filtered_college:
-            self._add_college_org(org)
-        
-        if self.college_org_count == 0:
-            self._add_no_record_label(self.ui.college_org_grid)
-        
-        self._update_scroll_areas()
-        self.hide_apply_buttons()
-    
-    def load_branches(self, search_text: str = "") -> None:
-        """Load and display branches, filtered by search text."""
-        organizations = self._load_data()
-        self._clear_grid(self.ui.college_org_grid)
-        self.college_org_count = 0
-        
-        filtered_college_branches = []
-        for org in organizations:
-            for branch in org.get("branches", []):
-                if search_text in branch["name"].lower() or not search_text:
-                    filtered_college_branches.append(branch)
-        
-        for branch in filtered_college_branches:
-            self._add_college_org(branch)
-        
-        if self.college_org_count == 0:
-            self._add_no_record_label(self.ui.college_org_grid)
-        
-        self._update_scroll_areas()
-        self.hide_apply_buttons()
-    
-    def hide_apply_buttons(self) -> None:
-        """Hide all 'Apply' buttons in the organization cards."""
-        for child in self.ui.other_container.findChildren(QtWidgets.QPushButton):
-            if child.text() == "Apply":
-                child.setVisible(False)
-    
-    def show_org_details(self, org_data: Dict) -> None:
-        """Display organization details with admin-specific features."""
-        super().show_org_details(org_data)
-        self.current_org = org_data
-        self.ui.view_members_btn.setText("Manage Members")
-        
-        if self.edit_btn is None:
-            self.edit_btn = QtWidgets.QPushButton("Edit")
-            self.edit_btn.setObjectName("edit_btn")
-            self.edit_btn.clicked.connect(self.open_edit_dialog)
-            self.edit_btn.setStyleSheet("border-radius: 10px; background-color: transparent; color: #084924; border: 2px solid #084924")
             
-            branch_list_index = self.ui.verticalLayout_10.indexOf(self.ui.obj_label_2)
-            if branch_list_index != -1:
-                spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
-                self.ui.verticalLayout_10.insertItem(branch_list_index + 1, spacer)
-                
-                self.ui.verticalLayout_10.insertWidget(branch_list_index + 2, self.edit_btn)
-            else:
-                spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
-                self.ui.verticalLayout_10.addItem(spacer)
-                self.ui.verticalLayout_10.addWidget(self.edit_btn)
-    
-    def _add_college_org(self, org_data: Dict) -> None:
-        """Add a college organization card to the grid."""
-        from widgets.orgs_custom_widgets.cards import CollegeOrgCard
+            self.load_orgs() if not is_branch else self.load_branches()
+
+    def create_new_organization(self, org_data: Dict) -> None:
+        """Saves a new organization/branch to the data file and logs the action."""
+        organizations = self._load_data()
+        organizations.append(org_data)
         
-        card = CollegeOrgCard(
-            self._get_logo_path(org_data["logo_path"]), 
-            org_data["name"],
-            org_data, 
-            self
-        )
-        col = self.college_org_count % 5
-        row = self.college_org_count // 5
-        self.ui.college_org_grid.addWidget(
-            card, row, col, 
-            alignment=QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignHCenter
-        )
-        self.college_org_count += 1
-        self.ui.college_org_grid.setRowMinimumHeight(row, 300)
-    
-    def _on_combobox_changed(self, index: int) -> None:
-        """Handle combo box change to switch between organizations and branches."""
-        self.ui.college_label.setText(
-            "College Organization(s)" if index == 0 else "College Branch(es)"
-        )
-        if self.ui.comboBox.currentIndex() == 0:
-            self.load_orgs()
-        else:
-            self.load_branches()
-        self.ui.college_org_scrollable.verticalScrollBar().setValue(0)
-    
-    def _on_officer_history_changed(self, index: int) -> None:
-        """Handle officer history combobox change."""
-        if not self.current_org:
-            return
-        
-        selected_semester = self.ui.officer_history_dp.itemText(index)
-        officers = (
-            self.current_org.get("officer_history", {}).get(selected_semester, [])
-            if selected_semester != "Current Officers"
-            else self.current_org.get("officers", [])
-        )
-        self.load_officers(officers)
-    
-    def _to_members_page(self) -> None:
-        """Navigate to the members page."""
-        if self.current_org:
-            self.ui.header_label_3.setText(
-                "Organization" if not self.current_org["is_branch"] else "Branch"
-            )
-        self.is_viewing_applicants = False
-        self.load_members(self._get_search_text())
-        self.ui.stacked_widget.setCurrentIndex(2)
+        try:
+            with open(self.data_file, 'w') as file:
+                json.dump({"organizations": organizations}, file, indent=4)
+            print(f"Successfully created new org: {org_data['name']}")
+            
+            org_name = org_data.get("name", "Unknown")
+            details = f"Type: {'Branch' if org_data.get('is_branch', False) else 'Organization'}"
+            self._log_action("CREATE_ORGANIZATION", org_name, subject_name=org_name, changes=details)
+            
+        except Exception as e:
+            print(f"Error saving new organization: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Could not save new organization: {e}")
     
     def _return_to_prev_page(self) -> None:
-        """Navigate back to the previous page, handling applicants view."""
-        if self.ui.stacked_widget.currentIndex() == 2:
-            if self.is_viewing_applicants:
-                self.is_viewing_applicants = False
-                self.load_members(self._get_search_text())
-            else:
-                self.ui.stacked_widget.setCurrentIndex(1)
-        else:
-            if self.ui.comboBox.currentIndex() == 0:
-                self.load_orgs()
-            else:
-                self.load_branches()
+        """Navigate back, handling admin pages."""
+        current_index = self.ui.stacked_widget.currentIndex()
+        
+        if current_index in [3, 4]:
             self.ui.stacked_widget.setCurrentIndex(0)
+        else:
+            super()._return_to_prev_page()
             
-            self._reposition_create_button()
+        if self.ui.stacked_widget.currentIndex() == 0:
+            QTimer.singleShot(0, self._reposition_create_button)
+
+    # --- Implemented methods for new admin features ---
+    
+    def load_audit_logs_data(self, search_text: str = "") -> None:
+        """Load and filter audit logs into the table."""
+        print(f"Loading audit logs, searching for: {search_text}")
+        
+        logs = []
+        try:
+            if os.path.exists(self.audit_log_file):
+                with open(self.audit_log_file, 'r') as f:
+                    logs = json.load(f)
+                    if not isinstance(logs, list):
+                        logs = []
+        except Exception as e:
+            print(f"Error loading audit log file: {str(e)}")
+            logs = []
+
+        filtered_logs = []
+        if search_text:
+            for log in logs:
+                if any(search_text in str(val).lower() for val in log.values() if val):
+                    filtered_logs.append(log)
+        else:
+            filtered_logs = logs
+        
+        filtered_logs.reverse()
+        
+        model = AuditLogModel(filtered_logs)
+        self.audit_logs_ui.audit_table_view.setModel(model)
+        
+        self.audit_logs_ui.audit_table_view.setAlternatingRowColors(False)
+        self.audit_logs_ui.audit_table_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.audit_logs_ui.audit_table_view.horizontalHeader().setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.audit_logs_ui.audit_table_view.verticalHeader().setVisible(False)
+        
+        if not filtered_logs:
+            self.audit_logs_ui.audit_table_view.hide()
+            self.no_logs_label.show()
+        else:
+            self.audit_logs_ui.audit_table_view.show()
+            self.no_logs_label.hide()
+
+    def _perform_audit_search(self) -> None:
+        """Handle audit logs search."""
+        search_text = self.audit_logs_ui.audit_line_edit.text().strip().lower()
+        self.load_audit_logs_data(search_text)
+
+    def _populate_reports_orgs(self) -> None:
+        """Populate organizations in the reports dropdown."""
+        orgs = self._load_data()
+        self.reports_ui.select_org_dd.clear()
+        self.reports_ui.select_org_dd.addItem("Select Organization")
+        for org in orgs:
+            if not org["is_branch"]:
+                self.reports_ui.select_org_dd.addItem(org["name"])
+                for branch in org.get("branches", []):
+                    self.reports_ui.select_org_dd.addItem(f"  - {branch['name']}")
+
+    def _create_calendar_dialog(self, current_date=None) -> tuple[QDialog, QCalendarWidget]:
+        """Helper to create a modal calendar dialog."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Select Date")
+        layout = QVBoxLayout(dialog)
+        calendar = QCalendarWidget(dialog)
+        if current_date:
+            calendar.setSelectedDate(QtCore.QDate(current_date))
+        layout.addWidget(calendar)
+        dialog.setLayout(layout)
+        return dialog, calendar
+
+    def _select_start_date(self) -> None:
+        """Open a calendar to select the report start date."""
+        dialog, calendar = self._create_calendar_dialog(self.report_start_date)
+        
+        def on_date_clicked(date):
+            self.report_start_date = date.toPyDate()
+            self.reports_ui.pushButton.setText(f"Start: {self.report_start_date.strftime('%Y-%m-%d')}")
+            dialog.accept()
+
+        calendar.clicked.connect(on_date_clicked)
+        dialog.exec()
+
+    def _select_end_date(self) -> None:
+        """Open a calendar to select the report end date."""
+        dialog, calendar = self._create_calendar_dialog(self.report_end_date)
+        
+        def on_date_clicked(date):
+            self.report_end_date = date.toPyDate()
+            self.reports_ui.pushButton_2.setText(f"End: {self.report_end_date.strftime('%Y-%m-%d')}")
+            dialog.accept()
+
+        calendar.clicked.connect(on_date_clicked)
+        dialog.exec()
+
+    def generate_report(self) -> None:
+        """Generate report based on selections and display in preview."""
+        org_name = self.reports_ui.select_org_dd.currentText().strip().lstrip("- ")
+        report_type = self.reports_ui.report_type_dd.currentText()
+        
+        if org_name == "Select Organization":
+            QMessageBox.warning(self, "Select Organization", "Please select an organization or branch.")
+            return
+            
+        start_date = self.report_start_date
+        end_date = self.report_end_date
+        
+        if start_date and end_date and start_date > end_date:
+            QMessageBox.warning(self, "Invalid Date Range", "Start date must be before end date.")
+            return
+            
+        date_range_str = "for all time"
+        if start_date and end_date:
+            date_range_str = f"from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
+        elif start_date:
+            date_range_str = f"from {start_date.strftime('%Y-%m-%d')} onwards"
+        elif end_date:
+            date_range_str = f"up to {end_date.strftime('%Y-%m-%d')}"
+        
+        logs = []
+        try:
+            if os.path.exists(self.audit_log_file):
+                with open(self.audit_log_file, 'r') as f:
+                    logs = json.load(f)
+                    if not isinstance(logs, list):
+                        logs = []
+        except Exception as e:
+            self.reports_ui.report_preview_text.setPlainText(f"Error loading audit logs: {e}")
+            return
+
+        org_logs = [log for log in logs if log.get("organization") == org_name]
+        
+        date_filtered_logs = []
+        for log in org_logs:
+            try:
+                log_dt = datetime.datetime.fromisoformat(log['timestamp']).date()
+                if start_date and log_dt < start_date:
+                    continue
+                if end_date and log_dt > end_date:
+                    continue
+                date_filtered_logs.append(log)
+            except (ValueError, TypeError):
+                continue
+        
+        report_text = f"Report Type: {report_type}\n"
+        report_text += f"Organization/Branch: {org_name}\n"
+        report_text += f"Date Range: {date_range_str}\n"
+        report_text += f"Generated by: {self.name}\n"
+        report_text += f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %I:%M %p')}\n"
+        report_text += "=" * 50 + "\n\n"
+        
+        # --- Store header for export ---
+        self.last_report_header_text = "\n".join(report_text.split('\n')[:6]) # Get first 6 lines
+        
+        if report_type == "Event History (Default)":
+            if not date_filtered_logs:
+                report_text += "No activities found in this period."
+            else:
+                for log in sorted(date_filtered_logs, key=lambda x: x['timestamp']):
+                    dt = datetime.datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %I:%M %p')
+                    report_text += f"[{dt}] {log['actor']} performed {log['action']}.\n"
+                    report_text += f"    -> Subject: {log.get('subject', 'N/A')}\n"
+                    report_text += f"    -> Details: {log.get('details', 'N/A')}\n\n"
+        
+        elif report_type == "Membership":
+            report_logs = [
+                log for log in date_filtered_logs 
+                if log["action"] in ["ACCEPT_APPLICANT", "KICK_MEMBER", "EDIT_MEMBER"]
+            ]
+            if not report_logs:
+                report_text += "No membership changes found in this period."
+            else:
+                for log in sorted(report_logs, key=lambda x: x['timestamp']):
+                    dt = datetime.datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %I:%M %p')
+                    report_text += f"[{dt}] {log['actor']} performed {log['action']} on {log['subject']}. \n    Details: {log['details']}\n"
+        
+        elif report_type == "Officer List":
+            report_text += "This report shows the CURRENT officer list and is not affected by the date range.\n\n"
+            all_orgs = self._load_data()
+            found_org = None
+            for org in all_orgs:
+                if org['name'] == org_name:
+                    found_org = org
+                    break
+                for branch in org.get("branches", []):
+                    if branch['name'] == org_name:
+                        found_org = branch
+                        break
+                if found_org:
+                    break
+            
+            if not found_org or not found_org.get("officers"):
+                report_text += "No officers found for this organization."
+            else:
+                for officer in found_org.get("officers", []):
+                    report_text += f" - {officer.get('name', 'N/A'):<30} | {officer.get('position', 'N/A')}\n"
+
+        elif report_type == "Summary":
+            if not date_filtered_logs:
+                report_text += "No activities found in this period."
+            else:
+                actions = {}
+                for log in date_filtered_logs:
+                    action_type = log.get('action', 'UNKNOWN')
+                    actions[action_type] = actions.get(action_type, 0) + 1
+                
+                report_text += "Summary of all actions in this period:\n\n"
+                for action, count in sorted(actions.items()):
+                    report_text += f" - {action:<25} | {count} time(s)\n"
+        
+        else:
+            report_text = f"Report type '{report_type}' is not yet implemented."
+        
+        self.reports_ui.report_preview_text.setPlainText(report_text)
+        
+        # --- Store data for exports ---
+        self.last_report_logs = date_filtered_logs
+        self.last_report_org = org_name
+        self.last_report_type = report_type
+        # --- END ---
+
+    # --- MODIFIED: Implemented PDF download ---
+    def _download_pdf(self) -> None:
+        """Saves the content of the report preview as a PDF."""
+        report_text = self.reports_ui.report_preview_text.toPlainText()
+        if not report_text:
+            QMessageBox.warning(self, "Empty Report", "Cannot download an empty report. Please generate a report first.")
+            return
+
+        org_name = self.last_report_org
+        report_type = self.last_report_type
+        suggested_name = f"{org_name}_{report_type}_Report.pdf".replace(" ", "_").replace("/", "_")
+
+        filename, _ = QFileDialog.getSaveFileName(self, "Save PDF Report", suggested_name, "PDF Files (*.pdf)")
+        
+        if filename:
+            try:
+                doc = SimpleDocTemplate(filename, pagesize=letter)
+                styles = getSampleStyleSheet()
+                style_mono = styles['Code'] # Use monospaced font
+                
+                # Convert plain text newlines to <br/> tags for reportlab
+                formatted_text = report_text.replace('\n', '<br/>')
+                
+                story = [Paragraph(formatted_text, style_mono)]
+                
+                doc.build(story)
+                QMessageBox.information(self, "Success", f"Report successfully saved to:\n{filename}")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to save PDF: {str(e)}")
+
+    
+    # --- MODIFIED: Implemented proper Excel download ---
+    def _write_excel_header(self, ws, row):
+        """Writes the report header block to the worksheet."""
+        header_lines = self.last_report_header_text.split('\n')
+        bold_font = Font(bold=True)
+        for line in header_lines:
+            if ":" in line:
+                key, value = line.split(":", 1)
+                ws.cell(row=row, column=1).value = key + ":"
+                ws.cell(row=row, column=1).font = bold_font
+                ws.cell(row=row, column=2).value = value.strip()
+            else:
+                ws.cell(row=row, column=1).value = line
+            row += 1
+        return row + 1 # Add a blank row after header
+
+    def _auto_fit_excel_cols(self, ws):
+        """Auto-fit all columns in the worksheet."""
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter # Get column letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            ws.column_dimensions[column].width = adjusted_width
+
+    def _download_excel(self) -> None:
+        """Saves the generated report as a structured Excel file."""
+        if not self.last_report_type:
+            QMessageBox.warning(self, "Empty Report", "Cannot download an empty report. Please generate a report first.")
+            return
+
+        suggested_name = f"{self.last_report_org}_{self.last_report_type}_Report.xlsx".replace(" ", "_").replace("/", "_")
+        filename, _ = QFileDialog.getSaveFileName(self, "Save Excel Report", suggested_name, "Excel Files (*.xlsx)")
+        
+        if not filename:
+            return
+
+        try:
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Report"
+            
+            # Write the header (Report Type, Org, etc.)
+            current_row = self._write_excel_header(ws, 1)
+            
+            bold_font = Font(bold=True)
+            
+            # --- Write data based on report type ---
+            if self.last_report_type == "Officer List":
+                ws.cell(row=current_row, column=1).value = "Name"
+                ws.cell(row=current_row, column=1).font = bold_font
+                ws.cell(row=current_row, column=2).value = "Position"
+                ws.cell(row=current_row, column=2).font = bold_font
+                current_row += 1
+                
+                all_orgs = self._load_data()
+                found_org = None
+                for org in all_orgs:
+                    if org['name'] == self.last_report_org:
+                        found_org = org
+                        break
+                    for branch in org.get("branches", []):
+                        if branch['name'] == self.last_report_org:
+                            found_org = branch
+                            break
+                    if found_org: break
+                
+                if found_org and found_org.get("officers"):
+                    for officer in found_org.get("officers", []):
+                        ws.cell(row=current_row, column=1).value = officer.get('name', 'N/A')
+                        ws.cell(row=current_row, column=2).value = officer.get('position', 'N/A')
+                        current_row += 1
+                else:
+                    ws.cell(row=current_row, column=1).value = "No officers found."
+
+            elif self.last_report_type == "Summary":
+                ws.cell(row=current_row, column=1).value = "Action"
+                ws.cell(row=current_row, column=1).font = bold_font
+                ws.cell(row=current_row, column=2).value = "Count"
+                ws.cell(row=current_row, column=2).font = bold_font
+                current_row += 1
+                
+                actions = {}
+                for log in self.last_report_logs:
+                    action_type = log.get('action', 'UNKNOWN')
+                    actions[action_type] = actions.get(action_type, 0) + 1
+                
+                if not actions:
+                    ws.cell(row=current_row, column=1).value = "No activities found."
+                else:
+                    for action, count in sorted(actions.items()):
+                        ws.cell(row=current_row, column=1).value = action
+                        ws.cell(row=current_row, column=2).value = count
+                        current_row += 1
+            
+            else: # Membership and Event History
+                headers = ["Timestamp", "Actor", "Action", "Subject", "Details"]
+                for c, header in enumerate(headers, 1):
+                    ws.cell(row=current_row, column=c).value = header
+                    ws.cell(row=current_row, column=c).font = bold_font
+                current_row += 1
+                
+                logs_to_write = self.last_report_logs
+                if self.last_report_type == "Membership":
+                    logs_to_write = [
+                        log for log in self.last_report_logs
+                        if log["action"] in ["ACCEPT_APPLICANT", "KICK_MEMBER", "EDIT_MEMBER"]
+                    ]
+                
+                if not logs_to_write:
+                    ws.cell(row=current_row, column=1).value = "No logs found for this report type."
+                else:
+                    for log in sorted(logs_to_write, key=lambda x: x['timestamp']):
+                        try:
+                            dt = datetime.datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %I:%M %p')
+                        except (ValueError, TypeError):
+                            dt = log.get('timestamp', 'N/A')
+                            
+                        ws.cell(row=current_row, column=1).value = dt
+                        ws.cell(row=current_row, column=2).value = log.get('actor', 'N/A')
+                        ws.cell(row=current_row, column=3).value = log.get('action', 'N/A')
+                        ws.cell(row=current_row, column=4).value = log.get('subject', 'N/A')
+                        ws.cell(row=current_row, column=5).value = log.get('details', 'N/A')
+                        current_row += 1
+            
+            self._auto_fit_excel_cols(ws)
+            wb.save(filename)
+            QMessageBox.information(self, "Success", f"Report successfully saved to:\n{filename}")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to save Excel file: {str(e)}")
+    # --- END MODIFIED ---

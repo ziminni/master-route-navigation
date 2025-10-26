@@ -2,7 +2,7 @@ import os
 import json
 import copy
 import datetime
-from typing import List, Dict, Optional, Tuple  # <-- MODIFIED: Added Tuple
+from typing import List, Dict, Optional, Tuple
 from PyQt6 import QtWidgets, QtCore, QtGui
 from widgets.orgs_custom_widgets.tables import ActionDelegate
 from ..Utils.image_utils import get_image_path
@@ -18,9 +18,9 @@ class User(QtWidgets.QWidget):
         self.officer_count = 0
         self.college_org_count = 0
         self.data_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'organizations_data.json')
-        # --- ADDED ---
         self.cooldown_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'student_cooldowns.json')
-        # --- END ADDED ---
+        # --- ADDED: Audit log file path ---
+        self.audit_log_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'audit_logs.json')
         
     def _apply_table_style(self) -> None:
         """Apply modern stylesheet for the members QTableView."""
@@ -29,11 +29,14 @@ class User(QtWidgets.QWidget):
 
         table.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
                             QtWidgets.QSizePolicy.Policy.Expanding)
-
-        palette = table.palette()
-        palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor("white"))
-        palette.setColor(QtGui.QPalette.ColorRole.AlternateBase, QtGui.QColor("#f6f8fa"))
-        table.setPalette(palette)
+        
+        # --- REMOVED ---
+        # Redundant QPalette code. The QSS below overrides this.
+        # palette = table.palette()
+        # palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor("white"))
+        # palette.setColor(QtGui.QPalette.ColorRole.AlternateBase, QtGui.QColor("#f6f8fa"))
+        # table.setPalette(palette)
+        # --- END REMOVED ---
 
         table.setStyleSheet("""
         QTableView {
@@ -142,6 +145,45 @@ class User(QtWidgets.QWidget):
             print(f"Successfully saved data to {self.data_file}")
         except Exception as e:
             print(f"Error saving {self.data_file}: {str(e)}")
+            
+    # --- ADDED: Central Action Logger ---
+
+    def _log_action(self, action_type: str, organization_name: Optional[str], subject_name: Optional[str] = None, changes: Optional[str] = None) -> None:
+        """
+        Logs a user action to the audit log file.
+        
+        Args:
+            action_type (str): Type of action (e.g., "KICK_MEMBER").
+            organization_name (str): Name of the org context.
+            subject_name (str, optional): Name of the user/item being acted upon.
+            changes (str, optional): Details of the change.
+        """
+        log_entry = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "actor": self.name,
+            "action": action_type,
+            "organization": organization_name,
+            "subject": subject_name,
+            "details": changes
+        }
+
+        try:
+            logs = []
+            if os.path.exists(self.audit_log_file):
+                with open(self.audit_log_file, 'r') as f:
+                    logs = json.load(f)
+                    if not isinstance(logs, list):
+                        logs = []
+            
+            logs.append(log_entry)
+            
+            with open(self.audit_log_file, 'w') as f:
+                json.dump(logs, f, indent=4)
+                
+        except Exception as e:
+            print(f"Error writing to audit log: {str(e)}")
+
+    # --- END ADDED ---
 
     @staticmethod
     def _get_logo_path(filename: str) -> str:
@@ -266,8 +308,17 @@ class User(QtWidgets.QWidget):
         """Load event cards into the events layout."""
         from frontend.widgets.orgs_custom_widgets.cards import EventCard
         while self.ui.verticalLayout_14.count():
-            if item := self.ui.verticalLayout_14.takeAt(0).widget():
-                item.deleteLater()
+            item = self.ui.verticalLayout_14.takeAt(0)
+            if widget := item.widget():
+                widget.deleteLater()
+            # Also handle layouts if any
+            elif layout := item.layout():
+                # A simple way to clear nested layouts, though more complex scenarios might need recursion
+                while layout.count():
+                    child_item = layout.takeAt(0)
+                    if child_widget := child_item.widget():
+                        child_widget.deleteLater()
+                layout.deleteLater()
 
         if not events:
             no_events_label = QtWidgets.QLabel("No upcoming events.")
@@ -285,7 +336,10 @@ class User(QtWidgets.QWidget):
         """Remove all widgets from the given grid layout."""
         for i in reversed(range(grid_layout.count())):
             if widget := grid_layout.itemAt(i).widget():
-                widget.setParent(None)
+                # --- MODIFIED ---
+                # Use deleteLater() for safer memory management, consistent with load_events
+                widget.deleteLater()
+                # --- END MODIFIED ---
 
     def _add_no_record_label(self, grid_layout: QtWidgets.QGridLayout) -> None:
         """Add 'No Record(s) Found' label to the grid layout."""

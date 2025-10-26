@@ -773,7 +773,7 @@ QScrollBar:vertical {
                </font>
               </property>
               <property name="text">
-               <string>Organization Details</string>
+               <string>Details</string>
               </property>
              </widget>
             </item>
@@ -1238,7 +1238,7 @@ QComboBox {
                  </font>
                 </property>
                 <property name="text">
-                 <string>Organization Officers</string>
+                 <string>Officers</string>
                 </property>
                </widget>
               </item>

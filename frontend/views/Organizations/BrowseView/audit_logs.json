@@ -1,0 +1,10 @@
+[
+    {
+        "timestamp": "2025-10-26T21:04:16.793260",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Yuri Salise",
+        "details": "Officer details updated. Set position to: Member."
+    }
+]

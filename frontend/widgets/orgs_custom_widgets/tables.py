@@ -28,64 +28,71 @@ class ActionDelegate(QStyledItemDelegate):
     def updateEditorGeometry(self, editor, option, index):
         editor.setGeometry(option.rect)
 
-class ViewMembers(QAbstractTableModel):
-    def __init__(self, data, is_managing: bool = False):
+class BaseTableModel(QAbstractTableModel):
+    """Base class for table models to reduce boilerplate."""
+    def __init__(self, data, headers):
         super().__init__()
         self._data = data
-        self.is_managing = is_managing
-        self._headers = ["No.", "Name", "Position", "Status", "Join Date"] + (["Actions"] if is_managing else [])
+        self._headers = headers
 
     def rowCount(self, parent=None):
         return len(self._data)
 
     def columnCount(self, parent=None):
         return len(self._headers)
+
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+            return self._headers[section]
+        return None
     
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        """Handles the row number column."""
+        if role == Qt.ItemDataRole.DisplayRole:
+            col = index.column()
+            if col == 0: # Row number
+                return str(index.row() + 1)
+        return None
+
+class ViewMembers(BaseTableModel):
+    def __init__(self, data, is_managing: bool = False):
+        self.is_managing = is_managing
+        headers = ["No.", "Name", "Position", "Status", "Join Date"] + (["Actions"] if is_managing else [])
+        super().__init__(data, headers)
+
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
             col = index.column()
             if col == 0:
-                return str(index.row() + 1)
-            elif col < len(self._headers) - 1 or not self.is_managing:
-                return self._data[index.row()][col - 1]
+                return super().data(index, role) # Get row number from base
+            
+            # Adjust column index for data lookup (since col 0 is handled)
+            data_col = col - 1 
+            if col < len(self._headers) - 1 or not self.is_managing:
+                return self._data[index.row()][data_col]
         return None
 
-    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.DisplayRole:
-            if orientation == Qt.Orientation.Horizontal:
-                return self._headers[section]
-        return None
-    
     def flags(self, index, parent=None):
         flags = super().flags(index)
         if self.is_managing and index.column() == len(self._headers) - 1:
             flags |= Qt.ItemFlag.ItemIsEditable
         return flags
     
-class ViewApplicants(QAbstractTableModel):
+class ViewApplicants(BaseTableModel):
     def __init__(self, data):
-        super().__init__()
-        self._data = data
-        self._headers = ["No.", "Name", "Position", "Actions"]
-
-    def rowCount(self, parent=None):
-        return len(self._data)
-
-    def columnCount(self, parent=None):
-        return len(self._headers)
+        headers = ["No.", "Name", "Position", "Actions"]
+        super().__init__(data, headers)
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
             col = index.column()
             if col == 0:
-                return str(index.row() + 1)
-            elif col < len(self._headers) - 1:
-                return self._data[index.row()][col - 1]
-        return None
-
-    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            return self._headers[section]
+                return super().data(index, role) # Get row number from base
+            
+            # Adjust column index for data lookup
+            data_col = col - 1 
+            if col < len(self._headers) - 1:
+                return self._data[index.row()][data_col]
         return None
 
     def flags(self, index):

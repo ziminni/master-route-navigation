@@ -17,7 +17,6 @@ class ManagerBase:
     def __init__(self):
         self.is_managing: bool = True
         self.is_viewing_applicants: bool = False
-        self.edit_btn: Optional[QtWidgets.QPushButton] = None
         self.manage_applicants_btn: Optional[QtWidgets.QPushButton] = None
     
     def _get_search_text(self) -> str:
@@ -81,60 +80,63 @@ class ManagerBase:
         
         return action_widget
     
-    def _setup_member_header_with_applicants_btn(self):
-        """Set up the member list header with 'Manage Applicants' button."""
-        self.ui.verticalLayout_16.removeWidget(self.ui.label_2)
-        self.ui.verticalLayout_16.removeWidget(self.ui.line_5)
+    def _setup_list_header(self):
+        """
+        Efficiently sets up the list header based on management and view state.
         
-        header_hlayout = QtWidgets.QHBoxLayout()
-        self.ui.label_2.setText("Member List")
-        header_hlayout.addWidget(self.ui.label_2)
-        header_hlayout.addStretch()
-        
-        self.manage_applicants_btn = QtWidgets.QPushButton("Manage Applicants")
-        self.manage_applicants_btn.setStyleSheet("background-color: transparent; border: none; text-decoration: underline;")
-        self.manage_applicants_btn.clicked.connect(
-            lambda: self.load_applicants(self._get_search_text())
-        )
-        header_hlayout.addWidget(self.manage_applicants_btn)
-        
-        self.ui.verticalLayout_16.insertLayout(0, header_hlayout)
-        self.ui.verticalLayout_16.addWidget(self.ui.line_5)
-    
-    def _setup_applicant_header(self):
-        """Set up the applicant list header."""
-        if self.ui.verticalLayout_16.itemAt(0):
-            item = self.ui.verticalLayout_16.itemAt(0)
-            if isinstance(item, QtWidgets.QHBoxLayout):
-                self.ui.verticalLayout_16.removeItem(item)
-        
-        self.ui.verticalLayout_16.removeWidget(self.ui.label_2)
-        self.ui.verticalLayout_16.removeWidget(self.ui.line_5)
-        
-        header_hlayout = QtWidgets.QHBoxLayout()
-        self.ui.label_2.setText("Applicant List")
-        header_hlayout.addWidget(self.ui.label_2)
-        header_hlayout.addStretch()
-        
-        self.ui.verticalLayout_16.insertLayout(0, header_hlayout)
-        self.ui.verticalLayout_16.addWidget(self.ui.line_5)
-    
-    def _cleanup_manage_applicants_btn(self):
-        """Remove the 'Manage Applicants' button if it exists."""
-        if self.manage_applicants_btn:
-            self.ui.verticalLayout_16.removeWidget(self.manage_applicants_btn)
-            self.manage_applicants_btn.deleteLater()
-            self.manage_applicants_btn = None
-            self.ui.verticalLayout_16.removeItem(self.ui.verticalLayout_16.itemAt(0))
-            self.ui.verticalLayout_16.insertWidget(0, self.ui.label_2)
+        - If managing, creates the 'Manage Applicants' button once and
+          adds it to a new layout with the title label.
+        - Toggles the label text and button visibility based on whether
+          members or applicants are being viewed.
+        - If not managing, this method does nothing, preserving the
+          simple label from the .ui file.
+        """
+        if not self.is_managing:
+            # Not in management mode, just ensure correct simple text.
+            self.ui.label_2.setText("Member List")
+            return
+
+        # --- Create management header ONCE ---
+        if not self.manage_applicants_btn:
+            # Create the button
+            self.manage_applicants_btn = QtWidgets.QPushButton("Manage Applicants")
+            self.manage_applicants_btn.setStyleSheet(
+                "background-color: transparent; border: none; text-decoration: underline;"
+            )
+            self.manage_applicants_btn.clicked.connect(
+                lambda: self.load_applicants(self._get_search_text())
+            )
+            
+            # Remove original label and line from vertical layout
+            self.ui.verticalLayout_16.removeWidget(self.ui.label_2)
+            self.ui.verticalLayout_16.removeWidget(self.ui.line_5)
+            
+            # Create new horizontal layout
+            header_hlayout = QtWidgets.QHBoxLayout()
+            header_hlayout.addWidget(self.ui.label_2)  # Re-add label to new HLayout
+            header_hlayout.addStretch()
+            header_hlayout.addWidget(self.manage_applicants_btn)
+            
+            # Add new HLayout and line to vertical layout
+            self.ui.verticalLayout_16.insertLayout(0, header_hlayout)
             self.ui.verticalLayout_16.addWidget(self.ui.line_5)
-    
+
+        # --- Configure header for the current view ---
+        if self.is_viewing_applicants:
+            self.ui.label_2.setText("Applicant List")
+            self.manage_applicants_btn.hide()
+        else:
+            self.ui.label_2.setText("Member List")
+            self.manage_applicants_btn.show()
+            
     def load_members(self, search_text: str = "") -> None:
         """Load and filter members into the table view with management controls."""
         from widgets.orgs_custom_widgets.tables import ViewMembers
         
         if not self.current_org:
             return
+            
+        self.is_viewing_applicants = False # Set state
         
         members_data = self.current_org.get("members", [])
         officers_data = self.current_org.get("officers", [])
@@ -177,7 +179,7 @@ class ManagerBase:
             self.ui.list_view.hide()
             self.no_member_label.show()
         
-        self._cleanup_manage_applicants_btn()
+        self._setup_list_header()
         
         if self.is_managing:
             for row in range(len(filtered_members)):
@@ -189,9 +191,6 @@ class ManagerBase:
                     model.index(row, model.columnCount() - 1), 
                     action_widget
                 )
-            
-            if self.is_managing:
-                self._setup_member_header_with_applicants_btn()
         
         self._apply_table_style()
 
@@ -201,6 +200,8 @@ class ManagerBase:
         
         if not self.current_org:
             return
+            
+        self.is_viewing_applicants = True # Set state
         
         applicants_data = self.current_org.get("applicants", [])
         filtered_applicants = [
@@ -226,8 +227,6 @@ class ManagerBase:
             self.ui.list_view.hide()
             self.no_member_label.show()
         
-        self._cleanup_manage_applicants_btn()
-        
         for row in range(len(filtered_applicants)):
             action_widget = self._create_action_widget(
                 "Accept", lambda checked, r=row: self.accept_applicant(r),
@@ -238,8 +237,7 @@ class ManagerBase:
                 action_widget
             )
         
-        self._setup_applicant_header()
-        self.is_viewing_applicants = True
+        self._setup_list_header()
         self._apply_table_style()
     
     def accept_applicant(self, row: int):
@@ -273,6 +271,11 @@ class ManagerBase:
             if "kick_cooldowns" in self.current_org and applicant_name in self.current_org["kick_cooldowns"]:
                 del self.current_org["kick_cooldowns"][applicant_name]
             
+            # --- ADDED: Log Action ---
+            org_name = self.current_org.get('name', 'Unknown Org')
+            self._log_action("ACCEPT_APPLICANT", org_name, subject_name=applicant_name)
+            # --- END ADDED ---
+            
             self.save_data()
             self.load_applicants(search_text)
 
@@ -296,6 +299,12 @@ class ManagerBase:
         )
         
         if confirm == QMessageBox.StandardButton.Yes:
+            # --- ADDED: Log Action ---
+            applicant_name = applicant[0]
+            org_name = self.current_org.get('name', 'Unknown Org')
+            self._log_action("DECLINE_APPLICANT", org_name, subject_name=applicant_name)
+            # --- END ADDED ---
+            
             self.current_org["applicants"].pop(original_index)
             self.save_data()
             self.load_applicants(search_text)
@@ -331,7 +340,12 @@ class ManagerBase:
             if new_position in officer_positions:
                 # Check if member is already in officers list
                 officers = self.current_org.get("officers", [])
-                is_already_officer = any(officer["name"] == member_name for officer in officers)
+                is_already_officer = False
+                for officer in officers:
+                    if officer["name"] == member_name:
+                        officer["position"] = new_position
+                        is_already_officer = True
+                        break
                 
                 if not is_already_officer:
                     # Promote member to officer
@@ -343,17 +357,19 @@ class ManagerBase:
                         "start_date": QtCore.QDate.currentDate().toString("MM/dd/yyyy")
                     }
                     self.current_org["officers"].append(new_officer)
-                else:
-                    # Update existing officer position
-                    for officer in officers:
-                        if officer["name"] == member_name:
-                            officer["position"] = new_position
-                            break
+                    
             elif old_position in officer_positions and new_position == "Member":
+                # Demote officer to member
                 officers = self.current_org.get("officers", [])
                 self.current_org["officers"] = [
                     officer for officer in officers if officer["name"] != member_name
                 ]
+            
+            # --- ADDED: Log Action ---
+            org_name = self.current_org.get('name', 'Unknown Org')
+            details = f"Position changed from '{old_position}' to '{new_position}'."
+            self._log_action("EDIT_MEMBER", org_name, subject_name=member_name, changes=details)
+            # --- END ADDED ---
             
             self.save_data()
             self.load_members(search_text)
@@ -429,6 +445,12 @@ class ManagerBase:
                 self.current_org["kick_cooldowns"] = {}
             self.current_org["kick_cooldowns"][member_name] = datetime.datetime.now().isoformat()
             
+            # --- ADDED: Log Action ---
+            org_name = self.current_org.get('name', 'Unknown Org')
+            details = f"User was an officer: {is_officer}"
+            self._log_action("KICK_MEMBER", org_name, subject_name=member_name, changes=details)
+            # --- END ADDED ---
+            
             # Save data and reload
             self.save_data()
             self.load_members(search_text)
@@ -449,49 +471,69 @@ class ManagerBase:
         if not self.current_org:
             return
         
+        # --- ADDED: Log Action ---
+        member_name = updated_officer.get("name", "Unknown")
+        new_position = updated_officer.get("position", "Unknown")
+        org_name = self.current_org.get("name", "Unknown Org")
+        details = f"Officer details updated. Set position to: {new_position}."
+        self._log_action("UPDATE_OFFICER", org_name, subject_name=member_name, changes=details)
+        # --- END ADDED ---
+        
         officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
-        member_name = updated_officer["name"]
-        new_position = updated_officer["position"]
         
         if "officers" in self.current_org:
             new_officers = []
+            found = False
             for off in self.current_org["officers"]:
                 if off["name"] == member_name:
                     if new_position in officer_positions:
                         new_officers.append(updated_officer)
+                    found = True
                 else:
                     new_officers.append(off)
+            if not found and new_position in officer_positions:
+                new_officers.append(updated_officer)
             self.current_org["officers"] = new_officers
         
         if "officer_history" in self.current_org:
             for semester, offs in self.current_org["officer_history"].items():
                 new_offs = []
+                found_in_history = False
                 for off in offs:
                     if off["name"] == member_name:
                         if new_position in officer_positions:
                             new_offs.append(updated_officer)
+                        found_in_history = True
                     else:
                         new_offs.append(off)
+                if not found_in_history and new_position in officer_positions:
+                     new_offs.append(updated_officer)
                 self.current_org["officer_history"][semester] = new_offs
         
-        if new_position not in officer_positions:
-            members = self.current_org.get("members", [])
-            member_found = False
-            for i, mem in enumerate(members):
-                if mem[0] == member_name:
-                    members[i][1] = new_position 
-                    member_found = True
-                    break
-            if not member_found:
-                new_member = [
-                    member_name,
-                    new_position,
-                    "Active",
-                    updated_officer.get("start_date", QtCore.QDate.currentDate().toString("MM/dd/yyyy"))
-                ]
-                members.append(new_member)
-            self.current_org["members"] = members
+        members = self.current_org.get("members", [])
+        member_found = False
+        for i, mem in enumerate(members):
+            if mem[0] == member_name:
+                members[i][1] = new_position 
+                member_found = True
+                break
+                
+        if not member_found:
+            new_member = [
+                member_name,
+                new_position,
+                "Active",
+                updated_officer.get("start_date", QtCore.QDate.currentDate().toString("MM/dd/yyyy"))
+            ]
+            members.append(new_member)
         
+        # If demoted, remove from officers list
+        if new_position not in officer_positions:
+            self.current_org["officers"] = [
+                o for o in self.current_org.get("officers", []) if o["name"] != member_name
+            ]
+
+        self.current_org["members"] = members
         self.save_data()
         
         current_index = self.ui.officer_history_dp.currentIndex()
@@ -508,8 +550,16 @@ class ManagerBase:
         from widgets.orgs_custom_widgets.dialogs import EditOrgDialog
         
         if self.current_org:
+            org_name_before = self.current_org.get("name", "Unknown")
             dialog = EditOrgDialog(self.current_org, self)
-            dialog.exec()
+            
+            # --- MODIFIED: Log after dialog is accepted ---
+            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+                # Assuming dialog calls self.save_data() internally before closing
+                org_name_after = self.current_org.get("name", "Unknown")
+                details = f"Org details updated. Name changed from '{org_name_before}' to '{org_name_after}'." if org_name_before != org_name_after else "Org details updated."
+                self._log_action("EDIT_ORGANIZATION", org_name_after, subject_name=org_name_after, changes=details)
+            # --- END MODIFIED ---
     
     def _perform_member_search(self) -> None:
         """Handle member or applicant search based on current view."""
@@ -518,3 +568,45 @@ class ManagerBase:
             self.load_applicants(search_text)
         else:
             self.load_members(search_text)
+            
+    # --- ADDED: Manager-specific page navigation ---
+    
+    def _to_members_page(self) -> None:
+        """Navigate to the members/management page."""
+        if self.current_org:
+            self.ui.header_label_3.setText(
+                "Organization" if not self.current_org["is_branch"] else "Branch"
+            )
+        self.is_viewing_applicants = False
+        self.load_members(self._get_search_text())
+        self.ui.stacked_widget.setCurrentIndex(2)
+
+    def _return_to_prev_page(self) -> None:
+        """Navigate back, handling manager/applicant view state."""
+        current_index = self.ui.stacked_widget.currentIndex()
+        
+        if current_index == 2: # Member/Applicant Page
+            if self.is_viewing_applicants:
+                # If viewing applicants, go back to member list
+                self.is_viewing_applicants = False
+                self.load_members(self._get_search_text())
+            else:
+                # If viewing members, go back to details page
+                self.ui.stacked_widget.setCurrentIndex(1)
+        
+        elif current_index == 1: # Details Page
+            # Go back to landing page and reload orgs
+            if self.ui.comboBox.currentIndex() == 0:
+                self.load_orgs()
+            else:
+                self.load_branches()
+            self.ui.stacked_widget.setCurrentIndex(0)
+            
+        else: # Landing Page (or others like audit/reports)
+            # Default action: go to landing page
+            if self.ui.comboBox.currentIndex() == 0:
+                self.load_orgs()
+            else:
+                self.load_branches()
+            self.ui.stacked_widget.setCurrentIndex(0)
+    # --- END ADDED ---

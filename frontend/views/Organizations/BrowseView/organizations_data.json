@@ -106,19 +106,12 @@
                     "card_image_path": "CISCo/Secretary.jpg",
                     "photo_path": "CISCo/Secretary.jpg",
                     "start_date": "07/08/2025"
-                },
-                {
-                    "name": "Yuri Salise",
-                    "position": "Chairperson",
-                    "card_image_path": "CISCO/539b13a0b78fc74642a4aac26720be2a_1.jpg",
-                    "photo_path": "CISCO/539b13a0b78fc74642a4aac26720be2a_1.jpg",
-                    "start_date": "10/16/2025"
                 }
             ],
             "members": [
                 [
                     "Yuri Salise",
-                    "Chairperson",
+                    "Member",
                     "Inactive",
                     "2023-04-09"
                 ],
@@ -204,13 +197,7 @@
             }
         },
         {
-            "applicants": [
-                [
-                    "Marcus",
-                    "Member",
-                    "2025-10-26"
-                ]
-            ],
+            "applicants": [],
             "branches": [
                 {
                     "applicants": [],
@@ -348,7 +335,10 @@
                     "position": "Vice - External Chairperson",
                     "start_date": "10/15/2025"
                 }
-            ]
+            ],
+            "kick_cooldowns": {
+                "Marcus": "2025-10-26T20:49:44.373956"
+            }
         },
         {
             "id": 3,
