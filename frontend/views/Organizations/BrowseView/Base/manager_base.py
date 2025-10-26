@@ -92,13 +92,10 @@ class ManagerBase:
           simple label from the .ui file.
         """
         if not self.is_managing:
-            # Not in management mode, just ensure correct simple text.
             self.ui.label_2.setText("Member List")
             return
 
-        # --- Create management header ONCE ---
         if not self.manage_applicants_btn:
-            # Create the button
             self.manage_applicants_btn = QtWidgets.QPushButton("Manage Applicants")
             self.manage_applicants_btn.setStyleSheet(
                 "background-color: transparent; border: none; text-decoration: underline;"
@@ -107,21 +104,17 @@ class ManagerBase:
                 lambda: self.load_applicants(self._get_search_text())
             )
             
-            # Remove original label and line from vertical layout
             self.ui.verticalLayout_16.removeWidget(self.ui.label_2)
             self.ui.verticalLayout_16.removeWidget(self.ui.line_5)
             
-            # Create new horizontal layout
             header_hlayout = QtWidgets.QHBoxLayout()
-            header_hlayout.addWidget(self.ui.label_2)  # Re-add label to new HLayout
+            header_hlayout.addWidget(self.ui.label_2)
             header_hlayout.addStretch()
             header_hlayout.addWidget(self.manage_applicants_btn)
             
-            # Add new HLayout and line to vertical layout
             self.ui.verticalLayout_16.insertLayout(0, header_hlayout)
             self.ui.verticalLayout_16.addWidget(self.ui.line_5)
 
-        # --- Configure header for the current view ---
         if self.is_viewing_applicants:
             self.ui.label_2.setText("Applicant List")
             self.manage_applicants_btn.hide()
@@ -201,7 +194,7 @@ class ManagerBase:
         if not self.current_org:
             return
             
-        self.is_viewing_applicants = True # Set state
+        self.is_viewing_applicants = True
         
         applicants_data = self.current_org.get("applicants", [])
         filtered_applicants = [
@@ -271,10 +264,8 @@ class ManagerBase:
             if "kick_cooldowns" in self.current_org and applicant_name in self.current_org["kick_cooldowns"]:
                 del self.current_org["kick_cooldowns"][applicant_name]
             
-            # --- ADDED: Log Action ---
             org_name = self.current_org.get('name', 'Unknown Org')
             self._log_action("ACCEPT_APPLICANT", org_name, subject_name=applicant_name)
-            # --- END ADDED ---
             
             self.save_data()
             self.load_applicants(search_text)
@@ -299,11 +290,9 @@ class ManagerBase:
         )
         
         if confirm == QMessageBox.StandardButton.Yes:
-            # --- ADDED: Log Action ---
             applicant_name = applicant[0]
             org_name = self.current_org.get('name', 'Unknown Org')
             self._log_action("DECLINE_APPLICANT", org_name, subject_name=applicant_name)
-            # --- END ADDED ---
             
             self.current_org["applicants"].pop(original_index)
             self.save_data()
@@ -332,13 +321,11 @@ class ManagerBase:
             old_position = member[1]
             member_name = member[0]
             
-            # Update member position
             self.current_org["members"][original_index][1] = new_position
             
             officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
             
             if new_position in officer_positions:
-                # Check if member is already in officers list
                 officers = self.current_org.get("officers", [])
                 is_already_officer = False
                 for officer in officers:
@@ -348,7 +335,6 @@ class ManagerBase:
                         break
                 
                 if not is_already_officer:
-                    # Promote member to officer
                     new_officer = {
                         "name": member_name,
                         "position": new_position,
@@ -359,17 +345,14 @@ class ManagerBase:
                     self.current_org["officers"].append(new_officer)
                     
             elif old_position in officer_positions and new_position == "Member":
-                # Demote officer to member
                 officers = self.current_org.get("officers", [])
                 self.current_org["officers"] = [
                     officer for officer in officers if officer["name"] != member_name
                 ]
             
-            # --- ADDED: Log Action ---
             org_name = self.current_org.get('name', 'Unknown Org')
             details = f"Position changed from '{old_position}' to '{new_position}'."
             self._log_action("EDIT_MEMBER", org_name, subject_name=member_name, changes=details)
-            # --- END ADDED ---
             
             self.save_data()
             self.load_members(search_text)
@@ -422,11 +405,10 @@ class ManagerBase:
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
                 if confirm2 == QMessageBox.StandardButton.Yes:
-                    # Remove from officers list
                     self.current_org["officers"] = [o for o in officers if o["name"] != member_name]
                     kick_confirmed = True
             
-        else: # Not an officer
+        else:
             confirm = QMessageBox.question(
                 self, "Confirm Kick",
                 f"Are you sure you want to kick {member_name}?",
@@ -435,27 +417,20 @@ class ManagerBase:
             if confirm == QMessageBox.StandardButton.Yes:
                 kick_confirmed = True
         
-        # --- Consolidated Kick Logic ---
         if kick_confirmed:
-            # Remove from members list
             del self.current_org["members"][original_index]
             
-            # Add to kick cooldown list for this org
             if "kick_cooldowns" not in self.current_org:
                 self.current_org["kick_cooldowns"] = {}
             self.current_org["kick_cooldowns"][member_name] = datetime.datetime.now().isoformat()
             
-            # --- ADDED: Log Action ---
             org_name = self.current_org.get('name', 'Unknown Org')
             details = f"User was an officer: {is_officer}"
             self._log_action("KICK_MEMBER", org_name, subject_name=member_name, changes=details)
-            # --- END ADDED ---
             
-            # Save data and reload
             self.save_data()
             self.load_members(search_text)
             
-            # Reload officers if an officer was kicked
             if is_officer:
                 current_index = self.ui.officer_history_dp.currentIndex()
                 selected_semester = self.ui.officer_history_dp.itemText(current_index)
@@ -471,13 +446,11 @@ class ManagerBase:
         if not self.current_org:
             return
         
-        # --- ADDED: Log Action ---
         member_name = updated_officer.get("name", "Unknown")
         new_position = updated_officer.get("position", "Unknown")
         org_name = self.current_org.get("name", "Unknown Org")
         details = f"Officer details updated. Set position to: {new_position}."
         self._log_action("UPDATE_OFFICER", org_name, subject_name=member_name, changes=details)
-        # --- END ADDED ---
         
         officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
         
@@ -527,7 +500,6 @@ class ManagerBase:
             ]
             members.append(new_member)
         
-        # If demoted, remove from officers list
         if new_position not in officer_positions:
             self.current_org["officers"] = [
                 o for o in self.current_org.get("officers", []) if o["name"] != member_name
@@ -553,13 +525,10 @@ class ManagerBase:
             org_name_before = self.current_org.get("name", "Unknown")
             dialog = EditOrgDialog(self.current_org, self)
             
-            # --- MODIFIED: Log after dialog is accepted ---
             if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-                # Assuming dialog calls self.save_data() internally before closing
                 org_name_after = self.current_org.get("name", "Unknown")
                 details = f"Org details updated. Name changed from '{org_name_before}' to '{org_name_after}'." if org_name_before != org_name_after else "Org details updated."
                 self._log_action("EDIT_ORGANIZATION", org_name_after, subject_name=org_name_after, changes=details)
-            # --- END MODIFIED ---
     
     def _perform_member_search(self) -> None:
         """Handle member or applicant search based on current view."""
@@ -568,9 +537,7 @@ class ManagerBase:
             self.load_applicants(search_text)
         else:
             self.load_members(search_text)
-            
-    # --- ADDED: Manager-specific page navigation ---
-    
+                
     def _to_members_page(self) -> None:
         """Navigate to the members/management page."""
         if self.current_org:
@@ -585,28 +552,23 @@ class ManagerBase:
         """Navigate back, handling manager/applicant view state."""
         current_index = self.ui.stacked_widget.currentIndex()
         
-        if current_index == 2: # Member/Applicant Page
+        if current_index == 2:
             if self.is_viewing_applicants:
-                # If viewing applicants, go back to member list
                 self.is_viewing_applicants = False
                 self.load_members(self._get_search_text())
             else:
-                # If viewing members, go back to details page
                 self.ui.stacked_widget.setCurrentIndex(1)
         
-        elif current_index == 1: # Details Page
-            # Go back to landing page and reload orgs
+        elif current_index == 1:
             if self.ui.comboBox.currentIndex() == 0:
                 self.load_orgs()
             else:
                 self.load_branches()
             self.ui.stacked_widget.setCurrentIndex(0)
             
-        else: # Landing Page (or others like audit/reports)
-            # Default action: go to landing page
+        else:
             if self.ui.comboBox.currentIndex() == 0:
                 self.load_orgs()
             else:
                 self.load_branches()
             self.ui.stacked_widget.setCurrentIndex(0)
-    # --- END ADDED ---

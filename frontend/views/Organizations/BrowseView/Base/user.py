@@ -29,14 +29,6 @@ class User(QtWidgets.QWidget):
 
         table.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
                             QtWidgets.QSizePolicy.Policy.Expanding)
-        
-        # --- REMOVED ---
-        # Redundant QPalette code. The QSS below overrides this.
-        # palette = table.palette()
-        # palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor("white"))
-        # palette.setColor(QtGui.QPalette.ColorRole.AlternateBase, QtGui.QColor("#f6f8fa"))
-        # table.setPalette(palette)
-        # --- END REMOVED ---
 
         table.setStyleSheet("""
         QTableView {
@@ -146,8 +138,6 @@ class User(QtWidgets.QWidget):
         except Exception as e:
             print(f"Error saving {self.data_file}: {str(e)}")
             
-    # --- ADDED: Central Action Logger ---
-
     def _log_action(self, action_type: str, organization_name: Optional[str], subject_name: Optional[str] = None, changes: Optional[str] = None) -> None:
         """
         Logs a user action to the audit log file.
@@ -182,8 +172,6 @@ class User(QtWidgets.QWidget):
                 
         except Exception as e:
             print(f"Error writing to audit log: {str(e)}")
-
-    # --- END ADDED ---
 
     @staticmethod
     def _get_logo_path(filename: str) -> str:
@@ -311,9 +299,7 @@ class User(QtWidgets.QWidget):
             item = self.ui.verticalLayout_14.takeAt(0)
             if widget := item.widget():
                 widget.deleteLater()
-            # Also handle layouts if any
             elif layout := item.layout():
-                # A simple way to clear nested layouts, though more complex scenarios might need recursion
                 while layout.count():
                     child_item = layout.takeAt(0)
                     if child_widget := child_item.widget():
@@ -336,10 +322,7 @@ class User(QtWidgets.QWidget):
         """Remove all widgets from the given grid layout."""
         for i in reversed(range(grid_layout.count())):
             if widget := grid_layout.itemAt(i).widget():
-                # --- MODIFIED ---
-                # Use deleteLater() for safer memory management, consistent with load_events
                 widget.deleteLater()
-                # --- END MODIFIED ---
 
     def _add_no_record_label(self, grid_layout: QtWidgets.QGridLayout) -> None:
         """Add 'No Record(s) Found' label to the grid layout."""
@@ -358,8 +341,6 @@ class User(QtWidgets.QWidget):
             self.ui.joined_org_scrollable.updateGeometry()
         self.update()
 
-    # --- ADDED: Global Application Cooldown Methods ---
-
     def _load_cooldowns(self) -> Dict:
         """Loads the student cooldown data from JSON file."""
         try:
@@ -367,7 +348,7 @@ class User(QtWidgets.QWidget):
                 data = json.load(file)
                 return data if isinstance(data, dict) else {}
         except (FileNotFoundError, json.JSONDecodeError):
-            return {} # Return empty dict if file not found or empty
+            return {}
 
     def _save_cooldowns(self, cooldowns: Dict) -> None:
         """Saves the student cooldown data to JSON file."""
@@ -380,7 +361,7 @@ class User(QtWidgets.QWidget):
     def get_application_cooldown(self) -> Optional[datetime.datetime]:
         """Gets the application cooldown end time for the current user."""
         cooldowns = self._load_cooldowns()
-        cooldown_str = cooldowns.get(self.name) # self.name is the student name
+        cooldown_str = cooldowns.get(self.name)
         if cooldown_str:
             try:
                 return datetime.datetime.fromisoformat(cooldown_str)
@@ -407,14 +388,12 @@ class User(QtWidgets.QWidget):
         cooldown_end_time = self.get_application_cooldown()
         if cooldown_end_time:
             if datetime.datetime.now() < cooldown_end_time:
-                return True, cooldown_end_time # On cooldown
+                return True, cooldown_end_time
             else:
-                # Cooldown expired, clear it
                 cooldowns = self._load_cooldowns()
                 if self.name in cooldowns:
                     del cooldowns[self.name]
                     self._save_cooldowns(cooldowns)
-                return False, None # Cooldown expired
-        return False, None # No cooldown
+                return False, None
+        return False, None
     
-    # --- END OF ADDED METHODS ---

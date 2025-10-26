@@ -151,7 +151,6 @@ def copy_image_to_data(source_path: str, org_name: str) -> Optional[str]:
         safe_org_name = sanitize_filename(org_name)
         safe_org_name = os.path.splitext(safe_org_name)[0]
         
-        # Use os.path.join for relative path to be OS-agnostic, then replace for URL-style
         return os.path.join(safe_org_name, safe_filename).replace('\\', '/')
     except Exception as e:
         print(f"Error copying image: {str(e)}")
@@ -171,11 +170,8 @@ def get_image_path(relative_path: str) -> str:
     if relative_path == "No Photo" or not relative_path:
         return "No Photo"
     
-    # --- CORRECTED PATH HANDLING ---
-    # Normalize path separators for the current OS (handles '/' or '\')
     normalized_relative_path = relative_path.replace('/', os.sep).replace('\\', os.sep)
     full_path = os.path.join(DATA_DIR, normalized_relative_path)
-    # --- END CORRECTION ---
     
     if os.path.exists(full_path):
         return full_path

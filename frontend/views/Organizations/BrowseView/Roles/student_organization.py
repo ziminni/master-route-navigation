@@ -6,8 +6,6 @@ from widgets.orgs_custom_widgets.cards import JoinedOrgCard, CollegeOrgCard
 class Student(OrganizationViewBase):
     def __init__(self, student_name: str):
         super().__init__(name=student_name)
-        # load_orgs must be called *after* super().__init__
-        # because it relies on connections/widgets set up there.
         self.load_orgs()
 
     def load_orgs(self, search_text: str = "") -> None:

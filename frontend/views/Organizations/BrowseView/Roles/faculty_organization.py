@@ -26,13 +26,7 @@ class Faculty(ManagerBase, FacultyAdminBase):
     """
     
     def __init__(self, faculty_name: str):
-        # Initializes FacultyAdminBase -> OrganizationViewBase -> User
-        # This sets up the UI and non-manager connections
         FacultyAdminBase.__init__(self, name=faculty_name)
-        # Initializes ManagerBase (is_managing, etc.)
         ManagerBase.__init__(self)
-        
-        # self.is_managing is True by default from ManagerBase
-        
-        # Load initial orgs
+                
         self.load_orgs()

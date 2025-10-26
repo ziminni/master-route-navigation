@@ -55,7 +55,6 @@ class AuditLogModel(QAbstractTableModel):
             return value
         
         if role == Qt.ItemDataRole.BackgroundRole:
-            # Add alternating row colors
             return QColor("#f6f8fa") if index.row() % 2 == 1 else QColor("white")
 
         return None
@@ -64,8 +63,6 @@ class AuditLogModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
             return self._headers[section]
         return None
-# --- END ADDED ---
-
 
 class Admin(ManagerBase, FacultyAdminBase):
     """
@@ -78,29 +75,23 @@ class Admin(ManagerBase, FacultyAdminBase):
     """
     
     def __init__(self, admin_name: str):
-        # Initializes FacultyAdminBase -> OrganizationViewBase -> User
         FacultyAdminBase.__init__(self, name=admin_name)
-        # Initializes ManagerBase
         ManagerBase.__init__(self)
         
         self.report_start_date: datetime.date | None = None
         self.report_end_date: datetime.date | None = None
         
-        # --- ADDED: Attributes to store last report data for export ---
         self.last_report_logs: List[Dict] = []
         self.last_report_org: str = ""
         self.last_report_type: str = ""
         self.last_report_header_text: str = ""
-        # --- END ADDED ---
         
-        # --- Admin-specific setup ---
         self._setup_admin_menu()
         self._setup_create_button()
         
         self._setup_audit_logs_page()
         self._setup_generate_reports_page()
         
-        # Load initial orgs
         self.load_orgs()
 
     def showEvent(self, event):
@@ -222,7 +213,7 @@ class Admin(ManagerBase, FacultyAdminBase):
         self.audit_logs_ui.audit_search_btn.clicked.connect(self._perform_audit_search)
         self.audit_logs_ui.audit_line_edit.returnPressed.connect(self._perform_audit_search)
         
-        self.ui.stacked_widget.addWidget(self.audit_logs_page) # Index 3
+        self.ui.stacked_widget.addWidget(self.audit_logs_page)
     
     def _setup_generate_reports_page(self) -> None:
         """Load the generate reports UI as a new stacked widget page."""
@@ -243,15 +234,13 @@ class Admin(ManagerBase, FacultyAdminBase):
         )
         
         self.reports_ui.generate_report_btn.clicked.connect(self.generate_report)
-        self.reports_ui.pushButton.clicked.connect(self._select_start_date) # Start Date
-        self.reports_ui.pushButton_2.clicked.connect(self._select_end_date) # End Date
+        self.reports_ui.pushButton.clicked.connect(self._select_start_date)
+        self.reports_ui.pushButton_2.clicked.connect(self._select_end_date)
         self.reports_ui.download_pdf_btn.clicked.connect(self._download_pdf)
         self.reports_ui.download_excel_btn.clicked.connect(self._download_excel)
         
-        self.ui.stacked_widget.addWidget(self.reports_page) # Index 4
-    
-    # --- Admin Page Navigation ---
-    
+        self.ui.stacked_widget.addWidget(self.reports_page)
+        
     def _generate_reports(self) -> None:
         """Navigate to generate reports page."""
         self._populate_reports_orgs() 
@@ -261,7 +250,6 @@ class Admin(ManagerBase, FacultyAdminBase):
         self.reports_ui.pushButton.setText("Start Date")
         self.reports_ui.pushButton_2.setText("End Date")
         
-        # --- ADDED: Clear last report data ---
         self.last_report_logs = []
         self.last_report_org = ""
         self.last_report_type = ""
@@ -332,8 +320,6 @@ class Admin(ManagerBase, FacultyAdminBase):
             
         if self.ui.stacked_widget.currentIndex() == 0:
             QTimer.singleShot(0, self._reposition_create_button)
-
-    # --- Implemented methods for new admin features ---
     
     def load_audit_logs_data(self, search_text: str = "") -> None:
         """Load and filter audit logs into the table."""
@@ -483,7 +469,6 @@ class Admin(ManagerBase, FacultyAdminBase):
         report_text += f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %I:%M %p')}\n"
         report_text += "=" * 50 + "\n\n"
         
-        # --- Store header for export ---
         self.last_report_header_text = "\n".join(report_text.split('\n')[:6]) # Get first 6 lines
         
         if report_type == "Event History (Default)":
@@ -547,13 +532,10 @@ class Admin(ManagerBase, FacultyAdminBase):
         
         self.reports_ui.report_preview_text.setPlainText(report_text)
         
-        # --- Store data for exports ---
         self.last_report_logs = date_filtered_logs
         self.last_report_org = org_name
         self.last_report_type = report_type
-        # --- END ---
 
-    # --- MODIFIED: Implemented PDF download ---
     def _download_pdf(self) -> None:
         """Saves the content of the report preview as a PDF."""
         report_text = self.reports_ui.report_preview_text.toPlainText()
@@ -571,9 +553,8 @@ class Admin(ManagerBase, FacultyAdminBase):
             try:
                 doc = SimpleDocTemplate(filename, pagesize=letter)
                 styles = getSampleStyleSheet()
-                style_mono = styles['Code'] # Use monospaced font
+                style_mono = styles['Code']
                 
-                # Convert plain text newlines to <br/> tags for reportlab
                 formatted_text = report_text.replace('\n', '<br/>')
                 
                 story = [Paragraph(formatted_text, style_mono)]
@@ -584,7 +565,6 @@ class Admin(ManagerBase, FacultyAdminBase):
                 QMessageBox.critical(self, "Error", f"Failed to save PDF: {str(e)}")
 
     
-    # --- MODIFIED: Implemented proper Excel download ---
     def _write_excel_header(self, ws, row):
         """Writes the report header block to the worksheet."""
         header_lines = self.last_report_header_text.split('\n')
@@ -598,13 +578,13 @@ class Admin(ManagerBase, FacultyAdminBase):
             else:
                 ws.cell(row=row, column=1).value = line
             row += 1
-        return row + 1 # Add a blank row after header
+        return row + 1
 
     def _auto_fit_excel_cols(self, ws):
         """Auto-fit all columns in the worksheet."""
         for col in ws.columns:
             max_length = 0
-            column = col[0].column_letter # Get column letter
+            column = col[0].column_letter
             for cell in col:
                 try:
                     if len(str(cell.value)) > max_length:
@@ -631,12 +611,10 @@ class Admin(ManagerBase, FacultyAdminBase):
             ws = wb.active
             ws.title = "Report"
             
-            # Write the header (Report Type, Org, etc.)
             current_row = self._write_excel_header(ws, 1)
             
             bold_font = Font(bold=True)
             
-            # --- Write data based on report type ---
             if self.last_report_type == "Officer List":
                 ws.cell(row=current_row, column=1).value = "Name"
                 ws.cell(row=current_row, column=1).font = bold_font
@@ -684,7 +662,7 @@ class Admin(ManagerBase, FacultyAdminBase):
                         ws.cell(row=current_row, column=2).value = count
                         current_row += 1
             
-            else: # Membership and Event History
+            else:
                 headers = ["Timestamp", "Actor", "Action", "Subject", "Details"]
                 for c, header in enumerate(headers, 1):
                     ws.cell(row=current_row, column=c).value = header
@@ -720,4 +698,3 @@ class Admin(ManagerBase, FacultyAdminBase):
             
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save Excel file: {str(e)}")
-    # --- END MODIFIED ---
