@@ -141,12 +141,27 @@ class User(QtWidgets.QWidget):
             Full absolute path to the image in the Data directory
         """
         return get_image_path(filename)
-
+    
     def set_circular_logo(self, logo_label: QtWidgets.QLabel, logo_path: str, size: int = 200, border_width: int = 4) -> None:
         """Set a circular logo with a border on the given label."""
         logo_label.setFixedSize(size, size)
+        
         if logo_path == "No Photo" or QtGui.QPixmap(logo_path).isNull():
+            
+            logo_label.setPixmap(QtGui.QPixmap()) 
+            
             logo_label.setText("No Logo")
+            logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            radius = size // 2
+            
+            logo_label.setStyleSheet(f"""
+                QLabel {{
+                    border: {border_width}px solid #084924; 
+                    border-radius: {radius}px; 
+                    color: #888888; 
+                    background-color: white;
+                }}
+            """)
             return
 
         pixmap = QtGui.QPixmap(logo_path).scaled(size, size, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
@@ -177,8 +192,10 @@ class User(QtWidgets.QWidget):
             painter.setPen(QtGui.QPen(QtGui.QColor(8, 73, 36), border_width))
             painter.drawEllipse(border_width // 2, border_width // 2, size - border_width, size - border_width)
 
+        logo_label.setStyleSheet("")
+        logo_label.setText("")
         logo_label.setPixmap(final_pixmap)
-
+        
     def show_org_details(self, org_data: Dict) -> None:
         """Display organization details on the details page."""
         self.current_org = org_data

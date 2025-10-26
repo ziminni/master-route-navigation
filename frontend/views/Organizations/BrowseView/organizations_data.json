@@ -406,9 +406,23 @@
                 {
                     "name": "Ira Turner",
                     "position": "Chairperson",
-                    "card_image_path": "Chess_Club/k43ob_5_c.jpg",
-                    "photo_path": "Chess_Club/k43ob_5_c.jpg",
-                    "start_date": "10/16/2025"
+                    "card_image_path": "No Photo",
+                    "photo_path": "No Photo",
+                    "start_date": "10/20/2025"
+                },
+                {
+                    "name": "Jade Underwood",
+                    "position": "Vice - Internal Chairperson",
+                    "card_image_path": "No Photo",
+                    "photo_path": "No Photo",
+                    "start_date": "10/20/2025"
+                },
+                {
+                    "name": "Kyle Vargas",
+                    "position": "Vice - External Chairperson",
+                    "card_image_path": "No Photo",
+                    "photo_path": "No Photo",
+                    "start_date": "10/20/2025"
                 }
             ],
             "members": [
@@ -420,13 +434,13 @@
                 ],
                 [
                     "Jade Underwood",
-                    "Member",
+                    "Vice - Internal Chairperson",
                     "Active",
                     "2024-04-05"
                 ],
                 [
                     "Kyle Vargas",
-                    "Member",
+                    "Vice - External Chairperson",
                     "Inactive",
                     "2024-05-10"
                 ],
@@ -453,7 +467,7 @@
             "name": "Debate Team",
             "is_joined": false,
             "is_branch": false,
-            "logo_path": "No Photo",
+            "logo_path": "Debate_Team/563764934_789989920476142_5592807986509949496_n.png",
             "brief": "Team for public speaking and debates.",
             "description": "Join debates and competitions.",
             "branches": [
@@ -490,16 +504,16 @@
             "officers": [
                 {
                     "name": "Max Young",
-                    "position": "Chairperson",
-                    "card_image_path": "No Photo",
-                    "photo_path": "No Photo",
+                    "position": "Secretary",
+                    "card_image_path": "Debate_Team/Salise_Activity9.JPG",
+                    "photo_path": "Debate_Team/Salise_Activity9.JPG",
                     "start_date": "10/08/2025"
                 }
             ],
             "members": [
                 [
                     "Max Young",
-                    "Chairperson",
+                    "Secretary",
                     "Active",
                     "2022-01-01"
                 ],

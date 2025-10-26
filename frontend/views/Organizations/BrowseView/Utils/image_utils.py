@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 from typing import Optional, Tuple
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "Data")
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "Data"))
 ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp', '.gif'}
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
@@ -150,7 +150,9 @@ def copy_image_to_data(source_path: str, org_name: str) -> Optional[str]:
         
         safe_org_name = sanitize_filename(org_name)
         safe_org_name = os.path.splitext(safe_org_name)[0]
-        return f"{safe_org_name}/{safe_filename}"
+        
+        # Use os.path.join for relative path to be OS-agnostic, then replace for URL-style
+        return os.path.join(safe_org_name, safe_filename).replace('\\', '/')
     except Exception as e:
         print(f"Error copying image: {str(e)}")
         return None
@@ -169,7 +171,11 @@ def get_image_path(relative_path: str) -> str:
     if relative_path == "No Photo" or not relative_path:
         return "No Photo"
     
-    full_path = os.path.join(DATA_DIR, relative_path)
+    # --- CORRECTED PATH HANDLING ---
+    # Normalize path separators for the current OS (handles '/' or '\')
+    normalized_relative_path = relative_path.replace('/', os.sep).replace('\\', os.sep)
+    full_path = os.path.join(DATA_DIR, normalized_relative_path)
+    # --- END CORRECTION ---
     
     if os.path.exists(full_path):
         return full_path
@@ -191,7 +197,8 @@ def delete_image(relative_path: str) -> bool:
     if relative_path == "No Photo" or not relative_path:
         return False
     
-    file_path = os.path.join(DATA_DIR, relative_path)
+    normalized_relative_path = relative_path.replace('/', os.sep).replace('\\', os.sep)
+    file_path = os.path.join(DATA_DIR, normalized_relative_path)
     
     try:
         if os.path.exists(file_path):

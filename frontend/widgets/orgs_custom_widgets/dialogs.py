@@ -1,5 +1,6 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
 from PyQt6.QtWidgets import QFileDialog, QMessageBox
+from PyQt6.QtCore import Qt
 import json
 import os
 
@@ -110,7 +111,7 @@ class BlurredDialog(QtWidgets.QDialog):
                 if officer.get("name") != current_name and officer.get("position") == new_position:
                     return True
         return False
-
+    
 class OfficerDialog(BlurredDialog):
     def __init__(self, officer_data, parent=None):
         super().__init__(parent)
@@ -121,21 +122,34 @@ class OfficerDialog(BlurredDialog):
 
         hlayout = QtWidgets.QHBoxLayout()
         self.photo_label = QtWidgets.QLabel()
-        photo_path = get_image_path(officer_data.get("photo_path", "No Photo"))
-        parent.set_circular_logo(self.photo_label, photo_path, size=125, border_width=4)
+        
+        self._set_officer_photo(officer_data, size=125, border_width=4)
+
         hlayout.addWidget(self.photo_label)
 
         vinfo = QtWidgets.QVBoxLayout()
+        
+        vinfo.addStretch(1) 
+        
         self.name_label = QtWidgets.QLabel(officer_data.get("name", "Unknown"))
         self.name_label.setFont(QtGui.QFont("Arial", 14, QtGui.QFont.Weight.Bold))
-        self.name_label.setStyleSheet("margin-top: 10px")
+        self.name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter) 
         vinfo.addWidget(self.name_label)
+        
         self.position_label = QtWidgets.QLabel(officer_data.get("position", "Unknown Position"))
+        self.position_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         vinfo.addWidget(self.position_label)
+        
         self.date_label = QtWidgets.QLabel(f"{officer_data.get('start_date', '07/08/2025')} - Present")
-        self.date_label.setStyleSheet("margin-bottom: 10px")
+        self.date_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         vinfo.addWidget(self.date_label)
+        
+        vinfo.addStretch(1) 
+
+        hlayout.addStretch(1)
         hlayout.addLayout(vinfo)
+        hlayout.addStretch(1)
+
         main_layout.addLayout(hlayout)
 
         cv_btn = QtWidgets.QPushButton("Curriculum Vitae")
@@ -159,9 +173,29 @@ class OfficerDialog(BlurredDialog):
             self.parent().update_officer_in_org(updated_data)
             self.update_dialog(updated_data)
 
-    def update_dialog(self, officer_data):
+    def _set_officer_photo(self, officer_data, size=125, border_width=4):
+        """Helper function to set the officer photo or 'No Photo' placeholder."""
         photo_path = get_image_path(officer_data.get("photo_path", "No Photo"))
-        self.parent().set_circular_logo(self.photo_label, photo_path, size=150, border_width=4)
+        
+        if photo_path == "No Photo":
+            self.photo_label.setText("No Photo")
+            self.photo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            self.photo_label.setFixedSize(size, size)
+            radius = size // 2
+            self.photo_label.setStyleSheet(f"""
+                QLabel {{
+                    border: {border_width}px solid #084924; 
+                    border-radius: {radius}px; 
+                    color: #888888; 
+                    background-color: white;
+                }}
+            """)
+        else:
+            self.parent().set_circular_logo(self.photo_label, photo_path, size=size, border_width=border_width)
+
+    def update_dialog(self, officer_data):
+        self._set_officer_photo(officer_data, size=125, border_width=4)
+        
         self.position_label.setText(officer_data.get("position", "Unknown Position"))
         self.date_label.setText(f"{officer_data.get('start_date', '07/08/2025')} - Present")
 

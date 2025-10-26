@@ -106,7 +106,11 @@ QLineEdit {
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_9">
         <item>
-         <widget class="QLineEdit" name="oc_line_edit"/>
+         <widget class="QLineEdit" name="oc_line_edit">
+          <property name="placeholderText">
+           <string>Search...</string>
+          </property>
+         </widget>
         </item>
         <item>
          <widget class="QToolButton" name="oc_search_btn">
