@@ -1,10 +1,10 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
-from PyQt6.QtWidgets import QFileDialog, QMessageBox
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QFileDialog, QMessageBox, QScrollArea
+from PyQt6.QtCore import Qt, QUrl, QTimer
+from PyQt6.QtGui import QDesktopServices
 import json
 import os
 
-import sys
 from views.Organizations.BrowseView.Utils.image_utils import copy_image_to_data, get_image_path
 from .styles import (
     CONFIRM_STYLE, CANCEL_STYLE, BROWSE_STYLE, 
@@ -12,19 +12,12 @@ from .styles import (
 )
 
 class PhotoBrowseMixin:
-    """
-    Mixin to handle photo browsing, preview, and saving logic.
-    Subclasses must set:
-    - self.preview_label (QtWidgets.QLabel)
-    - self.circular_logo_setter (function)
-    - self.image_preview_size (tuple)
-    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.temp_image_path = None
         self.preview_label = None
         self.circular_logo_setter = None
-        self.image_preview_size = (150, 150) # Default size
+        self.image_preview_size = (150, 150)
 
     def browse_photo(self):
         """Browse and select a photo file with validation."""
@@ -61,7 +54,7 @@ class PhotoBrowseMixin:
                 "Failed to save the selected image. Please try again.",
                 QMessageBox.StandardButton.Ok
             )
-            return None # Signal failure
+            return None
 
 
 class BlurredDialog(QtWidgets.QDialog):
@@ -73,6 +66,8 @@ class BlurredDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
         self.main_window = None
+        
+        self.drag_start_position = None
 
         if parent:
             current = parent
@@ -101,6 +96,20 @@ class BlurredDialog(QtWidgets.QDialog):
         QtWidgets.QDialog.closeEvent(self, event)
         QtCore.QTimer.singleShot(0, self.restore_blur)
 
+    def mousePressEvent(self, event: QtGui.QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_start_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent):
+        if event.buttons() == Qt.MouseButton.LeftButton and self.drag_start_position:
+            self.move(event.globalPosition().toPoint() - self.drag_start_position)
+            event.accept()
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
+        self.drag_start_position = None
+        event.accept()
+
     @staticmethod
     def _create_button_layout(confirm_cb, cancel_cb=None):
         btn_layout = QtWidgets.QHBoxLayout()
@@ -122,7 +131,7 @@ class BlurredDialog(QtWidgets.QDialog):
         layout.addWidget(label)
         edit = QtWidgets.QTextEdit(initial_text)
         if not is_brief:
-            edit.setStyleSheet("") # Use default QTextEdit style for larger boxes
+            edit.setStyleSheet("")
         layout.addWidget(edit)
         return edit
 
@@ -136,12 +145,87 @@ class BlurredDialog(QtWidgets.QDialog):
                 if officer.get("name") != current_name and officer.get("position") == new_position:
                     return True
         return False
+
+class CVViewerDialog(BlurredDialog):
+    """
+    A modal, frameless dialog to view an officer's CV.
+    Shows images and opens PDFs externally.
+    """
+    def __init__(self, file_path, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Curriculum Vitae Viewer")
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.FramelessWindowHint)
+        self.setStyleSheet("QDialog { border: 2px solid #084924; background-color: white; }")
+        
+        full_path = get_image_path(file_path)
+        
+        if full_path == "No Photo" or not os.path.exists(full_path):
+            QMessageBox.warning(self, "No CV", f"No CV file found for: {file_path}")
+            QTimer.singleShot(0, self.reject)
+            return
+            
+        try:
+            ext = os.path.splitext(full_path)[1].lower()
+        except Exception:
+            ext = ""
+            
+        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.setContentsMargins(5, 5, 5, 5)
+        
+        top_bar_layout = QtWidgets.QHBoxLayout()
+        top_bar_layout.addStretch()
+        close_btn = QtWidgets.QPushButton("X")
+        close_btn.setFixedSize(30, 30)
+        close_btn.setStyleSheet(
+            "QPushButton { background-color: #EB5757; color: white; border-radius: 15px; font-weight: bold; }"
+            "QPushButton:hover { background-color: #cc0000; }"
+        )
+        close_btn.clicked.connect(self.reject)
+        top_bar_layout.addWidget(close_btn)
+        main_layout.addLayout(top_bar_layout)
+        
+        if ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif']:
+            scroll_area = QScrollArea(self)
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setStyleSheet("border: none;")
+            
+            img_label = QtWidgets.QLabel()
+            pixmap = QtGui.QPixmap(full_path)
+            img_label.setPixmap(pixmap)
+            img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            scroll_area.setWidget(img_label)
+            main_layout.addWidget(scroll_area)
+            
+            self.resize(
+                min(pixmap.width() + 40, 1000), 
+                min(pixmap.height() + 60, 800)
+            )
+            
+        elif ext == '.pdf':
+            label = QtWidgets.QLabel(
+                f"This CV is a PDF document.\n({os.path.basename(full_path)})\n\nIt will be opened in your default PDF viewer."
+            )
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setWordWrap(True)
+            label.setStyleSheet("font-size: 14px; padding: 20px;")
+            main_layout.addWidget(label)
+            
+            QDesktopServices.openUrl(QUrl.fromLocalFile(full_path))
+            QTimer.singleShot(1500, self.reject) 
+            
+        else:
+            label = QtWidgets.QLabel(f"Unsupported CV file format: {ext}")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setStyleSheet("font-size: 14px; padding: 20px;")
+            main_layout.addWidget(label)
     
 class OfficerDialog(BlurredDialog):
     def __init__(self, officer_data, parent=None):
         super().__init__(parent)
-        self.setFixedSize(400, 350)
+        self.setFixedSize(400, 320)
         self.setWindowTitle("Officer Details")
+        self.officer_data = officer_data
 
         main_layout = QtWidgets.QVBoxLayout(self)
 
@@ -165,10 +249,6 @@ class OfficerDialog(BlurredDialog):
         self.position_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         vinfo.addWidget(self.position_label)
         
-        self.date_label = QtWidgets.QLabel(f"{officer_data.get('start_date', '07/08/2025')} - Present")
-        self.date_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        vinfo.addWidget(self.date_label)
-        
         vinfo.addStretch(1) 
 
         hlayout.addStretch(1)
@@ -177,26 +257,65 @@ class OfficerDialog(BlurredDialog):
 
         main_layout.addLayout(hlayout)
 
-        cv_btn = QtWidgets.QPushButton("Curriculum Vitae")
-        cv_btn.setStyleSheet("background-color: #084924; color: white; border-radius: 5px; padding: 10px;")
+        self.cv_btn = QtWidgets.QPushButton("Curriculum Vitae")
+        self.cv_path = officer_data.get("cv_path")
+        
+        if self.cv_path and self.cv_path != "No Photo":
+            self.cv_btn.setEnabled(True)
+            self.cv_btn.setStyleSheet("background-color: #084924; color: white; border-radius: 5px; padding: 10px;")
+            self.cv_btn.clicked.connect(self.show_cv)
+        else:
+            self.cv_btn.setEnabled(False)
+            self.cv_btn.setStyleSheet("background-color: #cccccc; color: #888888; border-radius: 5px; padding: 10px;")
+            self.cv_btn.setToolTip("No CV has been uploaded for this officer.")
+            
         contact_btn = QtWidgets.QPushButton("Contact Me")
         contact_btn.setStyleSheet("background-color: white; border: 1px solid #ccc; border-radius: 5px; padding: 10px;")
-        main_layout.addWidget(cv_btn)
+        
+        main_layout.addWidget(self.cv_btn)
         main_layout.addWidget(contact_btn)
         
-        can_edit = (hasattr(parent, 'is_managing') and parent.is_managing) or parent.name == officer_data.get("name")
+        self.is_manager = (hasattr(parent, 'is_managing') and parent.is_managing)
+        self.is_self = parent.name == officer_data.get("name")
+        can_edit = self.is_manager or self.is_self
+        
         if can_edit:
             edit_btn = QtWidgets.QPushButton("Edit")
             edit_btn.setStyleSheet("background-color: #FFD700; color: black; border: 1px solid #ccc; border-radius: 5px; padding: 10px;")
             edit_btn.clicked.connect(lambda: self.open_edit_officer(officer_data))
             main_layout.addWidget(edit_btn)
 
+    def show_cv(self):
+        """Open the CV viewer dialog."""
+        if self.cv_path:
+            dialog = CVViewerDialog(self.cv_path, self)
+            dialog.exec()
+
     def open_edit_officer(self, officer_data):
-        dialog = EditOfficerDialog(officer_data, self)
+        is_self_edit_only = self.is_self and not self.is_manager
+        dialog = EditOfficerDialog(officer_data, self, is_self_edit_only=is_self_edit_only)
+        
         if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             updated_data = dialog.updated_data
-            self.parent().update_officer_in_org(updated_data)
+            
+            main_window = self.parent()
+            
+            if self.is_manager:
+                main_window.update_officer_in_org(updated_data)
+            elif self.is_self:
+                main_window.update_own_officer_data(updated_data)
+            
             self.update_dialog(updated_data)
+            
+            if main_window and hasattr(main_window, 'current_org') and main_window.current_org:
+                current_index = main_window.ui.officer_history_dp.currentIndex()
+                selected_semester = main_window.ui.officer_history_dp.itemText(current_index)
+                officers = (
+                    main_window.current_org.get("officer_history", {}).get(selected_semester, [])
+                    if selected_semester != "Current Officers"
+                    else main_window.current_org.get("officers", [])
+                )
+                main_window.load_officers(officers)
 
     def _set_officer_photo(self, officer_data, size=125, border_width=4):
         """Helper function to set the officer photo or 'No Photo' placeholder."""
@@ -219,10 +338,25 @@ class OfficerDialog(BlurredDialog):
             self.parent().set_circular_logo(self.photo_label, photo_path, size=size, border_width=border_width)
 
     def update_dialog(self, officer_data):
+        self.officer_data = officer_data
         self._set_officer_photo(officer_data, size=125, border_width=4)
         
         self.position_label.setText(officer_data.get("position", "Unknown Position"))
-        self.date_label.setText(f"{officer_data.get('start_date', '07/08/2025')} - Present")
+        
+        self.cv_path = officer_data.get("cv_path")
+        if self.cv_path and self.cv_path != "No Photo":
+            self.cv_btn.setEnabled(True)
+            self.cv_btn.setStyleSheet("background-color: #084924; color: white; border-radius: 5px; padding: 10px;")
+            self.cv_btn.setToolTip("")
+            try:
+                self.cv_btn.clicked.disconnect()
+            except TypeError:
+                pass
+            self.cv_btn.clicked.connect(self.show_cv)
+        else:
+            self.cv_btn.setEnabled(False)
+            self.cv_btn.setStyleSheet("background-color: #cccccc; color: #888888; border-radius: 5px; padding: 10px;")
+            self.cv_btn.setToolTip("No CV has been uploaded for this officer.")
 
 class BaseEditDialog(PhotoBrowseMixin, BlurredDialog):
     def __init__(self, data, title, parent=None, fixed_size=(500, 400), has_photo=True):
@@ -232,9 +366,7 @@ class BaseEditDialog(PhotoBrowseMixin, BlurredDialog):
         self.setFixedSize(*fixed_size)
         self.setStyleSheet(DIALOG_STYLE)
         
-        # Setup for PhotoBrowseMixin
         self.image_preview_size = (150, 150)
-        # self.parent() is OfficerDialog, self.parent().parent() is Main Window
         if parent and hasattr(parent, 'parent') and callable(parent.parent):
              self.circular_logo_setter = self.parent().parent().set_circular_logo
         
@@ -251,7 +383,7 @@ class BaseEditDialog(PhotoBrowseMixin, BlurredDialog):
 
     def _create_photo_layout(self):
         photo_layout = QtWidgets.QHBoxLayout()
-        self.preview_label = QtWidgets.QLabel() # Set for Mixin
+        self.preview_label = QtWidgets.QLabel()
         self.preview_label.setStyleSheet("text-align: center;")
         self.preview_label.setFixedSize(150, 150)
         self.preview_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -265,7 +397,7 @@ class BaseEditDialog(PhotoBrowseMixin, BlurredDialog):
         photo_layout.addWidget(self.preview_label)
         browse_btn = QtWidgets.QPushButton("Browse Photo")
         browse_btn.setStyleSheet(BROWSE_STYLE)
-        browse_btn.clicked.connect(self.browse_photo) # Use mixin method
+        browse_btn.clicked.connect(self.browse_photo)
         photo_layout.addWidget(browse_btn)
         return photo_layout
 
@@ -276,8 +408,14 @@ class BaseEditDialog(PhotoBrowseMixin, BlurredDialog):
         raise NotImplementedError("Subclasses must implement confirm")
 
 class EditOfficerDialog(BaseEditDialog):
-    def __init__(self, officer_data, parent=None):
-        super().__init__(officer_data, "Edit Officer Details", parent, (500, 400), has_photo=True)
+    def __init__(self, officer_data, parent=None, is_self_edit_only=False):
+        self.temp_cv_path = None
+        cv_file = officer_data.get("cv_path", "No Photo")
+        self.cv_filename = os.path.basename(cv_file) if cv_file and cv_file != "No Photo" else "No CV Uploaded"
+        
+        self.is_self_edit_only = is_self_edit_only
+        
+        super().__init__(officer_data, "Edit Officer Details", parent, (500, 450), has_photo=True)
         self.original_position = officer_data.get("position", "")
 
     def _add_form_fields(self, layout):
@@ -287,31 +425,64 @@ class EditOfficerDialog(BaseEditDialog):
         possible_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer", "Member"]
         self.position_edit.addItems(possible_positions)
         self.position_edit.setCurrentText(self.data.get("position", ""))
+        self.position_edit.setEnabled(not self.is_self_edit_only)
         layout.addWidget(self.position_edit)
+        
+        if self.is_self_edit_only:
+            helper_label = QtWidgets.QLabel("Position can only be changed by a manager.")
+            helper_label.setStyleSheet("font-size: 10px; color: #888; font-style: italic;")
+            layout.addWidget(helper_label)
+        
+        layout.addWidget(QtWidgets.QLabel("Curriculum Vitae (CV):"))
+        cv_layout = QtWidgets.QHBoxLayout()
+        self.cv_label = QtWidgets.QLabel(self.cv_filename) 
+        self.cv_label.setStyleSheet("font-style: italic; color: #555; padding: 5px;")
+        
+        browse_cv_btn = QtWidgets.QPushButton("Browse CV")
+        browse_cv_btn.setStyleSheet(BROWSE_STYLE)
+        browse_cv_btn.clicked.connect(self.browse_cv)
+        
+        cv_layout.addWidget(self.cv_label)
+        cv_layout.addStretch()
+        cv_layout.addWidget(browse_cv_btn)
+        layout.addLayout(cv_layout)
 
-        layout.addWidget(QtWidgets.QLabel("Start Date (MM/DD/YYYY):"))
-        self.date_edit = QtWidgets.QLineEdit(self.data.get("start_date", ""))
-        self.date_edit.setStyleSheet(EDIT_STYLE)
-        layout.addWidget(self.date_edit)
+    def browse_cv(self):
+        """Browse for a CV file (Image or PDF)."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Select CV", "", "Files (*.png *.jpg *.jpeg *.pdf)"
+        )
+        if file_path:
+            self.temp_cv_path = file_path
+            self.cv_label.setText(os.path.basename(file_path))
 
     def confirm(self):
         new_position = self.position_edit.currentText()
-        main_window = self.parent().parent() # Main window
+        main_window = self.parent().parent()
         
-        if BlurredDialog._check_position_conflict(main_window, new_position, self.data.get("name"), self.original_position):
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Position Already Taken",
-                f"The position '{new_position}' is already occupied by another officer.",
-                QtWidgets.QMessageBox.StandardButton.Ok
-            )
-            return
+        if not self.is_self_edit_only:
+            if BlurredDialog._check_position_conflict(main_window, new_position, self.data.get("name"), self.original_position):
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Position Already Taken",
+                    f"The position '{new_position}' is already occupied by another officer.",
+                    QtWidgets.QMessageBox.StandardButton.Ok
+                )
+                return
+
+        org_name = main_window.current_org.get("name", "Unknown")
+
+        if self.temp_cv_path:
+            new_cv_filename = copy_image_to_data(self.temp_cv_path, org_name)
+            if new_cv_filename is None:
+                return
+            if new_cv_filename != "No Photo":
+                self.data["cv_path"] = new_cv_filename
 
         if self.temp_image_path:
-            org_name = main_window.current_org.get("name", "Unknown")
             new_filename = self._save_temp_image(org_name)
             
-            if new_filename is None: # Save failed
+            if new_filename is None:
                 return
             if new_filename != "No Photo":
                 self.data["photo_path"] = new_filename
@@ -319,7 +490,7 @@ class EditOfficerDialog(BaseEditDialog):
                     self.data["card_image_path"] = new_filename
 
         self.data["position"] = new_position
-        self.data["start_date"] = self.date_edit.text()
+        
         self.updated_data = self.data
         self.accept()
 
@@ -368,7 +539,6 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
         self.setFixedSize(*fixed_size)
         self.logo_path = "No Photo"
         
-        # Setup for PhotoBrowseMixin
         self.image_preview_size = (200, 200)
         self.circular_logo_setter = self.parent_window.set_circular_logo
         
@@ -391,7 +561,7 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
         content_layout = self._create_content_layout()
         main_layout.addLayout(content_layout)
 
-        btn_layout = BlurredDialog._create_button_layout(self.confirm, self.reject)
+        btn_layout = self._create_button_layout(self.confirm, self.reject)
         main_layout.addLayout(btn_layout)
 
     def _create_parent_layout(self):
@@ -412,9 +582,8 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
                 "No parent organizations available. Please create an organization first.",
                 QtWidgets.QMessageBox.StandardButton.Ok
             )
-            # Use QTimer to reject after constructor finishes
             QtCore.QTimer.singleShot(0, self.reject) 
-            return parent_layout # Return layout to avoid crash
+            return parent_layout
 
         for org in parent_orgs:
             self.parent_combo.addItem(org["name"], org)
@@ -427,7 +596,7 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
 
         left_widget = QtWidgets.QWidget()
         left_layout = QtWidgets.QVBoxLayout(left_widget)
-        self.preview_label = QtWidgets.QLabel() # Set for Mixin
+        self.preview_label = QtWidgets.QLabel()
         self.preview_label.setFixedSize(200, 200)
         self.preview_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.parent_window.set_circular_logo(self.preview_label, "No Photo")
@@ -435,7 +604,7 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
 
         browse_btn = QtWidgets.QPushButton("Browse Image")
         browse_btn.setStyleSheet(BROWSE_STYLE)
-        browse_btn.clicked.connect(self.browse_photo) # Use mixin method
+        browse_btn.clicked.connect(self.browse_photo)
         left_layout.addWidget(browse_btn)
         content_layout.addWidget(left_widget)
 
@@ -462,7 +631,7 @@ class EditOrgDialog(BaseOrgDialog):
         self.parent_window.set_circular_logo(self.preview_label, logo_path)
 
     def _create_parent_layout(self):
-        return None  # No parent selection for edit
+        return None
 
     def confirm(self):
         old_name = self.org_data.get("name", "")
@@ -473,9 +642,8 @@ class EditOrgDialog(BaseOrgDialog):
             return
 
         if self.temp_image_path:
-            # Use the new name for the folder
             new_filename = self._save_temp_image(new_name)
-            if new_filename is None: # Save failed
+            if new_filename is None:
                 return
             if new_filename != "No Photo":
                 self.org_data["logo_path"] = new_filename
@@ -507,7 +675,7 @@ class CreateOrgDialog(BaseOrgDialog):
         description = self.desc_edit.toPlainText().strip()
         
         logo_filename = self._save_temp_image(name)
-        if logo_filename is None: # Save failed
+        if logo_filename is None:
             return
 
         new_org = {

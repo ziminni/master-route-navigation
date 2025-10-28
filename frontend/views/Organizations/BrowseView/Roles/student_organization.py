@@ -1,8 +1,11 @@
-from PyQt6 import QtWidgets, QtCore
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import QMessageBox, QFileDialog
+from PyQt6.QtCore import QTimer
 from typing import Dict
 from ..Base.organization_view_base import OrganizationViewBase
 from widgets.orgs_custom_widgets.cards import JoinedOrgCard, CollegeOrgCard
+
+from ..Utils.image_utils import get_image_path, copy_image_to_data
 
 class Student(OrganizationViewBase):
     def __init__(self, student_name: str):
@@ -10,8 +13,97 @@ class Student(OrganizationViewBase):
         self.load_orgs()
         self._check_for_notifications()
 
+    def show_org_details(self, org_data: Dict) -> None:
+        """Display organization details and check for officer promotion."""
+        super().show_org_details(org_data) 
+        
+        officers = org_data.get("officers", [])
+        my_officer_data = next((off for off in officers if off.get("name") == self.name), None)
+        
+        if my_officer_data and not my_officer_data.get("cv_path"):
+            QTimer.singleShot(100, self._prompt_for_cv_on_promotion)
+
+    def _prompt_for_cv_on_promotion(self) -> None:
+        """Prompt the newly promoted student to upload their CV."""
+        confirm = QMessageBox.question(
+            self, 
+            "Congratulations on your Promotion!", 
+            "It looks like you've been promoted to an officer position! As an officer, you are required to upload your Curriculum Vitae (CV).\n\n"
+            "Would you like to upload it now?", 
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if confirm == QMessageBox.StandardButton.Yes:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, 
+                "Select CV", 
+                "", 
+                "Files (*.png *.jpg *.jpeg *.pdf)"
+            )
+            
+            if file_path:
+                if not self.current_org:
+                    return
+                org_name = self.current_org.get("name", "Unknown")
+                
+                new_cv_filename = copy_image_to_data(file_path, org_name)
+                
+                if new_cv_filename:
+                    for officer in self.current_org.get("officers", []):
+                        if officer.get("name") == self.name:
+                            officer["cv_path"] = new_cv_filename
+                            self.save_data()
+                            QMessageBox.information(
+                                self, 
+                                "Success", 
+                                "CV uploaded successfully!\n\n"
+                                "Please log out and log back in to access your new officer privileges."
+                            )
+                            break
+                else:
+                    QMessageBox.warning(self, "CV Error", "Failed to save the selected CV. Please try again.")
+        else:
+            QMessageBox.information(
+                self, 
+                "CV Upload", 
+                "You can upload your CV later by clicking 'Officer Details' on your card and selecting 'Edit'."
+            )
+
+    def update_own_officer_data(self, officer_data: Dict) -> None:
+        if not self.current_org:
+            return
+            
+        org_officers = self.current_org.get("officers", [])
+        officer_found = False
+        
+        for officer in org_officers:
+            if officer.get("name") == self.name:
+                if "photo_path" in officer_data:
+                    officer["photo_path"] = officer_data["photo_path"]
+                if "card_image_path" in officer_data:
+                    officer["card_image_path"] = officer_data["card_image_path"]
+                if "cv_path" in officer_data:
+                    officer["cv_path"] = officer_data["cv_path"]
+                
+                officer_found = True
+                break
+        
+        if officer_found:
+            self.save_data()
+            QMessageBox.information(
+                self,
+                "Details Updated",
+                "Your details have been successfully updated.\n\n"
+                "Please log out and log back in to access your officer privileges."
+            )
+        else:
+            QMessageBox.warning(
+                self,
+                "Error",
+                "Could not find your officer data to update. Please try logging in again."
+            )
+
     def load_orgs(self, search_text: str = "") -> None:
-        """Load and display organizations, filtered by search text."""
         organizations = self._load_data()
         self._clear_grid(self.ui.joined_org_grid)
         self._clear_grid(self.ui.college_org_grid)
@@ -46,7 +138,6 @@ class Student(OrganizationViewBase):
         self._update_scroll_areas()
 
     def load_branches(self, search_text: str = "") -> None:
-        """Load and display branches, filtered by search text."""
         organizations = self._load_data()
         self._clear_grid(self.ui.joined_org_grid)
         self._clear_grid(self.ui.college_org_grid)
@@ -91,7 +182,6 @@ class Student(OrganizationViewBase):
         self._update_scroll_areas()
 
     def _on_combobox_changed(self, index: int) -> None:
-        """Handle combo box change (Student override)."""
         self.ui.joined_label.setText("Joined Organization(s)" if index == 0 else "Joined Branch(es)")
         self.ui.college_label.setText("College Organization(s)" if index == 0 else "College Branch(es)")
         self.load_orgs() if index == 0 else self.load_branches()
@@ -99,7 +189,6 @@ class Student(OrganizationViewBase):
         self.ui.college_org_scrollable.verticalScrollBar().setValue(0)
 
     def _add_joined_org(self, org_data: Dict) -> None:
-        """Add a joined organization card to the grid."""
         card = JoinedOrgCard(self._get_logo_path(org_data["logo_path"]), org_data, self)
         col = self.joined_org_count % 5
         row = self.joined_org_count // 5
@@ -110,7 +199,6 @@ class Student(OrganizationViewBase):
         self.ui.joined_org_grid.setRowMinimumHeight(row, 300)
 
     def _check_for_notifications(self) -> None:
-        """Check for and display notifications for the student."""
         notifications = self.get_notifications_for_student(self.name)
         if not notifications:
             return
@@ -128,8 +216,6 @@ class Student(OrganizationViewBase):
             title = "Congratulations!"
             message = f"You have been accepted into the following organizations/branches:\n\n - {org_list_str}"
             
-            # Use QMessageBox for the dialog
             QMessageBox.information(self, title, message)
             
-            # After showing, clear these notifications
             self.clear_notifications_for_student(self.name, notification_ids_to_clear)

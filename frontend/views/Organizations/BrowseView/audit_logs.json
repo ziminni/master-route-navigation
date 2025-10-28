@@ -118,5 +118,85 @@
         "organization": "CISCO",
         "subject": "Marcus",
         "details": "Position changed from 'Chairperson' to 'Vice - External Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T18:26:07.297681",
+        "actor": "Kim",
+        "action": "ACCEPT_APPLICANT",
+        "organization": "Robotics Club",
+        "subject": "Marcus",
+        "details": null
+    },
+    {
+        "timestamp": "2025-10-28T18:27:33.982700",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "Robotics Club",
+        "subject": "Marcus",
+        "details": "Position changed from 'Member' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T19:54:14.484022",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "Robotics Club",
+        "subject": "Marcus",
+        "details": "Officer details updated. Set position to: Chairperson."
+    },
+    {
+        "timestamp": "2025-10-28T19:54:26.423094",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "Robotics Club",
+        "subject": "Marcus",
+        "details": "Officer details updated. Set position to: Chairperson."
+    },
+    {
+        "timestamp": "2025-10-28T19:55:06.409354",
+        "actor": "admin",
+        "action": "KICK_MEMBER",
+        "organization": "Robotics Club",
+        "subject": "Marcus",
+        "details": "User was an officer: True"
+    },
+    {
+        "timestamp": "2025-10-28T19:55:08.683856",
+        "actor": "admin",
+        "action": "KICK_MEMBER",
+        "organization": "Robotics Club",
+        "subject": "Ruben, Stephen Joseph",
+        "details": "User was an officer: True"
+    },
+    {
+        "timestamp": "2025-10-28T19:57:07.476821",
+        "actor": "Kim",
+        "action": "ACCEPT_APPLICANT",
+        "organization": "Just Bingo Plus my Location Sir",
+        "subject": "Marcus",
+        "details": null
+    },
+    {
+        "timestamp": "2025-10-28T19:57:17.174228",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "Just Bingo Plus my Location Sir",
+        "subject": "Marcus",
+        "details": "Position changed from 'Member' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T20:01:30.695231",
+        "actor": "Kim",
+        "action": "ACCEPT_APPLICANT",
+        "organization": "Chess Club",
+        "subject": "Marcus",
+        "details": null
+    },
+    {
+        "timestamp": "2025-10-28T20:01:44.015082",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "Chess Club",
+        "subject": "Marcus",
+        "details": "Position changed from 'Member' to 'Treasurer'."
     }
 ]

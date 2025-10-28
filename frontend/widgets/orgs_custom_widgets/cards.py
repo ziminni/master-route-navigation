@@ -2,14 +2,14 @@ from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QPainterPath, QColor, QPainter
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QMessageBox
-import os
 import datetime
 
-# Import centralized styles
 from .styles import (
     STYLE_GREEN_BTN, STYLE_RED_BTN, STYLE_PRIMARY_BTN, 
     STYLE_YELLOW_BTN, STYLE_OFFICER_BTN
 )
+
+from views.Organizations.BrowseView.Utils.image_utils import get_image_path
 
 def create_rounded_pixmap(source_pixmap, radius=10):
     size = source_pixmap.size()
@@ -24,24 +24,7 @@ def create_rounded_pixmap(source_pixmap, radius=10):
     painter.end()
     return rounded
 
-def resolve_image_path(relative_path):
-    """Resolve relative image path to absolute path in Data folder."""
-    if relative_path == "No Photo" or not relative_path:
-        return "No Photo"
-    
-    if os.path.isabs(relative_path) and os.path.exists(relative_path):
-        return relative_path
-    
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    data_path = os.path.join(base_dir, "views", "Organizations", "Data", relative_path)
-    
-    if os.path.exists(data_path):
-        return data_path
-    
-    return relative_path
-
 class BaseCard(QtWidgets.QFrame):
-    """Base class for cards with a common shadow effect."""
     def __init__(self, blur_radius=15, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
@@ -63,7 +46,6 @@ class BaseCard(QtWidgets.QFrame):
         """)
 
 class BaseOrgCard(BaseCard):
-    """Base class for Org cards, handling common logo creation."""
     def __init__(self, *args, **kwargs):
         super().__init__(blur_radius=15, *args, **kwargs)
 
@@ -75,7 +57,7 @@ class BaseOrgCard(BaseCard):
         logo_label.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         logo_label.setStyleSheet("border: none; background-color: transparent;")
 
-        resolved_logo_path = resolve_image_path(logo_path)
+        resolved_logo_path = get_image_path(logo_path)
         
         if resolved_logo_path != "No Photo":
             pixmap = QPixmap(resolved_logo_path).scaled(
@@ -114,7 +96,7 @@ class CollegeOrgCard(BaseOrgCard):
         super().__init__()
         
         self.org_data = org_data
-        self.main_window = main_window  # This is the Student() instance
+        self.main_window = main_window
         
         layout = QtWidgets.QVBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignBottom | QtCore.Qt.AlignmentFlag.AlignHCenter)
@@ -162,7 +144,6 @@ class CollegeOrgCard(BaseOrgCard):
             is_member = any(member[0] == student_name for member in members)
             is_applicant = any(applicant[0] == student_name for applicant in applicants)
             
-            # Check for KICK cooldown (specific to this org)
             on_kick_cooldown = False
             kick_cooldown_str = ""
             if student_name in cooldowns:
@@ -181,7 +162,6 @@ class CollegeOrgCard(BaseOrgCard):
                 except (ValueError, TypeError):
                     pass 
 
-            # Check for GLOBAL application cooldown
             is_on_global_cooldown, global_cooldown_end = self.main_window.check_application_cooldown()
             global_cooldown_str = ""
             if is_on_global_cooldown:
@@ -267,7 +247,6 @@ class CollegeOrgCard(BaseOrgCard):
 
 class OfficerCard(BaseCard):
     def __init__(self, officer_data, main_window):
-        # Use a blur_radius of 10 for this card
         super().__init__(blur_radius=10) 
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -280,9 +259,8 @@ class OfficerCard(BaseCard):
         image_label.setStyleSheet("border: none; ")
         image_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.AlignmentFlag.AlignVCenter)
 
-        # This card does *not* round its image, so we use custom logic
         image_path = officer_data.get("card_image_path", "No Photo")
-        resolved_image_path = resolve_image_path(image_path)
+        resolved_image_path = get_image_path(image_path)
         
         if resolved_image_path != "No Photo":
             pixmap = QPixmap(resolved_image_path).scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
@@ -317,7 +295,6 @@ class OfficerCard(BaseCard):
 class EventCard(QtWidgets.QFrame):
     def __init__(self, event_data, main_window):
         super().__init__()
-        # This card has a unique style, so it doesn't use BaseCard
         self.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         self.setMinimumHeight(125)

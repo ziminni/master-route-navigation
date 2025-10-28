@@ -5,11 +5,10 @@ Handles image validation, copying, and path resolution with organization-specifi
 import os
 import shutil
 import re
-from pathlib import Path
 from typing import Optional, Tuple
 
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "Data"))
-ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp', '.gif'}
+ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp', '.gif', '.pdf'}
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
@@ -82,6 +81,9 @@ def validate_image_file(file_path: str) -> Tuple[bool, str]:
     ext = os.path.splitext(file_path)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         return False, f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+    
+    if ext == '.pdf':
+        return True, ""
     
     try:
         file_size = os.path.getsize(file_path)
@@ -176,8 +178,14 @@ def get_image_path(relative_path: str) -> str:
     if os.path.exists(full_path):
         return full_path
     else:
+        filename = os.path.basename(normalized_relative_path)
+        for dirpath, dirnames, filenames in os.walk(DATA_DIR):
+            if filename in filenames:
+                found_path = os.path.join(dirpath, filename)
+                return found_path
+        
         print(f"Warning: Image file not found: {full_path}")
-        return relative_path
+        return "No Photo"
 
 
 def delete_image(relative_path: str) -> bool:

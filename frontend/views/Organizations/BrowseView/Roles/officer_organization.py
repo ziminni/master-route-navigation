@@ -1,9 +1,12 @@
 from PyQt6 import QtWidgets
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
 from typing import Dict
 from .student_organization import Student
 from ..Base.manager_base import ManagerBase
 from widgets.orgs_custom_widgets.dialogs import OfficerDialog
+from ..Utils.image_utils import copy_image_to_data
 
 class Officer(ManagerBase, Student):
     """Officer view with member and applicant management capabilities."""
@@ -56,8 +59,51 @@ class Officer(ManagerBase, Student):
                 spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
                 self.ui.verticalLayout_10.addItem(spacer)
                 self.ui.verticalLayout_10.addWidget(self.edit_btn)
+            
+            my_officer_data = next((off for off in officers if off.get("name") == self.name), None)
+            if my_officer_data and not my_officer_data.get("cv_path"):
+                QTimer.singleShot(100, self._prompt_for_cv)
+            
         else:
             self.ui.view_members_btn.setText("View Members")
+    
+    def _prompt_for_cv(self) -> None:
+        """Prompt the new officer to upload their CV."""
+        confirm = QMessageBox.question(
+            self, 
+            "Upload CV", 
+            "As a new officer, you are required to upload your Curriculum Vitae (CV). Would you like to upload it now?", 
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if confirm == QMessageBox.StandardButton.Yes:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, 
+                "Select CV", 
+                "", 
+                "Files (*.png *.jpg *.jpeg *.pdf)"
+            )
+            
+            if file_path:
+                org_name = self.current_org.get("name", "Unknown")
+                new_cv_filename = copy_image_to_data(file_path, org_name)
+                
+                if new_cv_filename:
+                    # Update self.current_org and save
+                    for officer in self.current_org.get("officers", []):
+                        if officer.get("name") == self.name:
+                            officer["cv_path"] = new_cv_filename
+                            self.save_data()
+                            QMessageBox.information(self, "Success", "CV uploaded successfully.")
+                            break
+                else:
+                    QMessageBox.warning(self, "CV Error", "Failed to save the selected CV. Please try again.")
+        else:
+            QMessageBox.information(
+                self, 
+                "CV Upload", 
+                "You can upload your CV later by clicking 'Officer Details' on your card and selecting 'Edit'."
+            )
     
     def _to_members_page(self) -> None:
         """Navigate to the members page with officer-specific view."""

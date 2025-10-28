@@ -494,27 +494,41 @@ class ManagerBase:
         """Update the officer data in the current organization and save."""
         if not self.current_org:
             return
+
+        member_name = updated_officer.get("name", "Unknown")
+        new_position = updated_officer.get("position", "Unknown")
+        org_name = self.current_org.get("name", "Unknown Org")
+        officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
+
+        old_position = "Member"
+        is_new_officer = False
+        officers = self.current_org.get("officers", [])
+        existing_officer = next((off for off in officers if off["name"] == member_name), None)
         
-        # --- ADDED: Cooldown Check ---
-        if not bypass_cooldown:
-            # --- FIX: Standardized cooldown key ---
+        if existing_officer:
+            old_position = existing_officer.get("position", "Member")
+        elif new_position in officer_positions:
+             is_new_officer = True
+             old_position = "Member"
+
+        is_position_change = (new_position != old_position)
+        is_officer_change = is_position_change and (new_position in officer_positions or old_position in officer_positions)
+        
+        if is_officer_change and not bypass_cooldown:
             is_on_cooldown, end_time = self.check_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE")
             if is_on_cooldown:
                 QMessageBox.warning(
                     self, 
                     "Action Cooldown", 
-                    f"Officer changes are on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
+                    f"Officer position changes are on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
                 )
                 return
-        # --- END Cooldown Check ---
 
-        member_name = updated_officer.get("name", "Unknown")
-        new_position = updated_officer.get("position", "Unknown")
-        org_name = self.current_org.get("name", "Unknown Org")
-        details = f"Officer details updated. Set position to: {new_position}."
+        details = f"Officer details updated."
+        if is_position_change:
+             details += f" Position changed from '{old_position}' to '{new_position}'."
+
         self._log_action("UPDATE_OFFICER", org_name, subject_name=member_name, changes=details)
-        
-        officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
         
         if "officers" in self.current_org:
             new_officers = []
@@ -522,12 +536,14 @@ class ManagerBase:
             for off in self.current_org["officers"]:
                 if off["name"] == member_name:
                     if new_position in officer_positions:
-                        new_officers.append(updated_officer)
+                         new_officers.append(updated_officer)
                     found = True
                 else:
                     new_officers.append(off)
+            
             if not found and new_position in officer_positions:
                 new_officers.append(updated_officer)
+                
             self.current_org["officers"] = new_officers
         
         if "officer_history" in self.current_org:
@@ -536,9 +552,9 @@ class ManagerBase:
                 found_in_history = False
                 for off in offs:
                     if off["name"] == member_name:
-                        if new_position in officer_positions:
-                            new_offs.append(updated_officer)
-                        found_in_history = True
+                         if new_position in officer_positions:
+                              new_offs.append(updated_officer)
+                         found_in_history = True
                     else:
                         new_offs.append(off)
                 if not found_in_history and new_position in officer_positions:
@@ -549,41 +565,40 @@ class ManagerBase:
         member_found = False
         for i, mem in enumerate(members):
             if mem[0] == member_name:
-                members[i][1] = new_position 
+                if is_position_change:
+                     members[i][1] = new_position
                 member_found = True
                 break
                 
         if not member_found:
+            new_member_start_date = QtCore.QDate.currentDate().toString("yyyy-MM-dd")
             new_member = [
                 member_name,
                 new_position,
                 "Active",
-                updated_officer.get("start_date", QtCore.QDate.currentDate().toString("MM/dd/yyyy"))
+                updated_officer.get("start_date", new_member_start_date)
             ]
             members.append(new_member)
         
         if new_position not in officer_positions:
-            self.current_org["officers"] = [
-                o for o in self.current_org.get("officers", []) if o["name"] != member_name
-            ]
+             self.current_org["officers"] = [
+                 o for o in self.current_org.get("officers", []) if o["name"] != member_name
+             ]
 
         self.current_org["members"] = members
         self.save_data()
         
-        # --- ADDED: Set Cooldown ---
-        if not bypass_cooldown:
-            # --- FIX: Standardized cooldown key ---
+        if is_officer_change and not bypass_cooldown:
             self.set_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE", minutes=5)
-        # --- END Set Cooldown ---
 
         current_index = self.ui.officer_history_dp.currentIndex()
         selected_semester = self.ui.officer_history_dp.itemText(current_index)
-        officers = (
+        officers_to_display = (
             self.current_org.get("officer_history", {}).get(selected_semester, [])
             if selected_semester != "Current Officers"
             else self.current_org.get("officers", [])
         )
-        self.load_officers(officers)
+        self.load_officers(officers_to_display)
     
     def open_edit_dialog(self):
         """Open the edit dialog for current org."""
