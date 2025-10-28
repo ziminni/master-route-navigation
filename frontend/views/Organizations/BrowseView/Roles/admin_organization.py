@@ -6,13 +6,11 @@ import os
 import json
 import datetime
 
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import letter
 import openpyxl
-from openpyxl.styles import Font, Alignment
-from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font
 
 from typing import Dict, List
 from ..Base.manager_base import ManagerBase
@@ -82,6 +80,7 @@ class Admin(ManagerBase, FacultyAdminBase):
         self.report_end_date: datetime.date | None = None
         
         self.last_report_logs: List[Dict] = []
+        self.last_report_data: List[Dict] = []
         self.last_report_org: str = ""
         self.last_report_type: str = ""
         self.last_report_header_text: str = ""
@@ -92,12 +91,19 @@ class Admin(ManagerBase, FacultyAdminBase):
         self._setup_audit_logs_page()
         self._setup_generate_reports_page()
         
+        self.ui.stacked_widget.currentChanged.connect(self._on_stack_changed)
+        
         self.load_orgs()
 
     def showEvent(self, event):
         """Override showEvent to ensure proper initial positioning after the widget is shown."""
         super().showEvent(event)
         QTimer.singleShot(0, self._reposition_create_button)
+    
+    def _on_stack_changed(self, index: int) -> None:
+        """Handle stacked widget changes to reposition floating buttons."""
+        if index == 0:
+            QTimer.singleShot(0, self._reposition_create_button)
     
     def _setup_admin_menu(self) -> None:
         """Set up the admin menu button with dropdown options beside the search bar."""
@@ -108,11 +114,13 @@ class Admin(ManagerBase, FacultyAdminBase):
         self.menu_btn.setText("")
         
         icon = QtGui.QIcon()
+        
         menu_icon_path = os.path.join(
             os.path.dirname(__file__), 
-            "..", "..", 
+            "..", "..", "..", "..",
             "assets", "organization", "icons", "menu.png"
         )
+
         icon.addPixmap(
             QtGui.QPixmap(menu_icon_path), 
             QtGui.QIcon.Mode.Normal, 
@@ -125,6 +133,29 @@ class Admin(ManagerBase, FacultyAdminBase):
         
         self.admin_menu = QtWidgets.QMenu(self)
         
+        self.admin_menu.setStyleSheet("""
+            QMenu {
+                background-color: white;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            }
+            QMenu::item {
+                padding: 5px 25px 5px 25px; 
+                color: black;
+                border-radius: 5px;
+            }
+            QMenu::item:selected {
+                /* This is the hover/selection effect */
+                background-color: #FDC601; /* Your project's yellow */
+                color: #084924;        /* Your project's dark green */
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #e0e0e0;
+                margin: 5px 0px 5px 0px;
+            }
+        """)
+
         generate_reports_action = self.admin_menu.addAction("Generate Reports")
         generate_reports_action.triggered.connect(self._generate_reports)
         
@@ -185,8 +216,12 @@ class Admin(ManagerBase, FacultyAdminBase):
         if self.ui.stacked_widget.currentIndex() == 0:
             self._reposition_create_button()
     
-    def _setup_no_logs_label(self) -> None:
-        """Initialize the 'No logs.' label for the audit log table."""
+    def _setup_audit_logs_page(self) -> None:
+        """Load the audit logs UI as a new stacked widget page."""
+        self.audit_logs_page = QtWidgets.QWidget()
+        self.audit_logs_ui = Ui_audit_logs_widget()
+        self.audit_logs_ui.setupUi(self.audit_logs_page)
+        
         self.no_logs_label = QtWidgets.QLabel("No logs.", self.audit_logs_ui.audit_table_container)
         self.no_logs_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.no_logs_label.setStyleSheet("font-size: 20px; color: #888;")
@@ -197,14 +232,6 @@ class Admin(ManagerBase, FacultyAdminBase):
         self.no_logs_label.setSizePolicy(sizePolicy)
         self.audit_logs_ui.verticalLayout_17.addWidget(self.no_logs_label)
         self.no_logs_label.hide()
-    
-    def _setup_audit_logs_page(self) -> None:
-        """Load the audit logs UI as a new stacked widget page."""
-        self.audit_logs_page = QtWidgets.QWidget()
-        self.audit_logs_ui = Ui_audit_logs_widget()
-        self.audit_logs_ui.setupUi(self.audit_logs_page)
-        
-        self._setup_no_logs_label()
         
         self.audit_logs_ui.audit_back_btn.clicked.connect(
             lambda: self.ui.stacked_widget.setCurrentIndex(0)
@@ -251,6 +278,7 @@ class Admin(ManagerBase, FacultyAdminBase):
         self.reports_ui.pushButton_2.setText("End Date")
         
         self.last_report_logs = []
+        self.last_report_data = []
         self.last_report_org = ""
         self.last_report_type = ""
         self.last_report_header_text = ""
@@ -290,25 +318,7 @@ class Admin(ManagerBase, FacultyAdminBase):
             dialog.exec()
             
             self.load_orgs() if not is_branch else self.load_branches()
-
-    def create_new_organization(self, org_data: Dict) -> None:
-        """Saves a new organization/branch to the data file and logs the action."""
-        organizations = self._load_data()
-        organizations.append(org_data)
-        
-        try:
-            with open(self.data_file, 'w') as file:
-                json.dump({"organizations": organizations}, file, indent=4)
-            print(f"Successfully created new org: {org_data['name']}")
             
-            org_name = org_data.get("name", "Unknown")
-            details = f"Type: {'Branch' if org_data.get('is_branch', False) else 'Organization'}"
-            self._log_action("CREATE_ORGANIZATION", org_name, subject_name=org_name, changes=details)
-            
-        except Exception as e:
-            print(f"Error saving new organization: {str(e)}")
-            QMessageBox.critical(self, "Error", f"Could not save new organization: {e}")
-    
     def _return_to_prev_page(self) -> None:
         """Navigate back, handling admin pages."""
         current_index = self.ui.stacked_widget.currentIndex()
@@ -318,9 +328,6 @@ class Admin(ManagerBase, FacultyAdminBase):
         else:
             super()._return_to_prev_page()
             
-        if self.ui.stacked_widget.currentIndex() == 0:
-            QTimer.singleShot(0, self._reposition_create_button)
-    
     def load_audit_logs_data(self, search_text: str = "") -> None:
         """Load and filter audit logs into the table."""
         print(f"Loading audit logs, searching for: {search_text}")
@@ -370,7 +377,6 @@ class Admin(ManagerBase, FacultyAdminBase):
         """Populate organizations in the reports dropdown."""
         orgs = self._load_data()
         self.reports_ui.select_org_dd.clear()
-        self.reports_ui.select_org_dd.addItem("Select Organization")
         for org in orgs:
             if not org["is_branch"]:
                 self.reports_ui.select_org_dd.addItem(org["name"])
@@ -413,6 +419,79 @@ class Admin(ManagerBase, FacultyAdminBase):
         calendar.clicked.connect(on_date_clicked)
         dialog.exec()
 
+    def _generate_event_history_report(self, logs: List[Dict]) -> str:
+        """Generates the body for the 'Event History' report."""
+        if not logs:
+            return "No activities found in this period."
+        
+        report_text = ""
+        for log in sorted(logs, key=lambda x: x['timestamp']):
+            dt = datetime.datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %I:%M %p')
+            report_text += f"[{dt}] {log['actor']} performed {log['action']}.\n"
+            report_text += f"    -> Subject: {log.get('subject', 'N/A')}\n"
+            report_text += f"    -> Details: {log.get('details', 'N/A')}\n\n"
+        return report_text
+
+    def _generate_membership_report(self, logs: List[Dict]) -> str:
+        """Generates the body for the 'Membership' report."""
+        report_logs = [
+            log for log in logs 
+            if log["action"] in ["ACCEPT_APPLICANT", "KICK_MEMBER", "EDIT_MEMBER"]
+        ]
+        if not report_logs:
+            return "No membership changes found in this period."
+        
+        report_text = ""
+        for log in sorted(report_logs, key=lambda x: x['timestamp']):
+            dt = datetime.datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %I:%M %p')
+            report_text += f"[{dt}] {log['actor']} performed {log['action']} on {log['subject']}. \n    Details: {log['details']}\n"
+        return report_text
+
+    def _generate_officer_list_report(self, org_name: str) -> str:
+        """
+        Generates the body for the 'Officer List' report.
+        Also caches the officer data in self.last_report_data.
+        """
+        report_text = "This report shows the CURRENT officer list and is not affected by the date range.\n\n"
+        all_orgs = self._load_data()
+        found_org = None
+        for org in all_orgs:
+            if org['name'] == org_name:
+                found_org = org
+                break
+            for branch in org.get("branches", []):
+                if branch['name'] == org_name:
+                    found_org = branch
+                    break
+            if found_org:
+                break
+        
+        if not found_org or not found_org.get("officers"):
+            self.last_report_data = []
+            return "No officers found for this organization."
+        
+        self.last_report_data = found_org.get("officers", [])
+        for officer in self.last_report_data:
+            report_text += f" - {officer.get('name', 'N/A'):<30} | {officer.get('position', 'N/A')}\n"
+        return report_text
+
+    def _generate_summary_report(self, logs: List[Dict]) -> str:
+        """Generates the body for the 'Summary' report."""
+        if not logs:
+            return "No activities found in this period."
+        
+        actions = {}
+        for log in logs:
+            action_type = log.get('action', 'UNKNOWN')
+            actions[action_type] = actions.get(action_type, 0) + 1
+        
+        report_text = "Summary of all actions in this period:\n\n"
+        for action, count in sorted(actions.items()):
+            report_text += f" - {action:<25} | {count} time(s)\n"
+        return report_text
+
+    # --- Main Report Generation Method ---
+    
     def generate_report(self) -> None:
         """Generate report based on selections and display in preview."""
         org_name = self.reports_ui.select_org_dd.currentText().strip().lstrip("- ")
@@ -469,68 +548,21 @@ class Admin(ManagerBase, FacultyAdminBase):
         report_text += f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %I:%M %p')}\n"
         report_text += "=" * 50 + "\n\n"
         
-        self.last_report_header_text = "\n".join(report_text.split('\n')[:6]) # Get first 6 lines
+        self.last_report_header_text = "\n".join(report_text.split('\n')[:6])
         
+        body_text = ""
         if report_type == "Event History (Default)":
-            if not date_filtered_logs:
-                report_text += "No activities found in this period."
-            else:
-                for log in sorted(date_filtered_logs, key=lambda x: x['timestamp']):
-                    dt = datetime.datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %I:%M %p')
-                    report_text += f"[{dt}] {log['actor']} performed {log['action']}.\n"
-                    report_text += f"    -> Subject: {log.get('subject', 'N/A')}\n"
-                    report_text += f"    -> Details: {log.get('details', 'N/A')}\n\n"
-        
+            body_text = self._generate_event_history_report(date_filtered_logs)
         elif report_type == "Membership":
-            report_logs = [
-                log for log in date_filtered_logs 
-                if log["action"] in ["ACCEPT_APPLICANT", "KICK_MEMBER", "EDIT_MEMBER"]
-            ]
-            if not report_logs:
-                report_text += "No membership changes found in this period."
-            else:
-                for log in sorted(report_logs, key=lambda x: x['timestamp']):
-                    dt = datetime.datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %I:%M %p')
-                    report_text += f"[{dt}] {log['actor']} performed {log['action']} on {log['subject']}. \n    Details: {log['details']}\n"
-        
+            body_text = self._generate_membership_report(date_filtered_logs)
         elif report_type == "Officer List":
-            report_text += "This report shows the CURRENT officer list and is not affected by the date range.\n\n"
-            all_orgs = self._load_data()
-            found_org = None
-            for org in all_orgs:
-                if org['name'] == org_name:
-                    found_org = org
-                    break
-                for branch in org.get("branches", []):
-                    if branch['name'] == org_name:
-                        found_org = branch
-                        break
-                if found_org:
-                    break
-            
-            if not found_org or not found_org.get("officers"):
-                report_text += "No officers found for this organization."
-            else:
-                for officer in found_org.get("officers", []):
-                    report_text += f" - {officer.get('name', 'N/A'):<30} | {officer.get('position', 'N/A')}\n"
-
+            body_text = self._generate_officer_list_report(org_name)
         elif report_type == "Summary":
-            if not date_filtered_logs:
-                report_text += "No activities found in this period."
-            else:
-                actions = {}
-                for log in date_filtered_logs:
-                    action_type = log.get('action', 'UNKNOWN')
-                    actions[action_type] = actions.get(action_type, 0) + 1
-                
-                report_text += "Summary of all actions in this period:\n\n"
-                for action, count in sorted(actions.items()):
-                    report_text += f" - {action:<25} | {count} time(s)\n"
-        
+            body_text = self._generate_summary_report(date_filtered_logs)
         else:
-            report_text = f"Report type '{report_type}' is not yet implemented."
+            body_text = f"Report type '{report_type}' is not yet implemented."
         
-        self.reports_ui.report_preview_text.setPlainText(report_text)
+        self.reports_ui.report_preview_text.setPlainText(report_text + body_text)
         
         self.last_report_logs = date_filtered_logs
         self.last_report_org = org_name
@@ -622,20 +654,8 @@ class Admin(ManagerBase, FacultyAdminBase):
                 ws.cell(row=current_row, column=2).font = bold_font
                 current_row += 1
                 
-                all_orgs = self._load_data()
-                found_org = None
-                for org in all_orgs:
-                    if org['name'] == self.last_report_org:
-                        found_org = org
-                        break
-                    for branch in org.get("branches", []):
-                        if branch['name'] == self.last_report_org:
-                            found_org = branch
-                            break
-                    if found_org: break
-                
-                if found_org and found_org.get("officers"):
-                    for officer in found_org.get("officers", []):
+                if self.last_report_data:
+                    for officer in self.last_report_data:
                         ws.cell(row=current_row, column=1).value = officer.get('name', 'N/A')
                         ws.cell(row=current_row, column=2).value = officer.get('position', 'N/A')
                         current_row += 1
