@@ -267,6 +267,16 @@ class ManagerBase:
             org_name = self.current_org.get('name', 'Unknown Org')
             self._log_action("ACCEPT_APPLICANT", org_name, subject_name=applicant_name)
             
+            # --- ADD NOTIFICATION FOR STUDENT ---
+            notification = {
+                "id": f"notif_{datetime.datetime.now().timestamp()}",
+                "type": "ACCEPTANCE",
+                "org_name": org_name,
+                "timestamp": datetime.datetime.now().isoformat()
+            }
+            self.add_notification(applicant_name, notification)
+            # --- END NOTIFICATION ---
+            
             self.save_data()
             self.load_applicants(search_text)
 
@@ -298,7 +308,7 @@ class ManagerBase:
             self.save_data()
             self.load_applicants(search_text)
     
-    def edit_member(self, row: int) -> None:
+    def edit_member(self, row: int, bypass_cooldown: bool = False) -> None:
         """Open dialog to edit member's position."""
         from widgets.orgs_custom_widgets.dialogs import EditMemberDialog
         
@@ -321,9 +331,23 @@ class ManagerBase:
             old_position = member[1]
             member_name = member[0]
             
-            self.current_org["members"][original_index][1] = new_position
-            
             officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
+            is_officer_change = (new_position in officer_positions) or (old_position in officer_positions)
+
+            # --- ADDED: Cooldown Check ---
+            if is_officer_change and not bypass_cooldown:
+                # --- FIX: Standardized cooldown key ---
+                is_on_cooldown, end_time = self.check_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE")
+                if is_on_cooldown:
+                    QMessageBox.warning(
+                        self, 
+                        "Action Cooldown", 
+                        f"Officer changes are on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
+                    )
+                    return
+            # --- END Cooldown Check ---
+
+            self.current_org["members"][original_index][1] = new_position
             
             if new_position in officer_positions:
                 officers = self.current_org.get("officers", [])
@@ -355,6 +379,13 @@ class ManagerBase:
             self._log_action("EDIT_MEMBER", org_name, subject_name=member_name, changes=details)
             
             self.save_data()
+            
+            # --- ADDED: Set Cooldown ---
+            if is_officer_change and not bypass_cooldown:
+                # --- FIX: Standardized cooldown key ---
+                self.set_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE", minutes=5)
+            # --- END Set Cooldown ---
+
             self.load_members(search_text)
             
             if new_position in officer_positions or old_position in officer_positions:
@@ -367,7 +398,7 @@ class ManagerBase:
                 )
                 self.load_officers(officers)
     
-    def kick_member(self, row: int) -> None:
+    def kick_member(self, row: int, bypass_cooldown: bool = False) -> None:
         """
         Remove a member from the organization, with special handling for officers.
         [FIXED] Consolidated logic and corrected cooldown implementation.
@@ -389,6 +420,18 @@ class ManagerBase:
         officers = self.current_org.get("officers", [])
         is_officer = any(o["name"] == member_name for o in officers)
         
+        # --- ADDED: Cooldown Check ---
+        if is_officer and not bypass_cooldown:
+            is_on_cooldown, end_time = self.check_manager_action_cooldown(self.current_org['id'], "KICK_OFFICER")
+            if is_on_cooldown:
+                QMessageBox.warning(
+                    self, 
+                    "Action Cooldown", 
+                    f"Kicking officers is on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
+                )
+                return
+        # --- END Cooldown Check ---
+
         kick_confirmed = False
         
         if is_officer:
@@ -429,6 +472,12 @@ class ManagerBase:
             self._log_action("KICK_MEMBER", org_name, subject_name=member_name, changes=details)
             
             self.save_data()
+            
+            # --- ADDED: Set Cooldown ---
+            if is_officer and not bypass_cooldown:
+                self.set_manager_action_cooldown(self.current_org['id'], "KICK_OFFICER", minutes=5)
+            # --- END Set Cooldown ---
+
             self.load_members(search_text)
             
             if is_officer:
@@ -441,11 +490,24 @@ class ManagerBase:
                 )
                 self.load_officers(current_officers)
     
-    def update_officer_in_org(self, updated_officer: Dict) -> None:
+    def update_officer_in_org(self, updated_officer: Dict, bypass_cooldown: bool = False) -> None:
         """Update the officer data in the current organization and save."""
         if not self.current_org:
             return
         
+        # --- ADDED: Cooldown Check ---
+        if not bypass_cooldown:
+            # --- FIX: Standardized cooldown key ---
+            is_on_cooldown, end_time = self.check_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE")
+            if is_on_cooldown:
+                QMessageBox.warning(
+                    self, 
+                    "Action Cooldown", 
+                    f"Officer changes are on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
+                )
+                return
+        # --- END Cooldown Check ---
+
         member_name = updated_officer.get("name", "Unknown")
         new_position = updated_officer.get("position", "Unknown")
         org_name = self.current_org.get("name", "Unknown Org")
@@ -508,6 +570,12 @@ class ManagerBase:
         self.current_org["members"] = members
         self.save_data()
         
+        # --- ADDED: Set Cooldown ---
+        if not bypass_cooldown:
+            # --- FIX: Standardized cooldown key ---
+            self.set_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE", minutes=5)
+        # --- END Set Cooldown ---
+
         current_index = self.ui.officer_history_dp.currentIndex()
         selected_semester = self.ui.officer_history_dp.itemText(current_index)
         officers = (

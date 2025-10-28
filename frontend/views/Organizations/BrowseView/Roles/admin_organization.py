@@ -95,6 +95,22 @@ class Admin(ManagerBase, FacultyAdminBase):
         
         self.load_orgs()
 
+    # --- ADDED: Cooldown Bypass Overrides ---
+    
+    def edit_member(self, row: int) -> None:
+        """Admin override to bypass manager cooldown."""
+        super().edit_member(row, bypass_cooldown=True)
+
+    def kick_member(self, row: int) -> None:
+        """Admin override to bypass manager cooldown."""
+        super().kick_member(row, bypass_cooldown=True)
+
+    def update_officer_in_org(self, updated_officer: Dict) -> None:
+        """Admin override to bypass manager cooldown."""
+        super().update_officer_in_org(updated_officer, bypass_cooldown=True)
+
+    # --- End Cooldown Bypass ---
+
     def showEvent(self, event):
         """Override showEvent to ensure proper initial positioning after the widget is shown."""
         super().showEvent(event)

@@ -1,21 +1,6 @@
 from ..Base.faculty_admin_base import FacultyAdminBase
 from ..Base.manager_base import ManagerBase
 
-class Faculty(FacultyAdminBase, ManagerBase):
-    """
-    Faculty view. Inherits from FacultyAdminBase (for the non-student
-    UI layout and org loading) and ManagerBase (for management methods).
-    
-    MRO: Faculty -> FacultyAdminBase -> OrganizationViewBase -> User -> ManagerBase
-    Note: ManagerBase methods will be found via MRO if FacultyAdminBase
-    doesn't implement them (e.g., _to_members_page).
-    
-    Correction: MRO will be:
-    Faculty -> FacultyAdminBase -> OrganizationViewBase -> User -> ManagerBase
-    
-    Let's fix that. We want ManagerBase first for method priority.
-    """
-    
 class Faculty(ManagerBase, FacultyAdminBase):
     """
     Faculty view. Inherits from ManagerBase (for management methods) and

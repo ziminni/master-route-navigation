@@ -19,8 +19,9 @@ class User(QtWidgets.QWidget):
         self.college_org_count = 0
         self.data_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'organizations_data.json')
         self.cooldown_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'student_cooldowns.json')
-        # --- ADDED: Audit log file path ---
         self.audit_log_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'audit_logs.json')
+        self.manager_cooldown_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'manager_action_cooldowns.json')
+        self.notifications_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'notifications.json')
         
     def _apply_table_style(self) -> None:
         """Apply modern stylesheet for the members QTableView."""
@@ -397,3 +398,115 @@ class User(QtWidgets.QWidget):
                 return False, None
         return False, None
     
+    # --- ADDED: Manager Cooldown Methods ---
+
+    def _load_manager_cooldowns(self) -> Dict:
+        """Loads the manager action cooldown data from JSON file."""
+        try:
+            with open(self.manager_cooldown_file, 'r') as file:
+                data = json.load(file)
+                return data if isinstance(data, dict) else {}
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+
+    def _save_manager_cooldowns(self, cooldowns: Dict) -> None:
+        """Saves the manager action cooldown data to JSON file."""
+        try:
+            with open(self.manager_cooldown_file, 'w') as file:
+                json.dump(cooldowns, file, indent=4)
+        except Exception as e:
+            print(f"Error saving {self.manager_cooldown_file}: {str(e)}")
+
+    def check_manager_action_cooldown(self, org_id: int, action: str) -> Tuple[bool, Optional[datetime.datetime]]:
+        """
+        Checks if a manager action for a specific org is on cooldown.
+        Also clears the cooldown if it has expired.
+        
+        Returns:
+            Tuple[bool, Optional[datetime.datetime]]: (is_on_cooldown, cooldown_end_time)
+        """
+        # --- FIX: Convert int org_id to string for JSON key lookup ---
+        org_id_str = str(org_id)
+        cooldowns = self._load_manager_cooldowns()
+        org_cooldowns = cooldowns.get(org_id_str, {})
+        cooldown_str = org_cooldowns.get(action)
+        
+        if cooldown_str:
+            try:
+                cooldown_end_time = datetime.datetime.fromisoformat(cooldown_str)
+                if datetime.datetime.now() < cooldown_end_time:
+                    return True, cooldown_end_time
+                else:
+                    # Cooldown expired, remove it
+                    del org_cooldowns[action]
+                    if not org_cooldowns:
+                        if org_id_str in cooldowns:
+                            del cooldowns[org_id_str]
+                    else:
+                        cooldowns[org_id_str] = org_cooldowns
+                    self._save_manager_cooldowns(cooldowns)
+                    return False, None
+            except ValueError:
+                return False, None
+        return False, None
+
+    def set_manager_action_cooldown(self, org_id: int, action: str, minutes: int = 5) -> None:
+        """Sets a manager action cooldown for a specific org."""
+        # --- FIX: Convert int org_id to string for JSON key lookup ---
+        org_id_str = str(org_id)
+        cooldowns = self._load_manager_cooldowns()
+        if org_id_str not in cooldowns:
+            cooldowns[org_id_str] = {}
+        
+        cooldown_end_time = datetime.datetime.now() + datetime.timedelta(minutes=minutes)
+        cooldowns[org_id_str][action] = cooldown_end_time.isoformat()
+        self._save_manager_cooldowns(cooldowns)
+        print(f"Manager action cooldown for {action} on {org_id_str} set until {cooldown_end_time.isoformat()}")
+
+    # --- ADDED: Student Notification Methods ---
+    
+    def _load_notifications(self) -> Dict:
+        """Loads the student notifications data from JSON file."""
+        try:
+            with open(self.notifications_file, 'r') as file:
+                data = json.load(file)
+                return data if isinstance(data, dict) else {}
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+
+    def _save_notifications(self, notifications: Dict) -> None:
+        """Saves the student notifications data to JSON file."""
+        try:
+            with open(self.notifications_file, 'w') as file:
+                json.dump(notifications, file, indent=4)
+        except Exception as e:
+            print(f"Error saving {self.notifications_file}: {str(e)}")
+
+    def add_notification(self, student_name: str, notification_data: Dict) -> None:
+        """Adds a notification for a specific student."""
+        notifications = self._load_notifications()
+        if student_name not in notifications:
+            notifications[student_name] = []
+        notifications[student_name].append(notification_data)
+        self._save_notifications(notifications)
+    
+    def get_notifications_for_student(self, student_name: str) -> List[Dict]:
+        """Gets all notifications for a specific student."""
+        notifications = self._load_notifications()
+        return notifications.get(student_name, [])
+
+    def clear_notifications_for_student(self, student_name: str, notification_ids: List[str]) -> None:
+        """Removes specific notifications for a student by ID."""
+        notifications = self._load_notifications()
+        if student_name not in notifications:
+            return
+        
+        user_notifs = notifications[student_name]
+        user_notifs = [n for n in user_notifs if n.get("id") not in notification_ids]
+        
+        if not user_notifs:
+            del notifications[student_name]
+        else:
+            notifications[student_name] = user_notifs
+        
+        self._save_notifications(notifications)

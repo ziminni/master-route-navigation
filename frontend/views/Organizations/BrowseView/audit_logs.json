@@ -6,5 +6,117 @@
         "organization": "CISCO",
         "subject": "Yuri Salise",
         "details": "Officer details updated. Set position to: Member."
+    },
+    {
+        "timestamp": "2025-10-28T15:50:17.917509",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Officer details updated. Set position to: Member."
+    },
+    {
+        "timestamp": "2025-10-28T15:50:24.094759",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position changed from 'Member' to 'Vice - External Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T15:50:30.506371",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Officer details updated. Set position to: Treasurer."
+    },
+    {
+        "timestamp": "2025-10-28T15:50:39.301096",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Officer details updated. Set position to: Secretary."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:05.753629",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Officer details updated. Set position to: Treasurer."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:08.842544",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Officer details updated. Set position to: Member."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:16.866274",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position changed from 'Member' to 'Treasurer'."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:23.635467",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position changed from 'Treasurer' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:27.422766",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position changed from 'Chairperson' to 'Treasurer'."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:48.692224",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Officer details updated. Set position to: Chairperson."
+    },
+    {
+        "timestamp": "2025-10-28T16:05:10.273291",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Officer details updated. Set position to: Treasurer."
+    },
+    {
+        "timestamp": "2025-10-28T16:08:45.208480",
+        "actor": "admin",
+        "action": "ACCEPT_APPLICANT",
+        "organization": "CISCO",
+        "subject": "Marcus",
+        "details": null
+    },
+    {
+        "timestamp": "2025-10-28T16:08:53.650506",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Marcus",
+        "details": "Position changed from 'Member' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T16:09:02.512911",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Marcus",
+        "details": "Position changed from 'Chairperson' to 'Vice - External Chairperson'."
     }
 ]

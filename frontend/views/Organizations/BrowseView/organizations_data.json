@@ -94,18 +94,25 @@
                     "start_date": "07/08/2025"
                 },
                 {
-                    "name": "Okit, Maki Auri",
-                    "position": "Vice - External Chairperson",
-                    "card_image_path": "CISCo/External.jpg",
-                    "photo_path": "CISCo/External.jpg",
-                    "start_date": "07/08/2025"
-                },
-                {
                     "name": "Unajan, Vianca Louise",
                     "position": "Secretary",
                     "card_image_path": "CISCo/Secretary.jpg",
                     "photo_path": "CISCo/Secretary.jpg",
                     "start_date": "07/08/2025"
+                },
+                {
+                    "name": "Okit, Maki Auri",
+                    "position": "Treasurer",
+                    "card_image_path": "No Photo",
+                    "photo_path": "No Photo",
+                    "start_date": "10/28/2025"
+                },
+                {
+                    "name": "Marcus",
+                    "position": "Vice - External Chairperson",
+                    "card_image_path": "No Photo",
+                    "photo_path": "No Photo",
+                    "start_date": "10/28/2025"
                 }
             ],
             "members": [
@@ -153,7 +160,7 @@
                 ],
                 [
                     "Okit, Maki Auri",
-                    "Vice - External Chairperson",
+                    "Treasurer",
                     "Active",
                     "07/08/2025"
                 ],
@@ -162,6 +169,12 @@
                     "Secretary",
                     "Active",
                     "07/08/2025"
+                ],
+                [
+                    "Marcus",
+                    "Vice - External Chairperson",
+                    "Active",
+                    "2025-10-28"
                 ]
             ],
             "applicants": [],
@@ -180,6 +193,20 @@
                         "card_image_path": "No Photo",
                         "photo_path": "No Photo",
                         "start_date": "07/08/2024"
+                    },
+                    {
+                        "name": "Unajan, Vianca Louise",
+                        "position": "Secretary",
+                        "card_image_path": "CISCo/Secretary.jpg",
+                        "photo_path": "CISCo/Secretary.jpg",
+                        "start_date": "07/08/2025"
+                    },
+                    {
+                        "name": "Okit, Maki Auri",
+                        "position": "Treasurer",
+                        "card_image_path": "No Photo",
+                        "photo_path": "No Photo",
+                        "start_date": "10/28/2025"
                     }
                 ],
                 "A.Y. 2024-2025 - 2nd Semester": [
@@ -189,12 +216,24 @@
                         "card_image_path": "No Photo",
                         "photo_path": "No Photo",
                         "start_date": "01/15/2025"
+                    },
+                    {
+                        "name": "Unajan, Vianca Louise",
+                        "position": "Secretary",
+                        "card_image_path": "CISCo/Secretary.jpg",
+                        "photo_path": "CISCo/Secretary.jpg",
+                        "start_date": "07/08/2025"
+                    },
+                    {
+                        "name": "Okit, Maki Auri",
+                        "position": "Treasurer",
+                        "card_image_path": "No Photo",
+                        "photo_path": "No Photo",
+                        "start_date": "10/28/2025"
                     }
                 ]
             },
-            "kick_cooldowns": {
-                "Marcus": "2025-10-26T17:53:51.212211"
-            }
+            "kick_cooldowns": {}
         },
         {
             "applicants": [],

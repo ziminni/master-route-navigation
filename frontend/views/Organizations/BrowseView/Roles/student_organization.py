@@ -1,4 +1,5 @@
 from PyQt6 import QtWidgets, QtCore
+from PyQt6.QtWidgets import QMessageBox
 from typing import Dict
 from ..Base.organization_view_base import OrganizationViewBase
 from widgets.orgs_custom_widgets.cards import JoinedOrgCard, CollegeOrgCard
@@ -7,6 +8,7 @@ class Student(OrganizationViewBase):
     def __init__(self, student_name: str):
         super().__init__(name=student_name)
         self.load_orgs()
+        self._check_for_notifications()
 
     def load_orgs(self, search_text: str = "") -> None:
         """Load and display organizations, filtered by search text."""
@@ -106,3 +108,28 @@ class Student(OrganizationViewBase):
         )
         self.joined_org_count += 1
         self.ui.joined_org_grid.setRowMinimumHeight(row, 300)
+
+    def _check_for_notifications(self) -> None:
+        """Check for and display notifications for the student."""
+        notifications = self.get_notifications_for_student(self.name)
+        if not notifications:
+            return
+
+        accepted_orgs = []
+        notification_ids_to_clear = []
+        
+        for notif in notifications:
+            if notif.get("type") == "ACCEPTANCE":
+                accepted_orgs.append(notif.get("org_name", "an organization"))
+                notification_ids_to_clear.append(notif.get("id"))
+        
+        if accepted_orgs:
+            org_list_str = "\n - ".join(accepted_orgs)
+            title = "Congratulations!"
+            message = f"You have been accepted into the following organizations/branches:\n\n - {org_list_str}"
+            
+            # Use QMessageBox for the dialog
+            QMessageBox.information(self, title, message)
+            
+            # After showing, clear these notifications
+            self.clear_notifications_for_student(self.name, notification_ids_to_clear)
