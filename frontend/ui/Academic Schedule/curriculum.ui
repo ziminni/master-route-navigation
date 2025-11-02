@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QWidget" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1366</width>
+    <height>768</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QStackedWidget" name="stackedWidget">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>1366</width>
+      <height>768</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <widget class="QWidget" name="page">
+     <widget class="QFrame" name="frame1stYear">
+      <property name="geometry">
+       <rect>
+        <x>176</x>
+        <y>100</y>
+        <width>1061</width>
+        <height>531</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_8">
+       <item alignment="Qt::AlignRight">
+        <widget class="QComboBox" name="YearBox">
+         <item>
+          <property name="text">
+           <string>1st Year</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>2nd Year</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>3rd Year</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>4th Year</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item alignment="Qt::AlignHCenter">
+        <widget class="QLabel" name="YearHeader_4">
+         <property name="text">
+          <string>First Year</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="Line" name="line_8">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="frame_7">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <item alignment="Qt::AlignHCenter">
+           <widget class="QLabel" name="Semester1">
+            <property name="text">
+             <string>1st Semester</string>
+            </property>
+           </widget>
+          </item>
+          <item alignment="Qt::AlignHCenter">
+           <widget class="QLabel" name="Semester2">
+            <property name="layoutDirection">
+             <enum>Qt::RightToLeft</enum>
+            </property>
+            <property name="text">
+             <string>2nd Semester</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="frame_8">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_8">
+          <item>
+           <widget class="QTableWidget" name="sem2frame_4">
+            <column>
+             <property name="text">
+              <string>Codes</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Subject Titles</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Grades</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Units</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Pre-requisite(s)</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTableWidget" name="sem1_4">
+            <column>
+             <property name="text">
+              <string>Codes</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Subject Title</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Grades</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Units</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Pre-requisite(s)</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QLabel" name="CurriculumTitle">
+      <property name="geometry">
+       <rect>
+        <x>46</x>
+        <y>50</y>
+        <width>91</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Curriculum</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="Return">
+      <property name="geometry">
+       <rect>
+        <x>1210</x>
+        <y>40</y>
+        <width>91</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Go Back</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="page_2"/>
+   </widget>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
