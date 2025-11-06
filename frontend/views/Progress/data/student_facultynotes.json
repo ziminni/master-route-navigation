@@ -1,0 +1,24 @@
+{
+  "2025-2026 1st Sem": [
+    {
+      "subject": "Data Structures and Algorithms",
+      "faculty": "Jacob Cabadingan",
+      "date": "2025-10-03 08:32",
+      "message": "Try to study the basics, different algorithms, and their real-world examples..."
+    },
+    {
+      "subject": "Elementary Statistics and Probability",
+      "faculty": "Prof. Santos",
+      "date": "2025-10-05 13:11",
+      "message": "Please review the previous quizzes and focus on understanding the distribution topics."
+    }
+  ],
+  "2025-2026 2nd Sem": [
+    {
+      "subject": "Web Systems and Technologies",
+      "faculty": "Prof. Garcia",
+      "date": "2026-01-20 14:53",
+      "message": "You’ve shown great improvement in the last project. Keep it up!"
+    }
+  ]
+}

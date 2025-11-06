@@ -20,14 +20,22 @@
       "mains": [
         {
           "id": 2,
-          "name": "Classes",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
+          "name": "Tagging",
+          "function": "TaggingMain()",
+          "path": "views.Academics.TaggingWrapper",
+          "access": ["admin"],
           "modulars":[]
         },
         {
           "id": 3,
+          "name": "Classes",
+          "function": "ClassroomMain()",
+          "path": "views.Academics.ClassroomWrapper",
+          "access": ["student", "faculty", "admin"],
+          "modulars":[]
+        },
+        {
+          "id": 4,
           "name": "Schedule",
           "function": "Schedule()",
           "path": "views.Academics.Scheduler.Schedule",
@@ -35,19 +43,19 @@
           "modulars":[]
         },
         {
-          "id": 4,
+          "id": 5,
           "name": "Progress",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
+          "function": "Progress()",
+          "path": "views.Progress.Progress",
+          "access": ["student", "admin", "faculty"],
           "modulars":[]
         },
         {
-          "id": 5,
+          "id": 6,
           "name": "Appointments",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
+          "function": "Appointment_main()",
+          "path": "views.Appointments.Appointment_main",
+          "access": ["faculty","student", "admin"],
           "modulars":[]
         }
       ]
@@ -57,15 +65,15 @@
       "name": "Organizations",
       "mains": [
         {
-          "id": 6,
+          "id": 7,
           "name": "Browse",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin","faculty"],
+          "function": "Browse()",
+          "path": "views.Organizations.browse",
+          "access": ["student","admin", "faculty"],
           "modulars":[]
         },
         {
-          "id": 7,
+          "id": 8,
           "name": "Membership",
           "function": "()",
           "path": "",
@@ -73,7 +81,7 @@
           "modulars":[]
         },
         {
-          "id": 8,
+          "id": 9,
           "name": "Events",
           "function": "Events()",
           "path": "views.Organizations.Events",
@@ -87,23 +95,24 @@
       "name": "Campus",
       "mains": [
         {
-          "id": 9,
-          "name": "Calendar",
-          "function": "()",
-          "path": "",
-          "access": ["student", "admin"],
-          "modulars":[]
-        },
-        {
           "id": 10,
-          "name": "Announcements",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
+          "name": "Calendar",
+          "function": "MainCalendar()",
+          "path": "views.Calendar.MainCalendar",
+          "access": ["admin", "faculty", "staff", "student"],
           "modulars":[]
         },
         {
           "id": 11,
+          "name": "Announcements",
+          "icon": "bullhorn",
+          "function": "AnnouncementsRouter()",
+          "path": "views.Announcements.Announcements",
+          "access": ["admin","faculty","staff","student"],
+          "modulars": []
+        },
+        {
+          "id": 12,
           "name": "House System",
           "function": "HouseMain()",
           "path": "views.House.HouseMain",
@@ -111,12 +120,12 @@
           "modulars":[]
         },
         {
-          "id": 12,
+          "id": 13,
           "name": "Showcase",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
+          "function": "ShowcaseRouter()",
+          "path": "views.Showcase.Showcase",
+          "access": ["admin","faculty","staff","student"],
+          "modulars": []
         }
       ]
     },
@@ -125,7 +134,7 @@
       "name": "Tools",
       "mains": [
         {
-          "id": 13,
+          "id": 14,
           "name": "Documents",
           "function": "DocumentsView()",
           "path": "views.Documents.Documents",
@@ -133,15 +142,15 @@
           "modulars":[]
         },
         {
-          "id": 14,
+          "id": 15,
           "name": "Messages",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
+          "function": "LauncherWindow()",
+          "path": "views.Messaging.launcher",
+          "access": ["student","faculty","admin"],
           "modulars":[]
         },
         {
-          "id": 15,
+          "id": 16,
           "name": "Student Services",
           "function": "()",
           "path": "",
@@ -149,7 +158,7 @@
           "modulars":[]
         },
         {
-          "id": 16,
+          "id": 17,
           "name": "Help",
           "function": "()",
           "path": "",

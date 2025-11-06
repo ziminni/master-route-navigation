@@ -1,0 +1,413 @@
+{
+  "semesters": {
+    "2024-2025 1st Sem": {
+      "subjects": [
+        {
+          "subject_code": "ITCC31",
+          "description": "Computer Programming",
+          "units": 3.0,
+          "schedule": "MWF 8:00 AM - 9:30 AM",
+          "room": "Computer Lab 1",
+          "instructor": "Prof. Juan Dela Cruz"
+        },
+        {
+          "subject_code": "MATH101",
+          "description": "Calculus I",
+          "units": 3.0,
+          "schedule": "TTh 10:00 AM - 11:30 AM",
+          "room": "Room 201",
+          "instructor": "Prof. Maria Santos"
+        },
+        {
+          "subject_code": "GE101",
+          "description": "English Communication",
+          "units": 3.0,
+          "schedule": "MWF 1:00 PM - 2:30 PM",
+          "room": "Room 105",
+          "instructor": "Prof. Ana Reyes"
+        },
+        {
+          "subject_code": "GE102",
+          "description": "Philippine History",
+          "units": 3.0,
+          "schedule": "TTh 2:00 PM - 3:30 PM",
+          "room": "Room 203",
+          "instructor": "Prof. Pedro Garcia"
+        },
+        {
+          "subject_code": "PE101",
+          "description": "Physical Education 1",
+          "units": 2.0,
+          "schedule": "F 3:00 PM - 5:00 PM",
+          "room": "Gymnasium",
+          "instructor": "Coach Miguel Torres"
+        },
+        {
+          "subject_code": "NSTP101",
+          "description": "National Service Training Program 1",
+          "units": 3.0,
+          "schedule": "Sat 8:00 AM - 11:00 AM",
+          "room": "Auditorium",
+          "instructor": "Prof. Rosa Mendoza"
+        },
+        {
+          "subject_code": "IT101",
+          "description": "Introduction to Information Technology",
+          "units": 3.0,
+          "schedule": "MWF 10:00 AM - 11:30 AM",
+          "room": "Computer Lab 2",
+          "instructor": "Prof. Carlos Ramos"
+        },
+        {
+          "subject_code": "PHILO101",
+          "description": "Philosophy of Man",
+          "units": 3.0,
+          "schedule": "TTh 8:00 AM - 9:30 AM",
+          "room": "Room 301",
+          "instructor": "Prof. Elena Cruz"
+        }
+      ]
+    },
+    "2024-2025 2nd Sem": {
+      "subjects": [
+        {
+          "subject_code": "CS201",
+          "description": "Data Structures and Algorithms",
+          "units": 3.0,
+          "schedule": "MWF 8:00 AM - 9:30 AM",
+          "room": "Computer Lab 1",
+          "instructor": "Prof. Roberto Silva"
+        },
+        {
+          "subject_code": "MATH102",
+          "description": "Discrete Mathematics",
+          "units": 3.0,
+          "schedule": "TTh 10:00 AM - 11:30 AM",
+          "room": "Room 202",
+          "instructor": "Prof. Linda Fernandez"
+        },
+        {
+          "subject_code": "DB101",
+          "description": "Database Management Systems",
+          "units": 3.0,
+          "schedule": "MWF 1:00 PM - 2:30 PM",
+          "room": "Computer Lab 3",
+          "instructor": "Prof. Antonio Lopez"
+        },
+        {
+          "subject_code": "GE103",
+          "description": "Rizal's Life and Works",
+          "units": 3.0,
+          "schedule": "TTh 2:00 PM - 3:30 PM",
+          "room": "Room 204",
+          "instructor": "Prof. Carmen Diaz"
+        },
+        {
+          "subject_code": "PE102",
+          "description": "Physical Education 2",
+          "units": 2.0,
+          "schedule": "F 3:00 PM - 5:00 PM",
+          "room": "Gymnasium",
+          "instructor": "Coach Miguel Torres"
+        },
+        {
+          "subject_code": "NSTP102",
+          "description": "National Service Training Program 2",
+          "units": 3.0,
+          "schedule": "Sat 8:00 AM - 11:00 AM",
+          "room": "Auditorium",
+          "instructor": "Prof. Rosa Mendoza"
+        },
+        {
+          "subject_code": "WEB101",
+          "description": "Web Development Fundamentals",
+          "units": 3.0,
+          "schedule": "MWF 10:00 AM - 11:30 AM",
+          "room": "Computer Lab 2",
+          "instructor": "Prof. Gabriel Morales"
+        },
+        {
+          "subject_code": "GE104",
+          "description": "Science, Technology and Society",
+          "units": 3.0,
+          "schedule": "TTh 8:00 AM - 9:30 AM",
+          "room": "Room 302",
+          "instructor": "Prof. Sofia Castillo"
+        }
+      ]
+    },
+    "2025-2026 1st Sem": {
+      "subjects": [
+        {
+          "subject_code": "OOP201",
+          "description": "Object-Oriented Programming",
+          "units": 3.0,
+          "schedule": "MWF 8:00 AM - 9:30 AM",
+          "room": "Computer Lab 1",
+          "instructor": "Prof. Diego Navarro"
+        },
+        {
+          "subject_code": "NET201",
+          "description": "Computer Networks",
+          "units": 3.0,
+          "schedule": "TTh 10:00 AM - 11:30 AM",
+          "room": "Computer Lab 4",
+          "instructor": "Prof. Patricia Gomez"
+        },
+        {
+          "subject_code": "SE201",
+          "description": "Software Engineering",
+          "units": 3.0,
+          "schedule": "MWF 1:00 PM - 2:30 PM",
+          "room": "Computer Lab 2",
+          "instructor": "Prof. Fernando Ruiz"
+        },
+        {
+          "subject_code": "ELEC101",
+          "description": "Mobile Application Development",
+          "units": 3.0,
+          "schedule": "TTh 2:00 PM - 3:30 PM",
+          "room": "Computer Lab 3",
+          "instructor": "Prof. Isabel Martinez"
+        },
+        {
+          "subject_code": "GE105",
+          "description": "Ethics",
+          "units": 3.0,
+          "schedule": "MWF 3:00 PM - 4:30 PM",
+          "room": "Room 205",
+          "instructor": "Prof. Ricardo Flores"
+        },
+        {
+          "subject_code": "STAT201",
+          "description": "Statistics and Probability",
+          "units": 3.0,
+          "schedule": "TTh 8:00 AM - 9:30 AM",
+          "room": "Room 303",
+          "instructor": "Prof. Beatriz Herrera"
+        },
+        {
+          "subject_code": "HCI201",
+          "description": "Human Computer Interaction",
+          "units": 3.0,
+          "schedule": "MWF 10:00 AM - 11:30 AM",
+          "room": "Design Lab",
+          "instructor": "Prof. Marcos Jimenez"
+        },
+        {
+          "subject_code": "GE106",
+          "description": "Contemporary World",
+          "units": 3.0,
+          "schedule": "TTh 1:00 PM - 2:30 PM",
+          "room": "Room 206",
+          "instructor": "Prof. Lucia Ortiz"
+        }
+      ]
+    },
+    "2025-2026 2nd Sem": {
+      "subjects": [
+        {
+          "subject_code": "AI301",
+          "description": "Artificial Intelligence",
+          "units": 3.0,
+          "schedule": "MWF 8:00 AM - 9:30 AM",
+          "room": "Computer Lab 1",
+          "instructor": "Prof. Andres Vargas"
+        },
+        {
+          "subject_code": "IS301",
+          "description": "Information Security",
+          "units": 3.0,
+          "schedule": "TTh 10:00 AM - 11:30 AM",
+          "room": "Computer Lab 4",
+          "instructor": "Prof. Victoria Ramirez"
+        },
+        {
+          "subject_code": "ELEC102",
+          "description": "Cloud Computing",
+          "units": 3.0,
+          "schedule": "MWF 1:00 PM - 2:30 PM",
+          "room": "Computer Lab 2",
+          "instructor": "Prof. Emilio Castro"
+        },
+        {
+          "subject_code": "PROJ301",
+          "description": "IT Project Management",
+          "units": 3.0,
+          "schedule": "TTh 2:00 PM - 3:30 PM",
+          "room": "Room 304",
+          "instructor": "Prof. Natalia Perez"
+        },
+        {
+          "subject_code": "GE107",
+          "description": "Art Appreciation",
+          "units": 3.0,
+          "schedule": "MWF 3:00 PM - 4:30 PM",
+          "room": "Art Room",
+          "instructor": "Prof. Alejandro Rivera"
+        },
+        {
+          "subject_code": "ELEC103",
+          "description": "Game Development",
+          "units": 3.0,
+          "schedule": "TTh 8:00 AM - 9:30 AM",
+          "room": "Computer Lab 3",
+          "instructor": "Prof. Daniela Romero"
+        },
+        {
+          "subject_code": "SYS301",
+          "description": "Systems Analysis and Design",
+          "units": 3.0,
+          "schedule": "MWF 10:00 AM - 11:30 AM",
+          "room": "Computer Lab 2",
+          "instructor": "Prof. Javier Sanchez"
+        },
+        {
+          "subject_code": "GE108",
+          "description": "Environmental Science",
+          "units": 3.0,
+          "schedule": "TTh 1:00 PM - 2:30 PM",
+          "room": "Science Lab",
+          "instructor": "Prof. Monica Torres"
+        }
+      ]
+    },
+    "2026-2027 1st Sem": {
+      "subjects": [
+        {
+          "subject_code": "CAPS401",
+          "description": "Capstone Project 1",
+          "units": 3.0,
+          "schedule": "MWF 8:00 AM - 9:30 AM",
+          "room": "Project Room",
+          "instructor": "Prof. Eduardo Mendez"
+        },
+        {
+          "subject_code": "ELEC104",
+          "description": "Data Science and Analytics",
+          "units": 3.0,
+          "schedule": "TTh 10:00 AM - 11:30 AM",
+          "room": "Computer Lab 1",
+          "instructor": "Prof. Gabriela Nunez"
+        },
+        {
+          "subject_code": "TECH401",
+          "description": "Emerging Technologies",
+          "units": 3.0,
+          "schedule": "MWF 1:00 PM - 2:30 PM",
+          "room": "Innovation Lab",
+          "instructor": "Prof. Rodrigo Vega"
+        },
+        {
+          "subject_code": "PROF401",
+          "description": "Professional Ethics in IT",
+          "units": 3.0,
+          "schedule": "TTh 2:00 PM - 3:30 PM",
+          "room": "Room 305",
+          "instructor": "Prof. Valentina Cruz"
+        },
+        {
+          "subject_code": "GE109",
+          "description": "Life and Works of Filipino Heroes",
+          "units": 3.0,
+          "schedule": "MWF 3:00 PM - 4:30 PM",
+          "room": "Room 207",
+          "instructor": "Prof. Hector Alvarez"
+        },
+        {
+          "subject_code": "ELEC105",
+          "description": "Internet of Things",
+          "units": 3.0,
+          "schedule": "TTh 8:00 AM - 9:30 AM",
+          "room": "IoT Lab",
+          "instructor": "Prof. Adriana Molina"
+        },
+        {
+          "subject_code": "RES401",
+          "description": "Research Methods in IT",
+          "units": 3.0,
+          "schedule": "MWF 10:00 AM - 11:30 AM",
+          "room": "Research Lab",
+          "instructor": "Prof. Sergio Gutierrez"
+        },
+        {
+          "subject_code": "GE110",
+          "description": "Gender and Society",
+          "units": 3.0,
+          "schedule": "TTh 1:00 PM - 2:30 PM",
+          "room": "Room 208",
+          "instructor": "Prof. Claudia Rojas"
+        }
+      ]
+    },
+    "2026-2027 2nd Sem": {
+      "subjects": [
+        {
+          "subject_code": "CAPS402",
+          "description": "Capstone Project 2",
+          "units": 3.0,
+          "schedule": "MWF 8:00 AM - 9:30 AM",
+          "room": "Project Room",
+          "instructor": "Prof. Eduardo Mendez"
+        },
+        {
+          "subject_code": "INTERN401",
+          "description": "Internship/Practicum",
+          "units": 6.0,
+          "schedule": "Mon-Fri 8:00 AM - 5:00 PM",
+          "room": "Off-Campus",
+          "instructor": "Industry Supervisor"
+        },
+        {
+          "subject_code": "SEMI401",
+          "description": "IT Seminar",
+          "units": 2.0,
+          "schedule": "Sat 9:00 AM - 11:00 AM",
+          "room": "Auditorium",
+          "instructor": "Various Speakers"
+        },
+        {
+          "subject_code": "ELEC106",
+          "description": "Blockchain Technology",
+          "units": 3.0,
+          "schedule": "TTh 10:00 AM - 11:30 AM",
+          "room": "Computer Lab 1",
+          "instructor": "Prof. Francisco Delgado"
+        },
+        {
+          "subject_code": "ENTRE401",
+          "description": "Technopreneurship",
+          "units": 3.0,
+          "schedule": "MWF 1:00 PM - 2:30 PM",
+          "room": "Business Lab",
+          "instructor": "Prof. Mariana Campos"
+        },
+        {
+          "subject_code": "GE111",
+          "description": "Reading in Philippine History",
+          "units": 3.0,
+          "schedule": "TTh 2:00 PM - 3:30 PM",
+          "room": "Room 209",
+          "instructor": "Prof. Ignacio Paredes"
+        },
+        {
+          "subject_code": "THESIS401",
+          "description": "Thesis Writing",
+          "units": 3.0,
+          "schedule": "MWF 3:00 PM - 4:30 PM",
+          "room": "Research Lab",
+          "instructor": "Prof. Sergio Gutierrez"
+        },
+        {
+          "subject_code": "GE112",
+          "description": "Mathematics in the Modern World",
+          "units": 3.0,
+          "schedule": "TTh 8:00 AM - 9:30 AM",
+          "room": "Room 306",
+          "instructor": "Prof. Veronica Luna"
+        }
+      ]
+    }
+  },
+  "last_updated": "2025-09-30"
+}

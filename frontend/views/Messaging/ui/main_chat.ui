@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1124</width>
+    <height>914</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="message_widget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>100</y>
+      <width>621</width>
+      <height>771</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QWidget#message_widget {
+    background-color: white;
+    border-radius: 16px;
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+}
+</string>
+    </property>
+    <widget class="QLabel" name="name_header">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>10</y>
+       <width>241</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>16</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Person1</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="header2_accesslvl">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>60</y>
+       <width>241</width>
+       <height>41</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>10</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Access </string>
+     </property>
+    </widget>
+    <widget class="Line" name="line_3">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>100</y>
+       <width>631</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+    <widget class="QToolButton" name="toolButton">
+     <property name="geometry">
+      <rect>
+       <x>561</x>
+       <y>40</y>
+       <width>31</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+    <widget class="QScrollBar" name="verticalScrollBar">
+     <property name="geometry">
+      <rect>
+       <x>600</x>
+       <y>110</y>
+       <width>16</width>
+       <height>651</height>
+      </rect>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineedit_msg">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>710</y>
+       <width>451</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QLineEdit#lineedit_msg {
+    background-color: #f0f0f0; /* Light gray background */
+    border-radius: 10px; /* Slightly smaller radius for a modern, clean look */
+    border: 1px solid #ccc; /* Soft light gray border */
+    padding: 5px 7px; /* Added padding for better spacing */
+    font-size: 14px; /* Adjust font size for readability */
+    color: #333; /* Dark gray text color for readability */
+}
+
+QLineEdit#lineedit_msg:focus {
+    border: 1px solid #084924; /* Blue border when focused (modern feel) */
+    box-shadow: 0 0 5px rgba(76, 158, 255, 0.5); /* Soft shadow effect on focus */
+}
+
+QLineEdit#lineedit_msg:hover {
+    border: 1px solid #888; /* Darker border when hovered */
+    background-color: #e9e9e9; /* Slightly darker background on hover */
+}
+</string>
+     </property>
+    </widget>
+    <widget class="Line" name="line_4">
+     <property name="geometry">
+      <rect>
+       <x>-10</x>
+       <y>680</y>
+       <width>611</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+    <widget class="QToolButton" name="button_attachments">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>710</y>
+       <width>31</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+    <widget class="QToolButton" name="button_link">
+     <property name="geometry">
+      <rect>
+       <x>50</x>
+       <y>710</y>
+       <width>31</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+    <widget class="QToolButton" name="button_send">
+     <property name="geometry">
+      <rect>
+       <x>560</x>
+       <y>710</y>
+       <width>31</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1124</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

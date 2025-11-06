@@ -1,0 +1,14 @@
+[
+  {
+    "student_id": 1,
+    "appointment_schedule_entry_id": 1,
+    "additional_details": "Consultation about project",
+    "address": "Room 305",
+    "status": "pending",
+    "appointment_date": "2025-10-08",
+    "created_at": "2025-10-17 01:05:46.309759",
+    "updated_at": "2025-10-17 01:05:46.309759",
+    "image_path": "Uploads/consultation.png",
+    "id": 1
+  }
+]

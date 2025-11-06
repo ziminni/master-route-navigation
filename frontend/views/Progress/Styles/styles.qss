@@ -1,0 +1,615 @@
+* {
+    font-family: "Poppins", sans-serif;
+}
+
+
+/* Main Window Styling */
+#mainWindow {
+    background-color: #f5f5f5;
+}
+
+/* Grades Widget Styling */
+#gradesWidget {
+    background-color: white;
+    border-radius: 8px;
+    margin: 20px;
+}
+
+/* Header Frame Styling */
+#headerFrame {
+    background-color: white;
+    border-bottom: 1px solid #e0e0e0;
+    font: Poppins;
+}
+
+/* Title Label Styling */
+#titleLabel {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c5530;
+    margin-bottom: 0px;
+}
+
+/* Tab Button Styling */
+QPushButton#tabButton {
+    background-color: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 10px 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+QPushButton#tabButton:hover {
+    color: #2c5530;
+}
+
+QPushButton#tabButton[active="true"] {
+    color: #2c5530;
+    border-bottom: 3px solid #f39c12;
+    background-color: #f8f9fa;
+}
+
+/* Semester Combo Box Styling */
+#semesterCombo {
+    background-color: white;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #333333;
+    min-width: 180px;
+}
+
+#semesterCombo::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 25px;
+    border-left: none;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+#semesterCombo::down-arrow {
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #666666;
+    width: 0px;
+    height: 0px;
+}
+
+#semesterCombo QAbstractItemView {
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background-color: white;
+    selection-background-color: #2c5530;
+    selection-color: white;
+    outline: none;
+    padding: 4px;
+}
+
+#semesterCombo QAbstractItemView::item {
+    padding: 8px 12px;
+    border-radius: 4px;
+    color: #333333;
+}
+
+#semesterCombo QAbstractItemView::item:hover {
+    background-color: #2c5530;
+    color: white;
+}
+
+#semesterCombo QAbstractItemView::item:selected {
+    background-color: #2c5530;
+    color: white;
+}
+
+/* Grades Table Styling */
+#gradesTable {
+    background-color: white;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    gridline-color: #e1e4e8;
+    font-size: 12px;
+    margin: 20px;
+}
+
+/* Table Header Styling */
+#gradesTable QHeaderView::section {
+    background-color: #2c5530;
+    color: white;
+    font-weight: bold;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 8px;
+    border: none;
+    border-right: 1px solid #1e3a23;
+}
+
+#gradesTable QHeaderView::section:last {
+    border-right: none;
+}
+
+/* Table Cell Styling */
+#gradesTable::item {
+    font-size: 12px;
+    color: #000000;   /* default black text */
+    padding: 4px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* Alternating Row Colors */
+#gradesTable::item:alternate {
+    background-color: #fafbfc;
+}
+
+
+#gradesTable QTableWidgetItem[data-status="FAILED"] {
+    color: #ff0000;      /* 🔴 red text */
+    font-weight: bold;
+}
+
+
+/* Table Focus Styling */
+#gradesTable:focus {
+    border: 2px solid #1a472a;
+}
+
+/* Scrollbar Styling */
+#gradesTable QScrollBar:vertical {
+    background-color: #f3f4f6;
+    width: 8px;
+    border-radius: 4px;
+}
+
+#gradesTable QScrollBar::handle:vertical {
+    background-color: #9ca3af;
+    border-radius: 4px;
+    min-height: 20px;
+}
+
+#gradesTable QScrollBar::handle:vertical:hover {
+    background-color: #6b7280;
+}
+
+#gradesTable QScrollBar::add-line:vertical,
+#gradesTable QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* Horizontal Scrollbar */
+#gradesTable QScrollBar:horizontal {
+    background-color: #f3f4f6;
+    height: 8px;
+    border-radius: 4px;
+}
+
+#gradesTable QScrollBar::handle:horizontal {
+    background-color: #9ca3af;
+    border-radius: 4px;
+    min-width: 20px;
+}
+
+#gradesTable QScrollBar::handle:horizontal:hover {
+    background-color: #6b7280;
+}
+
+#gradesTable QScrollBar::add-line:horizontal,
+#gradesTable QScrollBar::sub-line:horizontal {
+    width: 0px;
+}
+
+#hamburgerIcon{
+    color: #155724;
+    font-size: 22px;
+}
+
+/* Degree Progress Widget Styling */
+#degreeProgressWidget {
+    background-color: white;
+    border-radius: 8px;
+}
+
+/* Degree Progress Table Styling */
+#degreeProgressTable {
+    background-color: white;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    gridline-color: #e1e4e8;
+    font-size: 11px;
+    font-family: "Roboto", sans-serif;
+}
+
+/* Degree Progress Table Header Styling */
+#degreeProgressTable QHeaderView::section {
+    background-color: #2c5530;
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+    font-family:  sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 8px;
+    border: none;
+    border-right: 1px solid #1e3a23;
+}
+
+#degreeProgressTable QHeaderView::section:last {
+    border-right: none;
+}
+
+/* Degree Progress Table Cell Styling */
+#degreeProgressTable::item {
+    font-size: 10px;
+    font-family: sans-serif;
+    color: #000000;
+    padding: 6px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* Degree Progress Table Scrollbar Styling */
+#degreeProgressTable QScrollBar:vertical {
+    background-color: #f3f4f6;
+    width: 8px;
+    border-radius: 4px;
+}
+
+#degreeProgressTable QScrollBar::handle:vertical {
+    background-color: #9ca3af;
+    border-radius: 4px;
+    min-height: 20px;
+}
+
+#degreeProgressTable QScrollBar::handle:vertical:hover {
+    background-color: #6b7280;
+}
+
+#degreeProgressTable QScrollBar::add-line:vertical,
+#degreeProgressTable QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+#degreeProgressTable QScrollBar:horizontal {
+    background-color: #f3f4f6;
+    height: 8px;
+    border-radius: 4px;
+}
+
+#degreeProgressTable QScrollBar::handle:horizontal {
+    background-color: #9ca3af;
+    border-radius: 4px;
+    min-width: 20px;
+}
+
+#degreeProgressTable QScrollBar::handle:horizontal:hover {
+    background-color: #6b7280;
+}
+
+#degreeProgressTable QScrollBar::add-line:horizontal,
+#degreeProgressTable QScrollBar::sub-line:horizontal {
+    width: 0px;
+}
+
+#noteGroupBox {
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    margin-top: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    background-color: #f8f9fa;
+}
+
+#noteGroupBox::title {
+    subcontrol-origin: margin;
+    left: 8px;
+    color: #2c5530;
+}
+
+#noteMessage {
+    font-size: 12px;
+    color: #333;
+    padding: 4px 8px;
+}
+
+#noteFrame {
+    background-color: #ffffff;
+    border-radius: 6px;
+    border: none;
+}
+
+#noteMessageContainer {
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 0 0 6px 6px;
+}
+
+
+/* =========================
+   Faculty Notes Styling (Final Polished)
+   ========================= */
+
+#facultyNotesWidget {
+    background-color: transparent;
+}
+
+#facultyNotesScroll {
+    border: none;
+    background-color: #ffffff;
+    border-radius: 8px;
+}
+
+/* Each note "card" */
+#noteCard {
+    background-color: transparent;
+    border: none;
+    margin: 0;                      /* remove vertical gaps */
+    padding: 0;                     /* no inner spacing between cards */
+}
+
+/* Header Button (Subject + Instructor) */
+#noteHeaderBtn {
+    background-color: #1b4332;
+    color: white;
+    padding: 10px 22px;             /* spacing from left edge */
+    border: none;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+#noteHeaderBtn:hover {
+    background-color: #2d6a4f;
+}
+
+#noteHeaderBtn:checked {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Message Body */
+#noteMessageBody {
+    background-color: #ffffff;      /* pure white background */
+    border: none;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    padding: 14px 22px 14px 22px;   /* keep content spaced inside, but no gap between messages */
+}
+
+/* Message Text */
+#noteMessageLabel {
+    color: #222;
+    font-size: 12px;
+    font-family: "Poppins";
+    text-align: left;
+}
+
+/* Date */
+#noteFooterLabel {
+    color: #666;
+    font-size: 11px;
+    font-family: "Poppins";
+}
+
+/* Delete Button */
+#deleteNoteButton {
+    background-color: #ffecec;
+    color: #b02a37;
+    border: 1px solid #f5c2c7;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-weight: 500;
+}
+
+#deleteNoteButton:hover {
+    background-color: #f8d7da;
+    border-color: #f1aeb5;
+}
+
+#deleteNoteButton:pressed {
+    background-color: #f1aeb5;
+}
+
+
+/* Faculty Sections Page */
+#sectionsWidget {
+    background-color: #ffffff;
+}
+
+/* Cards */
+#sectionCard {
+    border: none;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Image Label */
+#sectionCard QLabel {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+/* View Students Button (restored old thicker style) */
+#viewStudentsButton {
+    background-color: #155724;
+    color: white;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 0;             /* Increased vertical padding */
+    margin: 8px 14px 14px 14px;  /* Clean spacing from edges */
+    min-height: 36px;            /* Ensures consistent thickness */
+}
+
+#viewStudentsButton:hover {
+    background-color: #1e7e34;
+}
+
+#viewStudentsButton:pressed {
+    background-color: #14551f;
+}
+
+/* Scroll Area */
+#facultyNotesScroll {
+    border: none;
+    background: transparent;
+}
+
+/* Students List */
+#goBackButton {
+    background-color: #ffc107;
+    color: #1b1b1b;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+#goBackButton:hover {
+    background-color: #e0a800;
+}
+
+/* ===============================
+   STUDENT PROFILE - SEND MESSAGE
+   =============================== */
+#sendFrame {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    margin-top: 15px;
+    padding: 10px 15px;
+}
+
+#subjectLabel {
+    color: #333;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+#messageInput {
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    padding: 6px 8px;
+    background-color: #fafafa;
+    font-family: "Poppins";
+    font-size: 12px;
+}
+
+#messageInput:focus {
+    border: 1px solid #155724;
+    background-color: #ffffff;
+}
+
+#sendNoteButton {
+    background-color: #155724;
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 6px 14px;
+}
+
+#sendNoteButton:hover {
+    background-color: #1e7e34;
+}
+
+/* ============================
+   MODERN SCROLL AREA & SCROLLBAR
+   ============================ */
+
+/* Card-like scroll container */
+#facultyNotesScroll {
+    background: #fafafa;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;          /* ✅ smooth corners */
+    padding: 8px;
+}
+
+/* (Optional: if you use a second scroll area, e.g. for the grades or progress) */
+#studentProfileScroll {
+    background: #fafafa;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 8px;
+}
+
+/* Vertical scrollbar */
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 4px 2px 4px 0px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #c8cec9;    /* neutral gray */
+    border-radius: 4px;
+    min-height: 24px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #9ea39f;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0;
+    background: none;
+}
+
+/* Horizontal scrollbar */
+QScrollBar:horizontal {
+    background: transparent;
+    height: 8px;
+    margin: 0px 4px 2px 4px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #c8cec9;
+    border-radius: 4px;
+    min-width: 24px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #9ea39f;
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0;
+    background: none;
+}
+
+/* Make scroll content blend seamlessly */
+QScrollArea QWidget {
+    background: transparent;
+}
+
+/* Progress Bar Styling */
+QProgressBar {
+    border: 1px solid #e0e0e0;         /* soft border */
+    border-radius: 8px;                 /* subtle curve */
+    background-color: #f4f6f5;          /* light neutral bg */
+    height: 16px;
+    text-align: center;
+    color: #155724;                     /* text color */
+    font-weight: 600;
+    font-size: 11px;
+}
+
+QProgressBar::chunk {
+    background-color: #4e9a51;          /* calm green tone */
+    border-radius: 8px;                 /* rounded chunk */
+    margin: 1px;
+    transition: none;                   /* 🚫 disable animation */
+}
