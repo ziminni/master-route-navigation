@@ -39,15 +39,20 @@ class Course(models.Model):
     class Meta:
         db_table = "courses"
         # Find all courses with the curriculum ID
-
+#MODULE 3
 class ScheduleBlock(models.Model):
     user_id = models.ForeignKey(user_model.BaseUser, on_delete=models.PROTECT)
+    #TODO
+    # Semester is not working out for now, Semester ain't available
+    # btw, in the database diagram it says "semesters", I rewrote it into "Semester"
+    # since that's how the tables will be named in the end
+    sem_id = models.ForeignKey('Semester', on_delete= models.PROTECT)
     block_title = models.CharField(max_length=50)   # VARCHAR(50)
 
     class Meta:
         db_table = "schedule_block"
 
-
+#MODULE 3
 class ScheduleEntry(models.Model):
     # id already assumed here
     schedule_block_id = models.ForeignKey(ScheduleBlock)
@@ -59,13 +64,13 @@ class ScheduleEntry(models.Model):
 
     # ENUM
     class DayOfWeek(models.TextChoices):
-        SUN = "sun","Sunday"
-        MON = "mon","Monday"
-        TUE = "tue","Tuesday"
-        WED = "wed","Wednesday"
-        THU = "thu","Thursday"
-        FRI = "fri","Friday"
-        SAT = "sat","Saturday"
+        SUN = "sun", "Sunday"
+        MON = "mon", "Monday"
+        TUE = "tue", "Tuesday"
+        WED = "wed", "Wednesday"
+        THU = "thu", "Thursday"
+        FRI = "fri", "Friday"
+        SAT = "sat", "Saturday"
 
     day_of_week = models.CharField(
         max_length=3,
@@ -78,9 +83,9 @@ class FinalGrade(models.Model):
 
     # Sample Enum
     class Statuses(models.TextChoices):
-        PASSED = "pss","Passed"
-        FAILED = "fld","Failed"
-        INC = "inc","Incomplete"
+        PASSED = "pss", "Passed"
+        FAILED = "fld", "Failed"
+        INC = "inc", "Incomplete"
 
     status = models.CharField(
         max_length=3,
@@ -92,7 +97,8 @@ class Class(models.Model):
     faculty_id = models.ForeignKey(user_model.FacultyProfile, on_delete=models.PROTECT, null=True)
     course_id  = models.ForeignKey(Course, on_delete=models.PROTECT, null=False)
     section_id = models.IntegerField()          # Change to ForeignKey
-    schedule_block_id = models.IntegerField()   # Change to models.ForeignKey when schedule block is created
+    schedule_block_id = models.ForeignKey("ScheduleBlock", on_delete=models.PROTECT)
+    # Change to models.ForeignKey when schedule block is created:Done
     semester_id = models.IntegerField()         # Foreign Key
 
     is_archived = models.BooleanField(default=False)
