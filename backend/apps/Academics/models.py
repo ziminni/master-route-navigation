@@ -105,6 +105,9 @@ class Enrollees(models.Model):
 
     class Meta:
         db_table = "enrollees"
+        constraints = [
+
+        ]
 
 class GradingRubric(models.Model):
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
@@ -120,6 +123,12 @@ class RubricComponent(models.Model):
 
     class Meta:
         db_table = "rubric_component"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['rubric','name'],
+                name="unique_rubric_component",
+            )
+        ]
 
 class Topic(models.Model):
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
@@ -163,7 +172,7 @@ class Score(models.Model):
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
     student = models.ForeignKey(StudentProfile, on_delete=models.PROTECT) # protect for now
     assessment = models.ForeignKey(Assessment, on_delete=models.PROTECT)
-    points = models.IntegerField()
+    points = models.PositiveIntegerField()
     is_published = models.BooleanField(default=False)
 
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -172,6 +181,9 @@ class Score(models.Model):
 
     class Meta:
         db_table = "score"
+        constraints = [
+            models.UniqueConstraint(fields=['student', 'assessment'], name='unique_student'),
+        ]
 
 class Attendance(models.Model):
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
@@ -191,8 +203,12 @@ class Attendance(models.Model):
 
     class Meta:
         db_table = "attendance"
-
-
+        constraints = [
+            models.UniqueConstraint(
+                fields=['class_id','student','date'],
+                name="one_attendance_per_student_per_session"
+            )
+        ]
 
 
 
