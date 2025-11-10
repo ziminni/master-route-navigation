@@ -51,7 +51,9 @@ class BaseUser(AbstractUser):
     role_type = models.CharField(max_length=20, choices=ROLE_CHOICES, blank=True, null=True)
 
 class FacultyProfile(models.Model):
-    user               = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="faculty_profile")
+    user               = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                              related_name="faculty_profile",
+                                              primary_key=True)
     faculty_department = models.ForeignKey(FacultyDepartment, on_delete=models.SET_NULL, null=True)
     position           = models.ForeignKey(Position, on_delete=models.SET_NULL, null=True, blank=True)
     hire_date          = models.DateField(null=True, blank=True)
@@ -61,7 +63,9 @@ class FacultyProfile(models.Model):
     
 
 class StudentProfile(models.Model):
-    user         = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="student_profile")
+    user         = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                        related_name="student_profile",
+                                        primary_key=True)
     program      = models.ForeignKey(Program, on_delete=models.SET_NULL, null=True)
     section      = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True)
     indiv_points = models.IntegerField(default=0)

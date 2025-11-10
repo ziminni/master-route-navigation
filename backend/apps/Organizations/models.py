@@ -7,11 +7,13 @@ from backend.apps.Academics import models as acad_model
 class EventType:
     # primary id is still automated
     event_type = models.CharField(max_length=50)
+    class meta:
+        db_table = "event_types"
+
 
 
 # MODULE 6
 class EventSchedule(models.Model):
-    # Why does this kak exist?
     # The event as a whole is pretty much the EventScheduleBlock
     # This is because the event may go on at an irregular scheduling
     # I just realized this should be connected to the events if that's the case O_O, this is now fixed here.
@@ -34,14 +36,15 @@ class EventSchedule(models.Model):
 # MODULE 6
 class Event(models.Model):
     # Event ID already done over
-    org_id = models.ForeignKey(user_model.BaseUser, on_delete=models.PROTECT)
-    # Daily reminder that models.PROTECT pretty much prevents deletion of an organization if it has related to it.
+    org_id = models.ForeignKey(user_model.BaseUser, on_delete=models.CASCADE)
+    # You know, consider moving this to Event Schedule Block
+    # Daily reminder that models.PROTECT pretty much prevents deletion of an organization if this exists.
 
     event_type = models.ForeignKey(EventType, on_delete=models.PROTECT)
     event_schedule = models.ForeignKey(EventSchedule, on_delete=models.PROTECT)
     # TODO
     # Commented out since Semester model don't exist yet
-    sem_id = models.ForeignKey('Academics.Semester',on_delete=models.PROTECT())
+    sem_id = models.ForeignKey('Academics.Semester',on_delete=models.PROTECT)
 
     title = models.CharField(max_length=50)
     venue = models.CharField(max_length=100)
@@ -62,24 +65,36 @@ class Event(models.Model):
 
 # MODULE 6
 class EventScheduleBlock(models.Model):
+    # Self reminder that this isn't supposed to have user owners,
     # Assume ID exists because it already does
-    event_id = models.ForeignKey(Event, on_delete=models.CASCADE)
+    event_id = models.ForeignKey(Event, on_delete=models.PROTECT)
 
 
 # MODULE 6
 class EventAttendance(models.Model):
-    # ID predeterminado
+    # ID predeterminated
     event_id = models.ForeignKey(Event, on_delete=models.PROTECT)
-    user_id = models.ForeignKey(user_model.BaseUser, on_delete=models.PROTECT)
+    student_id = models.ForeignKey(user_model.StudentProfile, on_delete=models.PROTECT)
+    # Never use BaseUser for such kak
     time_in = models.DateTimeField()
     time_out = models.DateTimeField()
     notes = models.CharField(max_length=100)
 
 
 # MODULE 6
-class EventApprovals(models.Model):
+class EventApproval(models.Model):
     # ID included
     event_id = models.ForeignKey('Event', on_delete=models.PROTECT)
-    approver_id = models.ForeignKey('users.FacultyProfile', on_delete=models.PROTECT)
-    approved_at = models.DateTimeField()
-    notes = models.CharField(max_length=100)
+    approver_id = models.ForeignKey(user_model.FacultyProfile, on_delete=models.PROTECT)
+    approved_at = models.DateTimeField(auto_now_add=True)
+    notes = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        db_table = "event_approvals"
+        contraints = [
+            models.UniqueConstraint(
+                fields=['event_id'],
+                name="events_approved_only_once"
+                #This ensures event approvals only happen once
+            )
+        ]

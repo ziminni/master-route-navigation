@@ -41,7 +41,7 @@ class Course(models.Model):
         # Find all courses with the curriculum ID
 #MODULE 3
 class ScheduleBlock(models.Model):
-    user_id = models.ForeignKey(user_model.BaseUser, on_delete=models.PROTECT)
+    user_id = models.ForeignKey(user_model.BaseUser, on_delete=models.CASCADE)
     #TODO
     # Semester is not working out for now, Semester ain't available
     # btw, in the database diagram it says "semesters", I rewrote it into "Semester"
@@ -94,10 +94,10 @@ class FinalGrade(models.Model):
 
 
 class Class(models.Model):
-    faculty_id = models.ForeignKey(user_model.FacultyProfile, on_delete=models.PROTECT, null=True)
+    faculty_id = models.ForeignKey(user_model.FacultyProfile, on_delete=models.CASCADE, null=True)
     course_id  = models.ForeignKey(Course, on_delete=models.PROTECT, null=False)
     section_id = models.IntegerField()          # Change to ForeignKey
-    schedule_block_id = models.ForeignKey("ScheduleBlock", on_delete=models.PROTECT)
+    schedule_block_id = models.ForeignKey("ScheduleBlock", on_delete=models.CASCADE)
     # Change to models.ForeignKey when schedule block is created:Done
     semester_id = models.IntegerField()         # Foreign Key
 
