@@ -62,6 +62,12 @@ class Section(models.Model):
     class Meta:
         db_table = "section"
 
+class Track(models.Model):
+    name = models.CharField(max_length=100)
+    curriculum = models.ForeignKey(Curriculum, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = "track"
 
 class Course(models.Model):
     title = models.CharField(max_length=100)
@@ -72,7 +78,8 @@ class Course(models.Model):
     curriculum = models.ForeignKey(Curriculum, on_delete=models.PROTECT)
     year_offered = models.CharField(max_length=1, choices=YearLevel.choices)
     term_offered = models.CharField(max_length=6, choices=Term.choices)
-    # track_id, category
+    track = models.ForeignKey(Track, on_delete=models.PROTECT, null=True)
+    # category
 
     class Meta:
         db_table = "course"
