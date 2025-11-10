@@ -1,128 +1,191 @@
 from django.db import models
-from backend.apps.Users import models as user_model
-from backend.apps.Admin import models as admin_model
+from backend.apps.Users.models import Program, FacultyProfile, StudentProfile, BaseUser as User
 
-# Create your models here.
+# Enums
 
-class Prerequisite(models.Model):
-    course_id = models.IntegerField()
-    prerequisite_course = models.IntegerField()
+class Term(models.TextChoices):
+    first = "first", "First Semester"
+    second = "second", "Second Semester"
+    summer = "summer", "Summer"
+
+class YearLevel(models.TextChoices):
+    first = "1", "First Year"
+    second = "2", "Second Year"
+    third = "3", "Third Year"
+    fourth = "4", "Fourth Year"
+
+class AcademicPeriod(models.TextChoices):
+    midterm = "midterm", "Midterm"
+    finals = "finals", "Final Term"
+
+class ClassType(models.TextChoices):
+    lec = "lec", "Lecture"
+    lab = "lab", "Laboratory"
+
+
+# Models
+
+class AcademicYear(models.Model):
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_active = models.BooleanField(unique=True)
 
     class Meta:
-        db_table = "prerequisites"
-        indexes = [
-            models.Index(fields=['course_id, prerequisite_course'], name="idx_prereq_course")
-            # Find all courses that has this prerequisite
-        ]
+        db_table = "academic_year"
+
+class Semester(models.Model):
+    term = models.CharField(max_length=6, choices=Term.choices)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.PROTECT) # Academic year cannot be deleted if existing semesters are related to it
+    is_active = models.BooleanField(unique=True)
+
+    class Meta:
+        db_table = "semester"
 
 class Curriculum(models.Model):
-    # id already assumed to be here
-
-    program_id = models.ForeignKey(user_model.Program, on_delete=models.PROTECT)
-    # Foreign keys
-    # Cascade on delete -> If we delete a program entry from Program tables, then the value here will also be deleted
-    # Restrict on delete -> If there is a child entry on another table, the value from the Programs table will not be deleted
-
-    # Boolean column
-    is_active = models.BooleanField()
+    program = models.ForeignKey(Program, on_delete=models.CASCADE)
+    revision_year = models.CharField(max_length=4)
+    is_active = models.BooleanField(unique=True)
 
     class Meta:
         db_table = "curriculum"
 
+class Section(models.Model):
+    name = models.CharField(max_length=6)
+    curriculum = models.ForeignKey(Curriculum, on_delete=models.PROTECT)
+    semester = models.ForeignKey(Semester, on_delete=models.PROTECT)
+    year = models.CharField(max_length=1, choices=YearLevel.choices)
+    type = models.CharField(max_lenght=3, choices=ClassType.choices)
+    capacity = models.IntegerField()
+
+    class Meta:
+        db_table = "section"
+
 
 class Course(models.Model):
-    title = models.CharField(max_length=70)     # VARCHAR(70)
-    units = models.SmallIntegerField()          # SMALLINT
-    curriculum_id = models.ForeignKey(Curriculum, on_delete=models.PROTECT)
+    title = models.CharField(max_length=100)
+    units = models.IntegerField()
+    lec_hours = models.IntegerField()
+    lab_hours = models.IntegerField()
 
-    # Create a Meta class here....
-    class Meta:
-        db_table = "courses"
-        # Find all courses with the curriculum ID
-
-class ScheduleBlock(models.Model):
-    user_id = models.ForeignKey(user_model.BaseUser, on_delete=models.PROTECT)
-    block_title = models.CharField(max_length=50)   # VARCHAR(50)
+    curriculum = models.ForeignKey(Curriculum, on_delete=models.PROTECT)
+    year_offered = models.CharField(max_length=1, choices=YearLevel.choices)
+    term_offered = models.CharField(max_length=6, choices=Term.choices)
+    # track_id, category
 
     class Meta:
-        db_table = "schedule_block"
+        db_table = "course"
 
-
-class ScheduleEntry(models.Model):
-    # id already assumed here
-    schedule_block_id = models.ForeignKey(ScheduleBlock)
-    entry_name = models.CharField(max_length=20)
-    additional_context = models.CharField(max_length=50)
-
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-
-    # ENUM
-    class DayOfWeek(models.TextChoices):
-        SUN = "sun","Sunday"
-        MON = "mon","Monday"
-        TUE = "tue","Tuesday"
-        WED = "wed","Wednesday"
-        THU = "thu","Thursday"
-        FRI = "fri","Friday"
-        SAT = "sat","Saturday"
-
-    day_of_week = models.CharField(
-        max_length=3,
-        choices=DayOfWeek.choices,
-        default=DayOfWeek.TUE
-    )
-
-class FinalGrade(models.Model):
-    # id
-
-    # Sample Enum
-    class Statuses(models.TextChoices):
-        PASSED = "pss","Passed"
-        FAILED = "fld","Failed"
-        INC = "inc","Incomplete"
-
-    status = models.CharField(
-        max_length=3,
-        choices=Statuses.choices
-    )
-
+class Prerequisite(models.Model):
+    pass
 
 class Class(models.Model):
-    faculty_id = models.ForeignKey(user_model.FacultyProfile, on_delete=models.PROTECT, null=True)
-    course_id  = models.ForeignKey(Course, on_delete=models.PROTECT, null=False)
-    section_id = models.IntegerField()          # Change to ForeignKey
-    schedule_block_id = models.IntegerField()   # Change to models.ForeignKey when schedule block is created
-    semester_id = models.IntegerField()         # Foreign Key
-
-    is_archived = models.BooleanField(default=False)
-
-    created_at = models.DateTimeField(auto_now_add=True)    # Auto_now_add is only executed for Create Operations
-    updated_at = models.DateTimeField(auto_now=True)        # Auto_now is every time the entry is modified
-
-    # SELECT * FROM classes ORDER BY created_at, is_archived, semester_id
+    course = models.ForeignKey(Course, on_delete=models.PROTECT)
+    faculty = models.ForeignKey(FacultyProfile, on_delete=models.SET_NULL, null=True)
+    section = models.ForeignKey(Section, on_delete=models.PROTECT)
+    semester = models.ForeignKey(Semester, on_delete=models.PROTECT)
+    # schedule_block
 
     class Meta:
-        db_table  = "classes"
-        ordering  = ["-created_at","-is_archived","-semester_id"]
-        indexes   = [
-            # SELECT * FROM classes WHERE semester_id = 1 AND course_id = 47
+        db_table = "class"
 
-            models.Index(fields=["semester_id", "course_id"]),
-            # Find classes at this semester with a particular course ID
-            # Find classes at 1st semester with the ITCC47 course
+class Enrollees(models.Model):
+    enrolled_class = models.ForeignKey(Class, on_delete=models.PROTECT)
+    student = models.ForeignKey(StudentProfile, on_delete=models.PROTECT) # PROTECT for now
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+    enrolled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True) # debatable
 
-            models.Index(fields=["course_id", "section_id"]),
-            # Find all sections with this course ID
-            # Find classes where the section has the PE34 course
-            # Each section should have unique combination of section_id and course_id
+    class Meta:
+        db_table = "enrollees"
 
-            # class_id = 1, section_id = 1, course_id = 34  -> This is the original entry
-            # class_id = 1, section_id = 1, course_id = 34  -> This is not okay, no duplication
-            # class_id = 1, section_id = 2, course_id = 34  -> This is okay
+class GradingRubric(models.Model):
+    class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
+    academic_period = models.CharField(max_length=7, choices=AcademicPeriod.choices)
 
-            models.Index(fields=["is_archived"]),
-        ]
+    class Meta:
+        db_table = "grading_rubric"
 
-    def __str__(self):
-        return f"{self.course_id} / sec {self.section_id} / sem {self.semester_id}"
+class RubricComponent(models.Model):
+    rubric = models.ForeignKey(GradingRubric, on_delete=models.PROTECT) # debatable
+    name = models.CharField(max_length=20)
+    percentage = models.DecimalField(decimal_places=2, max_digits=4)
+
+    class Meta:
+        db_table = "rubric_component"
+
+class Topic(models.Model):
+    class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = "topic"
+
+class Material(models.Model):
+    class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
+    topic_id = models.ForeignKey(Topic, on_delete=models.SET_NULL, null=True)
+    title = models.CharField(max_length=100)
+    description = models.TextField()
+    is_published = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "material"
+
+class Assessment(models.Model):
+    class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
+    topic_id = models.ForeignKey(Topic, on_delete=models.SET_NULL, null=True)
+    title = models.CharField(max_length=100)
+    description = models.TextField()
+    rubric_component = models.ForeignKey(RubricComponent, on_delete=models.PROTECT)
+    max_points = models.IntegerField()
+    due_date = models.DateTimeField()
+    is_published = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "material"
+
+class Score(models.Model):
+    class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
+    student = models.ForeignKey(StudentProfile, on_delete=models.PROTECT) # protect for now
+    assessment = models.ForeignKey(Assessment, on_delete=models.PROTECT)
+    points = models.IntegerField()
+    is_published = models.BooleanField(default=False)
+
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "score"
+
+class Attendance(models.Model):
+    class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
+    student = models.ForeignKey(StudentProfile, on_delete=models.PROTECT)
+    date = models.DateField()
+
+    class Status(models.TextChoices):
+        PRESENT = "present", "Present"
+        ABSENT = "absent", "Absent"
+        LATE = "late", "Late"
+        EXCUSED = "excused", "Excused"
+
+    status = models.CharField(max_length=7, choices=Status.choices)
+    remarks = models.TextField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        db_table = "attendance"
+
+
+
+
+
