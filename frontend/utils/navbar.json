@@ -62,8 +62,31 @@
     },
     {
       "id": 3,
-      "name": "Organizations",
+      "name": "Organization",
       "mains": [
+        {
+          "id": 40,
+          "name": "Organization",
+          "function": "OrganizationMain()",
+          "path": "views.Organization.Main.OrganizationMain",
+          "access": ["student","admin"],
+          "modulars": [
+            {
+              "id": 401,
+              "name": "Student Services",
+              "function": "StudentServices()",
+              "path": "views.Organizations.StudentServices.StudentServices",
+              "access": ["student"]
+            },
+            {
+              "id": 402,
+              "name": "Admin Dashboard",
+              "function": "AdminDashboard()",
+              "path": "views.Organizations.AdminDashboard.AdminDashboard",
+              "access": ["admin"]
+          }
+          ]
+        },
         {
           "id": 7,
           "name": "Browse",

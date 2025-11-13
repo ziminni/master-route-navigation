@@ -1,0 +1,109 @@
+{
+    "items": [
+        {
+        "category": "Organization",
+        "title": "Supreme Student Council",
+        "blurb": "The Supreme Student Council is the highest governing body of student organizations.",
+        "url": "https://ssc.cmu.edu.ph",
+        "email": "ssc@cmu.edu.ph",
+        "location": "maramag",
+        "contact": "09283055",
+        "image": "assets/uploads/828fede712ee431f8c806926a45a9a33.jpg",
+        "services": [
+            {
+            "desc": "oct 15,2025",
+            "name": "blood donation"
+            }
+        ],
+        "draft": true
+        },
+        {
+        "category": "Organization",
+        "title": "CISC",
+        "blurb": "QWERTYUIOP",
+        "url": "poiuytrew",
+        "email": "1234567890",
+        "location": "Maramag",
+        "contact": "0123456789",
+        "image": "C:/Users/Mae/Downloads/Logo with tech blues and vibrant greens (1) (1).png",
+        "services": [],
+        "draft": true
+        },
+        {
+        "category": "Office",
+        "title": "sample",
+        "blurb": "sample data",
+        "url": "qertyuiop",
+        "email": "qwertyuiop[",
+        "location": "Dologon",
+        "contact": "09636480205",
+        "image": "assets/uploads/358d3d31fb7d45d3befaa392324d06b8.jpg",
+        "services": [
+            {
+            "desc": "sample blood",
+            "name": "Blood donation"
+            },
+            {
+            "desc": "just do it",
+            "name": "nike"
+            },
+            {
+            "desc": "october 15, 2023",
+            "name": "basketball"
+            }
+        ],
+        "draft": true
+        },
+        {
+        "category": "Organization",
+        "title": "CSCO",
+        "blurb": "11",
+        "url": "lms.cisc",
+        "email": "csco",
+        "location": "CISC",
+        "contact": "0932 385 0223",
+        "image": "C:/Users/Mae/Downloads/download (1).png",
+        "services": [
+            {
+            "desc": "kape",
+            "name": "KAPIT BISIG"
+            }
+        ],
+        "draft": true
+        },
+        {
+        "category": "Organization",
+        "title": "cisc",
+        "blurb": "department",
+        "url": "http/example",
+        "email": "cisc@gmail.com",
+        "location": "maramag",
+        "contact": "09123456789",
+        "image": "assets/uploads/caa8884dd5ae4a4f96a1daa319663d38.jpg",
+        "services": [
+            {
+            "desc": "service",
+            "name": "blood donation"
+            }
+        ],
+        "draft": false
+        },
+        {
+        "category": "Office",
+        "title": "CISCO",
+        "blurb": "cisc department",
+        "url": "http/example",
+        "email": "example@gmail.com",
+        "location": "dologon",
+        "contact": "09283012345",
+        "image": "assets/uploads/f1b6f0ed075f4c6ba0cace4015f61720.jpg",
+        "services": [
+            {
+            "desc": "oct 15,2023",
+            "name": "blood"
+            }
+        ],
+        "draft": true
+        }
+    ]
+}

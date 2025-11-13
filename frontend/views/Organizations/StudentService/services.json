@@ -1,0 +1,30 @@
+{
+    "items": [
+        {
+        "category": "Organization",
+        "title": "Supreme Student Council",
+        "blurb": "The Supreme Student Council is the highest governing body of student organizations, fostering leadership and promoting unity across campus.",
+        "url": "https://ssc.cmu.edu.ph",
+        "email": "ssc@cmu.edu.ph",
+        "image": "1.jpg",
+        "services": [
+            {"name": "Project HUGUP"},
+            {"name": "Service 2"},
+            {"name": "Service 3"},
+            {"name": "Service 4"},
+            {"name": "Service 5"},
+            {"name": "Service 6"}
+        ]
+        },
+
+        {
+        "category":"Dorm",
+        "title":"Cattleya Residence Hall",
+        "blurb":"Safe, comfortable housing with a supportive environment for academics and community life.",
+        "url":"https://housing.cmu.edu.ph/cattleya","email":"cattleya@cmu.edu.ph"},
+        {"category":"Health","title":"University Hospital","blurb":"Patient care, medical services, and public health programs for the CMU community.","url":"https://hospital.cmu.edu.ph","email":"hospital@cmu.edu.ph"},
+        {"category":"Office","title":"University Registrar","blurb":"Manages records, registration, and academic services for students.","url":"https://registrar.cmu.edu.ph","email":"registrar@cmu.edu.ph"},
+        {"category":"Office","title":"Library Services","blurb":"Collections, databases, and study spaces supporting learning and research.","url":"https://library.cmu.edu.ph","email":"library@cmu.edu.ph"},
+        {"category":"Office","title":"Office of Student Affairs and Services (OSAS)","blurb":"Student support, counseling, activities, and welfare programs.","url":"https://osas.cmu.edu.ph","email":"osas@cmu.edu.ph"}
+    ]
+}
