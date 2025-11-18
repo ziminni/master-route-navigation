@@ -38,6 +38,9 @@ class ScheduleEntrySerializer(serializers.ModelSerializer):
 
 #MODULE 3
 class ScheduleBlockSerializer(serializers.ModelSerializer):
+    # Includes nested schedule_entries with full entry details
+    # Currently, it is better to refer more to this if viewing Schedules is the main intention
+    # Not only the schedule entries, but the schedule blocks. This is particularlly useful for faculty/admin views
     # Nested serializer for schedule entries
     schedule_entries = ScheduleEntrySerializer(many=True, read_only=True)
     
