@@ -1,10 +1,10 @@
 from django.db import models
-from backend.apps.Users import models as user_model
-from backend.apps.Academics import models as acad_model
+from apps.Users import models as user_model
+from apps.Academics import models as acad_model
 
 
 # MODULE 6
-class EventType:
+class EventType(models.Model):
     # primary id is still automated
     event_type = models.CharField(max_length=50)
     class meta:
@@ -25,7 +25,7 @@ class EventSchedule(models.Model):
     # makes django look up the model later.
     # IMPORTANT:  the syntax for referencing models from different files is
     # 'app_name.ModelName'.the app_name is always the one in the apps.py
-    user_id = models.ForeignKey('users.BaseUser')
+    user_id = models.ForeignKey('users.StudentProfile', on_delete=models.PROTECT)
     # When it's from another app (in this context, users) and we want to implement lazy loading...
     # use the label, not the full app name
     start_time = models.TimeField()
@@ -35,13 +35,19 @@ class EventSchedule(models.Model):
 
 # MODULE 6
 class Event(models.Model):
+    # It had an issue in database diagram where event_schedule_block_id had the event_id instead of the other way around
     # Event ID already done over
-    org_id = models.ForeignKey(user_model.BaseUser, on_delete=models.CASCADE)
+    # org_id = models.ForeignKey(user_model.BaseUser, on_delete=models.CASCADE) I need an organization model first
     # You know, consider moving this to Event Schedule Block
     # Daily reminder that models.PROTECT pretty much prevents deletion of an organization if this exists.
+    event_schedule_block_id = models.ForeignKey('EventScheduleBlock', on_delete=models.CASCADE) #This way, if the block is deleted, 
+    # all events under it are also deleted
 
-    event_type = models.ForeignKey(EventType, on_delete=models.PROTECT)
-    event_schedule = models.ForeignKey(EventSchedule, on_delete=models.PROTECT)
+     # Lazy loading again
+
+    event_type = models.ForeignKey('EventType', on_delete=models.PROTECT)
+    
+    event_schedule = models.ForeignKey('EventSchedule', on_delete=models.PROTECT)
     # TODO
     # Commented out since Semester model don't exist yet
     sem_id = models.ForeignKey('Academics.Semester',on_delete=models.PROTECT)
@@ -65,9 +71,11 @@ class Event(models.Model):
 
 # MODULE 6
 class EventScheduleBlock(models.Model):
-    # Self reminder that this isn't supposed to have user owners,
-    # Assume ID exists because it already does
-    event_id = models.ForeignKey(Event, on_delete=models.PROTECT)
+    name = models.CharField(max_length=100)  # Name for this schedule block group
+    description = models.TextField(blank=True)  # Optional description
+    
+    class Meta:
+        db_table = "event_schedule_blocks"
 
 
 # MODULE 6
@@ -79,6 +87,8 @@ class EventAttendance(models.Model):
     time_in = models.DateTimeField()
     time_out = models.DateTimeField()
     notes = models.CharField(max_length=100)
+    class Meta:
+        db_table = "event_attendance"
 
 
 # MODULE 6
@@ -91,7 +101,7 @@ class EventApproval(models.Model):
 
     class Meta:
         db_table = "event_approvals"
-        contraints = [
+        constraints = [
             models.UniqueConstraint(
                 fields=['event_id'],
                 name="events_approved_only_once"
