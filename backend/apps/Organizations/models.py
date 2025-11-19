@@ -20,6 +20,7 @@ class EventSchedule(models.Model):
     # It is now linked to the Event instead of the EventScheduleBlock
 
     # As usual, the ID is omitted
+    event_id = models.ForeignKey('Event', on_delete=models.PROTECT)
     # Perfect example of lazy loading. Because the Event is defined later, we can't just reference it normally. This
     # makes django look up the model later.
     # IMPORTANT:  the syntax for referencing models from different files is
