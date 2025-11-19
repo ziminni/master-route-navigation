@@ -198,8 +198,6 @@ class Attendance(models.Model):
 
 #MODULE 3
 class ScheduleBlock(models.Model):
-    user_id = models.ForeignKey(StudentProfile, on_delete=models.CASCADE) #Checks the student who owns this block
-    #TODO
     # Semester is not working out for now, Semester ain't available
     # btw, in the database diagram it says "semesters", I rewrote it into "Semester"
     # since that's how the tables will be named in the end
