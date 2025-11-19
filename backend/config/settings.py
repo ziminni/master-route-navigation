@@ -177,6 +177,7 @@ INSTALLED_APPS = [
     # CORS Headers - tried to fix backend conn, should work if front and back runs on different ports
     'corsheaders',
     'apps.Users.apps.UsersConfig',
+    'apps.Academics.apps.AcademicsConfig'
 ]
 
 MIDDLEWARE = [

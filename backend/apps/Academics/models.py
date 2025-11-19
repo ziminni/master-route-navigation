@@ -1,5 +1,5 @@
 from django.db import models
-from backend.apps.Users.models import Program, FacultyProfile, StudentProfile, BaseUser as User
+from apps.Users.models import Program, FacultyProfile, StudentProfile, BaseUser as User
 
 # Enums
 
@@ -31,7 +31,7 @@ class AcademicYear(models.Model):
     is_active = models.BooleanField(unique=True)
 
     class Meta:
-        db_table = "academic_year"
+        db_table = "academics_academic_year"
 
 class Semester(models.Model):
     term = models.CharField(max_length=6, choices=Term.choices)
@@ -41,7 +41,7 @@ class Semester(models.Model):
     is_active = models.BooleanField(unique=True)
 
     class Meta:
-        db_table = "semester"
+        db_table = "academics_semester"
 
 class Curriculum(models.Model):
     program = models.ForeignKey(Program, on_delete=models.CASCADE)
@@ -49,25 +49,25 @@ class Curriculum(models.Model):
     is_active = models.BooleanField(unique=True)
 
     class Meta:
-        db_table = "curriculum"
+        db_table = "academics_curriculum"
 
 class Section(models.Model):
     name = models.CharField(max_length=6)
     curriculum = models.ForeignKey(Curriculum, on_delete=models.PROTECT)
     semester = models.ForeignKey(Semester, on_delete=models.PROTECT)
     year = models.CharField(max_length=1, choices=YearLevel.choices)
-    type = models.CharField(max_lenght=3, choices=ClassType.choices)
+    type = models.CharField(max_length=3, choices=ClassType.choices)
     capacity = models.IntegerField()
 
     class Meta:
-        db_table = "section"
+        db_table = "academics_section"
 
 class Track(models.Model):
     name = models.CharField(max_length=100)
     curriculum = models.ForeignKey(Curriculum, on_delete=models.CASCADE)
 
     class Meta:
-        db_table = "track"
+        db_table = "academics_track"
 
 class Course(models.Model):
     title = models.CharField(max_length=100)
@@ -82,7 +82,7 @@ class Course(models.Model):
     # category
 
     class Meta:
-        db_table = "course"
+        db_table = "academics_course"
 
 class Prerequisite(models.Model):
     pass
@@ -95,7 +95,7 @@ class Class(models.Model):
     # schedule_block
 
     class Meta:
-        db_table = "class"
+        db_table = "academics_class"
 
 class Enrollees(models.Model):
     enrolled_class = models.ForeignKey(Class, on_delete=models.PROTECT)
@@ -104,7 +104,7 @@ class Enrollees(models.Model):
     enrolled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True) # debatable
 
     class Meta:
-        db_table = "enrollees"
+        db_table = "academics_enrollees"
         constraints = [
 
         ]
@@ -114,7 +114,7 @@ class GradingRubric(models.Model):
     academic_period = models.CharField(max_length=7, choices=AcademicPeriod.choices)
 
     class Meta:
-        db_table = "grading_rubric"
+        db_table = "academics_grading_rubric"
 
 class RubricComponent(models.Model):
     rubric = models.ForeignKey(GradingRubric, on_delete=models.PROTECT) # debatable
@@ -122,7 +122,7 @@ class RubricComponent(models.Model):
     percentage = models.DecimalField(decimal_places=2, max_digits=4)
 
     class Meta:
-        db_table = "rubric_component"
+        db_table = "academics_rubric_component"
         constraints = [
             models.UniqueConstraint(
                 fields=['rubric','name'],
@@ -135,7 +135,7 @@ class Topic(models.Model):
     name = models.CharField(max_length=100)
 
     class Meta:
-        db_table = "topic"
+        db_table = "academics_topic"
 
 class Material(models.Model):
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
@@ -149,7 +149,7 @@ class Material(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "material"
+        db_table = "academics_material"
 
 class Assessment(models.Model):
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
@@ -166,7 +166,7 @@ class Assessment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "material"
+        db_table = "academics_assessment"
 
 class Score(models.Model):
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
@@ -180,7 +180,7 @@ class Score(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "score"
+        db_table = "academics_score"
         constraints = [
             models.UniqueConstraint(fields=['student', 'assessment'], name='unique_student'),
         ]
@@ -202,7 +202,7 @@ class Attendance(models.Model):
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     class Meta:
-        db_table = "attendance"
+        db_table = "academics_attendance"
         constraints = [
             models.UniqueConstraint(
                 fields=['class_id','student','date'],
