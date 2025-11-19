@@ -178,6 +178,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'apps.Users.apps.UsersConfig',
     'apps.Academics.apps.AcademicsConfig',
+    'apps.Organizations.apps.OrganizationsConfig',#  Don't forget to add the apps here!
 
     # extensions
     'django_extensions',

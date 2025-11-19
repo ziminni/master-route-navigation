@@ -211,3 +211,44 @@ class Attendance(models.Model):
 
 
 
+#MODULE 3
+class ScheduleBlock(models.Model):
+    user_id = models.ForeignKey("users.StudentProfile", on_delete=models.CASCADE) #Checks the student who owns this block
+    #TODO
+    # Semester is not working out for now, Semester ain't available
+    # btw, in the database diagram it says "semesters", I rewrote it into "Semester"
+    # since that's how the tables will be named in the end
+    sem_id = models.ForeignKey('Semester', on_delete= models.PROTECT)
+    block_title = models.CharField(max_length=50)   # VARCHAR(50)
+
+    class Meta:
+        db_table = "schedule_block"
+
+#MODULE 3
+class ScheduleEntry(models.Model):
+    # id already assumed here
+    schedule_block_id = models.ForeignKey(ScheduleBlock, on_delete=models.CASCADE)#This way,
+    #if the block is deleted, all entries under it are also deleted
+    entry_name = models.CharField(max_length=20)
+    additional_context = models.CharField(max_length=50)
+
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+
+    # ENUM
+    class DayOfWeek(models.TextChoices):
+        SUN = "sun", "Sunday"
+        MON = "mon", "Monday"
+        TUE = "tue", "Tuesday"
+        WED = "wed", "Wednesday"
+        THU = "thu", "Thursday"
+        FRI = "fri", "Friday"
+        SAT = "sat", "Saturday"
+
+    day_of_week = models.CharField(
+        max_length=3,
+        choices=DayOfWeek.choices,
+        default=DayOfWeek.TUE
+    )
+    class Meta:
+        db_table = "schedule_entry"
