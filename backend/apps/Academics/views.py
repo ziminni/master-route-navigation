@@ -3,8 +3,11 @@ from django.shortcuts import render
 # views.py
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from .models import ScheduleBlock, ScheduleEntry
+from .models import ScheduleBlock, ScheduleEntry, Enrollment, Class
+from django.db.models import Prefetch
+from Users.models import StudentProfile, FacultyProfile
 from .serializer import *
 
 class ScheduleBlockViewSet(viewsets.ModelViewSet):
@@ -121,3 +124,135 @@ class ScheduleEntryViewSet(viewsets.ModelViewSet):
         
         # Faculty/Admin can create in any block without restrictions
         serializer.save()
+        
+        
+        
+        
+#MODULE 3
+class StudentScheduleViewSet(viewsets.ViewSet):
+    """
+    ViewSet for retrieving student schedules
+    """
+    
+    @action(detail=True, methods=['get'], url_path='schedule')
+    def get_student_schedule(self, request, pk=None):
+        """
+        Get individual student's schedule
+        pk: Student ID
+        """
+        try:
+            # Get the student
+            student = StudentProfile.objects.get(pk=pk)
+            #TODO: change this to allow getting schedule for specific semester
+            # Get current active semester
+            from .models import Semester
+            active_semester = Semester.objects.filter(is_active=True).first()
+            
+            if not active_semester:
+                return Response(
+                    {"error": "No active semester found"}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Get all enrollments for this student in active semester
+            enrollments = Enrollment.objects.filter(
+                student=student,
+                enrolled_class__semester=active_semester
+            ).select_related(
+                'enrolled_class',
+                'enrolled_class__course',
+                'enrolled_class__section',
+                'enrolled_class__schedule_block'
+            ).prefetch_related(
+                Prefetch(
+                    'enrolled_class__schedule_block__scheduleentry_set',
+                    queryset=ScheduleEntry.objects.all()
+                )
+            )
+            
+            schedule_data = []
+            
+            for enrollment in enrollments:
+                class_obj = enrollment.enrolled_class
+                schedule_block = class_obj.schedule_block
+                
+                if schedule_block:
+                    # Get all schedule entries for this block
+                    schedule_entries = schedule_block.scheduleentry_set.all()
+                    
+                    for entry in schedule_entries:
+                        schedule_data.append({
+                            'class_id': class_obj.id,
+                            'course_code': class_obj.course.code,
+                            'course_title': class_obj.course.title,
+                            'section_name': class_obj.section.name,
+                            'class_type': class_obj.section.get_type_display(),
+                            'faculty': f"{class_obj.faculty.user.first_name} {class_obj.faculty.user.last_name}" if class_obj.faculty else "TBA",
+                            'schedule_entry': {
+                                'id': entry.id,
+                                'entry_name': entry.entry_name,
+                                'additional_context': entry.additional_context,
+                                'day_of_week': entry.get_day_of_week_display(),
+                                'day_of_week_code': entry.day_of_week,
+                                'start_time': entry.start_time,
+                                'end_time': entry.end_time
+                            }
+                        })
+            
+            return Response({
+                'student_id': student.id,
+                'student_name': f"{student.user.first_name} {student.user.last_name}",
+                'semester': f"{active_semester.term} {active_semester.academic_year.start_date.year}-{active_semester.academic_year.end_date.year}",
+                'schedule': schedule_data
+            })
+            
+        except StudentProfile.DoesNotExist:
+            return Response(
+                {"error": "Student not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'], url_path='my-schedule')
+    def get_my_schedule(self, request):
+        """
+        Get schedule for the currently authenticated student
+        """
+        if not hasattr(request.user, 'studentprofile'):
+            return Response(
+                {"error": "User is not a student"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        student = request.user.studentprofile
+        return self.get_student_schedule(request, pk=student.id)
+    
+# Example response:
+# {
+#     "student_id": 1,
+#     "student_name": "John Doe",
+#     "semester": "First Semester 2023-2024",
+#     "schedule": [
+#         {
+#             "class_id": 1,
+#             "course_code": "CS101",
+#             "course_title": "Introduction to Programming",
+#             "section_name": "A",
+#             "class_type": "Lecture",
+#             "faculty": "Dr. Smith",
+#             "schedule_entry": {
+#                 "id": 1,
+#                 "entry_name": "CS101 Lecture",
+#                 "additional_context": "Room 101",
+#                 "day_of_week": "Monday",
+#                 "day_of_week_code": "mon",
+#                 "start_time": "2023-09-01T09:00:00Z",
+#                 "end_time": "2023-09-01T10:30:00Z"
+#             }
+#         }
+#     ]
+# }
