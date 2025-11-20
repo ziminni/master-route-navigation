@@ -202,79 +202,258 @@ class Enrollment(models.Model):
         ]
 
 class GradingRubric(models.Model):
-    class_instance = models.ForeignKey(Class, related_name="grading_rubrics",on_delete=models.CASCADE)
+    """
+        This model will define the grading rubric for the class during for an academic period.
+        Each class should consists of two grading rubric ====== one for midterm, one for finals.
+    """
+    class_instance = models.ForeignKey(Class, related_name="grading_rubrics", on_delete=models.CASCADE)
     academic_period = models.CharField(max_length=7, choices=AcademicPeriod.choices)
+    term_percentage = models.DecimalField(max_digits=5, decimal_places=2, help_text="This is the percentage of this rubric in the" \
+                                                                                     " final grade calculation (example midterm rubric is 33.00 % then final term rubric 67.00 %)")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "academics_grading_rubric"
+        ordering = ["class_instance", "academic_period"]
+        indexes = [
+            models.Index(fields=["class_instance", "academic_period"]),
+        ]
+        constraints = [
+            # Each class should have only have one rubric per academic period
+            models.UniqueConstraint(
+                fields=['class_instance', 'academic_period'],
+                name='unique_rubric_per_class_per_period'
+            ),
+            # The term percent should only be between 0 and 100
+            models.CheckConstraint(
+                check=models.Q(term_percentage__gte=0, term_percentage__lte=100),
+                name='valid_term_percentage'
+            ),
+        ]
 
 class RubricComponent(models.Model):
-    rubric = models.ForeignKey(GradingRubric, related_name="components",on_delete=models.PROTECT) # debatable
-    name = models.CharField(max_length=20)
-    percentage = models.DecimalField(decimal_places=2, max_digits=4)
+    """
+        Represents a single rubric component in the grading rubric model ( example is performance task, quiz, exam).
+        Total components percentage inside a grading rubric should total to 100% for it to be a valid.
+    """
+    rubric = models.ForeignKey(GradingRubric, related_name="components", on_delete=models.CASCADE)  # Reason for Cascade kay if 
+                                                                                                    # ang rubric is deleted then ang sulod niya na
+                                                                                                    # components should be also deleted since wala naman ila gisudlan
+    name = models.CharField(max_length=20) 
+    percentage = models.DecimalField(max_digits=5, decimal_places=2,help_text="percent of this component in the term grade (all component sum is 100%)")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "academics_rubric_component"
+        ordering = ["rubric", "name"]
+        indexes = [
+            models.Index(fields=["rubric"]),
+        ]
         constraints = [
             models.UniqueConstraint(
-                fields=['rubric','name'],
-                name="unique_rubric_component",
-            )
+                fields=['rubric', 'name'],
+                name='unique_component_per_rubric'
+            ),
+            models.CheckConstraint(
+                check=models.Q(percentage__gt=0, percentage__lte=100),
+                name='valid_component_percentage'
+            ),
         ]
 
+    # rubric = models.ForeignKey(GradingRubric, related_name="components",on_delete=models.PROTECT) # debatable
+    # name = models.CharField(max_length=20)
+    # percentage = models.DecimalField(decimal_places=2, max_digits=4)
+
+    # class Meta:
+    #     db_table = "academics_rubric_component"
+    #     constraints = [
+    #         models.UniqueConstraint(
+    #             fields=['rubric','name'],
+    #             name="unique_rubric_component",
+    #         )
+    #     ]
+
 class Topic(models.Model):
-    class_instance = models.ForeignKey(Class, related_name="topics",on_delete=models.CASCADE)
+    # class_instance = models.ForeignKey(Class, related_name="topics",on_delete=models.CASCADE)
+    # name = models.CharField(max_length=100)
+
+    # class Meta:
+    #     db_table = "academics_topic"
+
+    """
+        Represents topic or module in the class
+    """
+    class_instance = models.ForeignKey(Class, related_name="topics", on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
+    topic_number = models.PositiveSmallIntegerField(default=0, help_text="Display topic numbr order in the class")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "academics_topic"
+        ordering = ["class_instance", "topic_number", "name"]
+        indexes = [
+            models.Index(fields=["class_instance", "order"]),
+        ]
+
+class ClassContent(models.Model):
+    """
+        Abstract base model for content materials and assessments.
+        This is not stored in the database as a separate table.
+    """
+    class_instance = models.ForeignKey(Class, on_delete=models.CASCADE)
+    topic = models.ForeignKey(Topic, on_delete=models.SET_NULL, null=True, blank=True)
+    title = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    is_published = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey("users.BaseUser", on_delete=models.SET_NULL, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        abstract = True
+        ordering = ["-created_at"]
 
 class Material(models.Model):
-    class_instance = models.ForeignKey(Class, related_name="materials",on_delete=models.CASCADE)
-    topic = models.ForeignKey(Topic, related_name="materials",on_delete=models.SET_NULL, null=True)
-    title = models.CharField(max_length=100)
-    description = models.TextField()
-    is_published = models.BooleanField(default=False)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey("users.BaseUser", related_name="uploaded_materials",on_delete=models.SET_NULL, null=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
+    """
+        Represents materials uploaded by faculty.
+        Inherits common fields from ClassContent.
+    """
+    # Own property of materials here dayon maybe file location or what something
+    
     class Meta:
         db_table = "academics_material"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["class_instance", "is_published"]),
+            models.Index(fields=["topic"]),
+        ]
+
+    
+    # if no abstract inheritance 
+
+    # class_instance = models.ForeignKey(Class, related_name="materials",on_delete=models.CASCADE)
+    # topic = models.ForeignKey(Topic, related_name="materials",on_delete=models.SET_NULL, null=True)
+    # title = models.CharField(max_length=100)
+    # description = models.TextField()
+    # is_published = models.BooleanField(default=False)
+
+    # created_at = models.DateTimeField(auto_now_add=True)
+    # created_by = models.ForeignKey("users.BaseUser", related_name="uploaded_materials",on_delete=models.SET_NULL, null=True)
+    # updated_at = models.DateTimeField(auto_now=True)
+
+    # class Meta:
+    #     db_table = "academics_material"
 
 class Assessment(models.Model):
-    class_instance = models.ForeignKey(Class, related_name="assessments",on_delete=models.CASCADE)
-    topic = models.ForeignKey(Topic, related_name="assessments",on_delete=models.SET_NULL, null=True)
-    title = models.CharField(max_length=100)
-    description = models.TextField()
-    rubric_component = models.ForeignKey(RubricComponent, related_name="assessments",on_delete=models.PROTECT)
-    max_points = models.IntegerField()
-    due_date = models.DateTimeField()
-    is_published = models.BooleanField(default=False)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey("users.BaseUser", related_name="uploaded_assessments",on_delete=models.SET_NULL, null=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
+    """
+    Represents graded activities (quizzes, exams, performance tasks).
+    Inherits common fields from ClassContent and adds assessment-specific fields.
+    """
+    rubric_component = models.ForeignKey(
+        RubricComponent, 
+        related_name="assessments", 
+        on_delete=models.PROTECT
+    )
+    academic_period = models.CharField(max_length=7, choices=AcademicPeriod.choices)
+    max_points = models.PositiveIntegerField()
+    due_date = models.DateTimeField(null=True, blank=True)
+    
     class Meta:
         db_table = "academics_assessment"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["class_instance", "academic_period"]),
+            models.Index(fields=["rubric_component"]),
+            models.Index(fields=["is_published"]),
+        ]
+
+        constraints = [
+            
+        ]
+    
+    # mao ni if walay inheritance maybe 
+
+    # """
+    #     Represents a graded activity (quiz, exam, performance task) for a class.
+    #     Each assessment is linked to a rubric component to determine its weight in the final grade.
+    # """
+    # class_instance = models.ForeignKey(Class, related_name="assessments", on_delete=models.CASCADE)
+    # rubric_component = models.ForeignKey( RubricComponent, related_name="assessments", on_delete=models.PROTECT)
+    # topic = models.ForeignKey(Topic, related_name="assessments", on_delete=models.SET_NULL, null=True, blank=True)
+    # title = models.CharField(max_length=100, help_text="should be descriptive hoping to follow like 'Quiz 1', 'PT1', 'Midterm Exam'")
+    # description = models.TextField(blank=True)
+    
+    # max_points = models.PositiveIntegerField(help_text="maximum score for this assessment")
+    # due_date = models.DateTimeField(null=True, blank=True)
+    # is_published = models.BooleanField(default=False, help_text="to balidate if draft first")
+
+    # created_at = models.DateTimeField(auto_now_add=True)
+    # created_by = models.ForeignKey("users.BaseUser", related_name="created_assessments", on_delete=models.SET_NULL, null=True)
+    # updated_at = models.DateTimeField(auto_now=True)
+
+    # class Meta:
+    #     db_table = "academics_assessment"
+    #     ordering = ["-created_at"]
+    #     indexes = [
+    #         models.Index(fields=["class_instance", "academic_period"]),
+    #         models.Index(fields=["rubric_component"]),
+    #         models.Index(fields=["is_published"]),
+    #         models.Index(fields=["due_date"]),
+    #     ]
+    #     constraints = [
+            
+    #     ]
 
 class Score(models.Model):
-    class_instance = models.ForeignKey(Class, related_name="student_scores",on_delete=models.CASCADE)
-    student = models.ForeignKey("users.StudentProfile", related_name="scores",on_delete=models.PROTECT) # protect for now
-    assessment = models.ForeignKey(Assessment, related_name="student_scores",on_delete=models.PROTECT)
-    points = models.PositiveIntegerField()
-    is_published = models.BooleanField(default=False)
+    # class_instance = models.ForeignKey(Class, related_name="student_scores",on_delete=models.CASCADE)
+    # student = models.ForeignKey("users.StudentProfile", related_name="scores",on_delete=models.PROTECT) # protect for now
+    # assessment = models.ForeignKey(Assessment, related_name="student_scores",on_delete=models.PROTECT)
+    # points = models.PositiveIntegerField()
+    # is_published = models.BooleanField(default=False)
+
+    # uploaded_at = models.DateTimeField(auto_now_add=True)
+    # uploaded_by = models.ForeignKey("users.BaseUser", related_name="uploaded_scores",on_delete=models.SET_NULL, null=True)
+    # updated_at = models.DateTimeField(auto_now=True)
+
+    # class Meta:
+    #     db_table = "academics_score"
+    #     constraints = [
+    #         models.UniqueConstraint(fields=['student', 'assessment'], name='unique_student'),
+    #     ]
+
+    """
+        The score fot the student on the assessment.
+        is_published=False means the score is in draft mode (not visible to students).
+    """
+    class_instance = models.ForeignKey(Class, related_name="scores", on_delete=models.CASCADE)
+    student = models.ForeignKey("users.StudentProfile", related_name="scores", on_delete=models.PROTECT)
+    assessment = models.ForeignKey(Assessment, related_name="scores", on_delete=models.PROTECT)
+    
+    points = models.PositiveIntegerField(help_text="Points earned by the student")
+    
+    is_published = models.BooleanField(default=False,help_text="False = Draft, True = Uploaded")
 
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    uploaded_by = models.ForeignKey("users.BaseUser", related_name="uploaded_scores",on_delete=models.SET_NULL, null=True)
+    uploaded_by = models.ForeignKey("users.BaseUser", related_name="uploaded_scores", on_delete=models.SET_NULL, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "academics_score"
+        ordering = ["-updated_at"]
+        indexes = [models.Index(fields=["student", "assessment"]),models.Index(fields=["class_instance", "is_published"]),models.Index(fields=["assessment"]),]
         constraints = [
-            models.UniqueConstraint(fields=['student', 'assessment'], name='unique_student'),
+            models.UniqueConstraint(
+                fields=['student', 'assessment'], 
+                name='one_score_per_student_per_assessment'
+            ),
+            # Tje score should be validated that it would not exceed the assessments max score
         ]
 
 class Attendance(models.Model):
