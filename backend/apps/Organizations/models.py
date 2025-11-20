@@ -18,7 +18,7 @@ class EventSchedule(models.Model):
     # This is because the event may go on at an irregular scheduling
     # I just realized this should be connected to the events if that's the case O_O, this is now fixed here.
     # It is now linked to the Event instead of the EventScheduleBlock
-
+    event_schedule_block_id = models.ForeignKey('EventScheduleBlock', on_delete=models.PROTECT)
     # As usual, the ID is omitted
     event_id = models.ForeignKey('Event', on_delete=models.PROTECT)
     # Perfect example of lazy loading. Because the Event is defined later, we can't just reference it normally. This
@@ -40,15 +40,9 @@ class Event(models.Model):
     # org_id = models.ForeignKey(user_model.BaseUser, on_delete=models.CASCADE) I need an organization model first
     # You know, consider moving this to Event Schedule Block
     # Daily reminder that models.PROTECT pretty much prevents deletion of an organization if this exists.
-    event_schedule_block_id = models.ForeignKey('EventScheduleBlock', on_delete=models.CASCADE) #This way, if the block is deleted, 
-    # all events under it are also deleted
-
-     # Lazy loading again
 
     event_type = models.ForeignKey('EventType', on_delete=models.PROTECT)
     
-    event_schedule = models.ForeignKey('EventSchedule', on_delete=models.PROTECT)
-    # TODO
     # Commented out since Semester model don't exist yet
     sem_id = models.ForeignKey('Academics.Semester',on_delete=models.PROTECT)
 
