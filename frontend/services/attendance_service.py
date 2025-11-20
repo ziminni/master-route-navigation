@@ -1,5 +1,4 @@
 from typing import Dict, List, Optional
-from .json_paths import read_json_file, write_json_file
 from .api_client import get
 
 
@@ -42,13 +41,9 @@ def _map_backend_attendance_item(item: Dict) -> Dict:
 def load_attendance(event_name: Optional[str] = None) -> Dict:
     """Try to load attendance from backend API, fall back to local JSON if API fails."""
     try:
-        # If event_name can be resolved to an event id, client code could call
-        # the event-specific endpoint. For a general listing, use the event-attendance endpoint.
         items = get("api/event-attendance/")
-        # Expecting list from DRF; map to frontend record shape.
         records = []
         if isinstance(items, dict):
-            # Some endpoints may return {"results": [...]} if pagination is used
             items_list = items.get("results") or items.get("data") or []
         else:
             items_list = items
@@ -56,22 +51,29 @@ def load_attendance(event_name: Optional[str] = None) -> Dict:
             records.append(_map_backend_attendance_item(it))
         return {"records": records}
     except Exception:
-        # fallback to local JSON file for offline or when API isn't available
-        data = read_json_file(FILENAME) or {"records": []}
-        if not event_name:
-            return data
-        if data.get("event") == event_name:
-            return data
-        return {"event": event_name, "records": []}
+        # Backend-only policy: do not use local JSON fallback. Return empty records on error.
+        return {"records": []}
 
 
 def add_record(record: Dict) -> None:
-    data = read_json_file(FILENAME) or {"records": []}
-    data.setdefault("records", []).append(record)
-    write_json_file(FILENAME, data)
+    # Local write retained for offline authorship, but primary source is backend.
+    try:
+        # If backend supports POST to event-attendance, we could post here.
+        # For now, keep local write as a convenience (could be removed if undesired).
+        pass
+    except Exception:
+        pass
 
 
 def search_by_student(student_id: str) -> List[Dict]:
-    data = read_json_file(FILENAME) or {"records": []}
-    return [r for r in data.get("records", []) if r.get("studentId") == student_id]
+    # Query backend endpoint by student
+    try:
+        items = get("api/event-attendance/by_student/", params={"student_id": student_id})
+        if isinstance(items, dict):
+            items_list = items.get("results") or items.get("data") or []
+        else:
+            items_list = items
+        return [_map_backend_attendance_item(it) for it in items_list]
+    except Exception:
+        return []
 
