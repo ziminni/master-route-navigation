@@ -77,8 +77,8 @@ class Curriculum(models.Model):
     Only one curriculum per program can be active at a time.
     """
 
-    program = models.ForeignKey("users.Program", related_name="curriculum", on_delete=models.CASCADE)
-    revision_year = models.SmallIntegerField()
+    program = models.ForeignKey("users.Program", related_name="curriculum", on_delete=models.CASCADE) # if program is deleted, all curricula under it is also deleted
+    revision_year = models.PositiveSmallIntegerField()
     is_active = models.BooleanField()
 
     class Meta:
@@ -132,10 +132,10 @@ class Course(models.Model):
     lec_hours = models.PositiveSmallIntegerField()
     lab_hours = models.PositiveSmallIntegerField()
 
-    curriculum = models.ForeignKey(Curriculum, related_name="courses", on_delete=models.PROTECT)
+    curriculum = models.ForeignKey(Curriculum, related_name="courses", on_delete=models.CASCADE)
     year_offered = models.CharField(max_length=1, choices=YearLevel.choices)
     term_offered = models.CharField(max_length=6, choices=Term.choices)
-    track = models.ForeignKey(Track, related_name="courses", on_delete=models.PROTECT, null=True)
+    track = models.ForeignKey(Track, related_name="courses", on_delete=models.SET_NULL, null=True)
     # category
 
     class Meta:
@@ -162,6 +162,8 @@ class Class(models.Model):
     faculty = models.ForeignKey("users.FacultyProfile", related_name="assigned_classes",on_delete=models.SET_NULL, null=True)
     section = models.ForeignKey(Section, related_name="classes",on_delete=models.PROTECT)
     semester = models.ForeignKey(Semester, related_name="classes",on_delete=models.PROTECT)
+    # Self referencing foreign key to link a laboratory class to its corresponding lecture class (if it is a lab class)
+    lecture_class = models.ForeignKey('self', related_name="lab_classes", blank=True, null=True, on_delete=models.SET_NULL)
     # schedule_block
 
     # Intermediary field between classes and students, so it's easier to query all the students enrolled in a specific class instead of aggregating enrolled students from the Enrollment table
@@ -221,7 +223,7 @@ class GradingRubric(models.Model):
             models.Index(fields=["class_instance", "academic_period"]),
         ]
         constraints = [
-            # Each class should have only have one rubric per academic period
+            # Each class should only have one rubric per academic period
             models.UniqueConstraint(
                 fields=['class_instance', 'academic_period'],
                 name='unique_rubric_per_class_per_period'
@@ -298,7 +300,7 @@ class Topic(models.Model):
         db_table = "academics_topic"
         ordering = ["class_instance", "topic_number", "name"]
         indexes = [
-            models.Index(fields=["class_instance", "order"]),
+            models.Index(fields=["class_instance", "topic_number"]),
         ]
 
 class ClassContent(models.Model):
@@ -320,7 +322,7 @@ class ClassContent(models.Model):
         abstract = True
         ordering = ["-created_at"]
 
-class Material(models.Model):
+class Material(ClassContent):
     """
         Represents materials uploaded by faculty.
         Inherits common fields from ClassContent.
@@ -351,7 +353,7 @@ class Material(models.Model):
     # class Meta:
     #     db_table = "academics_material"
 
-class Assessment(models.Model):
+class Assessment(ClassContent):
     """
     Represents graded activities (quizzes, exams, performance tasks).
     Inherits common fields from ClassContent and adds assessment-specific fields.
@@ -362,7 +364,7 @@ class Assessment(models.Model):
         on_delete=models.PROTECT
     )
     academic_period = models.CharField(max_length=7, choices=AcademicPeriod.choices)
-    max_points = models.PositiveIntegerField()
+    max_points = models.PositiveSmallIntegerField()
     due_date = models.DateTimeField(null=True, blank=True)
     
     class Meta:

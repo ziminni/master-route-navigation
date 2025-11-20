@@ -7,7 +7,16 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import serializers
 from django.conf import settings
 
-from .models import ScheduleBlock,ScheduleEntry, Class
+from .models import ScheduleBlock, ScheduleEntry, Class, AcademicYear
+
+
+# MODULE 2
+
+class AcademicYearSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AcademicYear
+        fields = '__all__'
+
 
 #MODULE 3
 class ScheduleEntrySerializer(serializers.ModelSerializer):
