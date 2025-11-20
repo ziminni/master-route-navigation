@@ -10,7 +10,13 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
     QWidget-based chat system wrapper that displays conversations (not inquiries).
     Automatically listens for JSON data changes and refreshes in real-time.
     """
-    def __init__(self, parent=None):
+    def __init__(
+        self,
+        parent=None,
+        current_user_id=None,
+        current_username=None,
+        current_token=None
+    ):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
 
@@ -21,9 +27,16 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.ui.centralwidget)
 
-        # Core data
-        self.data_manager = DataManager()
-        self.current_user_id = 2  # current logged-in user
+        # Store user info from parent/session
+        self.current_user_id = current_user_id
+        self.current_username = current_username
+        self.current_token = current_token
+
+        # Core data manager with user context
+        self.data_manager = DataManager(
+            username=self.current_username,
+            token=self.current_token
+        )
         self.current_filter = "all"
 
         # Connect UI events
@@ -39,6 +52,9 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
         self.filter_chats(self.current_filter)
         self.start_realtime_updates()
 
+    def getDataManager(self):
+        return self.data_manager
+
     # === Inquiry creation ===
     def open_inquiry_dialog(self):
         dialog = InquiryDialog(self)
@@ -48,13 +64,12 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
                 created_inquiry = self.data_manager.create_inquiry(inquiry_data)
                 if created_inquiry:
                     print(f"✅ Inquiry Created! ID: {created_inquiry['id']}")
-                    # Refresh conversation list immediately
                     self.filter_chats(self.current_filter)
                     self.last_modified_time = self._get_data_file_mtime()
 
+
     # === Conversation List ===
     def filter_chats(self, filter_type: str):
-        """Load and filter conversations based on type."""
         self.current_filter = filter_type
         self.ui.chat_list.clear()
         self.data_manager.reload_data()
@@ -77,6 +92,7 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
             })
             self.ui.chat_list.addItem(item)
 
+
     # === Search Chat ===
     def search_chats(self, text: str):
         query = (text or "").strip().lower()
@@ -86,9 +102,9 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
             name = (data.get("display_name") or item.text()).lower()
             item.setHidden(bool(query) and query not in name)
 
+
     # === Chat Selection ===
     def on_chat_selected(self, item):
-        """Load a selected conversation in the chat box."""
         data = item.data(QtCore.Qt.ItemDataRole.UserRole)
         if not data or data.get("type") != "conversation":
             return
@@ -99,12 +115,10 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
             print(f"⚠️ Conversation ID {conv_id} not found.")
             return
 
-        # Ensure chat box UI exists
         if not hasattr(self.ui, "chat_box") or self.ui.chat_box is None:
             print("[ERROR] chat_box not found in UI.")
             return
 
-        # Switch visible panels
         try:
             self.ui.message_widget.hide()
         except Exception:
@@ -114,17 +128,16 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
         except Exception:
             pass
 
-        # Group Chat
         if conversation.get("is_group", False):
             self._display_group_chat(conversation, item.text())
             return
 
-        # Individual Chat
         participants = conversation.get("participants", [])
         other_id = next((pid for pid in participants if pid != self.current_user_id), None)
         other_user = self.data_manager.get_user(other_id) if other_id else None
 
         self._display_private_chat(conversation, other_user)
+
 
     # === Group Chat Display ===
     def _display_group_chat(self, conversation, label):
@@ -137,6 +150,7 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
             f"Group Chat\nParticipants: {len(conversation.get('participants', []))}\n"
             f"Last Activity: {conversation.get('last_activity', 'Unknown')}"
         )
+
 
     # === Private Chat Display ===
     def _display_private_chat(self, conversation, other_user):
@@ -156,7 +170,6 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
                 f"Email: {other_user.get('email', 'Unknown')}"
             )
 
-        # Set context for sending messages
         self.ui.chat_box.set_context(
             data_manager=self.data_manager,
             current_user_id=self.current_user_id,
@@ -164,8 +177,8 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
             conversation_id=conversation['id'],
         )
 
-        # Load messages
         self.load_conversation_messages(conversation['id'])
+
 
     # === Load Conversation Messages ===
     def load_conversation_messages(self, conversation_id):
@@ -184,6 +197,7 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
             content = msg.get('content', '')
             sent_by_me = (sender_id == self.current_user_id)
             self._add_message_bubble(content, sent_by_me)
+
 
     # === Message Bubble ===
     def _add_message_bubble(self, text, sent_by_me=False):
@@ -215,9 +229,9 @@ class MainChatWidgetWrapper(QtWidgets.QWidget):
 
         layout.insertWidget(layout.count() - 1, bubble_widget)
 
+
     # === Real-time File Watcher ===
     def start_realtime_updates(self):
-        """Watch the JSON file for external changes."""
         self.last_modified_time = self._get_data_file_mtime()
         self.refresh_timer = QtCore.QTimer(self)
         self.refresh_timer.setInterval(1500)

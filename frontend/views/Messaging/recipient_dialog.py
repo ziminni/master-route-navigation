@@ -1,6 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from .data_manager import DataManager  # Assumes this is implemented
-
+import main_chat_widget_wrapper
+dm =  main_chat_widget_wrapper()
 
 class RecipientDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -125,7 +126,8 @@ class Ui_Form(object):
         self.buttonBox.setObjectName("buttonBox")
 
         # Load and populate data
-        self.data_manager = DataManager()
+
+        self.data_manager = dm.getDataManager()
         self.all_recipients = self.load_faculty_and_officers()
         self.filtered_recipients = self.all_recipients.copy()
         self.populate_recipient_list()

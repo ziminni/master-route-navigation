@@ -14,7 +14,9 @@ class FacultyMainUI(QtWidgets.QWidget):
 
         # Data manager and faculty info
         self.data_manager = DataManager()
-        self.current_faculty_id = 2  # Example faculty
+        faculty_user = self.data_manager.get_user_by_email("kimjongun@cmu.edu.ph")  # Example for faculty login
+        self.current_faculty_id = faculty_user["id"] if faculty_user else None
+
 
         # Layouts
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -356,13 +358,12 @@ class FacultyMainUI(QtWidgets.QWidget):
         except Exception as e:
             print(f"Error updating message read status: {e}")
 
-        self.show_message_overlay(item)
-
         try:
-            dialog = QtWidgets.QDialog(self)
+            dialog = QtWidgets.QDialog(self.window())  # ✅ parent to main window
             ui = Ui_Form()
             ui.setupUi(dialog)
             dialog.setWindowTitle(f"{item.get('type', 'Message').title()} Details")
+            dialog.setModal(True)  # modal but attached to main window
 
             ui.label_header.setText(item.get('title', ''))
             ui.label_recipient.setText(f"From: {item.get('sender', 'Unknown')}")
@@ -374,6 +375,7 @@ class FacultyMainUI(QtWidgets.QWidget):
             dialog.exec()
         except Exception as e:
             print(f"Error opening dialog: {e}")
+
 
     # -------------------- Filters --------------------
     def filter_messages(self, filter_type):
@@ -425,11 +427,72 @@ class FacultyMainUI(QtWidgets.QWidget):
 
     # -------------------- Compose --------------------
     def compose_message(self):
+        """Open compose dialog for new message."""
         try:
-            self.message_app = ComposeUI()
-            self.message_app.show()
+            dialog = QtWidgets.QDialog(self)
+            ui = ComposeUI()
+            ui.setupUi(dialog)
+
+            def send_new_message():
+                receiver_email = ui.lineEdit_email.text().strip()
+                receiver = self.data_manager.get_user_by_email(receiver_email)
+                if not receiver:
+                    QtWidgets.QMessageBox.warning(dialog, "Invalid Recipient", "Recipient not found.")
+                    return
+
+                content = ui.textEdit_body.toPlainText().strip()
+                if not content:
+                    QtWidgets.QMessageBox.warning(dialog, "Empty Message", "Message content cannot be empty.")
+                    return
+
+                # create a new conversation
+                new_convo = {
+                    "participants": [self.current_faculty_id, receiver["id"]],
+                    "title": ui.lineEdit_subject.text().strip() or "No Subject"
+                }
+                convo = self.data_manager.create_conversation(new_convo)
+
+                # add the message
+                self.data_manager.create_message({
+                    "conversation_id": convo["id"],
+                    "sender_id": self.current_faculty_id,
+                    "receiver_id": receiver["id"],
+                    "content": content,
+                    "status": "sent"
+                })
+
+                QtWidgets.QMessageBox.information(dialog, "Sent", "Message sent successfully.")
+                self.load_messages()
+                dialog.accept()
+
+            ui.btn_send.clicked.connect(send_new_message)
+            dialog.exec()
         except Exception as e:
-            print(f"Error opening compose message: {e}")
+            print(f"Error composing message: {e}")
+
+
+    
+    def reply_message(self, conversation_id: int, receiver_id: int, content: str):
+        """Reply to existing conversation."""
+        try:
+            if not content.strip():
+                QtWidgets.QMessageBox.warning(self, "Empty Reply", "Cannot send an empty reply.")
+                return
+
+            msg = {
+                "conversation_id": conversation_id,
+                "sender_id": self.current_faculty_id,
+                "receiver_id": receiver_id,
+                "content": content.strip(),
+                "status": "sent"
+            }
+
+            self.data_manager.create_message(msg)
+            self.load_messages()
+            QtWidgets.QMessageBox.information(self, "Reply Sent", "Reply successfully sent.")
+        except Exception as e:
+            print(f"Error replying to message: {e}")
+
 
     # -------------------- Overlay --------------------
     def show_message_overlay(self, item: dict):
