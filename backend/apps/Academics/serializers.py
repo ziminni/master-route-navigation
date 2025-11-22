@@ -19,37 +19,114 @@ class SemesterSerializer(serializers.ModelSerializer):
         model = Semester
         fields = "__all__"
 
+    #TODO
+    # add validate() method to validate start date and end date, and whether those dates coincide with the academic year
+
+
 class SemesterUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Semester
         fields = ["id", "is_active"]
-        read_only_fields = ["id"]
+        # read_only_fields = ["id"]
 
 class CurriculumSerializer(serializers.ModelSerializer):
     # Uses the program id for write operations
     program_id = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all(), write_only=True)
     # Returns full program details for read operations
-    program_details = ProgramSerializer(source="program_id", read_only=True)
+    program_details = ProgramSerializer(source="program")
 
     class Meta:
         model = Curriculum
         fields = ["id", "program_id", "program_details", "revision_year", "is_active"]
+        read_only_fields = ["program_details"]
 
 class CurriculumUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Curriculum
         fields = ["id", "revision_year", "is_active"]
-        read_only_fields = ["id"]
+        # read_only_fields = ["id"]
 
 class SectionSerializer(serializers.ModelSerializer):
-    curriculum_id = serializers.PrimaryKeyRelatedField(queryset=Curriculum.objects.all(), write_only=True)
-    curriculum_details = CurriculumSerializer(source="curriculum_id", read_only=True)
-    semester_details = SemesterSerializer(source="semester_id", read_only=True)
-    semester_id = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all(), write_only=True)
+    """
+    Used when retrieving or deleting a section.
+    """
+    curriculum_details = CurriculumSerializer(source="curriculum")
+    semester_details = SemesterSerializer(source="semester")
+    code = serializers.SerializerMethodField()
 
     class Meta:
         model = Section
-        fields = ["id", "name", "curriculum_id", "curriculum_details", "semester_id", "semester_details", "year", "type", "capacity"]
+        fields = ["id", "name", "code", "curriculum_details", "semester_details", "year", "type", "capacity"]
+        read_only_fields = ["curriculum_details", "semester_details", "code"]
+
+    def get_code(self, obj):
+        return obj.code
+
+class SectionListCreateSerializer(serializers.ModelSerializer):
+    """
+    Used when creating a new section or when retrieving all sections.
+    """
+    code = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Section
+        fields = ["id", "name", "code", "curriculum", "semester", "year", "type", "capacity"]
+        read_only_fields = ["code"]
+
+    def get_code(self, obj):
+        return obj.code
+
+class SectionUpdateSerializer(serializers.ModelSerializer):
+    """
+    Used when updating a section.
+    """
+    class Meta:
+        model = Section
+        fields = ["id", "name", "year", "type", "capacity"]
+        # read_only_fields = ["id"]
+
+class CourseSerializer(serializers.ModelSerializer):
+    """
+    Used when creating, retrieving or deleting a course.
+    """
+    curriculum_id = serializers.PrimaryKeyRelatedField(queryset=Curriculum.objects.all(), write_only=True)
+    curriculum_details = CurriculumSerializer(source="curriculum")
+
+    class Meta:
+        model = Course
+        fields = ["id", "code", "title", "units", "lec_hours", "lab_hours", "curriculum_id", "curriculum_details", "year_offered", "term_offered"]
+        read_only_fields = ["curriculum_details"]
+
+class CourseListSerializer(serializers.ModelSerializer):
+    """
+    Used when retrieving a list of courses.
+    """
+    class Meta:
+        model = Course
+        fields = "__all__"
+
+class CourseUpdateSerializer(serializers.ModelSerializer):
+    """
+    Used when updating a course.
+    """
+    class Meta:
+        model = Course
+        fields = ["id", "code", "title", "units", "lec_hours", "lab_hours", "curriculum", "year_offered", "term_offered"]
+        read_only_fields = ["curriculum"]
+
+class CurriculumCourseSerializer(serializers.ModelSerializer):
+    """
+    Used when retrieving a list of all curriculums and their associated courses.
+    """
+    courses = CourseSerializer(many=True)
+    program = serializers.StringRelatedField()
+
+    class Meta:
+        model = Curriculum
+        fields = ["id", "program", "revision_year", "is_active", "courses"]
+        read_only_fields = ["program", "revision_year", "is_active", "courses"]
+
+
 
 
 

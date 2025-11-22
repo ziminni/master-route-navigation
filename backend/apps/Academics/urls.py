@@ -1,7 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ScheduleBlockViewSet, ScheduleEntryViewSet, SemesterViewSet, CurriculumViewSet, \
-    ActiveSemesterAPIView, ActiveSemesterRetrieveAPIView
+    ActiveSemesterRetrieveAPIView, SectionViewSet, \
+    CourseViewSet, CurriculumCourseListAPIView
 
 router = DefaultRouter()
 router.register(r'schedule-blocks', ScheduleBlockViewSet, basename='scheduleblock')
@@ -26,19 +27,15 @@ router.register(r'schedule-entries', ScheduleEntryViewSet, basename='scheduleent
 # DELETE /api/schedule-entries/{id}/ - Delete schedule entry
 
 router.register(r'semesters', SemesterViewSet, basename='semester')
-# /api/semesters/
-# GET - retrieves a list of semesters
-# POST - create a new semester
-
-# /api/semesters/{id}/
-# GET - retrieves a single semester
-# PUT - update entire semester object
-# PATCH - partial update semester object
-# DELETE - delete semester object
 router.register(r'curriculums', CurriculumViewSet, basename='curriculum')
+router.register(r'sections', SectionViewSet, basename='section')
+router.register(r'courses', CourseViewSet, basename='course')
 
 
 urlpatterns = [
     path('active-semester/', ActiveSemesterRetrieveAPIView.as_view(), name='active-semester-retrieve-api-view'),
+    path('curriculums/courses/', CurriculumCourseListAPIView.as_view(), name='curriculum-course-list-api-view'),
+    # path('sections/', SectionListCreateAPIView.as_view(), name='section-list-api-view'),
+    # path('sections/<int:pk>/', SectionRetrieveUpdateDestroyAPIView.as_view(), name='section-retrieve-update-delete-api-view'),
     path('', include(router.urls)),
 ]

@@ -9,54 +9,162 @@ from .models import ScheduleBlock, ScheduleEntry, Semester
 from .serializers import *
 from django.shortcuts import get_object_or_404
 
-def get_permission_classes(request):
+class BaseCRUDViewSet(viewsets.ModelViewSet):
     """
-    General method that restricts write operations to admin users while only allowing write operations to authenticated users.
-    """
-    if request.method in ["POST", "PUT", "PATCH", "DELETE"]:
-        return [IsAdminUser()]
-    return [IsAuthenticated()]
+    Base ViewSet for CRUD endpoints which require admin privileges for write operations, but allow access to all authenticated users for write operations.
 
-class SemesterViewSet(viewsets.ModelViewSet):
+    GET: Accessible to all authenticated users.
+    POST, PUT, PATCH, DELETE: Accessible only to users with admin privileges.
+    """
+
+    def get_permissions(self):
+        """
+        General method that restricts write operations to admin users while only allowing write operations to authenticated users.
+        """
+        if self.request.method in ["POST", "PUT", "PATCH", "DELETE"]:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+
+
+#TODO
+# validate semester dates
+class SemesterViewSet(BaseCRUDViewSet):
     """
     API endpoint for Semesters.
-    - Admin has full read and write permissions.
-    - Faculty and Student has read permission.
+
+    For /api/academics/semesters/
+    GET:
+        Retrieves a list of semesters.
+
+    POST:
+        Create a new semester.
+        Required fields:
+            - term (str)
+            - start_date (str)
+            - end_date (str)
+            - academic_year (str)
+            - is_active (bool)
+
+    For /api/academics/semesters/{semester_id}/
+    GET:
+        Retrieves a single semester.
+
+    PUT or PATCH:
+        Update an existing semester.
+        Required fields:
+            - is_active (bool)
+
+    DELETE:
+        Delete an existing semester.
     """
     queryset = Semester.objects.all()
 
-    def get_permissions(self):
-        return get_permission_classes(self.request)
-
     def get_serializer_class(self):
-        """
-        Dynamically determines the serializer class based on request method used.
-        """
         if self.action in ["update", "partial_update"]:
             return SemesterUpdateSerializer
         return SemesterSerializer
 
 class ActiveSemesterRetrieveAPIView(generics.RetrieveAPIView):
+    """
+    API endpoint for retrieving the active semester.
+    """
     permission_classes = [IsAuthenticated]
     serializer_class = SemesterSerializer
 
     def get_object(self):
         return get_object_or_404(Semester, is_active=True)
 
-class CurriculumViewSet(viewsets.ModelViewSet):
+class CurriculumViewSet(BaseCRUDViewSet):
+    """
+    API endpoint for Curriculums.
+
+    For /api/academics/curriculums/
+    GET:
+        Retrieves a list of curriculums.
+
+    POST:
+        Create a new curriculum.
+        Required fields:
+            - program_id (int)
+            - revision_year (str)
+            - is_active (bool)
+
+    For /api/academics/curriculums/{curriculum_id}/
+    GET:
+        Retrieves a single curriculum.
+
+    PUT or PATCH:
+        Update an existing curriculum.
+        Required fields:
+        - revision_year (str)
+        - is_active (bool)
+
+    DELETE:
+        Delete an existing curriculum.
+    """
     queryset = Curriculum.objects.all()
 
-    def get_permissions(self):
-        return get_permission_classes(self.request)
-
     def get_serializer_class(self):
-        """
-        Dynamically determines the serializer class based on request method used.
-        """
         if self.action in ["update", "partial_update"]:
             return CurriculumUpdateSerializer
         return CurriculumSerializer
 
+class SectionViewSet(BaseCRUDViewSet):
+    """
+    API endpoint for Sections.
+
+    For /api/academics/sections/
+    GET:
+        Returns a list of sections.
+
+    POST:
+        Creates a new section.
+        Required fields:
+            - name (str)
+            - curriculum_id (int)
+            - semester_id (int)
+            - year (str)
+            - type (str)
+            - capacity (int)
+
+    For /api/academics/sections/{section_id}/
+    GET:
+        Returns a single section with complete object details for curriculum and semester fields.
+
+    PUT or PATCH:
+        Updates an individual section.
+        Required fields:
+            - name (str)
+            - year (str)
+            - type (str)
+            - capacity (int)
+
+    DELETE:
+        Deletes an individual section.
+    """
+    queryset = Section.objects.all()
+
+    def get_serializer_class(self):
+        if self.action in ["list", "create"]:
+            return SectionListCreateSerializer
+        elif self.action in ["update", "partial_update"]:
+            return SectionUpdateSerializer
+        return SectionSerializer
+
+class CourseViewSet(BaseCRUDViewSet):
+    queryset = Course.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return CourseListSerializer
+        elif self.action in ["update", "partial_update"]:
+            return CourseUpdateSerializer
+        return CourseSerializer
+
+class CurriculumCourseListAPIView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CurriculumCourseSerializer
+    queryset = Curriculum.objects.all()
 
 class ScheduleBlockViewSet(viewsets.ModelViewSet):
     """

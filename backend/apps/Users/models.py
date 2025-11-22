@@ -19,6 +19,7 @@ class Position(models.Model):
 
 class Program(models.Model):
     program_name = models.CharField(max_length=255, unique=True)
+    abbr = models.CharField(max_length=10, unique=True) # Program abbreviation added for easier displaying of programs where full name is not needed (Ex. BSIT)
 
     def __str__(self):
         return self.program_name

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 # Enums
@@ -69,8 +70,15 @@ class Semester(models.Model):
         ]
         constraints = [
             models.UniqueConstraint(fields=["academic_year", "term"], name="unique_semester"),
-            models.UniqueConstraint(fields=["start_date", "end_date"], name="unique_sem_dates")
+            models.UniqueConstraint(fields=["start_date", "end_date"], name="unique_sem_dates"),
+            models.CheckConstraint(
+                check=models.Q(start_date__lt=models.F('end_date')),
+                name='semester_start_before_end'
+            ),
         ]
+
+    #TODO
+    # add date validation method here to return user friendly error messages
 
     def save(self, *args, **kwargs):
         """
@@ -80,6 +88,7 @@ class Semester(models.Model):
         if self.is_active:
             # Deactivate all semesters except the current instance
             Semester.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        # self.full_clean()
         super().save(*args, **kwargs)
 
 class Curriculum(models.Model):
@@ -109,7 +118,7 @@ class Section(models.Model):
     Represents a section within a curriculum, semester, and year level.
     """
 
-    name = models.CharField(max_length=7)
+    name = models.CharField(max_length=4) # Ex. A, Ax, PS99 (for petitioned sections)
     curriculum = models.ForeignKey(Curriculum, related_name="sections", on_delete=models.PROTECT)
     semester = models.ForeignKey(Semester, related_name="sections", on_delete=models.PROTECT)
     year = models.CharField(max_length=1, choices=YearLevel.choices)
@@ -123,8 +132,19 @@ class Section(models.Model):
             models.Index(fields=["name", "semester"]),
         ]
         constraints = [
-            models.UniqueConstraint(fields=["name", "semester", "type"], name="unique_section"),
+            models.UniqueConstraint(fields=["name", "curriculum", "semester", "year", "type"], name="unique_section"),
         ]
+
+    @property
+    def code(self):
+        """
+        Returns the code of the section. Ex.: BSIT3A, BSIT3Ax, BSIT-PS99
+        """
+        program_abbr = getattr(self.curriculum.program, "abbr")
+        # For petitioned sections, return only program and section name
+        if self.name[:2] == "PS":
+            return f"{program_abbr}-{self.name}"
+        return f"{program_abbr}{self.year}{self.name}"
 
 # class Track(models.Model):
 #     """
@@ -141,7 +161,6 @@ class Course(models.Model):
     """
     Represents a course offered in a curriculum, including details like code, title, and units.
     """
-
     code = models.CharField(max_length=10, primary_key=True)
     title = models.CharField(max_length=100)
     units = models.PositiveSmallIntegerField()
