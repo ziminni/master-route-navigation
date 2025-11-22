@@ -2,10 +2,12 @@ from django.shortcuts import render
 
 # views.py
 from rest_framework import viewsets, status, generics
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import ScheduleBlock, ScheduleEntry, Semester
 from .serializers import *
+from django.shortcuts import get_object_or_404
 
 def get_permission_classes(request):
     """
@@ -33,6 +35,21 @@ class SemesterViewSet(viewsets.ModelViewSet):
         if self.action in ["update", "partial_update"]:
             return SemesterUpdateSerializer
         return SemesterSerializer
+
+class ActiveSemesterAPIView(APIView):
+    def get(self, request):
+        print("Heloo")
+        active_semester = get_object_or_404(Semester, is_active=True)
+
+        serializer = SemesterSerializer(active_semester)
+        return Response(serializer.data)
+
+class ActiveSemesterRetrieveAPIView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = SemesterSerializer
+
+    def get_queryset(self):
+        return get_object_or_404(Semester, is_active=True)
 
 class CurriculumViewSet(viewsets.ModelViewSet):
     queryset = Curriculum.objects.all()

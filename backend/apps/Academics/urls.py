@@ -1,12 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ScheduleBlockViewSet, ScheduleEntryViewSet, SemesterViewSet, CurriculumViewSet
+from .views import ScheduleBlockViewSet, ScheduleEntryViewSet, SemesterViewSet, CurriculumViewSet, \
+    ActiveSemesterAPIView
 
 router = DefaultRouter()
 router.register(r'schedule-blocks', ScheduleBlockViewSet, basename='scheduleblock')
 router.register(r'schedule-entries', ScheduleEntryViewSet, basename='scheduleentry')
-router.register(r'semesters', SemesterViewSet, basename='semester')
-router.register(r'curriculums', CurriculumViewSet, basename='curriculum')
+
 
 # Funny notes about endpoints for frontend in mod 3 and perhaps other modules, so that we won't forget later on what endpoints are available here:
 # GET /api/schedule-blocks/ - List all accessible schedule blocks
@@ -25,6 +25,20 @@ router.register(r'curriculums', CurriculumViewSet, basename='curriculum')
 # PATCH /api/schedule-entries/{id}/ - Partial update schedule entry
 # DELETE /api/schedule-entries/{id}/ - Delete schedule entry
 
+router.register(r'semesters', SemesterViewSet, basename='semester')
+# /api/semesters/
+# GET - retrieves a list of semesters
+# POST - create a new semester
+
+# /api/semesters/{id}/
+# GET - retrieves a single semester
+# PUT - update entire semester object
+# PATCH - partial update semester object
+# DELETE - delete semester object
+router.register(r'curriculums', CurriculumViewSet, basename='curriculum')
+
+
 urlpatterns = [
+    path('semesters/active/', ActiveSemesterAPIView.as_view(), name='active-semester-retrieve-api-view'),
     path('', include(router.urls)),
 ]
