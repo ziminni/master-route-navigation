@@ -36,19 +36,11 @@ class SemesterViewSet(viewsets.ModelViewSet):
             return SemesterUpdateSerializer
         return SemesterSerializer
 
-class ActiveSemesterAPIView(APIView):
-    def get(self, request):
-        print("Heloo")
-        active_semester = get_object_or_404(Semester, is_active=True)
-
-        serializer = SemesterSerializer(active_semester)
-        return Response(serializer.data)
-
 class ActiveSemesterRetrieveAPIView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SemesterSerializer
 
-    def get_queryset(self):
+    def get_object(self):
         return get_object_or_404(Semester, is_active=True)
 
 class CurriculumViewSet(viewsets.ModelViewSet):

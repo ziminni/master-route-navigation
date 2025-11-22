@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ScheduleBlockViewSet, ScheduleEntryViewSet, SemesterViewSet, CurriculumViewSet, \
-    ActiveSemesterAPIView
+    ActiveSemesterAPIView, ActiveSemesterRetrieveAPIView
 
 router = DefaultRouter()
 router.register(r'schedule-blocks', ScheduleBlockViewSet, basename='scheduleblock')
@@ -39,6 +39,6 @@ router.register(r'curriculums', CurriculumViewSet, basename='curriculum')
 
 
 urlpatterns = [
-    path('semesters/active/', ActiveSemesterAPIView.as_view(), name='active-semester-retrieve-api-view'),
+    path('active-semester/', ActiveSemesterRetrieveAPIView.as_view(), name='active-semester-retrieve-api-view'),
     path('', include(router.urls)),
 ]
