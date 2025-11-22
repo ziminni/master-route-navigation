@@ -1,10 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ScheduleBlockViewSet, ScheduleEntryViewSet
+from .views import ScheduleBlockViewSet, ScheduleEntryViewSet, SemesterViewSet, CurriculumViewSet
 
 router = DefaultRouter()
 router.register(r'schedule-blocks', ScheduleBlockViewSet, basename='scheduleblock')
 router.register(r'schedule-entries', ScheduleEntryViewSet, basename='scheduleentry')
+router.register(r'semesters', SemesterViewSet, basename='semester')
+router.register(r'curriculums', CurriculumViewSet, basename='curriculum')
 
 # Funny notes about endpoints for frontend in mod 3 and perhaps other modules, so that we won't forget later on what endpoints are available here:
 # GET /api/schedule-blocks/ - List all accessible schedule blocks
@@ -24,5 +26,5 @@ router.register(r'schedule-entries', ScheduleEntryViewSet, basename='scheduleent
 # DELETE /api/schedule-entries/{id}/ - Delete schedule entry
 
 urlpatterns = [
-    path('api/', include(router.urls)),
+    path('', include(router.urls)),
 ]

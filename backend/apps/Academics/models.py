@@ -24,26 +24,26 @@ class ClassType(models.TextChoices):
 
 # Models
 
-class AcademicYear(models.Model):
-    """
-    Represents an academic year with a start and end date.
-    Only one academic year can be active at a time.
-    """
-
-    start_date = models.DateField()
-    end_date = models.DateField()
-    is_active = models.BooleanField(unique=True)
-
-    class Meta:
-        db_table = "academics_academic_year"
-        ordering = ["-start_date"]
-        indexes = [
-            models.Index(fields=["start_date"]),
-            models.Index(fields=["is_active"]),
-        ]
-        constraints = [
-            models.UniqueConstraint(fields=["start_date", "end_date"], name="unique_ay_dates")
-        ]
+# class AcademicYear(models.Model):
+#     """
+#     Represents an academic year with a start and end date.
+#     Only one academic year can be active at a time.
+#     """
+#
+#     start_date = models.DateField()
+#     end_date = models.DateField()
+#     is_active = models.BooleanField(unique=True)
+#
+#     class Meta:
+#         db_table = "academics_academic_year"
+#         ordering = ["-start_date"]
+#         indexes = [
+#             models.Index(fields=["start_date"]),
+#             models.Index(fields=["is_active"]),
+#         ]
+#         constraints = [
+#             models.UniqueConstraint(fields=["start_date", "end_date"], name="unique_ay_dates")
+#         ]
 
 
 class Semester(models.Model):
@@ -55,12 +55,13 @@ class Semester(models.Model):
     term = models.CharField(max_length=6, choices=Term.choices)
     start_date = models.DateField()
     end_date = models.DateField()
-    academic_year = models.ForeignKey(AcademicYear, related_name="semesters", on_delete=models.PROTECT) # Academic year cannot be deleted if existing semesters are related to it
-    is_active = models.BooleanField(unique=True)
+    # academic_year = models.ForeignKey(AcademicYear, related_name="semesters", on_delete=models.PROTECT) # Academic year cannot be deleted if existing semesters are related to it
+    academic_year = models.CharField(max_length=9) # Ex. '2025-2026'
+    is_active = models.BooleanField()
 
     class Meta:
         db_table = "academics_semester"
-        ordering = ["-start_date"]
+        ordering = ["is_active", "-start_date"]
         indexes = [
             models.Index(fields=["start_date"]),
             models.Index(fields=["is_active"]),
@@ -70,6 +71,16 @@ class Semester(models.Model):
             models.UniqueConstraint(fields=["academic_year", "term"], name="unique_semester"),
             models.UniqueConstraint(fields=["start_date", "end_date"], name="unique_sem_dates")
         ]
+
+    def save(self, *args, **kwargs):
+        """
+        Method to ensure that when creating a new active semester, it will deactivate all other semesters. One semester can only be active at a time.
+        """
+
+        if self.is_active:
+            # Deactivate all semesters except the current instance
+            Semester.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
 
 class Curriculum(models.Model):
     """
@@ -84,9 +95,14 @@ class Curriculum(models.Model):
     class Meta:
         db_table = "academics_curriculum"
         ordering = ["-revision_year"]
-        constraints = [
-            models.UniqueConstraint(fields=["program", "is_active"], name="one_active_curriculum_per_program"),
-        ]
+
+    def save(self, *args, **kwargs):
+        """
+        Method to ensure that when creating or activating a new curriculum for a program, the previous active curriculum is deactivated first. Only one curriculum per program can be active at a time.
+        """
+        if self.is_active:
+            Curriculum.objects.filter(is_active=True).filter(program=self.program).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
 
 class Section(models.Model):
     """
@@ -110,16 +126,16 @@ class Section(models.Model):
             models.UniqueConstraint(fields=["name", "semester", "type"], name="unique_section"),
         ]
 
-class Track(models.Model):
-    """
-    Represents a specialization or track within a curriculum.
-    """
-
-    name = models.CharField(max_length=100)
-    curriculum = models.ForeignKey(Curriculum, related_name="tracks", on_delete=models.CASCADE)
-
-    class Meta:
-        db_table = "academics_track"
+# class Track(models.Model):
+#     """
+#     Represents a specialization or track within a curriculum.
+#     """
+#
+#     name = models.CharField(max_length=100)
+#     curriculum = models.ForeignKey(Curriculum, related_name="tracks", on_delete=models.CASCADE)
+#
+#     class Meta:
+#         db_table = "academics_track"
 
 class Course(models.Model):
     """
@@ -135,7 +151,7 @@ class Course(models.Model):
     curriculum = models.ForeignKey(Curriculum, related_name="courses", on_delete=models.CASCADE)
     year_offered = models.CharField(max_length=1, choices=YearLevel.choices)
     term_offered = models.CharField(max_length=6, choices=Term.choices)
-    track = models.ForeignKey(Track, related_name="courses", on_delete=models.SET_NULL, null=True)
+    # track = models.ForeignKey(Track, related_name="courses", on_delete=models.SET_NULL, null=True)
     # category
 
     class Meta:

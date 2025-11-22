@@ -7,15 +7,51 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import serializers
 from django.conf import settings
 
-from .models import ScheduleBlock, ScheduleEntry, Class, AcademicYear
+from .models import *
+from ..Users.models import Program
+from ..Users.serializers import ProgramSerializer
 
 
 # MODULE 2
 
-class AcademicYearSerializer(serializers.ModelSerializer):
+class SemesterSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AcademicYear
-        fields = '__all__'
+        model = Semester
+        fields = "__all__"
+
+class SemesterUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Semester
+        fields = ["id", "is_active"]
+        read_only_fields = ["id"]
+
+class CurriculumSerializer(serializers.ModelSerializer):
+    # Uses the program id for write operations
+    program_id = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all(), write_only=True)
+    # Returns full program details for read operations
+    program_details = ProgramSerializer(source="program_id", read_only=True)
+
+    class Meta:
+        model = Curriculum
+        fields = ["id", "program_id", "program_details", "revision_year", "is_active"]
+
+class CurriculumUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Curriculum
+        fields = ["id", "revision_year", "is_active"]
+        read_only_fields = ["id"]
+
+class SectionSerializer(serializers.ModelSerializer):
+    curriculum_id = serializers.PrimaryKeyRelatedField(queryset=Curriculum.objects.all(), write_only=True)
+    curriculum_details = CurriculumSerializer(source="curriculum_id", read_only=True)
+    semester_details = SemesterSerializer(source="semester_id", read_only=True)
+    semester_id = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all(), write_only=True)
+
+    class Meta:
+        model = Section
+        fields = ["id", "name", "curriculum_id", "curriculum_details", "semester_id", "semester_details", "year", "type", "capacity"]
+
+
 
 
 #MODULE 3
