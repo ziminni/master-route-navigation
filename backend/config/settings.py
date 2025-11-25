@@ -172,13 +172,18 @@ INSTALLED_APPS = [
     # API
     'rest_framework',
     'rest_framework_simplejwt',
-    'django_filters',
 
     # TODO: Add your apps here
     # CORS Headers - tried to fix backend conn, should work if front and back runs on different ports
     'corsheaders',
     'apps.Users.apps.UsersConfig',
-    'apps.Documents.apps.DocumentsConfig'
+    'apps.Academics.apps.AcademicsConfig',
+    'apps.Organizations.apps.OrganizationsConfig',#  Don't forget to add the apps here!
+
+    'apps.Progress.apps.ProgressConfig',
+
+    # extensions
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -210,7 +215,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
+WSGI_APPLICATION = 'core.wsgi.application'
 
 
 # Database
@@ -293,7 +298,7 @@ from datetime import timedelta
 
 # JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -313,7 +318,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Test Only (OTP Sending)
 import os
 
-EMAIL_BACKEND = 'django.config.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
