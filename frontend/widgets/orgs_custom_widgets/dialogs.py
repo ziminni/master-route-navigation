@@ -1,5 +1,5 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
-from PyQt6.QtWidgets import QFileDialog, QMessageBox, QScrollArea
+from PyQt6.QtWidgets import QFileDialog, QMessageBox, QScrollArea, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt, QUrl, QTimer
 from PyQt6.QtGui import QDesktopServices
 import json
@@ -55,7 +55,6 @@ class PhotoBrowseMixin:
                 QMessageBox.StandardButton.Ok
             )
             return None
-
 
 class BlurredDialog(QtWidgets.QDialog):
     _blur_count = 0
@@ -145,6 +144,29 @@ class BlurredDialog(QtWidgets.QDialog):
                 if officer.get("name") != current_name and officer.get("position") == new_position:
                     return True
         return False
+
+class ArchiveConfirmDialog(BlurredDialog):
+    def __init__(self, name: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Confirm Archive")
+        self.setFixedSize(400, 200)
+        
+        layout = QVBoxLayout(self)
+        label = QLabel(f"Are you sure you want to archive '{name}'?")
+        label.setStyleSheet("color: #EB5757;")
+        layout.addWidget(label)
+        
+        buttons_layout = QHBoxLayout()
+        confirm_btn = QPushButton("Archive")
+        confirm_btn.setStyleSheet(CANCEL_STYLE)
+        confirm_btn.clicked.connect(self.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setStyleSheet(BROWSE_STYLE)
+        cancel_btn.clicked.connect(self.reject)
+        
+        buttons_layout.addWidget(confirm_btn)
+        buttons_layout.addWidget(cancel_btn)
+        layout.addLayout(buttons_layout)
 
 class CVViewerDialog(BlurredDialog):
     """

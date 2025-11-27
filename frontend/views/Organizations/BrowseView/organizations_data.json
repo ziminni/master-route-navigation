@@ -48,7 +48,8 @@
                             "2025-10-16"
                         ]
                     ],
-                    "applicants": []
+                    "applicants": [],
+                    "is_archived": true
                 },
                 {
                     "id": 102,
@@ -70,7 +71,8 @@
                             "Emma Moore",
                             "Member"
                         ]
-                    ]
+                    ],
+                    "is_archived": true
                 }
             ],
             "events": [
@@ -234,7 +236,8 @@
                     }
                 ]
             },
-            "kick_cooldowns": {}
+            "kick_cooldowns": {},
+            "is_archived": false
         },
         {
             "applicants": [],
@@ -247,7 +250,7 @@
                     "id": 201,
                     "is_branch": true,
                     "is_joined": false,
-                    "logo_path": "No Photo",
+                    "logo_path": "Mechanics_Branch/Dream_Bike.jpg",
                     "members": [
                         [
                             "Okit, Maki Auri",
@@ -313,7 +316,8 @@
                     "logo_path": "No Photo",
                     "members": [],
                     "name": "Programming Branch",
-                    "officers": []
+                    "officers": [],
+                    "is_archived": true
                 },
                 {
                     "id": 203,
@@ -397,7 +401,8 @@
                             "Charlotte Baker",
                             "Member"
                         ]
-                    ]
+                    ],
+                    "is_archived": true
                 },
                 {
                     "id": 302,
@@ -500,7 +505,8 @@
                     "Harper Flores",
                     "Member"
                 ]
-            ]
+            ],
+            "is_archived": true
         },
         {
             "id": 4,

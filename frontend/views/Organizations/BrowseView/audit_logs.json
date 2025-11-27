@@ -198,5 +198,69 @@
         "organization": "Chess Club",
         "subject": "Marcus",
         "details": "Position changed from 'Member' to 'Treasurer'."
+    },
+    {
+        "timestamp": "2025-11-27T13:04:25.766152",
+        "actor": "Kim",
+        "action": "EDIT_ORGANIZATION",
+        "organization": "Mechanics Branch",
+        "subject": "Mechanics Branch",
+        "details": "Org details updated."
+    },
+    {
+        "timestamp": "2025-11-27T14:05:30.994731",
+        "actor": "admin",
+        "action": "ARCHIVE_ORG",
+        "organization": "Chess Club",
+        "subject": "Chess Club",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T14:05:37.707213",
+        "actor": "admin",
+        "action": "ARCHIVE_ORG",
+        "organization": "CISCO",
+        "subject": "CISCO",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T16:40:59.455976",
+        "actor": "admin",
+        "action": "ARCHIVE_BRANCH",
+        "organization": "CISCO",
+        "subject": "IT Branch",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T16:41:04.841168",
+        "actor": "admin",
+        "action": "ARCHIVE_BRANCH",
+        "organization": "CISCO",
+        "subject": "CS Branch",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T16:41:15.385968",
+        "actor": "admin",
+        "action": "ARCHIVE_BRANCH",
+        "organization": "Robotics Club",
+        "subject": "Programming Branch",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T16:41:23.677607",
+        "actor": "admin",
+        "action": "ARCHIVE_BRANCH",
+        "organization": "Chess Club",
+        "subject": "Beginner Branch",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T17:02:00.995530",
+        "actor": "admin",
+        "action": "RESTORE_ORG",
+        "organization": "CISCO",
+        "subject": "CISCO",
+        "details": null
     }
 ]

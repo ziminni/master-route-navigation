@@ -18,6 +18,12 @@ class ManagerBase:
         self.is_managing: bool = True
         self.is_viewing_applicants: bool = False
         self.manage_applicants_btn: Optional[QtWidgets.QPushButton] = None
+        self.current_members_page: int = 0
+        self.current_applicants_page: int = 0
+        self.total_members_pages: int = 1
+        self.total_applicants_pages: int = 1
+        self.filtered_members: List = []
+        self.filtered_applicants: List = []
     
     def _get_search_text(self) -> str:
         """Get current search text from the search field."""
@@ -129,109 +135,117 @@ class ManagerBase:
         if not self.current_org:
             return
             
-        self.is_viewing_applicants = False # Set state
+        self.is_viewing_applicants = False
         
         members_data = self.current_org.get("members", [])
-        officers_data = self.current_org.get("officers", [])
-        
-        officer_names = {officer["name"] for officer in officers_data}
-        existing_member_names = {member[0] for member in members_data}
-        
-        combined_members = list(members_data)
-        for officer in officers_data:
-            if officer["name"] not in existing_member_names:
-                combined_members.append([
-                    officer["name"],
-                    officer["position"],
-                    "Active",
-                    officer.get("start_date", QtCore.QDate.currentDate().toString("yyyy-MM-dd"))
-                ])
-        
-        self.current_org["members"] = combined_members
-        
-        filtered_members = [
-            member for member in combined_members
+        self.filtered_members = [
+            member for member in members_data
             if any(search_text in str(field).lower() for field in member)
-        ] if search_text else combined_members
-        
+        ] if search_text else members_data.copy()
+
+        total_items = len(self.filtered_members)
+        self.total_members_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
+        self.current_members_page = max(0, min(self.current_members_page, self.total_members_pages - 1))
+
+        start = self.current_members_page * self.items_per_page
+        end = start + self.items_per_page
+        paged_data = self.filtered_members[start:end]
+
         self.ui.list_view.setModel(None)
         self.ui.list_view.clearSpans()
         self.ui.list_view.verticalHeader().reset()
-        
-        model = ViewMembers(filtered_members, is_managing=self.is_managing)
+
+        model = ViewMembers(paged_data, is_managing=self.is_managing)
         self.ui.list_view.setModel(model)
-        self.ui.list_view.horizontalHeader().setStretchLastSection(True)
-        self.ui.list_view.horizontalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.ResizeMode.Stretch
-        )
-        
-        if filtered_members:
-            self.ui.list_view.show()
-            self.no_member_label.hide()
-        else:
-            self.ui.list_view.hide()
-            self.no_member_label.show()
-        
-        self._setup_list_header()
-        
-        if self.is_managing:
-            for row in range(len(filtered_members)):
-                action_widget = self._create_action_widget(
-                    "Edit", lambda checked, r=row: self.edit_member(r),
-                    "Kick", lambda checked, r=row: self.kick_member(r)
-                )
-                self.ui.list_view.setIndexWidget(
-                    model.index(row, model.columnCount() - 1), 
-                    action_widget
-                )
-        
+
         self._apply_table_style()
 
-    def load_applicants(self, search_text: str = ""):
-        """Load and filter applicants into the table view with action controls."""
-        from widgets.orgs_custom_widgets.tables import ViewApplicants
-        
-        if not self.current_org:
-            return
-            
-        self.is_viewing_applicants = True
-        
-        applicants_data = self.current_org.get("applicants", [])
-        filtered_applicants = [
-            applicant for applicant in applicants_data
-            if any(search_text in str(field).lower() for field in applicant)
-        ] if search_text else applicants_data
-        
-        self.ui.list_view.setModel(None)
-        self.ui.list_view.clearSpans()
-        self.ui.list_view.verticalHeader().reset()
-        
-        model = ViewApplicants(filtered_applicants)
-        self.ui.list_view.setModel(model)
-        self.ui.list_view.horizontalHeader().setStretchLastSection(True)
-        self.ui.list_view.horizontalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.ResizeMode.Stretch
-        )
-        
-        if filtered_applicants:
+        if total_items:
             self.ui.list_view.show()
             self.no_member_label.hide()
         else:
             self.ui.list_view.hide()
             self.no_member_label.show()
-        
-        for row in range(len(filtered_applicants)):
-            action_widget = self._create_action_widget(
-                "Accept", lambda checked, r=row: self.accept_applicant(r),
-                "Decline", lambda checked, r=row: self.decline_applicant(r)
-            )
-            self.ui.list_view.setIndexWidget(
-                model.index(row, model.columnCount() - 1), 
-                action_widget
-            )
-        
+
         self._setup_list_header()
+        self._update_pagination_buttons_members()
+
+    def load_applicants(self, search_text: str = "") -> None:
+        from widgets.orgs_custom_widgets.tables import ViewApplicants
+
+        if not self.current_org:
+            return
+
+        self.is_viewing_applicants = True
+
+        applicants_data = self.current_org.get("applicants", [])
+        self.filtered_applicants = [
+            applicant for applicant in applicants_data
+            if any(search_text in str(field).lower() for field in applicant)
+        ] if search_text else applicants_data.copy()
+
+        total_items = len(self.filtered_applicants)
+        self.total_applicants_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
+        self.current_applicants_page = max(0, min(self.current_applicants_page, self.total_applicants_pages - 1))
+
+        start = self.current_applicants_page * self.items_per_page
+        end = start + self.items_per_page
+        paged_data = self.filtered_applicants[start:end]
+
+        self.ui.list_view.setModel(None)
+        self.ui.list_view.clearSpans()
+        self.ui.list_view.verticalHeader().reset()
+
+        model = ViewApplicants(paged_data)
+        self.ui.list_view.setModel(model)
+
         self._apply_table_style()
+
+        if total_items:
+            self.ui.list_view.show()
+            self.no_member_label.hide()
+        else:
+            self.ui.list_view.hide()
+            self.no_member_label.setText("No Applicant(s) Found")
+            self.no_member_label.show()
+
+        self._setup_list_header()
+        self._update_pagination_buttons_applicants()
+
+    def _update_pagination_buttons_members(self) -> None:
+        self.page_label.setText(f"Page {self.current_members_page + 1} of {self.total_members_pages}")
+        self.prev_btn.setEnabled(self.current_members_page > 0)
+        self.next_btn.setEnabled(self.current_members_page < self.total_members_pages - 1)
+
+    def _update_pagination_buttons_applicants(self) -> None:
+        self.page_label.setText(f"Page {self.current_applicants_page + 1} of {self.total_applicants_pages}")
+        self.prev_btn.setEnabled(self.current_applicants_page > 0)
+        self.next_btn.setEnabled(self.current_applicants_page < self.total_applicants_pages - 1)
+
+    def prev_page(self) -> None:
+        if self.is_viewing_applicants:
+            if self.current_applicants_page > 0:
+                self.current_applicants_page -= 1
+        else:
+            if self.current_members_page > 0:
+                self.current_members_page -= 1
+        self._reload_current_view()
+
+    def next_page(self) -> None:
+        if self.is_viewing_applicants:
+            if self.current_applicants_page < self.total_applicants_pages - 1:
+                self.current_applicants_page += 1
+        else:
+            if self.current_members_page < self.total_members_pages - 1:
+                self.current_members_page += 1
+        self._reload_current_view()
+
+    def _reload_current_view(self) -> None:
+        search_text = self._get_search_text()
+        if self.is_viewing_applicants:
+            self.load_applicants(search_text)
+        else:
+            self.load_members(search_text)
     
     def accept_applicant(self, row: int):
         """Confirm and move applicant to members."""

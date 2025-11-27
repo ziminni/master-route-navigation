@@ -245,7 +245,35 @@ class CollegeOrgCard(BaseOrgCard):
         else:
             self.main_window.load_branches()
 
+class ArchivedOrgCard(CollegeOrgCard):
+    # FIX: Explicitly pass and store the admin_window instance
+    def __init__(self, logo_path, name, org_data, admin_window):
+        # The CollegeOrgCard constructor expects 'main_window', which is the admin_window here.
+        super().__init__(logo_path, name, org_data, admin_window)
+        
+        # Store the Admin instance for method calls (Bug 1 Fix)
+        self.admin_window = admin_window
+        
+        self.btn_apply.setText("Restore")
+        self.btn_apply.setStyleSheet(STYLE_GREEN_BTN)  # Green for restore
+        try:
+            self.btn_apply.clicked.disconnect()  # Disconnect original
+        except TypeError:
+            pass
+        self.btn_apply.clicked.connect(self._restore)
+
+    def _restore(self):
+        # FIX: Use self.admin_window instead of self.parent()
+        confirm = QMessageBox.question(self.admin_window, "Restore", f"Restore {self.org_data['name']}?")
+        if confirm == QMessageBox.StandardButton.Yes:
+            is_branch = self.org_data.get("is_branch", False)
+            # Use self.admin_window for Admin methods
+            self.admin_window.restore_org(self.org_data["id"], is_branch)
+            QMessageBox.information(self.admin_window, "Success", "Restored successfully.")
+            self.admin_window._load_archived_page(is_branch)  # Refresh
+
 class OfficerCard(BaseCard):
+# ... (rest of OfficerCard is unchanged)
     def __init__(self, officer_data, main_window):
         super().__init__(blur_radius=10) 
 
@@ -293,6 +321,7 @@ class OfficerCard(BaseCard):
         layout.addItem(bottom_spacer)
 
 class EventCard(QtWidgets.QFrame):
+# ... (rest of EventCard is unchanged)
     def __init__(self, event_data, main_window):
         super().__init__()
         self.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)

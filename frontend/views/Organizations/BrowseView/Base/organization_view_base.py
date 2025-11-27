@@ -26,6 +26,27 @@ class OrganizationViewBase(User):
         self.ui.verticalLayout_17.addWidget(self.no_member_label)
         self._setup_connections()
 
+        # Pagination setup
+        self.items_per_page = 50
+        self.current_members_page = 0
+        self.total_members_pages = 1
+        self.filtered_members = []
+
+        self.pagination_layout = QtWidgets.QHBoxLayout()
+        self.prev_btn = QtWidgets.QPushButton("Previous")
+        self.prev_btn.clicked.connect(self.prev_page)
+        self.next_btn = QtWidgets.QPushButton("Next")
+        self.next_btn.clicked.connect(self.next_page)
+        self.page_label = QtWidgets.QLabel("Page 1 of 1")
+
+        self.pagination_layout.addStretch()
+        self.pagination_layout.addWidget(self.prev_btn)
+        self.pagination_layout.addWidget(self.page_label)
+        self.pagination_layout.addWidget(self.next_btn)
+        self.pagination_layout.addStretch()
+
+        self.ui.verticalLayout_17.addLayout(self.pagination_layout)
+
     def _setup_connections(self) -> None:
         """Set up signal-slot connections.
         
@@ -70,21 +91,30 @@ class OrganizationViewBase(User):
             return
 
         members_data = self.current_org.get("members", [])
-        filtered_members = [
+        self.filtered_members = [
             member for member in members_data
             if any(search_text in str(field).lower() for field in member)
-        ] if search_text else members_data
+        ] if search_text else members_data.copy()
+
+        total_items = len(self.filtered_members)
+        self.total_members_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
+        self.current_members_page = max(0, min(self.current_members_page, self.total_members_pages - 1))
+
+        start = self.current_members_page * self.items_per_page
+        end = start + self.items_per_page
+        paged_data = self.filtered_members[start:end]
 
         self.ui.list_view.setModel(None)
         self.ui.list_view.clearSpans()
         self.ui.list_view.verticalHeader().reset()
 
-        model = ViewMembers(filtered_members, is_managing=False)
+        model = ViewMembers(paged_data, is_managing=False)
         self.ui.list_view.setModel(model)
 
         self._apply_table_style()
+        self._update_pagination_buttons()
 
-        if filtered_members:
+        if total_items:
             self.ui.list_view.show()
             self.no_member_label.hide()
         else:
@@ -148,6 +178,21 @@ class OrganizationViewBase(User):
         else:
             self.load_orgs() if self.ui.comboBox.currentIndex() == 0 else self.load_branches()
             self.ui.stacked_widget.setCurrentIndex(0)
+
+    def prev_page(self) -> None:
+        if self.current_members_page > 0:
+            self.current_members_page -= 1
+            self.load_members(self.ui.search_line_3.text().strip().lower())
+
+    def next_page(self) -> None:
+        if self.current_members_page < self.total_members_pages - 1:
+            self.current_members_page += 1
+            self.load_members(self.ui.search_line_3.text().strip().lower())
+
+    def _update_pagination_buttons(self) -> None:
+        self.page_label.setText(f"Page {self.current_members_page + 1} of {self.total_members_pages}")
+        self.prev_btn.setEnabled(self.current_members_page > 0)
+        self.next_btn.setEnabled(self.current_members_page < self.total_members_pages - 1)
             
     # --- Abstract methods to be implemented by subclasses ---
     

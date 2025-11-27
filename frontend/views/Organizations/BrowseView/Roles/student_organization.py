@@ -113,7 +113,7 @@ class Student(OrganizationViewBase):
         student_name = self.name
         filtered_joined = [
             org for org in organizations
-            if not org["is_branch"] and (search_text in org["name"].lower() or not search_text) and
+            if not org.get("is_archived", False) and not org["is_branch"] and (search_text in org["name"].lower() or not search_text) and
             any(member[0] == student_name for member in org.get("members", []))
         ]
         
@@ -121,7 +121,7 @@ class Student(OrganizationViewBase):
         
         filtered_college = [
             org for org in organizations
-            if not org["is_branch"] and (search_text in org["name"].lower() or not search_text) and
+            if not org.get("is_archived", False) and not org["is_branch"] and (search_text in org["name"].lower() or not search_text) and
             org['id'] not in joined_org_ids
         ]
 
@@ -149,7 +149,7 @@ class Student(OrganizationViewBase):
         temp_joined_branches = []
         for org in organizations:
             for branch in org.get("branches", []):
-                if search_text in branch["name"].lower() or not search_text:
+                if not branch.get("is_archived", False) and (search_text in branch["name"].lower() or not search_text):
                     is_member = any(member[0] == student_name for member in branch.get("members", []))
                     if is_member:
                         temp_joined_branches.append(branch)
@@ -161,7 +161,7 @@ class Student(OrganizationViewBase):
         
         for org in organizations:
             for branch in org.get("branches", []):
-                if search_text in branch["name"].lower() or not search_text:
+                if not branch.get("is_archived", False) and (search_text in branch["name"].lower() or not search_text):
                     if branch['id'] in joined_branch_ids:
                         if branch not in filtered_joined_branches:
                             filtered_joined_branches.append(branch)

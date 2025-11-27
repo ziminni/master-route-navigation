@@ -15,14 +15,13 @@ class FacultyAdminBase(OrganizationViewBase):
         self.ui.joined_container.setVisible(False)
 
     def load_orgs(self, search_text: str = "") -> None:
-        """Load and display organizations, filtered by search text."""
         organizations = self._load_data()
         self._clear_grid(self.ui.college_org_grid)
         self.college_org_count = 0
         
         filtered_college = [
             org for org in organizations 
-            if not org["is_branch"] and (search_text in org["name"].lower() or not search_text)
+            if not org.get("is_archived", False) and not org["is_branch"] and (search_text in org["name"].lower() or not search_text)
         ]
         
         for org in filtered_college:
@@ -35,7 +34,6 @@ class FacultyAdminBase(OrganizationViewBase):
         self.hide_apply_buttons()
     
     def load_branches(self, search_text: str = "") -> None:
-        """Load and display branches, filtered by search text."""
         organizations = self._load_data()
         self._clear_grid(self.ui.college_org_grid)
         self.college_org_count = 0
@@ -43,7 +41,7 @@ class FacultyAdminBase(OrganizationViewBase):
         filtered_college_branches = []
         for org in organizations:
             for branch in org.get("branches", []):
-                if search_text in branch["name"].lower() or not search_text:
+                if not branch.get("is_archived", False) and (search_text in branch["name"].lower() or not search_text):
                     filtered_college_branches.append(branch)
         
         for branch in filtered_college_branches:

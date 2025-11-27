@@ -56,6 +56,11 @@
          <kerning>true</kerning>
         </font>
        </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel {
+	color: #084924;
+};</string>
+       </property>
        <property name="text">
         <string>Generate Reports</string>
        </property>
@@ -105,10 +110,12 @@
     <widget class="QFrame" name="main_container">
      <property name="styleSheet">
       <string notr="true">QFrame {
+    background-color: white;
+    border-radius: 15px;
 }
 
 #main_container {
-	background-color: white;
+    border: 1px solid #ccc;
 	border-radius: 20px;
 };</string>
      </property>

@@ -7,7 +7,7 @@
 
 
 from PyQt6 import QtCore, QtGui, QtWidgets
-
+from . import resources_rc
 
 class Ui_generate_reports_widget(object):
     def setupUi(self, generate_reports_widget):
@@ -36,6 +36,9 @@ class Ui_generate_reports_widget(object):
         font.setPointSize(30)
         font.setKerning(True)
         self.header_laberl_reports.setFont(font)
+        self.header_laberl_reports.setStyleSheet("QLabel {\n"
+"    color: #084924;\n"
+"};")
         self.header_laberl_reports.setObjectName("header_laberl_reports")
         self.generate_reports_header.addWidget(self.header_laberl_reports)
         spacerItem = QtWidgets.QSpacerItem(332, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
@@ -54,10 +57,12 @@ class Ui_generate_reports_widget(object):
         self.verticalLayout_4.addLayout(self.generate_reports_header)
         self.main_container = QtWidgets.QFrame(parent=generate_reports_widget)
         self.main_container.setStyleSheet("QFrame {\n"
+"    background-color: white;\n"
+"    border-radius: 15px;\n"
 "}\n"
 "\n"
 "#main_container {\n"
-"    background-color: white;\n"
+"    border: 1px solid #ccc;\n"
 "    border-radius: 20px;\n"
 "};")
         self.main_container.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
@@ -239,3 +244,13 @@ class Ui_generate_reports_widget(object):
         self.download_pdf_btn.setText(_translate("generate_reports_widget", "Download PDF"))
         self.download_excel_btn.setText(_translate("generate_reports_widget", "Download Excel"))
         self.preview_label.setText(_translate("generate_reports_widget", "Report Preview"))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    generate_reports_widget = QtWidgets.QWidget()
+    ui = Ui_generate_reports_widget()
+    ui.setupUi(generate_reports_widget)
+    generate_reports_widget.show()
+    sys.exit(app.exec())

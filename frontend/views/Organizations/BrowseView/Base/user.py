@@ -93,14 +93,68 @@ class User(QtWidgets.QWidget):
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Error loading {self.data_file}: {str(e)}")
             return []
-
-    def save_data(self) -> None:
-        """Save updated self.current_org data back to JSON file."""
-        if not self.current_org:
-            print("No current organization to save.")
-            return
         
-        self.save_data_for_org(self.current_org)
+    def get_archived(self, is_branch: bool = None) -> List[Dict]:
+        """Get archived organizations or branches."""
+        organizations = self._load_data()
+        archived = []
+        for org in organizations:
+            if org.get("is_archived", False):
+                if is_branch is False or is_branch is None:
+                    archived.append(org)
+            for branch in org.get("branches", []):
+                if branch.get("is_archived", False):
+                    if is_branch or is_branch is None:
+                        archived.append(branch)
+        return archived
+
+    def archive_org(self, org_id: int, is_branch: bool = False):
+        """Archive an organization or branch."""
+        organizations = self._load_data()
+        if is_branch:
+            for org in organizations:
+                for branch in org.get("branches", []):
+                    if branch["id"] == org_id:
+                        branch["is_archived"] = True
+                        self.save_data(organizations)
+                        self._log_action("ARCHIVE_BRANCH", org["name"], subject_name=branch["name"])
+                        return
+        else:
+            for org in organizations:
+                if org["id"] == org_id:
+                    org["is_archived"] = True
+                    self.save_data(organizations)
+                    self._log_action("ARCHIVE_ORG", org["name"], subject_name=org["name"])
+                    return
+
+    def restore_org(self, org_id: int, is_branch: bool = False):
+        """Restore an archived organization or branch."""
+        organizations = self._load_data()
+        if is_branch:
+            for org in organizations:
+                for branch in org.get("branches", []):
+                    if branch["id"] == org_id:
+                        branch["is_archived"] = False
+                        self.save_data(organizations)
+                        self._log_action("RESTORE_BRANCH", org["name"], subject_name=branch["name"])
+                        return
+        else:
+            for org in organizations:
+                if org["id"] == org_id:
+                    org["is_archived"] = False
+                    self.save_data(organizations)
+                    self._log_action("RESTORE_ORG", org["name"], subject_name=org["name"])
+                    return
+
+    def save_data(self, data=None):
+        """Save organizations data to JSON file."""
+        if data is None:
+            data = self._load_data()
+        try:
+            with open(self.data_file, 'w') as file:
+                json.dump({"organizations": data}, file, indent=4)
+        except Exception as e:
+            print(f"Error saving {self.data_file}: {str(e)}")
 
     def save_data_for_org(self, org_to_save: Dict) -> None:
         """Saves a specific org/branch data dict back to the JSON file."""

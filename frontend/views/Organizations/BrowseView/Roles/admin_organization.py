@@ -1,7 +1,7 @@
 from PyQt6 import QtWidgets, QtGui, QtCore
 from PyQt6.QtCore import QTimer, Qt, QAbstractTableModel
 from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QCalendarWidget, QFileDialog
+from PyQt6.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QCalendarWidget, QFileDialog, QTabWidget, QGridLayout, QPushButton, QLabel, QScrollArea, QHBoxLayout
 import os
 import json
 import datetime
@@ -15,7 +15,8 @@ from openpyxl.styles import Font
 from typing import Dict, List
 from ..Base.manager_base import ManagerBase
 from ..Base.faculty_admin_base import FacultyAdminBase
-from widgets.orgs_custom_widgets.dialogs import CreateOrgDialog
+from widgets.orgs_custom_widgets.dialogs import CreateOrgDialog, ArchiveConfirmDialog
+from widgets.orgs_custom_widgets.cards import CollegeOrgCard, ArchivedOrgCard
 from ui.Organization.audit_logs_ui import Ui_audit_logs_widget
 from ui.Organization.generate_reports_ui import Ui_generate_reports_widget
 
@@ -52,6 +53,7 @@ class AuditLogModel(QAbstractTableModel):
                     return value
             return value
         
+        # Consistent styling: use alternating colors (as in organization_view_base._apply_table_style)
         if role == Qt.ItemDataRole.BackgroundRole:
             return QColor("#f6f8fa") if index.row() % 2 == 1 else QColor("white")
 
@@ -78,6 +80,32 @@ class Admin(ManagerBase, FacultyAdminBase):
         
         self.report_start_date: datetime.date | None = None
         self.report_end_date: datetime.date | None = None
+
+        self.audit_no_logs_label: QtWidgets.QLabel | None = None 
+        self.audit_prev_btn: QtWidgets.QPushButton | None = None
+        self.audit_next_btn: QtWidgets.QPushButton | None = None
+        self.audit_page_label: QtWidgets.QLabel | None = None
+        self.current_audit_page = 0
+        self.audit_items_per_page = 100 # New limit
+        self.cached_audit_logs: List[Dict] = []
+        self.current_audit_search: str = ""
+        
+        self.archive_btn = None
+        self.archived_widget = None
+        self.archived_ui = None
+        self.archived_tab_widget = None
+        self.archived_index = None
+        self.from_archived = False
+        self.current_archived_page = 0
+        self.items_per_page = 10
+        self.archived_search_text = ""
+        
+        self.org_prev_btn = None
+        self.org_next_btn = None
+        self.org_page_label = None
+        self.branch_prev_btn = None
+        self.branch_next_btn = None
+        self.branch_page_label = None
         
         self.last_report_logs: List[Dict] = []
         self.last_report_data: List[Dict] = []
@@ -178,8 +206,8 @@ class Admin(ManagerBase, FacultyAdminBase):
         audit_logs_action = self.admin_menu.addAction("Audit Logs")
         audit_logs_action.triggered.connect(self._open_audit_logs)
         
-        archive_action = self.admin_menu.addAction("Archive")
-        archive_action.triggered.connect(self._open_archive)
+        archive_action = self.admin_menu.addAction("View Archived")
+        archive_action.triggered.connect(self._show_archived_view)
         
         self.menu_btn.clicked.connect(self._show_admin_menu)
     
@@ -233,21 +261,21 @@ class Admin(ManagerBase, FacultyAdminBase):
             self._reposition_create_button()
     
     def _setup_audit_logs_page(self) -> None:
-        """Load the audit logs UI as a new stacked widget page."""
+        """Load the audit logs UI as a new stacked widget page and add pagination controls."""
         self.audit_logs_page = QtWidgets.QWidget()
         self.audit_logs_ui = Ui_audit_logs_widget()
         self.audit_logs_ui.setupUi(self.audit_logs_page)
         
-        self.no_logs_label = QtWidgets.QLabel("No logs.", self.audit_logs_ui.audit_table_container)
-        self.no_logs_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.no_logs_label.setStyleSheet("font-size: 20px; color: #888;")
+        self.audit_no_logs_label = QtWidgets.QLabel("No logs.", self.audit_logs_ui.audit_table_container)
+        self.audit_no_logs_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.audit_no_logs_label.setStyleSheet("font-size: 20px; color: #888;")
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Preferred,
             QtWidgets.QSizePolicy.Policy.Expanding
         )
-        self.no_logs_label.setSizePolicy(sizePolicy)
-        self.audit_logs_ui.verticalLayout_17.addWidget(self.no_logs_label)
-        self.no_logs_label.hide()
+        self.audit_no_logs_label.setSizePolicy(sizePolicy)
+        self.audit_logs_ui.verticalLayout_17.addWidget(self.audit_no_logs_label)
+        self.audit_no_logs_label.hide()
         
         self.audit_logs_ui.audit_back_btn.clicked.connect(
             lambda: self.ui.stacked_widget.setCurrentIndex(0)
@@ -255,6 +283,31 @@ class Admin(ManagerBase, FacultyAdminBase):
         
         self.audit_logs_ui.audit_search_btn.clicked.connect(self._perform_audit_search)
         self.audit_logs_ui.audit_line_edit.returnPressed.connect(self._perform_audit_search)
+        
+        # --- Audit Logs Pagination Controls ---
+        pagination_layout = QHBoxLayout()
+        self.audit_prev_btn = QPushButton("Previous")
+        self.audit_prev_btn.setStyleSheet("""
+            QPushButton { background-color: #084924; color: white; border-radius: 5px; padding: 5px 15px; font-weight: bold;}
+            QPushButton:hover { background-color: #FDC601; color: #084924;}
+        """)
+        self.audit_prev_btn.clicked.connect(lambda: self._change_audit_page(-1))
+        
+        self.audit_next_btn = QPushButton("Next")
+        self.audit_next_btn.setStyleSheet("""
+            QPushButton { background-color: #084924; color: white; border-radius: 5px; padding: 5px 15px; font-weight: bold;}
+            QPushButton:hover { background-color: #FDC601; color: #084924;}
+        """)
+        self.audit_next_btn.clicked.connect(lambda: self._change_audit_page(1))
+        
+        self.audit_page_label = QLabel("Page 1 of 1")
+        
+        pagination_layout.addWidget(self.audit_prev_btn)
+        pagination_layout.addWidget(self.audit_page_label)
+        pagination_layout.addWidget(self.audit_next_btn)
+        
+        self.audit_logs_ui.verticalLayout_17.addLayout(pagination_layout)
+        # --- End Pagination Controls ---
         
         self.ui.stacked_widget.addWidget(self.audit_logs_page)
     
@@ -302,18 +355,180 @@ class Admin(ManagerBase, FacultyAdminBase):
         self.ui.stacked_widget.setCurrentIndex(4)
 
     def _open_audit_logs(self) -> None:
-        """Navigate to audit logs page."""
-        self.load_audit_logs_data()
+        """Navigate to audit logs page and initialize data."""
+        self.current_audit_page = 0
+        self.current_audit_search = ""
+        self.audit_logs_ui.audit_line_edit.clear()
+        self._load_all_audit_logs_into_cache() # Load all logs once
+        self.load_audit_logs_data() # Display first page
         self.ui.stacked_widget.setCurrentIndex(3)
+        
+    def _load_all_audit_logs_into_cache(self) -> None:
+        """Loads all audit logs into a list, reversed by timestamp, and caches them."""
+        logs = []
+        try:
+            if os.path.exists(self.audit_log_file):
+                with open(self.audit_log_file, 'r') as f:
+                    logs = json.load(f)
+                    if not isinstance(logs, list):
+                        logs = []
+        except Exception as e:
+            print(f"Error loading audit log file: {str(e)}")
+            logs = []
+            
+        logs.reverse()
+        self.cached_audit_logs = logs
 
-    def _open_archive(self) -> None:
-        """Handle archive action."""
-        QtWidgets.QMessageBox.information(
-            self,
-            "Archive",
-            "Archive management feature will be implemented here."
-        )
+    def _show_archived_view(self) -> None:
+        if self.archived_widget:
+            self.ui.stacked_widget.removeWidget(self.archived_widget)
+            self.archived_widget.deleteLater()
+        
+        self.archived_widget = QtWidgets.QWidget()
+        self.archived_ui = Ui_audit_logs_widget()
+        self.archived_ui.setupUi(self.archived_widget)
+        
+        self.archived_ui.audit_logs_label.setText("Archive")
+        self.archived_ui.table_header_label.setText("")
+        self.archived_ui.adult_hr_line.hide()
+        self.archived_ui.audit_line_edit.setPlaceholderText("Search archived...")
+        self.archived_ui.audit_burger_ic.hide()
+        
+        self.archived_ui.audit_back_btn.clicked.connect(lambda: self.ui.stacked_widget.setCurrentIndex(0))
+        self.archived_ui.audit_search_btn.clicked.connect(self._perform_archived_search)
+        self.archived_ui.audit_line_edit.textChanged.connect(self._perform_archived_search)
+        
+        # Remove table
+        self.archived_ui.verticalLayout_17.removeWidget(self.archived_ui.audit_table_view)
+        self.archived_ui.audit_table_view.deleteLater()
+        
+        # Add tabs
+        self.archived_tab_widget = QTabWidget()
+        org_tab = QtWidgets.QWidget()
+        branch_tab = QtWidgets.QWidget()
+        
+        self.archived_tab_widget.addTab(org_tab, "Organizations")
+        self.archived_tab_widget.addTab(branch_tab, "Branches")
+        
+        # Org tab layout
+        org_layout = QVBoxLayout(org_tab)
+        self.archived_org_grid = QGridLayout()
+        org_scroll = QScrollArea()
+        org_scroll.setWidgetResizable(True)
+        org_widget = QtWidgets.QWidget()
+        org_widget.setLayout(self.archived_org_grid)
+        org_scroll.setWidget(org_widget)
+        org_layout.addWidget(org_scroll)
+        
+        # Branch tab layout
+        branch_layout = QVBoxLayout(branch_tab)
+        self.archived_branch_grid = QGridLayout()
+        branch_scroll = QScrollArea()
+        branch_scroll.setWidgetResizable(True)
+        branch_widget = QtWidgets.QWidget()
+        branch_widget.setLayout(self.archived_branch_grid)
+        branch_scroll.setWidget(branch_widget)
+        branch_layout.addWidget(branch_scroll)
+        
+        # Pagination for both
+        self._add_pagination_controls(org_layout, is_branch=False)
+        self._add_pagination_controls(branch_layout, is_branch=True)
+        
+        self.archived_ui.verticalLayout_17.addWidget(self.archived_tab_widget)
+        
+        self.archived_tab_widget.currentChanged.connect(lambda idx: self._load_archived_page(idx == 1))
+        
+        self.archived_index = self.ui.stacked_widget.addWidget(self.archived_widget)
+        self.ui.stacked_widget.setCurrentWidget(self.archived_widget)
+        
+        # Load on show
+        self._load_archived_page(is_branch=False)
+        self._load_archived_page(is_branch=True)
+
+    def _perform_archived_search(self):
+        self.archived_search_text = self.archived_ui.audit_line_edit.text().strip().lower()
+        self.current_archived_page = 0
+        is_branch = self.archived_tab_widget.currentIndex() == 1
+        self._load_archived_page(is_branch)
+
+    def _add_pagination_controls(self, layout: QVBoxLayout, is_branch: bool):
+        # CONSISTENCY FIX: Apply style to pagination buttons
+        PAGINATION_BTN_STYLE = """
+            QPushButton {
+                background-color: #084924; /* Dark Green */
+                color: white;
+                border-radius: 5px;
+                padding: 5px 15px; 
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #FDC601; /* Yellow */
+                color: #084924;
+            }
+        """
+
+        pagination_layout = QHBoxLayout()
+        prev_btn = QPushButton("Previous")
+        prev_btn.setStyleSheet(PAGINATION_BTN_STYLE)
+        prev_btn.clicked.connect(lambda: self._change_archived_page(-1, is_branch))
+        next_btn = QPushButton("Next")
+        next_btn.setStyleSheet(PAGINATION_BTN_STYLE)
+        next_btn.clicked.connect(lambda: self._change_archived_page(1, is_branch))
+        page_label = QLabel("Page 1")
+        pagination_layout.addWidget(prev_btn)
+        pagination_layout.addWidget(page_label)
+        pagination_layout.addWidget(next_btn)
+        layout.addLayout(pagination_layout)
+        
+        if not is_branch:
+            self.org_prev_btn = prev_btn
+            self.org_next_btn = next_btn
+            self.org_page_label = page_label
+        else:
+            self.branch_prev_btn = prev_btn
+            self.branch_next_btn = next_btn
+            self.branch_page_label = page_label
+
+    def _change_archived_page(self, delta: int, is_branch: bool):
+        archived = self.get_archived(is_branch=is_branch, search_text=self.archived_search_text)
+        total_pages = (len(archived) + self.items_per_page - 1) // self.items_per_page
+        new_page = max(0, min(self.current_archived_page + delta, total_pages - 1))
+        if new_page != self.current_archived_page:
+            self.current_archived_page = new_page
+            self._load_archived_page(is_branch)
+
+    def _load_archived_page(self, is_branch: bool):
+        archived = self.get_archived(is_branch=is_branch, search_text=self.archived_search_text)
+        grid = self.archived_org_grid if not is_branch else self.archived_branch_grid
+        self._clear_grid(grid)
+        
+        start = self.current_archived_page * self.items_per_page
+        end = start + self.items_per_page
+        for i, item in enumerate(archived[start:end]):
+            card = ArchivedOrgCard(self._get_logo_path(item["logo_path"]), item["name"], item, self)
+            col = i % 5
+            row = i // 5
+            grid.addWidget(card, row, col, alignment=QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignHCenter)
+        
+        if len(archived) == 0:
+            self._add_no_record_label(grid)
+        
+        total_pages = (len(archived) + self.items_per_page - 1) // self.items_per_page
+        prev_btn = self.org_prev_btn if not is_branch else self.branch_prev_btn
+        next_btn = self.org_next_btn if not is_branch else self.branch_next_btn
+        page_label = self.org_page_label if not is_branch else self.branch_page_label
+        
+        prev_btn.setEnabled(self.current_archived_page > 0)
+        next_btn.setEnabled(self.current_archived_page < total_pages - 1)
+        page_label.setText(f"Page {self.current_archived_page + 1} of {max(1, total_pages)}")
     
+    def get_archived(self, is_branch: bool = None, search_text: str = "") -> List[Dict]:
+        archived = super().get_archived(is_branch=is_branch)
+        if search_text:
+            search_lower = search_text.lower()
+            archived = [item for item in archived if search_lower in item["name"].lower()]
+        return archived
+
     def _create_organization(self) -> None:
         """Handle create organization/branch action."""
         from PyQt6.QtWidgets import QInputDialog
@@ -339,55 +554,87 @@ class Admin(ManagerBase, FacultyAdminBase):
         """Navigate back, handling admin pages."""
         current_index = self.ui.stacked_widget.currentIndex()
         
-        if current_index in [3, 4]:
+        if current_index in [3, 4] or current_index == self.archived_index:
             self.ui.stacked_widget.setCurrentIndex(0)
+            self.from_archived = False
+        elif current_index == 1 and self.from_archived:
+            self.ui.stacked_widget.setCurrentIndex(self.archived_index)
+            self.from_archived = False
         else:
             super()._return_to_prev_page()
-            
-    def load_audit_logs_data(self, search_text: str = "") -> None:
-        """Load and filter audit logs into the table."""
-        print(f"Loading audit logs, searching for: {search_text}")
-        
-        logs = []
-        try:
-            if os.path.exists(self.audit_log_file):
-                with open(self.audit_log_file, 'r') as f:
-                    logs = json.load(f)
-                    if not isinstance(logs, list):
-                        logs = []
-        except Exception as e:
-            print(f"Error loading audit log file: {str(e)}")
-            logs = []
 
+    def _change_audit_page(self, delta: int) -> None:
+        """Changes the current audit log page."""
+        # Calculate total pages based on currently filtered/cached logs
+        total_logs = len(self.cached_audit_logs)
+        if self.current_audit_search:
+            # Re-filter if search text is active
+            filtered_logs = [
+                log for log in self.cached_audit_logs
+                if any(self.current_audit_search in str(val).lower() for val in log.values() if val)
+            ]
+            total_logs = len(filtered_logs)
+        
+        total_pages = (total_logs + self.audit_items_per_page - 1) // self.audit_items_per_page
+        
+        new_page = max(0, min(self.current_audit_page + delta, total_pages - 1))
+        if new_page != self.current_audit_page:
+            self.current_audit_page = new_page
+            self.load_audit_logs_data(self.current_audit_search, use_cache=True)
+            
+    def load_audit_logs_data(self, search_text: str = "", use_cache: bool = False) -> None:
+        """Load and filter audit logs into the table, using pagination."""
+        
+        if not use_cache:
+            self._load_all_audit_logs_into_cache()
+            self.current_audit_search = search_text.strip().lower()
+            self.current_audit_page = 0
+            
+        logs = self.cached_audit_logs
+        
         filtered_logs = []
-        if search_text:
+        if self.current_audit_search:
             for log in logs:
-                if any(search_text in str(val).lower() for val in log.values() if val):
+                if any(self.current_audit_search in str(val).lower() for val in log.values() if val):
                     filtered_logs.append(log)
         else:
             filtered_logs = logs
         
-        filtered_logs.reverse()
+        total_logs = len(filtered_logs)
+        total_pages = (total_logs + self.audit_items_per_page - 1) // self.audit_items_per_page
         
-        model = AuditLogModel(filtered_logs)
+        start_index = self.current_audit_page * self.audit_items_per_page
+        end_index = start_index + self.audit_items_per_page
+        paginated_logs = filtered_logs[start_index:end_index]
+        
+        model = AuditLogModel(paginated_logs)
         self.audit_logs_ui.audit_table_view.setModel(model)
         
-        self.audit_logs_ui.audit_table_view.setAlternatingRowColors(False)
+        # Apply style consistent with organization_view_base._apply_table_style
+        self.audit_logs_ui.audit_table_view.setAlternatingRowColors(True)
         self.audit_logs_ui.audit_table_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         self.audit_logs_ui.audit_table_view.horizontalHeader().setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeMode.Stretch)
         self.audit_logs_ui.audit_table_view.verticalHeader().setVisible(False)
-        
-        if not filtered_logs:
+        self.audit_logs_ui.audit_table_view.setStyleSheet("QTableView { background-color: white; border: none; }")
+
+        # Update Pagination Controls
+        self.audit_prev_btn.setEnabled(self.current_audit_page > 0)
+        self.audit_next_btn.setEnabled(self.current_audit_page < total_pages - 1)
+        self.audit_page_label.setText(f"Page {self.current_audit_page + 1} of {max(1, total_pages)}")
+
+        if not paginated_logs:
             self.audit_logs_ui.audit_table_view.hide()
-            self.no_logs_label.show()
+            if self.audit_no_logs_label:
+                self.audit_no_logs_label.show()
         else:
             self.audit_logs_ui.audit_table_view.show()
-            self.no_logs_label.hide()
+            if self.audit_no_logs_label:
+                self.audit_no_logs_label.hide()
 
     def _perform_audit_search(self) -> None:
         """Handle audit logs search."""
         search_text = self.audit_logs_ui.audit_line_edit.text().strip().lower()
-        self.load_audit_logs_data(search_text)
+        self.load_audit_logs_data(search_text, use_cache=False)
 
     def _populate_reports_orgs(self) -> None:
         """Populate organizations in the reports dropdown."""
@@ -443,9 +690,9 @@ class Admin(ManagerBase, FacultyAdminBase):
         report_text = ""
         for log in sorted(logs, key=lambda x: x['timestamp']):
             dt = datetime.datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %I:%M %p')
-            report_text += f"[{dt}] {log['actor']} performed {log['action']}.\n"
-            report_text += f"    -> Subject: {log.get('subject', 'N/A')}\n"
-            report_text += f"    -> Details: {log.get('details', 'N/A')}\n\n"
+            report_text += f"[{dt}] {log['actor']} performed {log['action']}.\\n"
+            report_text += f"    -> Subject: {log.get('subject', 'N/A')}\\n"
+            report_text += f"    -> Details: {log.get('details', 'N/A')}\\n\\n"
         return report_text
 
     def _generate_membership_report(self, logs: List[Dict]) -> str:
@@ -460,7 +707,7 @@ class Admin(ManagerBase, FacultyAdminBase):
         report_text = ""
         for log in sorted(report_logs, key=lambda x: x['timestamp']):
             dt = datetime.datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %I:%M %p')
-            report_text += f"[{dt}] {log['actor']} performed {log['action']} on {log['subject']}. \n    Details: {log['details']}\n"
+            report_text += f"[{dt}] {log['actor']} performed {log['action']} on {log['subject']}. \\n    Details: {log['details']}\\n"
         return report_text
 
     def _generate_officer_list_report(self, org_name: str) -> str:
@@ -468,7 +715,7 @@ class Admin(ManagerBase, FacultyAdminBase):
         Generates the body for the 'Officer List' report.
         Also caches the officer data in self.last_report_data.
         """
-        report_text = "This report shows the CURRENT officer list and is not affected by the date range.\n\n"
+        report_text = "This report shows the CURRENT officer list and is not affected by the date range.\\n\\n"
         all_orgs = self._load_data()
         found_org = None
         for org in all_orgs:
@@ -488,7 +735,7 @@ class Admin(ManagerBase, FacultyAdminBase):
         
         self.last_report_data = found_org.get("officers", [])
         for officer in self.last_report_data:
-            report_text += f" - {officer.get('name', 'N/A'):<30} | {officer.get('position', 'N/A')}\n"
+            report_text += f" - {officer.get('name', 'N/A'):<30} | {officer.get('position', 'N/A')}\\n"
         return report_text
 
     def _generate_summary_report(self, logs: List[Dict]) -> str:
@@ -501,9 +748,9 @@ class Admin(ManagerBase, FacultyAdminBase):
             action_type = log.get('action', 'UNKNOWN')
             actions[action_type] = actions.get(action_type, 0) + 1
         
-        report_text = "Summary of all actions in this period:\n\n"
+        report_text = "Summary of all actions in this period:\\n\\n"
         for action, count in sorted(actions.items()):
-            report_text += f" - {action:<25} | {count} time(s)\n"
+            report_text += f" - {action:<25} | {count} time(s)\\n"
         return report_text
 
     # --- Main Report Generation Method ---
@@ -557,14 +804,14 @@ class Admin(ManagerBase, FacultyAdminBase):
             except (ValueError, TypeError):
                 continue
         
-        report_text = f"Report Type: {report_type}\n"
-        report_text += f"Organization/Branch: {org_name}\n"
-        report_text += f"Date Range: {date_range_str}\n"
-        report_text += f"Generated by: {self.name}\n"
-        report_text += f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %I:%M %p')}\n"
-        report_text += "=" * 50 + "\n\n"
+        report_text = f"Report Type: {report_type}\\n"
+        report_text += f"Organization/Branch: {org_name}\\n"
+        report_text += f"Date Range: {date_range_str}\\n"
+        report_text += f"Generated by: {self.name}\\n"
+        report_text += f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %I:%M %p')}\\n"
+        report_text += "=" * 50 + "\\n\\n"
         
-        self.last_report_header_text = "\n".join(report_text.split('\n')[:6])
+        self.last_report_header_text = "\\n".join(report_text.split('\\n')[:6])
         
         body_text = ""
         if report_type == "Event History (Default)":
@@ -603,19 +850,19 @@ class Admin(ManagerBase, FacultyAdminBase):
                 styles = getSampleStyleSheet()
                 style_mono = styles['Code']
                 
-                formatted_text = report_text.replace('\n', '<br/>')
+                formatted_text = report_text.replace('\\n', '<br/>')
                 
                 story = [Paragraph(formatted_text, style_mono)]
                 
                 doc.build(story)
-                QMessageBox.information(self, "Success", f"Report successfully saved to:\n{filename}")
+                QMessageBox.information(self, "Success", f"Report successfully saved to:\\n{filename}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save PDF: {str(e)}")
 
     
     def _write_excel_header(self, ws, row):
         """Writes the report header block to the worksheet."""
-        header_lines = self.last_report_header_text.split('\n')
+        header_lines = self.last_report_header_text.split('\\n')
         bold_font = Font(bold=True)
         for line in header_lines:
             if ":" in line:
@@ -734,3 +981,45 @@ class Admin(ManagerBase, FacultyAdminBase):
             
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save Excel file: {str(e)}")
+
+    def show_org_details(self, org_data: Dict) -> None:
+        if org_data.get("is_archived", False):
+            self.from_archived = True
+        super().show_org_details(org_data)
+        self.current_org = org_data
+        self.ui.view_members_btn.setText("Manage Members")
+        
+        # Existing edit_btn code...
+        
+        # Add archive_btn below edit_btn
+        if self.archive_btn:
+            self.ui.verticalLayout_10.removeWidget(self.archive_btn)
+            self.archive_btn.deleteLater()
+        
+        if not org_data.get("is_archived", False):
+            self.archive_btn = QtWidgets.QPushButton("Archive")
+            self.archive_btn.setObjectName("archive_btn")
+            self.archive_btn.clicked.connect(self._confirm_archive)
+            self.archive_btn.setStyleSheet("border-radius: 10px; background-color: #EB5757; color: white; border: 2px solid #EB5757")
+            
+            edit_index = self.ui.verticalLayout_10.indexOf(self.edit_btn)
+            if edit_index != -1:
+                spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+                self.ui.verticalLayout_10.insertItem(edit_index + 1, spacer)
+                self.ui.verticalLayout_10.insertWidget(edit_index + 2, self.archive_btn)
+            else:
+                # Fallback
+                self.ui.verticalLayout_10.addWidget(self.archive_btn)
+        else:
+            self.archive_btn = None
+            
+    def _confirm_archive(self):
+        if not self.current_org:
+            return
+        dialog = ArchiveConfirmDialog(self.current_org["name"], self)
+        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+            is_branch = self.current_org.get("is_branch", False)
+            self.archive_org(self.current_org["id"], is_branch)
+            QMessageBox.information(self, "Success", f"{'Branch' if is_branch else 'Organization'} archived.")
+            self._return_to_prev_page()  # Refresh list
+            self.load_orgs() if self.ui.comboBox.currentIndex() == 0 else self.load_branches()
