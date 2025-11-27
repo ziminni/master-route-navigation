@@ -8,13 +8,12 @@ contourpy==1.3.3
 cycler==0.12.1
 Django==5.2.5
 django-cors-headers==4.7.0
-<<<<<<< HEAD
 django-filter==25.2
-=======
->>>>>>> 6de585d (Added modules from Module 2 and 3. Added Faculty Feedback Message, Final Grade Added Admin View.)
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 fonttools==4.61.0
+django-extensions==4.1
+fonttools==4.60.1
 idna==3.10
 kiwisolver==1.4.9
 matplotlib==3.10.7
