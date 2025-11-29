@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 
-from .BrowseView import Student, Officer, Admin, Faculty
+from .BrowseView import Student, Officer, Admin, Faculty, Dean
 
 print(f"Browse: Imported Student={Student is not None}, Faculty={Faculty is not None}, Officer={Officer is not None}, Admin={Admin is not None}")
 

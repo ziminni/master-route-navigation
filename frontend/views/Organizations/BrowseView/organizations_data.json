@@ -3,6 +3,8 @@
         {
             "id": 1,
             "name": "CISCO",
+            "adviser": "Kim",
+            "pending_officers": [],
             "is_joined": true,
             "is_branch": false,
             "logo_path": "CISCo/CiSCo_Logo.jpg",
@@ -49,7 +51,7 @@
                         ]
                     ],
                     "applicants": [],
-                    "is_archived": true
+                    "is_archived": false
                 },
                 {
                     "id": 102,
@@ -89,6 +91,13 @@
             ],
             "officers": [
                 {
+                    "name": "admin",
+                    "position": "Treasurer",
+                    "card_image_path": "CISCo/Internal.jpg",
+                    "photo_path": "CISCo/Internal.jpg",
+                    "start_date": "07/08/2025"
+                },
+                {
                     "name": "Pescasio, Jacob Hermon",
                     "position": "Vice - Internal Chairperson",
                     "card_image_path": "CISCo/Internal.jpg",
@@ -119,6 +128,12 @@
                 }
             ],
             "members": [
+                [
+                    "admin",
+                    "Member",
+                    "Inactive",
+                    "2023-04-09"
+                ],
                 [
                     "Yuri Salise",
                     "Member",
@@ -240,7 +255,13 @@
             "is_archived": false
         },
         {
-            "applicants": [],
+            "applicants": [
+                [
+                    "Marcus",
+                    "Member",
+                    "2025-11-29"
+                ]
+            ],
             "branches": [
                 {
                     "applicants": [],

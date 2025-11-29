@@ -262,5 +262,29 @@
         "organization": "CISCO",
         "subject": "CISCO",
         "details": null
+    },
+    {
+        "timestamp": "2025-11-29T23:39:17.502654",
+        "actor": "admin",
+        "action": "RESTORE_BRANCH",
+        "organization": "CISCO",
+        "subject": "IT Branch",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-29T23:58:46.574221",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Officer details updated. Position changed from 'Vice - Internal Chairperson' to 'Member'."
+    },
+    {
+        "timestamp": "2025-11-30T00:11:07.584364",
+        "actor": "Kim",
+        "action": "ASSIGN_ADVISER",
+        "organization": "CISCO",
+        "subject": "Prof. Maria Santos",
+        "details": "Adviser changed from 'Kim' to 'Prof. Maria Santos'"
     }
 ]
