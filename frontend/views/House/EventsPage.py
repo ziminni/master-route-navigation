@@ -109,7 +109,6 @@ class EventCard(QWidget):
         title_label.setWordWrap(True)
         title_label.setStyleSheet("""
             color: #084924;
-            background: transparent;
             border: none;
         """)
 
@@ -164,7 +163,7 @@ class EventCard(QWidget):
 
 
     def open_participate_popup(self, event_title):
-        # --- Path setup (same as MembersPage) ---
+        # --- Path setup ---
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
         members_path = os.path.join(project_root, "frontend", "Mock", "members.json")
         avatars_base_path = os.path.join(project_root, "frontend", "assets", "images", "avatars")
@@ -182,7 +181,7 @@ class EventCard(QWidget):
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Participate in {event_title}")
         dialog.resize(420, 700)
-        dialog.setModal(True)
+        dialog.setModal(False)  # CHANGED: Non-modal so other windows can be interacted with
         dialog.setStyleSheet("background-color: white; border-radius: 12px;")
 
         main_layout = QVBoxLayout(dialog)
@@ -202,7 +201,6 @@ class EventCard(QWidget):
         """)
         main_layout.addWidget(header)
 
-        # --- Search Bar ---
         # --- Search and filter row ---
         search_row = QHBoxLayout()
         search_row.setContentsMargins(0, 0, 0, 0)
@@ -217,7 +215,6 @@ class EventCard(QWidget):
         search_container.setFixedHeight(52)
 
         # Search icon
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
         search_icon = QLabel()
         search_icon_path = os.path.join(project_root, "frontend", "assets", "images", "search.png")
         if os.path.exists(search_icon_path):
@@ -235,8 +232,6 @@ class EventCard(QWidget):
         search_container_layout.addWidget(search_bar)
         search_row.addWidget(search_container, 1)
 
-
-
         # Filter button
         filter_btn = QPushButton(" Filter")
         filter_btn.setObjectName("filterButton")
@@ -249,8 +244,6 @@ class EventCard(QWidget):
         filter_btn.setFixedWidth(120)
         filter_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         search_row.addWidget(filter_btn)
-
-        from PyQt6.QtWidgets import QMenu
 
         # --- Filter Menu Setup ---
         filter_menu = QMenu()
@@ -273,20 +266,7 @@ class EventCard(QWidget):
             }
         """)
 
-        # --- Add filter options ---
-        filter_menu.addAction("Filter by Year Level", lambda: apply_filter("year"))
-        filter_menu.addAction("Filter by Position", lambda: apply_filter("position"))
-        filter_menu.addSeparator()
-        filter_menu.addAction("Sort A–Z", lambda: apply_filter("az"))
-        filter_menu.addAction("Sort Z–A", lambda: apply_filter("za"))
-
-        # --- Connect the button to show the menu ---
-        filter_btn.setMenu(filter_menu)
-
-
-        # Add to main layout
         main_layout.addLayout(search_row)
-
 
         # --- Scroll Area for members ---
         scroll = QScrollArea()
@@ -300,10 +280,12 @@ class EventCard(QWidget):
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
-        # --- Popup for selected participants (shown beside main dialog) ---
-        selected_popup = QDialog(dialog)
+        # --- Popup for selected participants ---
+        selected_popup = QDialog(self)
         selected_popup.setWindowTitle("Selected Participants")
         selected_popup.resize(420, 700)
+        selected_popup.setWindowModality(Qt.WindowModality.NonModal)
+        selected_popup.setWindowFlags(selected_popup.windowFlags() | Qt.WindowType.Window)
         selected_popup.setStyleSheet("""
             background-color: #084924;
             border-radius: 12px;
@@ -323,6 +305,7 @@ class EventCard(QWidget):
         selected_content = QWidget()
         selected_scroll_layout = QVBoxLayout(selected_content)
         selected_scroll_layout.setSpacing(10)
+        selected_scroll_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         selected_scroll.setWidget(selected_content)
         selected_layout.addWidget(selected_scroll)
 
@@ -345,7 +328,7 @@ class EventCard(QWidget):
 
         # --- Function: update selected participants popup ---
         def update_selected_popup():
-            # Clear layout
+            # Clear previous widgets
             for i in reversed(range(selected_scroll_layout.count())):
                 item = selected_scroll_layout.itemAt(i).widget()
                 if item:
@@ -354,13 +337,11 @@ class EventCard(QWidget):
             # Add selected participants
             for idx, (name, info) in enumerate(selected_members.items(), start=1):
                 frame = QFrame()
-                frame.setStyleSheet("""
-                    background: white;
-                    border-radius: 10px;
-                    border: 2px solid #3bb54a;
-                """)
-                h = QHBoxLayout(frame)
-                h.setContentsMargins(8, 8, 8, 8)
+                frame.setFixedHeight(80)
+                frame.setStyleSheet("background: white;")
+                frame_layout = QHBoxLayout(frame)
+                frame_layout.setContentsMargins(8, 8, 8, 8)
+                frame_layout.setSpacing(12)
 
                 # Avatar
                 avatar_path = os.path.join(avatars_base_path, info["avatar"])
@@ -369,55 +350,53 @@ class EventCard(QWidget):
                     pix = QPixmap(50, 50)
                     pix.fill(Qt.GlobalColor.lightGray)
                 pix = pix.scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
-                size = min(pix.width(), pix.height())
-                circ = QPixmap(size, size)
+                circ = QPixmap(50, 50)
                 circ.fill(Qt.GlobalColor.transparent)
                 painter = QPainter(circ)
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing)
                 path = QPainterPath()
-                path.addEllipse(0, 0, size, size)
+                path.addEllipse(0, 0, 50, 50)
                 painter.setClipPath(path)
                 painter.drawPixmap(0, 0, pix)
                 painter.end()
-
                 avatar_lbl = QLabel()
                 avatar_lbl.setPixmap(circ)
                 avatar_lbl.setFixedSize(50, 50)
-                h.addWidget(avatar_lbl)
+                frame_layout.addWidget(avatar_lbl)
 
-                # Name & role
+                # Name & Role
                 v = QVBoxLayout()
+                v.setContentsMargins(0, 0, 0, 0)
+                v.setSpacing(-3)
+
                 name_lbl = QLabel(f"{idx}. {name}")
-                name_lbl.setStyleSheet("font-weight: bold; color: #084924; font-size: 13px;")
+                name_font = QFont("Poppins", 11, QFont.Weight.Bold)
+                name_lbl.setFont(name_font)
+                name_lbl.setStyleSheet("color: #084924; padding: 0px; margin: 0px;")
+                name_lbl.setContentsMargins(0, 0, 0, 0)
+
                 role_lbl = QLabel(info["role"])
-                role_lbl.setStyleSheet("color: #666; font-size: 12px;")
+                role_font = QFont("Inter", 10)
+                role_lbl.setFont(role_font)
+                role_lbl.setStyleSheet("color: #666; padding: 0px; margin: 0px;")
+                role_lbl.setContentsMargins(0, 0, 0, 0)
+
                 v.addWidget(name_lbl)
                 v.addWidget(role_lbl)
-                h.addLayout(v)
-                h.addStretch()
+                frame_layout.addLayout(v)
+                frame_layout.addStretch()
 
                 # Remove button
                 remove_btn = QPushButton("✕")
                 remove_btn.setFixedSize(30, 30)
                 remove_btn.setStyleSheet("""
-                    QPushButton {
-                        background-color: #e53935;
-                        color: white;
-                        border-radius: 15px;
-                        font-weight: bold;
-                    }
-                    QPushButton:hover {
-                        background-color: #c62828;
-                    }
+                    QPushButton { background-color: #e53935; color: white; border-radius: 15px; font-weight: bold; }
+                    QPushButton:hover { background-color: #c62828; }
                 """)
                 remove_btn.clicked.connect(lambda _, n=name: remove_participant(n))
-                h.addWidget(remove_btn)
+                frame_layout.addWidget(remove_btn)
 
                 selected_scroll_layout.addWidget(frame)
-
-            selected_content.setLayout(selected_scroll_layout)
-            selected_scroll.setWidget(selected_content)
-            selected_popup.show()
 
         # --- Function: remove participant ---
         def remove_participant(name):
@@ -466,24 +445,20 @@ class EventCard(QWidget):
         # --- Build members list ---
         for idx, m in enumerate(members_data, start=1):
             frame = QFrame()
-            frame.setStyleSheet("""
-                QFrame {
-                    background: white;
-                    border-radius: 10px;
-                    border: 2px solid #3bb54a;
-                }
-            """)
+            frame.setFixedHeight(80)
+            frame.setStyleSheet("QFrame { background: white; }")
             frame_layout = QHBoxLayout(frame)
             frame_layout.setContentsMargins(8, 8, 8, 8)
             frame_layout.setSpacing(12)
 
-            # Avatar
+            # --- Avatar ---
             avatar_path = os.path.join(avatars_base_path, m["avatar"])
             pix = QPixmap(avatar_path)
             if pix.isNull():
                 pix = QPixmap(50, 50)
                 pix.fill(Qt.GlobalColor.lightGray)
             pix = pix.scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
+
             size = min(pix.width(), pix.height())
             circ = QPixmap(size, size)
             circ.fill(Qt.GlobalColor.transparent)
@@ -494,21 +469,56 @@ class EventCard(QWidget):
             painter.setClipPath(path)
             painter.drawPixmap(0, 0, pix)
             painter.end()
+
             avatar_lbl = QLabel()
             avatar_lbl.setPixmap(circ)
             avatar_lbl.setFixedSize(50, 50)
+            avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             frame_layout.addWidget(avatar_lbl)
 
-            # Name & Role
+            # --- Name & Role ---
             v = QVBoxLayout()
+            v.setContentsMargins(0, 0, 0, 0)
+            v.setSpacing(-3)
+
             name_lbl = QLabel(f"{idx}. {m['name']}")
-            name_lbl.setStyleSheet("font-weight: bold; color: #084924; font-size: 13px;")
+            name_font = QFont("Poppins", 11, QFont.Weight.Bold)
+            name_lbl.setFont(name_font)
+            name_lbl.setStyleSheet("color: #084924; padding: 0px; margin: 0px;")
+            name_lbl.setContentsMargins(0, 0, 0, 0)
+
             role_lbl = QLabel(m["role"])
-            role_lbl.setStyleSheet("color: #666; font-size: 12px;")
+            role_font = QFont("Inter", 10)
+            role_lbl.setFont(role_font)
+            role_lbl.setStyleSheet("color: #666; padding: 0px; margin: 0px;")
+            role_lbl.setContentsMargins(0, 0, 0, 0)
+
             v.addWidget(name_lbl)
             v.addWidget(role_lbl)
             frame_layout.addLayout(v)
             frame_layout.addStretch()
+
+            # --- Add/Remove Button + Chat Icon ---
+            buttons_layout = QHBoxLayout()
+            buttons_layout.setSpacing(5)
+
+            # Chat icon button
+            chat_btn = QPushButton()
+            chat_btn.setFixedSize(30, 30)
+            chat_icon_path = os.path.join(project_root, "frontend", "assets", "images", "icons", "chat.png")
+            if os.path.exists(chat_icon_path):
+                chat_btn.setIcon(QIcon(chat_icon_path))
+                chat_btn.setIconSize(QSize(20, 20))
+            chat_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #f0f0f0;
+                    border-radius: 15px;
+                }
+                QPushButton:hover {
+                    background-color: #dcdcdc;
+                }
+            """)
+            buttons_layout.addWidget(chat_btn)
 
             # Add button
             add_btn = QPushButton("+")
@@ -526,8 +536,9 @@ class EventCard(QWidget):
                 }
             """)
             add_btn.clicked.connect(lambda _, m=m, b=add_btn: toggle_selection(m, b))
-            frame_layout.addWidget(add_btn)
+            buttons_layout.addWidget(add_btn)
 
+            frame_layout.addLayout(buttons_layout)
             scroll_layout.addWidget(frame)
 
         # --- Search filter ---
@@ -542,8 +553,15 @@ class EventCard(QWidget):
 
         search_bar.textChanged.connect(filter_members)
 
+        # --- Add filter actions ---
+        filter_menu.addAction("Filter by Year Level", lambda: apply_filter("year"))
+        filter_menu.addAction("Filter by Position", lambda: apply_filter("position"))
+        filter_menu.addSeparator()
+        filter_menu.addAction("Sort A–Z", lambda: apply_filter("az"))
+        filter_menu.addAction("Sort Z–A", lambda: apply_filter("za"))
+        filter_btn.setMenu(filter_menu)
+
         def apply_filter(mode):
-            # Extract all frames (each represents a member)
             member_frames = []
             for i in range(scroll_layout.count()):
                 w = scroll_layout.itemAt(i).widget()
@@ -551,12 +569,10 @@ class EventCard(QWidget):
                     member_frames.append(w)
 
             if mode == "year":
-                # Sort by year level text inside QLabel (if available)
                 member_frames.sort(key=lambda frame: next(
                     (lbl.text() for lbl in frame.findChildren(QLabel) if "Year" in lbl.text()), ""
                 ))
             elif mode == "position":
-                # Sort by role label
                 member_frames.sort(key=lambda frame: next(
                     (lbl.text() for lbl in frame.findChildren(QLabel) if lbl.text() not in ["+", "✓"]), ""
                 ))
@@ -569,22 +585,24 @@ class EventCard(QWidget):
                     (lbl.text() for lbl in frame.findChildren(QLabel) if ". " in lbl.text()), ""
                 ), reverse=True)
 
-            # Clear layout
             for i in reversed(range(scroll_layout.count())):
                 item = scroll_layout.takeAt(i)
                 if item.widget():
                     item.widget().setParent(None)
 
-            # Re-add sorted frames
             for frame in member_frames:
                 scroll_layout.addWidget(frame)
-
 
         # --- Confirm button saves JSON ---
         def confirm_selection():
             try:
+                # Create participants dict with event title
+                participants_data = {
+                    "event": event_title,
+                    "participants": list(selected_members.keys())
+                }
                 with open(participants_json, "w", encoding="utf-8") as f:
-                    json.dump({"participants": selected_members}, f, indent=2)
+                    json.dump(participants_data, f, indent=2)
                 QMessageBox.information(dialog, "Saved", "Participants successfully saved!")
                 selected_popup.close()
                 dialog.close()
@@ -597,7 +615,7 @@ class EventCard(QWidget):
         geo = dialog.geometry()
         selected_popup.move(geo.x() + geo.width() + 20, geo.y())
         selected_popup.show()
-        dialog.exec()
+        dialog.show()  # CHANGED: Use show() instead of exec() so it's non-blocking
 
 
 
@@ -606,7 +624,7 @@ class EventCard(QWidget):
         # Load event details from external JSON file
         project_root = get_project_root()
         details_path = os.path.join(project_root, "frontend", "Mock", "event_details.json")
-        print(f"Attempting to load event_details.json: {details_path}")  # Debug log
+        print(f"Attempting to load event_details.json: {details_path}")
         try:
             with open(details_path, "r", encoding="utf-8") as f:
                 details_data = json.load(f)
@@ -614,15 +632,13 @@ class EventCard(QWidget):
             QMessageBox.critical(self, "Error", f"event_details.json file not found at {details_path}.")
             return
 
-        # Normalize poster paths in details_data (so they reference Mock/pics/<basename>)
+        # Normalize poster paths in details_data
         for d in details_data:
             if "poster" in d and d["poster"]:
-                # ensure poster is a list
                 if isinstance(d["poster"], str):
                     d["poster"] = [d["poster"]]
                 normalized = []
                 for p in d["poster"]:
-                    # always use basename and place under 'pics' so the UI path join works
                     normalized.append(os.path.join(os.path.basename(p)))
                 d["poster"] = normalized
 
@@ -635,8 +651,9 @@ class EventCard(QWidget):
         # --- Popup Dialog ---
         dialog = QDialog(self)
         dialog.setWindowTitle(detail["title"])
-        dialog.setModal(True)
-        dialog.resize(600, 750)  # Fixed height
+        dialog.setModal(False)  # CHANGED: Non-modal dialog
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowType.Window)  # Make it a top-level window
+        dialog.resize(600, 750)
 
         # --- Gradient Border Frame (Outer) ---
         outer_frame = QFrame(dialog)
@@ -655,13 +672,6 @@ class EventCard(QWidget):
 
         # --- Inner Frame (Content Background) ---
         inner_frame = QFrame()
-        inner_frame.setStyleSheet("""
-            QFrame {
-                background-color: #f3f3f3;
-                border-radius: 8px;
-            }
-        """)
-
         outer_layout = QVBoxLayout(dialog)
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.addWidget(outer_frame)
@@ -676,7 +686,7 @@ class EventCard(QWidget):
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setStyleSheet("""
-            QScrollArea { border: none; background: transparent; }
+            QScrollArea { border: none; }
             QScrollBar:vertical {
                 background: #053D1D;
                 width: 14px;
@@ -737,27 +747,85 @@ class EventCard(QWidget):
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setContentsMargins(20, 20, 20, 20)
-        scroll_layout.setSpacing(15)
+        scroll_layout.setSpacing(10)
 
-        # --- Title ---
+        # --- Title & Date Section (White Container) ---
+        title_frame = QFrame()
+        title_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 12px;
+                padding: 15px;
+            }
+        """)
+        title_layout = QVBoxLayout(title_frame)
+        title_layout.setContentsMargins(15, 15, 15, 15)
+        title_layout.setSpacing(2)
+
+        # --- Logo + Title & Date Horizontal Layout ---
+        logo_and_text = QHBoxLayout()
+        logo_and_text.setSpacing(4)
+
+        # Logo
+        logo_label = QLabel()
+        logo_path = os.path.join(project_root, "frontend", "assets", "images", "csco_logo.png")
+        logo_pix = QPixmap(logo_path)
+        if not logo_pix.isNull():
+            logo_pix = logo_pix.scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        logo_label.setPixmap(logo_pix)
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignTop)
+        logo_and_text.addWidget(logo_label)
+
+        # Vertical stack for title + date
+        title_text_layout = QVBoxLayout()
+        title_text_layout.setSpacing(2)
+        title_text_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Title
         title_label = QLabel(detail["title"])
-        title_label.setFont(QFont("Poppins", 18, QFont.Weight.Bold))
+        title_label.setFont(QFont("Poppins", 12, QFont.Weight.Bold))
         title_label.setStyleSheet("color: #084924;")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        scroll_layout.addWidget(title_label)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        title_label.setWordWrap(True)
+        title_text_layout.addWidget(title_label)
 
-        # --- Description ---
-        desc_label = QLabel(detail["content"])
-        desc_label.setWordWrap(True)
-        desc_label.setStyleSheet("color: #084924; font-size: 13px;")
-        scroll_layout.addWidget(desc_label)
+        # Date + Time
+        datetime_label = QLabel(detail.get("date") + " at " + detail.get("time"))
+        datetime_label.setFont(QFont("Inter", 12))
+        datetime_label.setStyleSheet("color: #084924;")
+        datetime_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        datetime_label.setWordWrap(True)
+        title_text_layout.addWidget(datetime_label)
 
-        # --- Details ---
+        # Add vertical title stack to horizontal layout
+        logo_and_text.addLayout(title_text_layout)
+
+        # Add combined layout to the title_frame
+        title_layout.addLayout(logo_and_text)
+
+        scroll_layout.addWidget(title_frame)
+
+        # --- Main Content Section (White Container) ---
+        content_frame = QFrame()
+        content_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 12px;
+                padding: 15px;
+            }
+        """)
+        content_layout = QVBoxLayout(content_frame)
+        content_layout.setContentsMargins(15, 15, 15, 15)
+        content_layout.setSpacing(10)
+
+        # Details
         for line in detail["details"]:
             lbl = QLabel(line)
             lbl.setWordWrap(True)
-            lbl.setStyleSheet("color: rgba(8, 73, 36, 0.8); font-size: 12px;")
-            scroll_layout.addWidget(lbl)
+            lbl.setStyleSheet("color: #084924; font-size: 12px;")
+            content_layout.addWidget(lbl)
+
+        scroll_layout.addWidget(content_frame)
 
         # --- Poster Images ---
         posters = detail.get("poster")
@@ -777,9 +845,8 @@ class EventCard(QWidget):
 
             for img_path in posters[:2]:
                 lbl = QLabel()
-                # img_path is normalized to 'pics/<basename>' earlier
                 full_img_path = os.path.join(project_root, "frontend", "assets", "images", "pics", img_path)
-                print(f"Attempting to load poster image: {full_img_path}")  # Debug log
+                print(f"Attempting to load poster image: {full_img_path}")
                 pix = QPixmap(full_img_path)
                 if pix.isNull():
                     pix = QPixmap(300, 250)
@@ -802,7 +869,7 @@ class EventCard(QWidget):
         inner_frame_layout.setContentsMargins(0, 0, 0, 0)
         inner_frame_layout.addWidget(scroll)
 
-                # --- Participate Button ---
+        # --- Participate Button ---
         participate_btn = QPushButton("Participate")
         participate_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         participate_btn.setStyleSheet("""
@@ -820,8 +887,7 @@ class EventCard(QWidget):
         participate_btn.clicked.connect(lambda: self.open_participate_popup(detail["title"]))
         scroll_layout.addWidget(participate_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
-
-        dialog.exec()
+        dialog.show()  # CHANGED: Use show() instead of exec()
 
 
 

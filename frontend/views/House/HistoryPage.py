@@ -46,85 +46,223 @@ class RoundedTopImageLabel(QLabel):
 class EventDetailsPopup(QDialog):
     def __init__(self, parent, data, details):
         super().__init__(parent)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
-        self.setModal(True)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.resize(parent.width(), parent.height())
+        self.setWindowTitle(details["title"])
+        self.setModal(False)  # Non-modal like events page
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.Window)
+        self.resize(600, 750)
 
-        overlay = QVBoxLayout(self)
-        overlay.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        overlay.setContentsMargins(0, 0, 0, 0)
-
-        bg = QWidget()
-        bg.setStyleSheet("background-color: rgba(8, 73, 36, 250);")
-        bg_layout = QVBoxLayout(bg)
-        bg_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Popup card
-        card = QFrame()
-        card.setFixedSize(600, 500)
-        card.setStyleSheet("""
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
+        # --- Gradient Border Frame (Outer) ---
+        outer_frame = QFrame(self)
+        outer_frame.setStyleSheet("""
+            QFrame {
+                border-radius: 12px;
+                background: qlineargradient(
+                    x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #084924,
+                    stop: 0.33 #077336,
+                    stop: 1 #078F41
+                );
+                padding: 4px;
+            }
         """)
-        vbox = QVBoxLayout(card)
-        vbox.setSpacing(10)
 
-        title = QLabel(details["title"])
-        title.setFont(QFont("Poppins", 18, QFont.Weight.Bold))
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color: #084924;")
-        vbox.addWidget(title)
+        # --- Inner Frame (Content Background) ---
+        inner_frame = QFrame()
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.addWidget(outer_frame)
 
-        # Date/Time/Location
-        date_label = QLabel(f"{details['date']} | {details['time']}\n {details['location']}")
-        date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        date_label.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #333;")
-        vbox.addWidget(date_label)
+        inner_layout = QVBoxLayout(outer_frame)
+        inner_layout.setContentsMargins(4, 4, 4, 4)
+        inner_layout.addWidget(inner_frame)
+
+        # --- Scroll Area ---
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setStyleSheet("""
+            QScrollArea { border: none; }
+            QScrollBar:vertical {
+                background: #053D1D;
+                width: 14px;
+                border: none;
+                margin: 0;
+                border-radius: 7px;
+            }
+            QScrollBar::handle:vertical {
+                background: white;
+                border-radius: 7px;
+                min-height: 30px;
+                margin: 3px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #f2f2f2;
+            }
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical {
+                height: 0;
+                background: none;
+                border: none;
+            }
+            QScrollBar::add-page:vertical,
+            QScrollBar::sub-page:vertical {
+                background: #053D1D;
+                border-radius: 7px;
+            }
+            QScrollBar:horizontal {
+                background: #053D1D;
+                height: 14px;
+                border: none;
+                margin: 0;
+                border-radius: 7px;
+            }
+            QScrollBar::handle:horizontal {
+                background: white;
+                border-radius: 7px;
+                min-width: 30px;
+                margin: 2px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #f2f2f2;
+            }
+            QScrollBar::add-line:horizontal,
+            QScrollBar::sub-line:horizontal {
+                width: 0;
+                background: none;
+                border: none;
+            }
+            QScrollBar::add-page:horizontal,
+            QScrollBar::sub-page:horizontal {
+                background: #053D1D;
+                border-radius: 7px;
+            }
+        """)
+
+        # --- Scrollable Content ---
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setContentsMargins(20, 20, 20, 20)
+        scroll_layout.setSpacing(10)
+
+        # --- Title & Date Section (White Container) ---
+        title_frame = QFrame()
+        title_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 12px;
+                padding: 15px;
+            }
+        """)
+        title_layout = QVBoxLayout(title_frame)
+        title_layout.setContentsMargins(15, 15, 15, 15)
+        title_layout.setSpacing(8)
+
+        # Title
+        title_label = QLabel(details["title"])
+        title_label.setFont(QFont("Poppins", 18, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: #084924;")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        title_label.setWordWrap(True)
+        title_layout.addWidget(title_label)
+
+        # Date + Time + Location
+        datetime_location = QLabel(f"{details.get('date', 'N/A')} | {details.get('time', 'N/A')}\n{details.get('location', 'N/A')}")
+        datetime_location.setFont(QFont("Inter", 12))
+        datetime_location.setStyleSheet("color: #666;")
+        datetime_location.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        datetime_location.setWordWrap(True)
+        title_layout.addWidget(datetime_location)
+
+        scroll_layout.addWidget(title_frame)
+
+        # --- Main Content Section (White Container) ---
+        content_frame = QFrame()
+        content_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 12px;
+                padding: 15px;
+            }
+        """)
+        content_layout = QVBoxLayout(content_frame)
+        content_layout.setContentsMargins(15, 15, 15, 15)
+        content_layout.setSpacing(10)
+
+        # Placement badge
+        placement_map = {1: "🥇 1st Place", 2: "🥈 2nd Place", 3: "🥉 3rd Place"}
+        placement_text = placement_map.get(data.get("placement"), "Participant")
+        placement_label = QLabel(placement_text)
+        placement_label.setFont(QFont("Poppins", 16, QFont.Weight.Bold))
+        placement_label.setStyleSheet("color: #fdd835;")
+        placement_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        content_layout.addWidget(placement_label)
 
         # Description
-        desc = QLabel(details["details"])
-        desc.setWordWrap(True)
-        desc.setStyleSheet("font-family: 'Inter'; font-size: 12px; color: #222;")
-        vbox.addWidget(desc)
+        if "details" in details:
+            desc_lbl = QLabel(details["details"])
+            desc_lbl.setWordWrap(True)
+            desc_lbl.setStyleSheet("color: #084924; font-size: 12px; font-family: 'Inter';")
+            content_layout.addWidget(desc_lbl)
 
         # Adviser
-        adviser = QLabel(f"Adviser: {details['adviser']}")
-        adviser.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #084924; font-weight: bold;")
-        vbox.addWidget(adviser)
+        adviser_label = QLabel(f"<b>Adviser:</b> {details.get('adviser', 'N/A')}")
+        adviser_label.setStyleSheet("color: #084924; font-family: 'Inter'; font-size: 12px;")
+        adviser_label.setWordWrap(True)
+        content_layout.addWidget(adviser_label)
 
-        # Participants
-        participants_label = QLabel("Participants:\n" + ", ".join(details["participants"]))
-        participants_label.setWordWrap(True)
-        participants_label.setStyleSheet("font-family: 'Inter'; font-size: 12px; color: #333;")
-        vbox.addWidget(participants_label)
+        # Points
+        points_label = QLabel(f"<b>Points:</b> {data.get('points', 'N/A')}")
+        points_label.setStyleSheet("color: #084924; font-family: 'Inter'; font-size: 12px;")
+        content_layout.addWidget(points_label)
 
-        # Close button
+        # Members/Category
+        members_label = QLabel(f"<b>Members:</b> {data.get('membersO', 'N/A')}")
+        members_label.setStyleSheet("color: #084924; font-family: 'Inter'; font-size: 12px;")
+        content_layout.addWidget(members_label)
+
+        category_label = QLabel(f"<b>Category:</b> {data.get('type', 'N/A')}")
+        category_label.setStyleSheet("color: #084924; font-family: 'Inter'; font-size: 12px;")
+        content_layout.addWidget(category_label)
+
+        # Participants list
+        if "participants" in details and details["participants"]:
+            participants_title = QLabel("<b>Participants:</b>")
+            participants_title.setStyleSheet("color: #084924; font-family: 'Poppins'; font-size: 13px; font-weight: bold;")
+            content_layout.addWidget(participants_title)
+
+            participants_text = ", ".join(details["participants"])
+            participants_label = QLabel(participants_text)
+            participants_label.setWordWrap(True)
+            participants_label.setStyleSheet("color: #666; font-family: 'Inter'; font-size: 11px; margin-left: 10px;")
+            content_layout.addWidget(participants_label)
+
+        scroll_layout.addWidget(content_frame)
+
+        scroll.setWidget(scroll_content)
+        inner_frame_layout = QVBoxLayout(inner_frame)
+        inner_frame_layout.setContentsMargins(0, 0, 0, 0)
+        inner_frame_layout.addWidget(scroll)
+
+        # --- Close Button ---
         close_btn = QPushButton("Close")
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.setStyleSheet("""
             QPushButton {
                 background-color: #084924;
                 color: white;
+                padding: 8px 14px;
                 border-radius: 8px;
-                padding: 6px 12px;
-                font-family: 'Inter';
+                font-weight: bold;
             }
             QPushButton:hover {
                 background-color: #0b6b34;
             }
         """)
-        close_btn.clicked.connect(self.accept)
-        vbox.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        close_btn.clicked.connect(self.close)
+        scroll_layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        bg_layout.addWidget(card)
-        overlay.addWidget(bg)
-
-    def mousePressEvent(self, event):
-        child = self.childAt(event.pos())
-        if not isinstance(child, QFrame):
-            self.close()
+        self.show()
 
 
 class HistoryCard(QWidget):

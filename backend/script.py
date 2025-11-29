@@ -216,7 +216,7 @@ def create_users():
     print(f"\n{'='*60}")
     print("CREATING DEFAULT USERS")
     print(f"{'='*60}\n")
-    
+
     #==============================Start of User Creation==============================
     if not User.objects.filter(username="admin").exists():
         User.objects.create_superuser(
