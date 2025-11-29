@@ -1,58 +1,113 @@
-from PyQt6.QtCore import QAbstractTableModel, Qt
-from PyQt6 import QtWidgets, QtCore
-from PyQt6.QtWidgets import QStyledItemDelegate, QHBoxLayout, QPushButton
+from PyQt6.QtCore import Qt, QRect, QPoint, pyqtSignal, QAbstractTableModel
+from PyQt6.QtGui import QPainter, QBrush, QPen, QColor, QFont
+from PyQt6.QtWidgets import QStyledItemDelegate, QAbstractItemView
+
 
 class ActionDelegate(QStyledItemDelegate):
-    edit_clicked = QtCore.pyqtSignal(int)
-    kick_clicked = QtCore.pyqtSignal(int)
+    """Beautiful, permanent Edit/Kick buttons – no crash, perfect size & spacing"""
+    edit_clicked = pyqtSignal(int)
+    kick_clicked = pyqtSignal(int)
 
-    def createEditor(self, parent, option, index):
-        editor = QtWidgets.QWidget(parent)
-        layout = QHBoxLayout(editor)
-        layout.setContentsMargins(5, 2, 5, 2)
-        layout.setSpacing(8)
+    def __init__(self, parent: QAbstractItemView = None):
+        super().__init__(parent)
+        self.parent_view = parent  # Save reference to table view
+        self.button_width = 68
+        self.button_height = 28
+        self.spacing = 8
+        self.hover_edit = False
+        self.hover_kick = False
 
-        edit_btn = QPushButton("Edit", editor)
-        edit_btn.setStyleSheet("background-color: #0c5; color: white; padding: 3px; border-radius: 3px;")
-        edit_btn.clicked.connect(lambda: self.edit_clicked.emit(index.row()))
-        layout.addWidget(edit_btn)
+    def paint(self, painter: QPainter, option, index):
+        if index.column() != index.model().columnCount(None) - 1:
+            super().paint(painter, option, index)
+            return
 
-        kick_btn = QPushButton("Kick", editor)
-        kick_btn.setStyleSheet("background-color: #e55; color: white; padding: 3px; border-radius: 3px;")
-        kick_btn.clicked.connect(lambda: self.kick_clicked.emit(index.row()))
-        layout.addWidget(kick_btn)
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        layout.addStretch()  # pushes buttons to the left
-        return editor
+        # Cell rectangle with padding
+        cell_rect = option.rect
+        available_width = cell_rect.width() - 20
+        total_buttons_width = 2 * self.button_width + self.spacing
+        start_x = cell_rect.left() + (available_width - total_buttons_width) // 2
+        y = cell_rect.center().y() - self.button_height // 2
 
-    def updateEditorGeometry(self, editor, option, index):
-        editor.setGeometry(option.rect)
+        edit_rect = QRect(start_x, y, self.button_width, self.button_height)
+        kick_rect = QRect(start_x + self.button_width + self.spacing, y, self.button_width, self.button_height)
 
+        # === Edit Button (Green) ===
+        painter.setBrush(QBrush(QColor("#084924") if not self.hover_edit else QColor("#0a6b30")))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRoundedRect(edit_rect, 8, 8)
+        painter.setPen(QPen(QColor("white")))
+        painter.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        painter.drawText(edit_rect, Qt.AlignmentFlag.AlignCenter, "Edit")
+
+        # === Kick Button (Red) ===
+        painter.setBrush(QBrush(QColor("#EB5757") if not self.hover_kick else QColor("#c44646")))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRoundedRect(kick_rect, 8, 8)
+        painter.setPen(QPen(QColor("white")))
+        painter.drawText(kick_rect, Qt.AlignmentFlag.AlignCenter, "Kick")
+
+        painter.restore()
+
+    def editorEvent(self, event, model, option, index):
+        if not index.isValid() or index.column() != index.model().columnCount(None) - 1:
+            return False
+
+        cell_rect = option.rect
+        available_width = cell_rect.width() - 20
+        total_buttons_width = 2 * self.button_width + self.spacing
+        start_x = cell_rect.left() + (available_width - total_buttons_width) // 2
+        y = cell_rect.center().y() - self.button_height // 2
+
+        edit_rect = QRect(start_x, y, self.button_width, self.button_height)
+        kick_rect = QRect(start_x + self.button_width + self.spacing, y, self.button_width, self.button_height)
+
+        pos = event.position().toPoint() if hasattr(event, "position") else event.pos()
+
+        # Hover handling
+        old_edit = self.hover_edit
+        old_kick = self.hover_kick
+        self.hover_edit = edit_rect.contains(pos)
+        self.hover_kick = kick_rect.contains(pos)
+
+        if old_edit != self.hover_edit or old_kick != self.hover_kick:
+            if self.parent_view:
+                self.parent_view.update(index)
+
+        # Click handling
+        if event.type() == event.Type.MouseButtonRelease:
+            if edit_rect.contains(pos):
+                self.edit_clicked.emit(index.row())
+                return True
+            if kick_rect.contains(pos):
+                self.kick_clicked.emit(index.row())
+                return True
+
+        return True  # We handled the event
+
+# Keep your other models unchanged
 class BaseTableModel(QAbstractTableModel):
-    """Base class for table models to reduce boilerplate."""
     def __init__(self, data, headers):
         super().__init__()
         self._data = data
         self._headers = headers
 
-    def rowCount(self, parent=None):
-        return len(self._data)
-
-    def columnCount(self, parent=None):
-        return len(self._headers)
+    def rowCount(self, parent=None): return len(self._data)
+    def columnCount(self, parent=None): return len(self._headers)
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
             return self._headers[section]
         return None
-    
+
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        """Handles the row number column."""
-        if role == Qt.ItemDataRole.DisplayRole:
-            col = index.column()
-            if col == 0: # Row number
-                return str(index.row() + 1)
+        if role == Qt.ItemDataRole.DisplayRole and index.column() == 0:
+            return str(index.row() + 1)
         return None
+
 
 class ViewMembers(BaseTableModel):
     def __init__(self, data, is_managing: bool = False):
@@ -61,42 +116,37 @@ class ViewMembers(BaseTableModel):
         super().__init__(data, headers)
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.DisplayRole:
-            col = index.column()
-            if col == 0:
-                return super().data(index, role) # Get row number from base
-            
-            # Adjust column index for data lookup (since col 0 is handled)
-            data_col = col - 1 
-            if col < len(self._headers) - 1 or not self.is_managing:
-                return self._data[index.row()][data_col]
+        if role != Qt.ItemDataRole.DisplayRole: return None
+        col = index.column()
+        if col == 0: return super().data(index, role)
+        data_col = col - 1
+        if col < len(self._headers) - 1 or not self.is_managing:
+            row = self._data[index.row()]
+            return row[data_col] if data_col < len(row) else ""
         return None
 
-    def flags(self, index, parent=None):
+    def flags(self, index):
         flags = super().flags(index)
         if self.is_managing and index.column() == len(self._headers) - 1:
-            flags |= Qt.ItemFlag.ItemIsEditable
+            flags |= Qt.ItemFlag.ItemIsEnabled
+        else:
+            flags &= ~Qt.ItemFlag.ItemIsEditable
         return flags
-    
+
+
 class ViewApplicants(BaseTableModel):
     def __init__(self, data):
         headers = ["No.", "Name", "Position", "Actions"]
         super().__init__(data, headers)
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.DisplayRole:
-            col = index.column()
-            if col == 0:
-                return super().data(index, role) # Get row number from base
-            
-            # Adjust column index for data lookup
-            data_col = col - 1 
-            if col < len(self._headers) - 1:
-                return self._data[index.row()][data_col]
+        if role != Qt.ItemDataRole.DisplayRole: return None
+        col = index.column()
+        if col == 0: return super().data(index, role)
+        data_col = col - 1
+        if col < len(self._headers) - 1:
+            return self._data[index.row()][data_col]
         return None
 
     def flags(self, index):
-        flags = super().flags(index)
-        if index.column() == len(self._headers) - 1: 
-            flags |= Qt.ItemFlag.ItemIsEditable
-        return flags
+        return super().flags(index) | Qt.ItemFlag.ItemIsEnabled

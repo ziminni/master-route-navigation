@@ -6,6 +6,8 @@ from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtWidgets import QMessageBox
 from typing import Dict, List, Optional, Tuple
 import datetime
+from widgets.orgs_custom_widgets.tables import ActionDelegate
+
 
 class ManagerBase:
     """Mixin class providing member and applicant management functionality."""
@@ -168,6 +170,7 @@ class ManagerBase:
             self.no_member_label.show()
 
         self._setup_list_header()
+        self._setup_action_delegate()
         self._update_pagination_buttons_members()
 
     def load_applicants(self, search_text: str = "") -> None:
@@ -669,3 +672,24 @@ class ManagerBase:
             else:
                 self.load_branches()
             self.ui.stacked_widget.setCurrentIndex(0)
+    
+    def _setup_action_delegate(self):
+        """Setup permanent Edit/Kick buttons – called after setting model"""
+        model = self.ui.list_view.model()
+        if not model or not getattr(self, 'is_managing', False):
+            return
+
+        delegate = ActionDelegate(self.ui.list_view)
+        delegate.edit_clicked.connect(self._handle_delegate_edit_click)
+        delegate.kick_clicked.connect(self._handle_delegate_kick_click)
+
+        last_column = model.columnCount() - 1
+        self.ui.list_view.setItemDelegateForColumn(last_column, delegate)
+
+    def _handle_delegate_edit_click(self, row: int):
+        """Edit button clicked - now correctly calls edit_member core logic"""
+        self.edit_member(row)
+
+    def _handle_delegate_kick_click(self, row: int):
+        """Kick button clicked - now correctly calls kick_member core logic"""
+        self.kick_member(row) 

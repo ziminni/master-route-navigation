@@ -286,5 +286,29 @@
         "organization": "CISCO",
         "subject": "Prof. Maria Santos",
         "details": "Adviser changed from 'Kim' to 'Prof. Maria Santos'"
+    },
+    {
+        "timestamp": "2025-11-30T00:58:25.152918",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "admin",
+        "details": "Position changed from 'Member' to 'Member'."
+    },
+    {
+        "timestamp": "2025-11-30T00:58:32.697029",
+        "actor": "Kim",
+        "action": "KICK_MEMBER",
+        "organization": "CISCO",
+        "subject": "admin",
+        "details": "User was an officer: True"
+    },
+    {
+        "timestamp": "2025-11-30T00:58:36.649737",
+        "actor": "Kim",
+        "action": "KICK_MEMBER",
+        "organization": "CISCO",
+        "subject": "Yuri Salise",
+        "details": "User was an officer: False"
     }
 ]

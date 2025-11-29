@@ -36,7 +36,7 @@ class Dean(ManagerBase, FacultyAdminBase):
         self.adviser_label.setStyleSheet("""
             QLabel {
                 color: #084924;
-                font-size: 16px;
+                font-size: 12px;
                 font-weight: bold;
                 background-color: #e8f5e8;
                 padding: 12px;
