@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ScheduleBlockViewSet, ScheduleEntryViewSet, SemesterViewSet, CurriculumViewSet, \
     ActiveSemesterRetrieveAPIView, SectionViewSet, \
-    CourseViewSet, CurriculumCourseListAPIView
+    CourseViewSet, CurriculumCourseListAPIView, StudentScheduleViewSet, EnrollmentViewSet
 
 router = DefaultRouter()
 router.register(r'schedule-blocks', ScheduleBlockViewSet, basename='scheduleblock')
