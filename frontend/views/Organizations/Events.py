@@ -11,6 +11,12 @@ class Events(QMainWindow):
         normalized_roles = set(roles or [])
         is_faculty = "faculty" in normalized_roles
         is_org_officer = "org_officer" in normalized_roles
+        is_admin = "admin" in normalized_roles  # Check for admin role
+        
+        # CHANGED: TREAT ADMIN AS ORG OFFICER INSTEAD OF FACULTY
+        if is_admin:
+            is_org_officer = True
+            
         base_dir = os.path.dirname(__file__)
         users_root = os.path.join(base_dir, "Events", "Users")
 
@@ -193,5 +199,3 @@ class Events(QMainWindow):
                     pass
         except Exception as e:
             print(f"Events: warning wiring controller signals failed: {e}")
-
-

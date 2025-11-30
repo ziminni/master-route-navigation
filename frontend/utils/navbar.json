@@ -85,7 +85,7 @@
           "name": "Events",
           "function": "Events()",
           "path": "views.Organizations.Events",
-          "access": ["student", "admin"],
+          "access": ["student", "admin","faculty"],
           "modulars":[]
         }
       ]
