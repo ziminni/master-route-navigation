@@ -35,7 +35,5 @@ router.register(r'courses', CourseViewSet, basename='course')
 urlpatterns = [
     path('active-semester/', ActiveSemesterRetrieveAPIView.as_view(), name='active-semester-retrieve-api-view'),
     path('curriculums/courses/', CurriculumCourseListAPIView.as_view(), name='curriculum-course-list-api-view'),
-    # path('sections/', SectionListCreateAPIView.as_view(), name='section-list-api-view'),
-    # path('sections/<int:pk>/', SectionRetrieveUpdateDestroyAPIView.as_view(), name='section-retrieve-update-delete-api-view'),
     path('', include(router.urls)),
 ]
