@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ScheduleBlockViewSet, ScheduleEntryViewSet, SemesterViewSet, CurriculumViewSet, \
     ActiveSemesterRetrieveAPIView, SectionViewSet, \
-    CourseViewSet, CurriculumCourseListAPIView, StudentScheduleViewSet, EnrollmentViewSet
+    CourseViewSet, CurriculumCourseListAPIView, StudentScheduleViewSet 
+    # EnrollmentViewSet There is no EnrollmentViewSet in views.py
 
 router = DefaultRouter()
 router.register(r'schedule-blocks', ScheduleBlockViewSet, basename='scheduleblock')

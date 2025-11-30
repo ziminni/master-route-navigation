@@ -6,8 +6,9 @@ from apps.Academics import models as acad_model
 # MODULE 6
 class EventType(models.Model):
     # primary id is still automated
+    #Must make sure that it has both behavioral and competitive values
     event_type = models.CharField(max_length=50)
-    class meta:
+    class Meta:
         db_table = "event_types"
 
 
@@ -40,9 +41,8 @@ class Event(models.Model):
     # org_id = models.ForeignKey(user_model.BaseUser, on_delete=models.CASCADE) I need an organization model first
     # You know, consider moving this to Event Schedule Block
     # Daily reminder that models.PROTECT pretty much prevents deletion of an organization if this exists.
-
+    event_schedule_block = models.ForeignKey('EventScheduleBlock', on_delete=models.PROTECT)
     event_type = models.ForeignKey('EventType', on_delete=models.PROTECT)
-    
     # Commented out since Semester model don't exist yet
     sem_id = models.ForeignKey('Academics.Semester',on_delete=models.PROTECT)
 

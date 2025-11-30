@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import ScheduleBlock, ScheduleEntry, Semester, Enrollment, Class
 from django.db.models import Prefetch
-from Users.models import StudentProfile, FacultyProfile
+from apps.Users.models import StudentProfile, FacultyProfile
 from .serializers import *
 from django.shortcuts import get_object_or_404
 

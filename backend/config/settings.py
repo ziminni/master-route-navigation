@@ -181,7 +181,8 @@ INSTALLED_APPS = [
     'apps.Organizations.apps.OrganizationsConfig',#  Don't forget to add the apps here!
 
     # extensions
-    'django_extensions',
+    # 'django_extensions', 
+    # I had to comment this out because it wase screwing with my manage.py commands
 ]
 
 MIDDLEWARE = [

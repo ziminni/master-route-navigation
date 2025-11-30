@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'apps.Users',
     'apps.Academics.apps.AcademicsConfig',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
