@@ -179,10 +179,17 @@ INSTALLED_APPS = [
     'apps.Users.apps.UsersConfig',
     'apps.Feedback.apps.FeedbackConfig',
     'apps.House.apps.HouseConfig',
+    'apps.Academics.apps.AcademicsConfig',
+    'apps.Organizations.apps.OrganizationsConfig',#  Don't forget to add the apps here!
+
+    # extensions
+    # 'django_extensions',
+    # I had to comment this out because it wase screwing with my manage.py commands
+
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', 
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

@@ -52,6 +52,7 @@ class FacultyProfileSerializer(serializers.ModelSerializer):
         write_only=True,
         source="user"
     )
+
     faculty_department_detail = FacultyDepartmentSerializer(source="faculty_department", read_only=True)
     position_detail = PositionSerializer(source="position", read_only=True)
 

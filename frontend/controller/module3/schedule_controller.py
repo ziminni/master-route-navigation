@@ -120,7 +120,11 @@ def _populate_schedule(window: object) -> None:
     else:
         student_id = getattr(window, "StudentSearch").text() if hasattr(window, "StudentSearch") else None
         
-    data = load_schedule(student_id)
+    try:
+        data = load_schedule(student_id)
+    except Exception:
+        # Backend-only: if service fails, use empty schedule so UI remains responsive
+        data = {}
     _populate_weekly_table(getattr(window, "WeekTable_2", None), data, window)
     _populate_today(window, student_id) #added student_id to refer to the current user
     # If faculty searched for a student, restrict YearBox to that student's year
@@ -173,26 +177,29 @@ def _populate_today(window: object, student_id) -> None:
     table = getattr(window, "tableWidget_2", None)
     if not table or not isinstance(table, QTableWidget):
         return
-    schedule = load_schedule(getattr(window, "StudentSearch").text() if hasattr(window, "StudentSearch") else None)
-    #This is the key fix VVV
+    # Always request schedule for the relevant student id (or my-schedule if None)
     searching = hasattr(window, "StudentSearch") and window.StudentSearch.isVisible() and window.StudentSearch.text().strip() != ""
-    # today = schedule.get("today", []) if isinstance(schedule, dict) else []#This should still refer to the weekly schedule json block, not a separate today
-    #user schedules are selected
-    #get date today
-    daytoday = datetime.now().strftime("%A")
-    #Specify selection of schedule json block using the student id and the day today
-    
-    sem_widj = getattr(window,"Semester", None) #This is the el fixo of the semester selection
-    print (f"MODULE 3 TODAY SEMESTER SELECTED: ", sem_widj.currentText())
-    semester = sem_widj.currentText()
+    # determine which student id to request
+    requested_id = None
     if not searching:
-        student_id = getattr(window, "student_id", None)
-        getusersched = schedule['schedules'][student_id][semester]['weekly'][daytoday]if student_id in schedule['schedules'] else []
+        requested_id = getattr(window, "student_id", None)
     else:
-        student_id = window.StudentSearch.text().strip()
-        getusersched =schedule.get(semester, {}).get('weekly', {}).get(daytoday, []) if isinstance(schedule, dict) else []
-        # getusersched = schedule[semester]['weekly'][daytoday]
-    searching=False
+        requested_id = window.StudentSearch.text().strip()
+
+    schedule = load_schedule(requested_id)
+
+    # get current weekday and semester selection
+    daytoday = datetime.now().strftime("%A")
+    sem_widj = getattr(window, "Semester", None)
+    semester = sem_widj.currentText() if sem_widj and hasattr(sem_widj, 'currentText') else None
+
+    # Fetch user schedule for the chosen semester/day from normalized schedule shape
+    getusersched = []
+    try:
+        if isinstance(schedule, dict):
+            getusersched = schedule.get(semester, {}).get("weekly", {}).get(daytoday, []) if semester else []
+    except Exception:
+        getusersched = []
     
     #select the json block of that day of week using the selected parameters
     # Mirror _TIMES_DISPLAY rows
