@@ -8,7 +8,15 @@ class Schedule(QWidget):
     def __init__(self, username: str = "", roles=None, primary_role: str = "", token: str = ""):
         super().__init__()
         # Determine role and choose the appropriate Module 3 window
-        is_faculty = (primary_role == "faculty") or (roles and "faculty" in roles)
+        # Normalize roles to a set of strings for robust checks
+        normalized_roles = set(roles or [])
+        is_faculty = "faculty" in normalized_roles
+        is_admin = "admin" in normalized_roles  # Check for admin role
+        
+        # TREAT ADMIN AS FACULTY
+        if is_admin:
+            is_faculty = True
+            
         base_dir = os.path.dirname(__file__)
         # Choose the module3 view implementation based on role and import it
         users_folder = os.path.join(base_dir, "Users", "Faculty" if is_faculty else "Student")
