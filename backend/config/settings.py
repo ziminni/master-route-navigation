@@ -178,6 +178,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'apps.Users.apps.UsersConfig',
     'apps.Feedback.apps.FeedbackConfig',
+    'apps.House.apps.HouseConfig',
 ]
 
 MIDDLEWARE = [

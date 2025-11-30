@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QVBoxLayout, QFrame, QSpacerItem, QSizePolicy
-from PyQt6.QtGui import QPixmap, QFont
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QVBoxLayout, QFrame, QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect
+from PyQt6.QtGui import QPixmap, QFont, QColor
+from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect
 import os
 
 
@@ -10,6 +10,7 @@ class LowerLeaderboardCard(QFrame):
         column: "left" or "right" — for slight alignment adjustment
         """
         super().__init__()
+        self._original_y = None  # Store original Y position
 
         # === CARD CONTAINER ===
         self.setFixedHeight(40)
@@ -20,6 +21,27 @@ class LowerLeaderboardCard(QFrame):
                 border-radius: 6px;
             }
         """)
+        
+        # Add shadow effect
+        self.shadow = QGraphicsDropShadowEffect()
+        self.shadow.setBlurRadius(12)
+        self.shadow.setXOffset(0)
+        self.shadow.setYOffset(3)
+        self.shadow.setColor(QColor(0, 0, 0, 40))
+        self.setGraphicsEffect(self.shadow)
+        
+        # Enable hover events
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+        
+        # Hover animation
+        self.animation = QPropertyAnimation(self, b"geometry")
+        self.animation.setDuration(200)
+        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        # Shadow animation
+        self.shadow_anim = QPropertyAnimation(self.shadow, b"blurRadius")
+        self.shadow_anim.setDuration(200)
+        self.shadow_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 5, 10, 5)
@@ -39,16 +61,24 @@ class LowerLeaderboardCard(QFrame):
 
         # AVATAR
         avatar_label = QLabel()
-        avatar_path = os.path.join("frontend", "assets", "images", "avatars", avatar)
-        if not os.path.exists(avatar_path):
-            avatar_path = os.path.join("frontend", "assets", "images", "avatars", "man1.png")
+        # Calculate base directory relative to this file
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        avatars_path = os.path.join(base_dir, "assets", "images", "avatars")
+        
+        avatar_path = os.path.join(avatars_path, avatar) if avatar else ""
+        if not avatar_path or not os.path.exists(avatar_path):
+            avatar_path = os.path.join(avatars_path, "man1.png")
+            if not os.path.exists(avatar_path):
+                # If still not found, try relative path as fallback
+                avatar_path = os.path.join("frontend", "assets", "images", "avatars", "man1.png")
 
-        pixmap = QPixmap(avatar_path).scaled(
-            30, 30,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
-        avatar_label.setPixmap(pixmap)
+        if os.path.exists(avatar_path):
+            pixmap = QPixmap(avatar_path).scaled(
+                30, 30,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            avatar_label.setPixmap(pixmap)
         avatar_label.setFixedSize(30, 30)
         avatar_label.setStyleSheet("border-radius: 21px; background-color: transparent;")
         left_layout.addWidget(avatar_label)
@@ -96,3 +126,42 @@ class LowerLeaderboardCard(QFrame):
             layout.setContentsMargins(30, 5, 15, 5)  # slight inward padding for right column
         else:
             layout.setContentsMargins(15, 5, 30, 5)
+    
+    def showEvent(self, event):
+        """Store original position when widget is first shown"""
+        super().showEvent(event)
+        if self._original_y is None:
+            self._original_y = self.y()
+    
+    def enterEvent(self, event):
+        """Handle mouse enter event - lift card up"""
+        # Store original position if not already stored
+        if self._original_y is None:
+            self._original_y = self.y()
+        
+        geom = self.geometry()
+        self.animation.stop()
+        self.animation.setStartValue(geom)
+        self.animation.setEndValue(QRect(geom.x(), self._original_y - 3, geom.width(), geom.height()))
+        self.animation.start()
+        self.shadow_anim.setStartValue(12)
+        self.shadow_anim.setEndValue(18)
+        self.shadow_anim.start()
+        super().enterEvent(event)
+    
+    def leaveEvent(self, event):
+        """Handle mouse leave event - return card to original position"""
+        # Ensure we have original position
+        if self._original_y is None:
+            self._original_y = self.y()
+        
+        geom = self.geometry()
+        self.animation.stop()
+        # Always return to the exact original Y position
+        self.animation.setStartValue(geom)
+        self.animation.setEndValue(QRect(geom.x(), self._original_y, geom.width(), geom.height()))
+        self.animation.start()
+        self.shadow_anim.setStartValue(18)
+        self.shadow_anim.setEndValue(12)
+        self.shadow_anim.start()
+        super().leaveEvent(event)

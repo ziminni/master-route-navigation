@@ -1,0 +1,26 @@
+{
+  "members": [
+    { "name": "Jan Eduard B. Sanchez", "year": "3", "role": "House Leader", "avatar": "man1.png" },
+    { "name": "Shauntie Velasco", "year": "3", "role": "Vice-House Leader", "avatar": "woman1.png" },
+    { "name": "Kyrie Angelo Santos", "year": "4",  "role": "Secretary", "avatar": "woman2.png" },
+    { "name": "Enzo Gabriel Ortega", "year": "1", "role": "Member", "avatar": "man1.png" },
+    { "name": "Kobe Adrian Cruz", "year": "2", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Eliana Rose Bautista", "year": "2", "role": "Member", "avatar": "woman2.png" },
+    { "name": "Avery Nicole Velasco", "year": "1", "role": "Member", "avatar": "man1.png" },
+    { "name": "Neo Adrian Castillo", "year": "1", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Jaden Isaiah Cruz", "year": "1", "role": "Member", "avatar": "woman2.png" },
+    { "name": "Luna Faye Ramirez", "year": "2", "role": "Member", "avatar": "man1.png" },
+    { "name": "Enzo Miguel Gutierrez", "year": "3", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Liam Gabriel Santos", "year": "3", "role": "Member", "avatar": "woman2.png" },
+    { "name": "Theo Rafael Mendoza", "year": "4", "role": "Member", "avatar": "man1.png" },
+    { "name": "Ezekiel Zeke Ramirez", "year": "4", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Alicia Mae Cruz", "year": "3", "role": "Member", "avatar": "woman2.png" },
+    { "name": "Randy Paul Delos", "year": "1", "role": "Member", "avatar": "man1.png" },
+    { "name": "Marisol Carreon", "year": "2", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Gabe Santillan", "year": "1", "role": "Member", "avatar": "woman2.png" },
+    { "name": "Jaden Elijah Ramos", "year": "4", "role": "Member", "avatar": "man1.png" },
+    { "name": "Bella Ysabel Torres", "year": "4", "role": "Member", "avatar": "woman1.png" },
+    { "name": "Jiro Lorenzo Aguilar", "year": "3", "role": "Member", "avatar": "man1.png" },
+    { "name": "Julian Mateo Ortega", "year": "3", "role": "Member", "avatar": "man1.png" }
+  ]
+}

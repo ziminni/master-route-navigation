@@ -3,9 +3,10 @@ import json
 import os
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QPushButton,
-    QVBoxLayout, QHBoxLayout, QGridLayout, QScrollArea, QFrame, QMessageBox, QDialog, QLineEdit, QMenu
+    QVBoxLayout, QHBoxLayout, QGridLayout, 
+    QScrollArea, QFrame, QMessageBox, QDialog, QLineEdit, QMenu, QSizePolicy, QGraphicsDropShadowEffect, QStackedWidget
 )
-from PyQt6.QtGui import QPixmap, QFont, QPainterPath, QRegion, QFontMetrics, QPainter, QIcon
+from PyQt6.QtGui import QPixmap, QFont, QPainterPath, QRegion, QFontMetrics, QPainter, QIcon, QColor
 from PyQt6.QtCore import Qt, QRectF, QSize
 
 
@@ -57,6 +58,14 @@ class EventCard(QWidget):
         self.setFixedSize(288, 490)
 
         self.setCursor(Qt.CursorShape.ArrowCursor)
+
+        # --- Drop shadow ---
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)             # Soft blur for shadow
+        shadow.setXOffset(8)                 # Horizontal offset
+        shadow.setYOffset(8)                 # Vertical offset
+        shadow.setColor(QColor(0, 0, 0, 100))  # Slightly transparent black
+        self.setGraphicsEffect(shadow)
 
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(0)
@@ -113,7 +122,7 @@ class EventCard(QWidget):
         """)
 
         # Start with a max font size
-        font = QFont("Poppins", 20, QFont.Weight.Bold)
+        font = QFont("Poppins", 20, QFont.Weight.Bold,)
         fm = QFontMetrics(font)
         max_width = 260  # inside the 288px card with padding
         text_width = fm.horizontalAdvance(self.event_data.get("title", ""))
@@ -443,6 +452,7 @@ class EventCard(QWidget):
             update_selected_popup()
 
         # --- Build members list ---
+        member_frames = []
         for idx, m in enumerate(members_data, start=1):
             frame = QFrame()
             frame.setFixedHeight(80)
@@ -450,6 +460,9 @@ class EventCard(QWidget):
             frame_layout = QHBoxLayout(frame)
             frame_layout.setContentsMargins(8, 8, 8, 8)
             frame_layout.setSpacing(12)
+
+            frame.meta = m  # attach the member dict directly to the frame
+
 
             # --- Avatar ---
             avatar_path = os.path.join(avatars_base_path, m["avatar"])
@@ -539,7 +552,10 @@ class EventCard(QWidget):
             buttons_layout.addWidget(add_btn)
 
             frame_layout.addLayout(buttons_layout)
+            frame.meta = {"name": m["name"], "role": m["role"], "year": m.get("year", "")}
             scroll_layout.addWidget(frame)
+            member_frames.append(frame)
+            
 
         # --- Search filter ---
         def filter_members(text):
@@ -561,70 +577,100 @@ class EventCard(QWidget):
         filter_menu.addAction("Sort Z–A", lambda: apply_filter("za"))
         filter_btn.setMenu(filter_menu)
 
+        # --- Filter function ---
         def apply_filter(mode):
-            member_frames = []
-            for i in range(scroll_layout.count()):
-                w = scroll_layout.itemAt(i).widget()
-                if w:
-                    member_frames.append(w)
+            # Copy original frames
+            frames = member_frames.copy()
 
             if mode == "year":
-                member_frames.sort(key=lambda frame: next(
-                    (lbl.text() for lbl in frame.findChildren(QLabel) if "Year" in lbl.text()), ""
-                ))
-            elif mode == "position":
-                member_frames.sort(key=lambda frame: next(
-                    (lbl.text() for lbl in frame.findChildren(QLabel) if lbl.text() not in ["+", "✓"]), ""
-                ))
-            elif mode == "az":
-                member_frames.sort(key=lambda frame: next(
-                    (lbl.text() for lbl in frame.findChildren(QLabel) if ". " in lbl.text()), ""
-                ))
-            elif mode == "za":
-                member_frames.sort(key=lambda frame: next(
-                    (lbl.text() for lbl in frame.findChildren(QLabel) if ". " in lbl.text()), ""
-                ), reverse=True)
+                frames.sort(key=lambda f: int(f.meta.get("year", 0)), reverse=True)
 
+            elif mode == "position":
+                ROLE_ORDER = {
+                    "House leader": 0,
+                    "Vice-house leader": 1,
+                    "Member": 2
+                }
+                frames.sort(key=lambda f: ROLE_ORDER.get(f.meta.get("role", ""), 999))
+
+            elif mode == "az":
+                # Sort by last name ascending
+                frames.sort(key=lambda f: f.meta.get("name", "").split()[-1].lower())
+            elif mode == "za":
+                # Sort by last name descending
+                frames.sort(key=lambda f: f.meta.get("name", "").split()[-1].lower(), reverse=True)
+
+            # Clear layout
             for i in reversed(range(scroll_layout.count())):
                 item = scroll_layout.takeAt(i)
                 if item.widget():
                     item.widget().setParent(None)
 
-            for frame in member_frames:
-                scroll_layout.addWidget(frame)
+            # Re-add frames in new order
+            for f in frames:
+                scroll_layout.addWidget(f)
 
         # --- Confirm button saves JSON ---
         def confirm_selection():
             try:
-                # Create participants dict with event title
-                participants_data = {
-                    "event": event_title,
+                # Load existing participants if file exists
+                if os.path.exists(participants_json):
+                    with open(participants_json, "r", encoding="utf-8") as f:
+                        existing_data = json.load(f)
+                else:
+                    existing_data = {}
+
+                # Ensure a dictionary for events
+                if not isinstance(existing_data, dict):
+                    existing_data = {}
+
+                # Update current event
+                existing_data[str(self.event_data["id"])] = {
+                    "event_title": event_title,
                     "participants": list(selected_members.keys())
                 }
+
+                # Save back
                 with open(participants_json, "w", encoding="utf-8") as f:
-                    json.dump(participants_data, f, indent=2)
+                    json.dump(existing_data, f, indent=2)
+
                 QMessageBox.information(dialog, "Saved", "Participants successfully saved!")
                 selected_popup.close()
                 dialog.close()
+
             except Exception as e:
                 QMessageBox.critical(dialog, "Error", f"Failed to save participants:\n{e}")
 
+
         confirm_btn.clicked.connect(confirm_selection)
 
-        # --- Position selected_popup beside dialog ---
-        geo = dialog.geometry()
-        selected_popup.move(geo.x() + geo.width() + 20, geo.y())
+        # --- Twin dialog positioning ---
+        # Calculate screen position (optional: center on screen)
+        screen = self.screen().availableGeometry()
+        main_width = 420
+        main_height = 700
+        spacing = 20  # gap between the dialogs
+
+        # Position main dialog on left
+        dialog.move(screen.center().x() - main_width - spacing//2, screen.center().y() - main_height//2)
+
+        # Position selected_popup to the right of main dialog
+        selected_popup.move(dialog.x() + main_width + spacing, dialog.y())
+
+        # Make both visible
         selected_popup.show()
-        dialog.show()  # CHANGED: Use show() instead of exec() so it's non-blocking
+        dialog.show()
+
+        # Use exec() only on main dialog to block   
+        dialog.exec()
+
 
 
 
 
     def show_details(self):
-        # Load event details from external JSON file
         project_root = get_project_root()
         details_path = os.path.join(project_root, "frontend", "Mock", "event_details.json")
-        print(f"Attempting to load event_details.json: {details_path}")
         try:
             with open(details_path, "r", encoding="utf-8") as f:
                 details_data = json.load(f)
@@ -632,244 +678,242 @@ class EventCard(QWidget):
             QMessageBox.critical(self, "Error", f"event_details.json file not found at {details_path}.")
             return
 
-        # Normalize poster paths in details_data
+        # Normalize poster field
         for d in details_data:
             if "poster" in d and d["poster"]:
                 if isinstance(d["poster"], str):
                     d["poster"] = [d["poster"]]
-                normalized = []
-                for p in d["poster"]:
-                    normalized.append(os.path.join(os.path.basename(p)))
-                d["poster"] = normalized
+                d["poster"] = [os.path.basename(p) for p in d["poster"]]
 
-        # Find matching event by id
         detail = next((d for d in details_data if d["id"] == self.event_data["id"]), None)
         if not detail:
             QMessageBox.warning(self, "Not Found", "No details found for this event.")
             return
 
-        # --- Popup Dialog ---
         dialog = QDialog(self)
         dialog.setWindowTitle(detail["title"])
-        dialog.setModal(False)  # CHANGED: Non-modal dialog
-        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowType.Window)  # Make it a top-level window
-        dialog.resize(600, 750)
+        dialog.resize(900, 600)
+        dialog.setModal(False)
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowType.Window)
 
-        # --- Gradient Border Frame (Outer) ---
-        outer_frame = QFrame(dialog)
-        outer_frame.setStyleSheet("""
-            QFrame {
-                border-radius: 12px;
+        # Green gradient background
+        dialog.setStyleSheet("""
+            QDialog {
                 background: qlineargradient(
-                    x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #084924,
-                    stop: 0.33 #077336,
-                    stop: 1 #078F41
+                    spread:pad,
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #00512E,
+                    stop:1 #00813C
                 );
-                padding: 4px;
             }
         """)
 
-        # --- Inner Frame (Content Background) ---
-        inner_frame = QFrame()
         outer_layout = QVBoxLayout(dialog)
-        outer_layout.setContentsMargins(0, 0, 0, 0)
-        outer_layout.addWidget(outer_frame)
+        outer_layout.setContentsMargins(20, 20, 20, 20)
+        outer_layout.setSpacing(15)
 
-        inner_layout = QVBoxLayout(outer_frame)
-        inner_layout.setContentsMargins(4, 4, 4, 4)
-        inner_layout.addWidget(inner_frame)
+        # Main horizontal layout for 2 columns
+        main_layout = QHBoxLayout()
+        main_layout.setSpacing(20)
+        outer_layout.addLayout(main_layout)
 
-        # --- Scroll Area (With Scrollbars) ---
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setStyleSheet("""
-            QScrollArea { border: none; }
-            QScrollBar:vertical {
-                background: #053D1D;
-                width: 14px;
-                border: none;
-                margin: 0;
-                border-radius: 7px;
-            }
-            QScrollBar::handle:vertical {
-                background: white;
-                border-radius: 7px;
-                min-height: 30px;
-                margin: 3px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: #f2f2f2;
-            }
-            QScrollBar::add-line:vertical,
-            QScrollBar::sub-line:vertical {
-                height: 0;
-                background: none;
-                border: none;
-            }
-            QScrollBar::add-page:vertical,
-            QScrollBar::sub-page:vertical {
-                background: #053D1D;
-                border-radius: 7px;
-            }
-            QScrollBar:horizontal {
-                background: #053D1D;
-                height: 14px;
-                border: none;
-                margin: 0;
-                border-radius: 7px;
-            }
-            QScrollBar::handle:horizontal {
-                background: white;
-                border-radius: 7px;
-                min-width: 30px;
-                margin: 2px;
-            }
-            QScrollBar::handle:horizontal:hover {
-                background: #f2f2f2;
-            }
-            QScrollBar::add-line:horizontal,
-            QScrollBar::sub-line:horizontal {
-                width: 0;
-                background: none;
-                border: none;
-            }
-            QScrollBar::add-page:horizontal,
-            QScrollBar::sub-page:horizontal {
-                background: #053D1D;
-                border-radius: 7px;
-            }
-        """)
+        # -----------------------------
+        # Left Column: Logo/Title/Date + Poster Images
+        # -----------------------------
+        left_column = QVBoxLayout()
+        left_column.setSpacing(15)
 
-        # --- Scrollable Content ---
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setContentsMargins(20, 20, 20, 20)
-        scroll_layout.setSpacing(10)
-
-        # --- Title & Date Section (White Container) ---
-        title_frame = QFrame()
-        title_frame.setStyleSheet("""
+        # 1️⃣ Logo + Title + Date container (compact)
+        info_frame = QFrame()
+        info_frame.setStyleSheet("""
             QFrame {
-                background-color: white;
+                background: white;
                 border-radius: 12px;
-                padding: 15px;
+                padding: 8px;  /* smaller padding for compact look */
             }
         """)
-        title_layout = QVBoxLayout(title_frame)
-        title_layout.setContentsMargins(15, 15, 15, 15)
-        title_layout.setSpacing(2)
-
-        # --- Logo + Title & Date Horizontal Layout ---
-        logo_and_text = QHBoxLayout()
-        logo_and_text.setSpacing(4)
+        info_layout = QHBoxLayout(info_frame)
+        info_layout.setSpacing(10)  # less spacing for compactness
+        info_layout.setContentsMargins(5, 5, 5, 5)  # smaller margins
 
         # Logo
         logo_label = QLabel()
         logo_path = os.path.join(project_root, "frontend", "assets", "images", "csco_logo.png")
         logo_pix = QPixmap(logo_path)
         if not logo_pix.isNull():
-            logo_pix = logo_pix.scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            logo_pix = logo_pix.scaledToHeight(50, Qt.TransformationMode.SmoothTransformation)  # slightly smaller
         logo_label.setPixmap(logo_pix)
-        logo_label.setAlignment(Qt.AlignmentFlag.AlignTop)
-        logo_and_text.addWidget(logo_label)
+        logo_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        info_layout.addWidget(logo_label, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
-        # Vertical stack for title + date
-        title_text_layout = QVBoxLayout()
-        title_text_layout.setSpacing(2)
-        title_text_layout.setContentsMargins(0, 0, 0, 0)
+        # Title + Date & Time
+        title_date_layout = QVBoxLayout()
+        title_date_layout.setSpacing(2)  # smaller gap between title and datetime
 
-        # Title
         title_label = QLabel(detail["title"])
-        title_label.setFont(QFont("Poppins", 12, QFont.Weight.Bold))
+        title_label.setFont(QFont("Poppins", 12, QFont.Weight.Bold))  # slightly smaller font
         title_label.setStyleSheet("color: #084924;")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         title_label.setWordWrap(True)
-        title_text_layout.addWidget(title_label)
+        title_date_layout.addWidget(title_label)
 
-        # Date + Time
-        datetime_label = QLabel(detail.get("date") + " at " + detail.get("time"))
-        datetime_label.setFont(QFont("Inter", 12))
+        datetime_label = QLabel(f"{detail.get('dateofpost')} at {detail.get('timeofpost')}")
+        datetime_label.setFont(QFont("Inter", 11))
         datetime_label.setStyleSheet("color: #084924;")
-        datetime_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        datetime_label.setWordWrap(True)
-        title_text_layout.addWidget(datetime_label)
+        title_date_layout.addWidget(datetime_label)
 
-        # Add vertical title stack to horizontal layout
-        logo_and_text.addLayout(title_text_layout)
+        info_layout.addLayout(title_date_layout)
 
-        # Add combined layout to the title_frame
-        title_layout.addLayout(logo_and_text)
+        # Set a fixed height for compactness
+        info_frame.setFixedHeight(150)  # adjust as needed
+        left_column.addWidget(info_frame)
 
-        scroll_layout.addWidget(title_frame)
 
-        # --- Main Content Section (White Container) ---
-        content_frame = QFrame()
-        content_frame.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 12px;
-                padding: 15px;
-            }
-        """)
-        content_layout = QVBoxLayout(content_frame)
-        content_layout.setContentsMargins(15, 15, 15, 15)
-        content_layout.setSpacing(10)
-
-        # Details
-        for line in detail["details"]:
-            lbl = QLabel(line)
-            lbl.setWordWrap(True)
-            lbl.setStyleSheet("color: #084924; font-size: 12px;")
-            content_layout.addWidget(lbl)
-
-        scroll_layout.addWidget(content_frame)
-
-        # --- Poster Images ---
-        posters = detail.get("poster")
-        if isinstance(posters, str):
-            posters = [posters]
-
+        # Poster Images container with proper scaling
+        posters = detail.get("poster", [])
         if posters:
             poster_frame = QFrame()
             poster_frame.setStyleSheet("""
-                background: #084924;
-                border-radius: 12px;
-                padding: 10px;
+                QFrame {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 10px;
+                }
             """)
-            poster_layout = QHBoxLayout(poster_frame)
+            poster_layout = QVBoxLayout(poster_frame)
+            poster_layout.setSpacing(6)
             poster_layout.setContentsMargins(10, 10, 10, 10)
-            poster_layout.setSpacing(10)
 
-            for img_path in posters[:2]:
+            stacked_widget = QStackedWidget()
+            stacked_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            poster_layout.addWidget(stacked_widget)
+
+            # Add images
+            for img_path in posters:
                 lbl = QLabel()
                 full_img_path = os.path.join(project_root, "frontend", "assets", "images", "pics", img_path)
-                print(f"Attempting to load poster image: {full_img_path}")
                 pix = QPixmap(full_img_path)
                 if pix.isNull():
-                    pix = QPixmap(300, 250)
+                    pix = QPixmap(500, 300)
                     pix.fill(Qt.GlobalColor.darkGreen)
-                    QMessageBox.warning(self, "Image Not Found", f"Poster image {full_img_path} not found.")
                 else:
+                    # Scale image to take most of the container
+                    max_width, max_height = 500, 300  # container size
                     pix = pix.scaled(
-                        300, 250,
+                        max_width, max_height,
                         Qt.AspectRatioMode.KeepAspectRatio,
                         Qt.TransformationMode.SmoothTransformation
                     )
                 lbl.setPixmap(pix)
                 lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                poster_layout.addWidget(lbl)
+                lbl.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+                stacked_widget.addWidget(lbl)
 
-            scroll_layout.addWidget(poster_frame)
+            # Navigation only if multiple images
+            if len(posters) > 1:
+                # Circle indicators
+                indicators_layout = QHBoxLayout()
+                indicators_layout.setSpacing(4)  # compact spacing
+                indicators = []
+                for i in range(len(posters)):
+                    circle = QLabel("●")
+                    circle.setStyleSheet("color: #066c27; font-size: 12px;")  # green
+                    indicators_layout.addWidget(circle, alignment=Qt.AlignmentFlag.AlignCenter)
+                    indicators.append(circle)
+                indicators[0].setStyleSheet("color: #fdd835; font-size: 12px;")  # highlight first
 
+                # Navigation buttons
+                nav_layout = QHBoxLayout()
+                nav_layout.setSpacing(10)
+                prev_btn = QPushButton("◀")
+                next_btn = QPushButton("▶")
+                for btn in [prev_btn, next_btn]:
+                    btn.setFixedSize(30, 30)
+                    btn.setStyleSheet("""
+                        QPushButton {
+                            background-color: #084924;
+                            color: white;
+                            border-radius: 15px;
+                            font-weight: bold;
+                        }
+                        QPushButton:hover {
+                            background-color: #066c27;
+                        }
+                    """)
+                nav_layout.addWidget(prev_btn)
+                nav_layout.addStretch()
+                nav_layout.addLayout(indicators_layout)
+                nav_layout.addStretch()
+                nav_layout.addWidget(next_btn)
+
+                poster_layout.addLayout(nav_layout)
+
+                # Navigation logic
+                def update_indicators(index):
+                    for i, circle in enumerate(indicators):
+                        circle.setStyleSheet(
+                            "color: #fdd835; font-size: 12px;" if i == index else "color: #066c27; font-size: 12px;"
+                        )
+
+                def show_prev():
+                    idx = stacked_widget.currentIndex()
+                    idx = (idx - 1) % stacked_widget.count()
+                    stacked_widget.setCurrentIndex(idx)
+                    update_indicators(idx)
+
+                def show_next():
+                    idx = stacked_widget.currentIndex()
+                    idx = (idx + 1) % stacked_widget.count()
+                    stacked_widget.setCurrentIndex(idx)
+                    update_indicators(idx)
+
+                prev_btn.clicked.connect(show_prev)
+                next_btn.clicked.connect(show_next)
+
+            left_column.addWidget(poster_frame)
+
+
+        main_layout.addLayout(left_column, 1)
+
+        # -----------------------------
+        # Right Column: Scrollable Event Details
+        # -----------------------------
+        right_column = QVBoxLayout()
+
+        details_frame = QFrame()
+        details_frame.setStyleSheet("""
+            QFrame {
+                background: white;
+                border-radius: 12px;
+                padding: 10px;
+            }
+        """)
+        details_layout = QVBoxLayout(details_frame)
+        details_layout.setContentsMargins(5, 5, 5, 5)
+        details_layout.setSpacing(10)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setSpacing(8)
+        scroll_layout.setContentsMargins(0, 0, 0, 0)
+
+        for line in detail["details"]:
+            lbl = QLabel(line)
+            lbl.setWordWrap(True)
+            lbl.setStyleSheet("color: #084924; font-size: 12px; font-weight: 700;")
+            scroll_layout.addWidget(lbl)
+
+        scroll_content.setLayout(scroll_layout)
         scroll.setWidget(scroll_content)
-        inner_frame_layout = QVBoxLayout(inner_frame)
-        inner_frame_layout.setContentsMargins(0, 0, 0, 0)
-        inner_frame_layout.addWidget(scroll)
+        details_layout.addWidget(scroll)
+        right_column.addWidget(details_frame)
 
-        # --- Participate Button ---
+        main_layout.addLayout(right_column, 2)
+
+        # -----------------------------
+        # Participate Button
+        # -----------------------------
         participate_btn = QPushButton("Participate")
         participate_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         participate_btn.setStyleSheet("""
@@ -885,12 +929,9 @@ class EventCard(QWidget):
             }
         """)
         participate_btn.clicked.connect(lambda: self.open_participate_popup(detail["title"]))
-        scroll_layout.addWidget(participate_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        outer_layout.addWidget(participate_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        dialog.show()  # CHANGED: Use show() instead of exec()
-
-
-
+        dialog.show()
 
 class EventsPage(QWidget):
     def __init__(self, username, role, primary_role, token, house_name):
@@ -906,8 +947,8 @@ class EventsPage(QWidget):
         # --- Scrollable Event Cards ---
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # disable horizontal scroll
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("""
             QScrollArea {
@@ -941,43 +982,7 @@ class EventsPage(QWidget):
                 background: #053D1D;
                 border-radius: 7px;
             }
-            QScrollBar:horizontal {
-                background: #053D1D;
-                height: 14px;
-                border: none;
-                margin: 0;
-                border-radius: 7px;
-            }
-            QScrollBar::handle:horizontal {
-                background: white;
-                border-radius: 7px;
-                min-width: 30px;
-                margin: 2px;
-            }
-            QScrollBar::handle:horizontal:hover {
-                background: #f2f2f2;
-            }
-            QScrollBar::add-line:horizontal,
-            QScrollBar::sub-line:horizontal {
-                width: 0;
-                background: none;
-                border: none;
-            }
-            QScrollBar::add-page:horizontal,
-            QScrollBar::sub-page:horizontal {
-                background: #053D1D;
-                border-radius: 7px;
-            }
-            QScrollBar::corner {
-                background: #053D1D;
-                border-radius: 7px;
-            }
         """)
-
-        content = QWidget()
-        layout = QHBoxLayout(content)
-        layout.setSpacing(20)
-        layout.setContentsMargins(20, 20, 20, 20)
 
 
         # Load events.json
@@ -991,17 +996,30 @@ class EventsPage(QWidget):
             QMessageBox.critical(self, "Error", f"events.json file not found at {events_path}.")
             events = []
 
-        # Normalize event image paths to 'pics/<basename>' so the existing path joins work
+        # Normalize event image paths to 'pics/<basename>'
         for e in events:
             if "img" in e and e["img"]:
-                e["img"] = os.path.join( os.path.basename(e["img"]))
+                e["img"] = os.path.join(os.path.basename(e["img"]))
 
-        # Add cards to grid — automatically based on the JSON length
-        for event in events:
+        # --- Container for event cards ---
+        content = QWidget()
+        grid_layout = QGridLayout(content)
+        grid_layout.setSpacing(20)
+        grid_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Number of columns
+        columns = 3
+
+        # Add cards in a grid
+        for idx, event in enumerate(events):
+            row = idx // columns
+            col = idx % columns
             card = EventCard(event)
-            layout.addWidget(card)
+            grid_layout.addWidget(card, row, col)
 
+        # Optional: add stretch to bottom row to push cards up if needed
+        grid_layout.setRowStretch((len(events)-1)//columns + 1, 1)
 
+        # Scroll area
         scroll_area.setWidget(content)
-        layout.addStretch()
         main_layout.addWidget(scroll_area)

@@ -1,184 +1,73 @@
 [
   {
     "id": 1,
-    "title": "General Assembly",
-    "poster": [
-      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/generalassembly.jpg"
-    ],
-    "content": "The College of Information Sciences and Computing Student Council invites all students to the annual General Assembly! This marks the start of another academic year full of opportunities and collaboration.",
+    "title": "College of Information Sciences and Computing Student Council - CSCo",
+    "dateofpost": "August 10, 2025",
+    "timeofpost": "6:31pm",
+    "poster": ["pics/generalassembly.jpg"],
     "details": [
-      "📅 Date: September 10, 2025",
-      "🕒 Time: 9:00 AM – 12:00 NN",
-      "📍 Venue: CISC Building, Function Hall",
-      "",
-      "Join us as we welcome new members of the CISC community and present the exciting line-up of events for the semester.",
-      "",
-      "Program Highlights:",
-      "1. Welcome message from the Dean",
-      "2. Presentation of the CISC-SC Officers",
-      "3. Introduction to House System and Points",
-      "4. Overview of upcoming events and competitions",
-      "",
-      "Let’s start the year informed, united, and inspired!",
-      "",
-      "Pubmat by: CISC-SC",
-      "#CISC #GeneralAssembly #WelcomeBack"
+      "BAYANIHAN 2025 – 1st Session\n\nAugust 11, 2025 | 8:00 AM – 12:00 PM\nCISC Building\n\nIn preparation for the upcoming AACCUP Accreditation, the College of Information Sciences and Computing is calling all houses to unite for our Bayanihan Cleanup Drive!\n\nAttendance will be checked.\n\nPoint System:\n1. Points will be awarded based on attendance, cleanliness of your assigned area after the activity, and completeness of cleaning equipment brought.\n2. The house with the most attendees, well-maintained cleaning area, and complete tools will earn the highest points!\n3. These points will contribute to your overall house standings for future competitions and events.\n4. Please bring your own cleaning equipment (broom, dustpan, mop, trash bags, etc.) — this will also be checked and counted for points.\n\nCleaning Assignments:\nJava – Left Wing\nPerl – Front & Back Areas\nPython – Right Wing\n\nLet’s work together, make our college shine, and show the Bayanihan spirit at its best!\n\nPubmat by: Shekinah Solon\n#CISC\n#CSCo\n#AACCUP\n#Bayanihan2025"
     ]
   },
   {
     "id": 2,
-    "title": "College Assembly",
-    "poster": [
-      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/collegeassembly.png"
-    ],
-    "content": "The College Assembly serves as a platform for open communication between students, faculty, and administration.",
+    "title": "College of Information Sciences and Computing Student Council - CSCo",
+    "poster": ["pics/collegeassembly.png"],
+    "dateofpost": "August 11, 2025",
+    "timeofpost": "7:31pm",
     "details": [
-      "📅 Date: September 18, 2025",
-      "🕒 Time: 2:00 PM – 4:00 PM",
-      "📍 Venue: CISC Building, AVR Room",
-      "",
-      "This event aims to address student concerns, present academic updates, and strengthen collaboration within the college.",
-      "",
-      "Agenda:",
-      "1. Department updates from program chairs",
-      "2. Student feedback and Q&A session",
-      "3. Announcement of upcoming activities",
-      "",
-      "Your voice matters—attend and be heard!",
-      "",
-      "Pubmat by: CISC-SC",
-      "#CISC #CollegeAssembly #TogetherWeGrow"
+      "CISC College Assembly 2025\n\nAugust 16, 2025 | 9:00 AM – 12:00 PM\nMain Auditorium\n\nAll students are required to attend the college assembly to discuss upcoming programs, policies, and initiatives.\n\nAgenda:\n1. Welcome Remarks\n2. Overview of College Activities\n3. House Announcements and Recognition\n4. Q&A Session\n\nAttendance will be recorded and points will be awarded to each house for full participation.\n\nPubmat by: Shekinah Solon\n#CISC\n#CollegeAssembly\n#StudentCouncil"
     ]
   },
   {
     "id": 3,
-    "title": "Valorant",
-    "poster": [
-      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/valorant.png"
-    ],
-    "content": "Lock in your agents and get ready for battle! The CISC E-Sports Committee proudly presents the Valorant Tournament 2025.",
+    "title": "College of Information Sciences and Computing Student Council - CSCo",
+    "poster": ["pics/valorant.png"],
+    "dateofpost": "August 20, 2025",
+    "timeofpost": "2:00pm",
     "details": [
-      "📅 Date: August 12, 2025",
-      "🕒 Time: 1:00 PM onwards",
-      "📍 Venue: CISC Game Arena",
-      "",
-      "Compete for glory and points for your house in this fast-paced 5v5 shooter.",
-      "",
-      "Rules:",
-      "1. Each team must consist of 5 players (same house).",
-      "2. Standard tournament format: Best of 3 per round.",
-      "3. No toxicity—sportsmanship is a must.",
-      "",
-      "Top teams will receive medals, points, and prizes!",
-      "",
-      "Pubmat by: E-Sports Committee",
-      "#CISC #Valorant #Esports"
+      "CSCo Valorant Tournament 2025\n\nAugust 22, 2025 | 1:00 PM – 6:00 PM\nComputer Lab 3\n\nJoin your house teams in the ultimate Valorant showdown!\n\nRules:\n1. 5v5 matches\n2. Best of 3 rounds per match\n3. Fair play and sportsmanship are mandatory\n\nPoint System:\n- Wins contribute to house rankings\n- MVPs will earn bonus points for their house\n\nBring your own peripherals.\n\nPubmat by: Shekinah Solon\n#CISC\n#CSCoEsports\n#ValorantTournament"
     ]
   },
   {
     "id": 4,
-    "title": "Dota 2",
-    "poster": [
-      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/dota2.png"
-    ],
-    "content": "Prepare for another round of thrilling e-sports competition — the CISC Dota 2 Tournament 2025!",
+    "title": "College of Information Sciences and Computing Student Council - CSCo",
+    "poster": ["pics/dota2.png"],
+    "dateofpost": "August 22, 2025",
+    "timeofpost": "3:00pm",
     "details": [
-      "📅 Date: August 15, 2025",
-      "🕒 Time: 12:00 NN onwards",
-      "📍 Venue: CISC Game Arena",
-      "",
-      "Teams will battle it out in the classic 5v5 Dota 2 format to earn points for their respective houses.",
-      "",
-      "Rules:",
-      "1. Best of 1 elimination; finals are Best of 3.",
-      "2. Teams must use official student accounts.",
-      "3. No pausing except for technical issues.",
-      "",
-      "Who will dominate the lanes this year? Let’s find out!",
-      "",
-      "Pubmat by: E-Sports Committee",
-      "#CISC #Dota2 #Esports"
+      "CSCo Dota 2 Championship 2025\n\nAugust 24, 2025 | 2:00 PM – 7:00 PM\nComputer Lab 2\n\nTeams will battle in a single-elimination Dota 2 tournament.\n\nRules:\n1. 5v5 matches\n2. Best of 1 for preliminary rounds, Best of 3 for finals\n3. Players must use their assigned house accounts\n\nPoints will contribute to overall house standings.\n\nPubmat by: Shekinah Solon\n#CISC\n#CSCoEsports\n#Dota2Tournament"
     ]
   },
   {
     "id": 5,
-    "title": "Mobile Legends: Bang Bang",
-    "poster": [
-      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/mlbb.png"
-    ],
-    "content": "CISC’s favorite mobile tournament returns! Assemble your team and join the Mobile Legends: Bang Bang showdown.",
+    "title": "College of Information Sciences and Computing Student Council - CSCo",
+    "poster": ["pics/mlbb.png"],
+    "dateofpost": "August 25, 2025",
+    "timeofpost": "4:00pm",
     "details": [
-      "📅 Date: August 20, 2025",
-      "🕒 Time: 9:00 AM onwards",
-      "📍 Venue: CISC Game Arena",
-      "",
-      "Each team represents their house in a thrilling 5v5 match to earn valuable house points.",
-      "",
-      "Rules:",
-      "1. Each team must be composed of CISC students.",
-      "2. Best of 3 matches per round.",
-      "3. Draft pick mode only.",
-      "",
-      "Let’s see who will take the title of CISC’s strongest ML team!",
-      "",
-      "Pubmat by: E-Sports Committee",
-      "#CISC #MobileLegends #Esports"
+      "CSCo Mobile Legends League 2025\n\nAugust 27, 2025 | 3:00 PM – 7:00 PM\nComputer Lab 1\n\nCompete with other houses in Mobile Legends: Bang Bang!\n\nRules:\n1. 5v5 matches\n2. Best of 3 format\n3. Use designated house accounts only\n\nPoints will count toward house competitions.\n\nPubmat by: Shekinah Solon\n#CISC\n#CSCoEsports\n#MobileLegendsLeague"
     ]
   },
   {
     "id": 6,
-    "title": "Volleyball",
-    "poster": [
-      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/volleyball.png"
-    ],
-    "content": "Get ready to spike, serve, and score! The CISC Intramural Volleyball Tournament is here.",
+    "title": "College of Information Sciences and Computing Student Council - CSCo",
+    "poster": ["pics/volleyball.png"],
+    "dateofpost": "August 28, 2025",
+    "timeofpost": "1:00pm",
     "details": [
-      "📅 Date: September 5, 2025",
-      "🕒 Time: 8:00 AM onwards",
-      "📍 Venue: University Gymnasium",
-      "",
-      "Cheer for your house as they compete in this exciting sporting event filled with energy and teamwork.",
-      "",
-      "Rules:",
-      "1. Each house must field a minimum of 6 players.",
-      "2. Standard volleyball rules apply.",
-      "3. Best of 3 sets per match.",
-      "",
-      "Who will be crowned the CISC Volleyball Champions?",
-      "",
-      "Pubmat by: Sports Committee",
-      "#CISC #Volleyball #Intramurals"
+      "CSCo Inter-House Volleyball Tournament 2025\n\nAugust 30, 2025 | 8:00 AM – 5:00 PM\nCISC Gymnasium\n\nCompete for glory in the annual house volleyball championship!\n\nRules:\n1. Teams consist of 6 players per side\n2. Round-robin preliminary matches, knockout finals\n3. Sportsmanship and fair play are required\n\nPoints awarded based on match wins and performance.\n\nPubmat by: Shekinah Solon\n#CISC\n#CSCoSports\n#VolleyballTournament"
     ]
   },
   {
     "id": 7,
-    "title": "Bayanihan 2025 – 1st Session",
-    "poster": [
-      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/Bayanihan pic.jpg",
-      "C:/Users/Chris/Desktop/College Files/3rd Year files/Desktop Application Development/Projects/Semestral Project - CISC Virtual Hub/pics/areas.jpg"
-    ],
-    "content": "In preparation for the upcoming AACCUP Accreditation, the College of Information Sciences and Computing is calling all houses to unite for our Bayanihan Cleanup Drive!",
+    "title": "College of Information Sciences and Computing Student Council - CSCo",
+    "poster": ["pics/Bayanihan pic.jpg", "pics/areatoclean.jpg", "pics/whattobring", "pics/areas.jpg"],
+    "dateofpost": "August 26, 2025",
+    "timeofpost": "9:31pm",
     "details": [
-      "📅 Date: August 11, 2025",
-      "🕒 Time: 8:00 AM – 12:00 PM",
-      "📍 Venue: CISC Building",
-      "",
-      "Attendance will be checked.",
-      "Point System:",
-      "1. Points will be awarded based on attendance, cleanliness of your assigned area after the activity, and completeness of cleaning equipment brought.",
-      "2. The house with the most attendees, well-maintained cleaning area, and complete tools will earn the highest points!",
-      "3. These points will contribute to your overall house standings for future competitions and events.",
-      "4. Please bring your own cleaning equipment (broom, dustpan, mop, trash bags, etc.) — this will also be checked and counted for points.",
-      "",
-      "Cleaning Assignments:",
-      "Java – Left Wing",
-      "Perl – Front & Back Areas",
-      "Python – Right Wing",
-      "",
-      "Let’s work together, make our college shine, and show the Bayanihan spirit at its best!",
-      "",
-      "Pubmat by: Shekinah Solon",
-      "#CISC #CSCo #AACCUP #Bayanihan2025"
+      "BAYANIHAN 2025 – 2nd Session\n\nSeptember 12, 2025 | 8:00 AM – 5:00 PM\nCISC Building\n\nIn preparation for the upcoming 115th CMU Foundation Anniversary and Alumni Homecoming, the College of Information Sciences and Computing calls on all faculty, staff, and students to participate in a college-wide Bayanihan on September 12, 2025 (Friday), from 8:00 AM to 5:00 PM.\n\nTo avoid disruption of classes, students are required to render at least one (1) hour of bayanihan during their vacant periods. Attendance will be monitored closely by the Dean’s Secretary and the CISC Student Council officers.\n\nFaculty and staff participation is highly encouraged to ensure the success of this meaningful activity.\n\nLet’s come together and show the true spirit of Bayanihan as we prepare to celebrate our foundation and alumni homecoming!\n\nPubmat by: Shekinah Solon\n#CISC\n#CSCO\n#bayanihan2025"
+
     ]
   }
 ]

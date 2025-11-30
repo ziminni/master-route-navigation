@@ -1,11 +1,13 @@
 
 import os
 import json
-from typing import List, Dict
+import requests
+from typing import List, Dict, Tuple
 from PyQt6.QtCore import QObject, pyqtSignal
 
 class HouseController(QObject):
     members_updated = pyqtSignal(list)
+    house_created = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -85,6 +87,51 @@ class HouseController(QObject):
     def get_filtered_members(self) -> List[Dict]:
         """Return the current filtered member list."""
         return self.filtered_members
+
+    def create_house(self, name: str, description: str = "", banner_path: str = None, logo_path: str = None, token: str = None, api_base: str = None) -> Tuple[bool, dict]:
+        """Create a house by POSTing to the backend API.
+
+        Returns (success, response_json_or_text)
+        """
+        api_base = api_base or "http://127.0.0.1:8000"
+        url = f"{api_base}/api/house/houses/"
+        data = {"name": name, "description": description}
+        files = {}
+        try:
+            if banner_path:
+                files["banner"] = open(banner_path, "rb")
+            if logo_path:
+                files["logo"] = open(logo_path, "rb")
+
+            headers = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+
+            resp = requests.post(url, data=data, files=files or None, headers=headers)
+
+            if files:
+                for f in files.values():
+                    try:
+                        f.close()
+                    except Exception:
+                        pass
+
+            try:
+                payload = resp.json()
+            except Exception:
+                payload = {"text": resp.text}
+
+            if resp.status_code in (200, 201):
+                # emit signal for other UI pieces
+                try:
+                    self.house_created.emit(payload)
+                except Exception:
+                    pass
+                return True, payload
+            else:
+                return False, payload
+        except Exception as e:
+            return False, {"error": str(e)}
     
     
     
