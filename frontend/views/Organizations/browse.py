@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout
 
 from .BrowseView import Student, Officer, Admin, Faculty, Dean
 
-print(f"Browse: Imported Student={Student is not None}, Faculty={Faculty is not None}, Officer={Officer is not None}, Admin={Admin is not None}")
+print(f"Browse: Imported Student={Student is not None}, Faculty={Faculty is not None}, Officer={Officer is not None}, Admin={Admin is not None}, Dean={Dean is not None}")
 
 class Browse(QWidget):
     def __init__(self, username="", roles=None, primary_role="", token=""):
@@ -14,6 +14,9 @@ class Browse(QWidget):
         if primary_role == "admin":
             print("Browse: Loading Admin view")
             self.view = Admin(admin_name=username)
+        elif primary_role == "dean":
+            print("Browse: Loading Dean view")
+            self.view = Dean(dean_name=username)
         elif primary_role == "faculty":
             print("Browse: Loading Faculty view")
             self.view = Faculty(faculty_name=username)
@@ -23,7 +26,7 @@ class Browse(QWidget):
                 self.view = Officer(officer_name=username)
             else:
                 print("Browse: Loading Student view")
-                self.view = Dean(dean_name=username)
+                self.view = Student(student_name=username)
         else:
             print("Browse: Loading default Faculty view")
             self.view = Faculty(faculty_name=username)

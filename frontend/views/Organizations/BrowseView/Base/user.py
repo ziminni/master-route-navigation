@@ -146,15 +146,41 @@ class User(QtWidgets.QWidget):
                     self._log_action("RESTORE_ORG", org["name"], subject_name=org["name"])
                     return
 
-    def save_data(self, data=None):
-        """Save organizations data to JSON file."""
-        if data is None:
-            data = self._load_data()
+    def save_data(self) -> None:
+        """Save the ENTIRE organizations_data.json with proper deep updates"""
         try:
-            with open(self.data_file, 'w') as file:
-                json.dump({"organizations": data}, file, indent=4)
+            # Load full data
+            with open(self.data_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            organizations = data.get("organizations", [])
+            
+            # Find and update the exact org/branch that matches self.current_org
+            updated = False
+            for org in organizations:
+                if org.get("id") == self.current_org.get("id"):
+                    # Main org
+                    org.update(self.current_org)
+                    updated = True
+                    break
+                # Check branches
+                for branch in org.get("branches", []):
+                    if branch.get("id") == self.current_org.get("id"):
+                        branch.update(self.current_org)
+                        updated = True
+                        break
+            if not updated:
+                print("Warning: current_org not found in data!")
+                return
+
+            # Write back with proper formatting
+            with open(self.data_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+
+            print(f"Saved changes for org ID {self.current_org.get('id')} - {self.current_org.get('name')}")
+
         except Exception as e:
-            print(f"Error saving {self.data_file}: {str(e)}")
+            print(f"ERROR saving data.")
 
     def save_data_for_org(self, org_to_save: Dict) -> None:
         """Saves a specific org/branch data dict back to the JSON file."""

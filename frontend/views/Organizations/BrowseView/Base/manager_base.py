@@ -332,94 +332,109 @@ class ManagerBase:
             self.load_applicants(search_text)
     
     def edit_member(self, row: int, bypass_cooldown: bool = False) -> None:
-        """Open dialog to edit member's position."""
-        from widgets.orgs_custom_widgets.dialogs import EditMemberDialog
-        
-        if not self.current_org:
-            return
-        
-        search_text = self._get_search_text()
-        members = self.current_org.get("members", [])
-        
-        original_index, member = self._filter_and_find_original_index(
-            members, row, search_text
-        )
-        
-        if original_index is None:
-            return
-        
-        dialog = EditMemberDialog(member, self)
-        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-            new_position = dialog.updated_position
-            old_position = member[1]
-            member_name = member[0]
+            """Open dialog to edit member's position.
             
-            officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
-            is_officer_change = (new_position in officer_positions) or (old_position in officer_positions)
-
-            # --- ADDED: Cooldown Check ---
-            if is_officer_change and not bypass_cooldown:
-                # --- FIX: Standardized cooldown key ---
-                is_on_cooldown, end_time = self.check_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE")
-                if is_on_cooldown:
-                    QMessageBox.warning(
-                        self, 
-                        "Action Cooldown", 
-                        f"Officer changes are on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
-                    )
-                    return
-            # --- END Cooldown Check ---
-
-            self.current_org["members"][original_index][1] = new_position
+            [UPDATE] Clears pending officer request for the edited member.
+            """
+            from widgets.orgs_custom_widgets.dialogs import EditMemberDialog
             
-            if new_position in officer_positions:
-                officers = self.current_org.get("officers", [])
-                is_already_officer = False
-                for officer in officers:
-                    if officer["name"] == member_name:
-                        officer["position"] = new_position
-                        is_already_officer = True
-                        break
+            if not self.current_org:
+                return
+            
+            search_text = self._get_search_text()
+            members = self.current_org.get("members", [])
+            
+            original_index, member = self._filter_and_find_original_index(
+                members, row, search_text
+            )
+            
+            if original_index is None:
+                return
+            
+            dialog = EditMemberDialog(member, self)
+            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+                new_position = dialog.updated_position
+                old_position = member[1]
+                member_name = member[0]
                 
-                if not is_already_officer:
-                    new_officer = {
-                        "name": member_name,
-                        "position": new_position,
-                        "card_image_path": "No Photo",
-                        "photo_path": "No Photo",
-                        "start_date": QtCore.QDate.currentDate().toString("MM/dd/yyyy")
-                    }
-                    self.current_org["officers"].append(new_officer)
-                    
-            elif old_position in officer_positions and new_position == "Member":
-                officers = self.current_org.get("officers", [])
-                self.current_org["officers"] = [
-                    officer for officer in officers if officer["name"] != member_name
-                ]
-            
-            org_name = self.current_org.get('name', 'Unknown Org')
-            details = f"Position changed from '{old_position}' to '{new_position}'."
-            self._log_action("EDIT_MEMBER", org_name, subject_name=member_name, changes=details)
-            
-            self.save_data()
-            
-            # --- ADDED: Set Cooldown ---
-            if is_officer_change and not bypass_cooldown:
-                # --- FIX: Standardized cooldown key ---
-                self.set_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE", minutes=5)
-            # --- END Set Cooldown ---
+                officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
+                is_officer_change = (new_position in officer_positions) or (old_position in officer_positions)
 
-            self.load_members(search_text)
-            
-            if new_position in officer_positions or old_position in officer_positions:
-                current_index = self.ui.officer_history_dp.currentIndex()
-                selected_semester = self.ui.officer_history_dp.itemText(current_index)
-                officers = (
-                    self.current_org.get("officer_history", {}).get(selected_semester, [])
-                    if selected_semester != "Current Officers"
-                    else self.current_org.get("officers", [])
-                )
-                self.load_officers(officers)
+                # --- ADDED: Cooldown Check ---
+                if is_officer_change and not bypass_cooldown:
+                    # --- FIX: Standardized cooldown key ---
+                    is_on_cooldown, end_time = self.check_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE")
+                    if is_on_cooldown:
+                        QMessageBox.warning(
+                            self, 
+                            "Action Cooldown", 
+                            f"Officer changes are on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
+                        )
+                        return
+                # --- END Cooldown Check ---
+
+                self.current_org["members"][original_index][1] = new_position
+                
+                # --- FIX: Clear pending request for the edited member ---
+                self.current_org["pending_officers"] = [
+                    p for p in self.current_org.get("pending_officers", []) 
+                    if p.get("name") != member_name
+                ]
+                # --- END FIX ---
+                
+                if new_position in officer_positions:
+                    officers = self.current_org.get("officers", [])
+                    is_already_officer = False
+                    for officer in officers:
+                        if officer["name"] == member_name:
+                            officer["position"] = new_position
+                            is_already_officer = True
+                            break
+                    
+                    if not is_already_officer:
+                        # New officer data will use 'No Photo' as default, but if the member
+                        # was already an officer and demoted to member, the old photo data
+                        # might be needed here to re-promote them if they were not removed.
+                        # Since this is a simple member edit dialog, we stick to defaults 
+                        # for safety if the officer entry was cleared.
+                        new_officer = {
+                            "name": member_name,
+                            "position": new_position,
+                            "card_image_path": "No Photo",
+                            "photo_path": "No Photo",
+                            "start_date": QtCore.QDate.currentDate().toString("MM/dd/yyyy")
+                        }
+                        self.current_org["officers"].append(new_officer)
+                        
+                elif old_position in officer_positions and new_position == "Member":
+                    officers = self.current_org.get("officers", [])
+                    self.current_org["officers"] = [
+                        officer for officer in officers if officer["name"] != member_name
+                    ]
+                
+                org_name = self.current_org.get('name', 'Unknown Org')
+                details = f"Position changed from '{old_position}' to '{new_position}'."
+                self._log_action("EDIT_MEMBER", org_name, subject_name=member_name, changes=details)
+                
+                self.save_data()
+                
+                # --- ADDED: Set Cooldown ---
+                if is_officer_change and not bypass_cooldown:
+                    # --- FIX: Standardized cooldown key ---
+                    self.set_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE", minutes=5)
+                # --- END Set Cooldown ---
+
+                self.load_members(search_text)
+                
+                if new_position in officer_positions or old_position in officer_positions:
+                    current_index = self.ui.officer_history_dp.currentIndex()
+                    selected_semester = self.ui.officer_history_dp.itemText(current_index)
+                    officers = (
+                        self.current_org.get("officer_history", {}).get(selected_semester, [])
+                        if selected_semester != "Current Officers"
+                        else self.current_org.get("officers", [])
+                    )
+                    self.load_officers(officers)
     
     def kick_member(self, row: int, bypass_cooldown: bool = False) -> None:
         """
@@ -514,114 +529,146 @@ class ManagerBase:
                 self.load_officers(current_officers)
     
     def update_officer_in_org(self, updated_officer: Dict, bypass_cooldown: bool = False) -> None:
-        """Update the officer data in the current organization and save."""
-        if not self.current_org:
-            return
-
-        member_name = updated_officer.get("name", "Unknown")
-        new_position = updated_officer.get("position", "Unknown")
-        org_name = self.current_org.get("name", "Unknown Org")
-        officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
-
-        old_position = "Member"
-        is_new_officer = False
-        officers = self.current_org.get("officers", [])
-        existing_officer = next((off for off in officers if off["name"] == member_name), None)
-        
-        if existing_officer:
-            old_position = existing_officer.get("position", "Member")
-        elif new_position in officer_positions:
-             is_new_officer = True
-             old_position = "Member"
-
-        is_position_change = (new_position != old_position)
-        is_officer_change = is_position_change and (new_position in officer_positions or old_position in officer_positions)
-        
-        if is_officer_change and not bypass_cooldown:
-            is_on_cooldown, end_time = self.check_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE")
-            if is_on_cooldown:
-                QMessageBox.warning(
-                    self, 
-                    "Action Cooldown", 
-                    f"Officer position changes are on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
-                )
+            """Update the officer data in the current organization and save.
+            
+            [UPDATE] Implements granular updates to preserve photo/CV paths 
+            and clears pending officer request for the live update.
+            """
+            if not self.current_org:
                 return
 
-        details = f"Officer details updated."
-        if is_position_change:
-             details += f" Position changed from '{old_position}' to '{new_position}'."
+            member_name = updated_officer.get("name", "Unknown")
+            new_position = updated_officer.get("position", "Unknown")
+            org_name = self.current_org.get("name", "Unknown Org")
+            officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
 
-        self._log_action("UPDATE_OFFICER", org_name, subject_name=member_name, changes=details)
-        
-        if "officers" in self.current_org:
+            old_position = "Member"
+            is_new_officer = False
+            officers = self.current_org.get("officers", [])
+            
+            # Find existing officer to get old position and current photo paths
+            existing_officer_index = -1
+            for i, off in enumerate(officers):
+                if off["name"] == member_name:
+                    existing_officer_index = i
+                    old_position = off.get("position", "Member")
+                    break
+                
+            if existing_officer_index == -1 and new_position in officer_positions:
+                is_new_officer = True
+                old_position = "Member" # Will be set below when appending
+
+            is_position_change = (new_position != old_position)
+            is_officer_change = is_position_change and (new_position in officer_positions or old_position in officer_positions)
+            
+            # --- Cooldown Check (unchanged) ---
+            if is_officer_change and not bypass_cooldown:
+                is_on_cooldown, end_time = self.check_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE")
+                if is_on_cooldown:
+                    QMessageBox.warning(
+                        self, 
+                        "Action Cooldown", 
+                        f"Officer position changes are on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
+                    )
+                    return
+            # --- End Cooldown Check ---
+
+            details = f"Officer details updated."
+            if is_position_change:
+                details += f" Position changed from '{old_position}' to '{new_position}'."
+
+            self._log_action("UPDATE_OFFICER", org_name, subject_name=member_name, changes=details)
+            
+            # --- FIX START: Granular Update of Officer Data (Photo Preservation) ---
             new_officers = []
             found = False
-            for off in self.current_org["officers"]:
+            for off in self.current_org.get("officers", []):
                 if off["name"] == member_name:
                     if new_position in officer_positions:
-                         new_officers.append(updated_officer)
-                    found = True
+                        # Update fields only if they are present in updated_officer (from dialog)
+                        off["position"] = updated_officer.get("position", off["position"])
+                        if "photo_path" in updated_officer: off["photo_path"] = updated_officer["photo_path"]
+                        if "card_image_path" in updated_officer: off["card_image_path"] = updated_officer["card_image_path"]
+                        if "cv_path" in updated_officer: off["cv_path"] = updated_officer["cv_path"]
+                        new_officers.append(off)
+                        found = True
                 else:
                     new_officers.append(off)
             
             if not found and new_position in officer_positions:
+                # New officer being promoted - append the full updated_officer dict
                 new_officers.append(updated_officer)
-                
+                    
             self.current_org["officers"] = new_officers
-        
-        if "officer_history" in self.current_org:
-            for semester, offs in self.current_org["officer_history"].items():
-                new_offs = []
-                found_in_history = False
-                for off in offs:
-                    if off["name"] == member_name:
-                         if new_position in officer_positions:
-                              new_offs.append(updated_officer)
-                         found_in_history = True
-                    else:
-                        new_offs.append(off)
-                if not found_in_history and new_position in officer_positions:
-                     new_offs.append(updated_officer)
-                self.current_org["officer_history"][semester] = new_offs
-        
-        members = self.current_org.get("members", [])
-        member_found = False
-        for i, mem in enumerate(members):
-            if mem[0] == member_name:
-                if is_position_change:
-                     members[i][1] = new_position
-                member_found = True
-                break
-                
-        if not member_found:
-            new_member_start_date = QtCore.QDate.currentDate().toString("yyyy-MM-dd")
-            new_member = [
-                member_name,
-                new_position,
-                "Active",
-                updated_officer.get("start_date", new_member_start_date)
+            # --- FIX END ---
+            
+            # --- FIX: Clear pending request for the edited officer (Sync Pending List) ---
+            self.current_org["pending_officers"] = [
+                p for p in self.current_org.get("pending_officers", []) 
+                if p.get("name") != member_name
             ]
-            members.append(new_member)
-        
-        if new_position not in officer_positions:
-             self.current_org["officers"] = [
-                 o for o in self.current_org.get("officers", []) if o["name"] != member_name
-             ]
+            # --- END FIX ---
 
-        self.current_org["members"] = members
-        self.save_data()
-        
-        if is_officer_change and not bypass_cooldown:
-            self.set_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE", minutes=5)
+            # --- Update Officer History ---
+            if "officer_history" in self.current_org:
+                for semester, offs in self.current_org["officer_history"].items():
+                    new_offs = []
+                    found_in_history = False
+                    for off in offs:
+                        if off["name"] == member_name:
+                            if new_position in officer_positions:
+                                # Apply same granular update logic for history
+                                off["position"] = updated_officer.get("position", off["position"])
+                                if "photo_path" in updated_officer: off["photo_path"] = updated_officer["photo_path"]
+                                if "card_image_path" in updated_officer: off["card_image_path"] = updated_officer["card_image_path"]
+                                if "cv_path" in updated_officer: off["cv_path"] = updated_officer["cv_path"]
+                                new_offs.append(off)
+                                found_in_history = True
+                        else:
+                            new_offs.append(off)
+                    if not found_in_history and new_position in officer_positions:
+                        new_offs.append(updated_officer)
+                    self.current_org["officer_history"][semester] = new_offs
+            
+            # --- Update Members List ---
+            members = self.current_org.get("members", [])
+            member_found = False
+            for i, mem in enumerate(members):
+                if mem[0] == member_name:
+                    if is_position_change:
+                        members[i][1] = new_position
+                    member_found = True
+                    break
+                    
+            if not member_found and new_position in officer_positions:
+                new_member_start_date = QtCore.QDate.currentDate().toString("yyyy-MM-dd")
+                new_member = [
+                    member_name,
+                    new_position,
+                    "Active",
+                    updated_officer.get("start_date", new_member_start_date)
+                ]
+                members.append(new_member)
+            
+            if new_position not in officer_positions:
+                self.current_org["officers"] = [
+                    o for o in self.current_org.get("officers", []) if o["name"] != member_name
+                ]
 
-        current_index = self.ui.officer_history_dp.currentIndex()
-        selected_semester = self.ui.officer_history_dp.itemText(current_index)
-        officers_to_display = (
-            self.current_org.get("officer_history", {}).get(selected_semester, [])
-            if selected_semester != "Current Officers"
-            else self.current_org.get("officers", [])
-        )
-        self.load_officers(officers_to_display)
+            self.current_org["members"] = members
+            self.save_data()
+            
+            if is_officer_change and not bypass_cooldown:
+                self.set_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE", minutes=5)
+
+            current_index = self.ui.officer_history_dp.currentIndex()
+            selected_semester = self.ui.officer_history_dp.itemText(current_index)
+            officers_to_display = (
+                self.current_org.get("officer_history", {}).get(selected_semester, [])
+                if selected_semester != "Current Officers"
+                else self.current_org.get("officers", [])
+            )
+            self.load_officers(officers_to_display)
     
     def open_edit_dialog(self):
         """Open the edit dialog for current org."""

@@ -312,11 +312,211 @@
         "details": "User was an officer: False"
     },
     {
-        "timestamp": "2025-12-01T00:55:17.276718",
+        "timestamp": "2025-11-30T18:07:32.580149",
         "actor": "admin",
-        "action": "EDIT_ORGANIZATION",
-        "organization": "asd",
-        "subject": "asd",
-        "details": "Org details updated."
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Officer details updated. Position changed from 'Vice - Internal Chairperson' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-11-30T18:07:32.722962",
+        "actor": "admin",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T18:21:34.931945",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Officer details updated. Position changed from 'Vice - Internal Chairperson' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-11-30T18:21:42.979737",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Officer details updated. Position changed from 'Chairperson' to 'Vice - Internal Chairperson'."
+    },
+    {
+        "timestamp": "2025-11-30T18:59:55.261609",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T20:00:29.383203",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T20:00:46.568335",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T20:17:34.034977",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T20:35:00.354865",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T20:59:37.339342",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T21:15:30.343887",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T21:15:47.614677",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:01.606484",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:11.327316",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:18.882307",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:30.784710",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:37.382253",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:46.801027",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position \u2192 Treasurer"
+    },
+    {
+        "timestamp": "2025-11-30T22:17:18.988371",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Yuri Salise",
+        "details": "Position changed from 'Member' to 'Secretary'."
+    },
+    {
+        "timestamp": "2025-11-30T23:12:01.638412",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Member"
+    },
+    {
+        "timestamp": "2025-11-30T23:12:14.065870",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T23:39:25.829490",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Member"
+    },
+    {
+        "timestamp": "2025-11-30T23:39:43.662610",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Member"
+    },
+    {
+        "timestamp": "2025-12-01T00:03:38.457093",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Yuri Salise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-12-01T00:03:40.698821",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-12-01T00:09:02.951717",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position \u2192 Member"
     }
 ]
