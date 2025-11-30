@@ -103,9 +103,18 @@ class CollegeOrgCard(BaseOrgCard):
 
         logo_label = self._create_logo_label(logo_path, size=200, radius=10)
 
+        # Organization name label
+        name_label = QtWidgets.QLabel()
+        name_label.setStyleSheet("border: none; background-color: transparent; font-weight: bold; font-size: 14px;")
+        name_label.setText(org_data.get("name", "Unknown"))
+        name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        name_label.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        name_label.setWordWrap(True)
+
+        # Organization description label
         desc_label = QtWidgets.QLabel()
-        desc_label.setStyleSheet("border: none; background-color: transparent; font-weight: bold;")
-        desc_label.setMaximumHeight(16)
+        desc_label.setStyleSheet("border: none; background-color: transparent; color: #666; font-size: 11px;")
+        desc_label.setMaximumHeight(40)
         desc_label.setText(description)
         desc_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         desc_label.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
@@ -126,6 +135,7 @@ class CollegeOrgCard(BaseOrgCard):
         btn_details.clicked.connect(lambda: main_window.show_org_details(org_data))
 
         layout.addWidget(logo_label, alignment=QtCore.Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(name_label)
         layout.addWidget(desc_label)
         layout.addWidget(btn_details)
         layout.addWidget(self.btn_apply)

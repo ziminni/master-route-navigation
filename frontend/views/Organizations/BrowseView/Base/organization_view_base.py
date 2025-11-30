@@ -55,7 +55,6 @@ class OrganizationViewBase(User):
         method (e.g., Student._to_members_page vs ManagerBase._to_members_page)
         is called based on the object's inheritance.
         """
-        self.ui.comboBox.currentIndexChanged.connect(self._on_combobox_changed)
         self.ui.view_members_btn.clicked.connect(self._to_members_page)
         self.ui.back_btn_member.clicked.connect(self._return_to_prev_page)
         self.ui.back_btn.clicked.connect(self._return_to_prev_page)
@@ -78,7 +77,7 @@ class OrganizationViewBase(User):
     def _perform_search(self) -> None:
         """Handle organization/branch search based on combo box selection."""
         search_text = self.ui.search_line.text().strip().lower()
-        self.load_orgs(search_text) if self.ui.comboBox.currentIndex() == 0 else self.load_branches(search_text)
+        self.load_orgs(search_text)
 
     def _perform_member_search(self) -> None:
         """Handle member search (non-manager version)."""
@@ -128,14 +127,10 @@ class OrganizationViewBase(User):
                 self.no_member_label.show()
 
     def _on_combobox_changed(self, index: int) -> None:
-        """Handle combo box change (default version for Faculty/Admin)."""
-        self.ui.college_label.setText(
-            "College Organization(s)" if index == 0 else "College Branch(es)"
-        )
-        if self.ui.comboBox.currentIndex() == 0:
-            self.load_orgs()
-        else:
-            self.load_branches()
+        """Handle combo box change - now always shows organizations."""
+        # ComboBox is now hidden, always show all organizations
+        self.ui.college_label.setText("College Organization(s)")
+        self.load_orgs()
         self.ui.college_org_scrollable.verticalScrollBar().setValue(0)
 
     def _add_college_org(self, org_data: Dict) -> None:
@@ -144,7 +139,8 @@ class OrganizationViewBase(User):
         
         card = CollegeOrgCard(
             self._get_logo_path(org_data["logo_path"]),
-            org_data["name"], org_data, self
+            org_data.get("description", "No description available"), 
+            org_data, self
         )
         col = self.college_org_count % 5
         row = self.college_org_count // 5
@@ -173,7 +169,7 @@ class OrganizationViewBase(User):
     def _to_members_page(self) -> None:
         """Navigate to the members page (non-manager version)."""
         if self.current_org:
-            self.ui.header_label_3.setText("Organization" if not self.current_org["is_branch"] else "Branch")
+            self.ui.header_label_3.setText("Organization")
         self.load_members(self.ui.search_line_3.text().strip().lower())
         self.ui.stacked_widget.setCurrentIndex(2)
 
@@ -182,7 +178,7 @@ class OrganizationViewBase(User):
         if self.ui.stacked_widget.currentIndex() == 2:
             self.ui.stacked_widget.setCurrentIndex(1)
         else:
-            self.load_orgs() if self.ui.comboBox.currentIndex() == 0 else self.load_branches()
+            self.load_orgs()
             self.ui.stacked_widget.setCurrentIndex(0)
 
     def prev_page(self) -> None:
@@ -205,5 +201,6 @@ class OrganizationViewBase(User):
         raise NotImplementedError("Subclass must implement load_orgs")
 
     def load_branches(self, search_text: str = "") -> None:
-        """Load and display branches."""
-        raise NotImplementedError("Subclass must implement load_branches")
+        """Load and display branches - now just redirects to load_orgs."""
+        # Branches are now just organizations with main_org set
+        self.load_orgs(search_text)

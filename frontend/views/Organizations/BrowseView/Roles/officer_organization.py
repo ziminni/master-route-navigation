@@ -124,8 +124,5 @@ class Officer(ManagerBase, Student):
             else:
                 self.ui.stacked_widget.setCurrentIndex(1)
         else:
-            if self.ui.comboBox.currentIndex() == 0:
-                self.load_orgs()
-            else:
-                self.load_branches()
+            self.load_orgs()
             self.ui.stacked_widget.setCurrentIndex(0)

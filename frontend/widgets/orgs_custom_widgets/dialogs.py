@@ -6,6 +6,7 @@ import json
 import os
 
 from views.Organizations.BrowseView.Utils.image_utils import copy_image_to_data, get_image_path, delete_image
+from services.organization_api_service import OrganizationAPIService
 from .styles import (
     CONFIRM_STYLE, CANCEL_STYLE, BROWSE_STYLE, 
     EDIT_STYLE, LABEL_STYLE, DIALOG_STYLE
@@ -557,10 +558,9 @@ class EditMemberDialog(BlurredDialog):
         self.accept()
 
 class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
-    def __init__(self, parent, title, fixed_size=(600, 500), is_branch=False):
+    def __init__(self, parent, title, fixed_size=(600, 500)):
         super().__init__(parent)
         self.parent_window = parent
-        self.is_branch = is_branch
         self.setWindowTitle(title)
         self.setFixedSize(*fixed_size)
         self.logo_path = "No Photo"
@@ -572,10 +572,6 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
 
     def _setup_ui(self):
         main_layout = QtWidgets.QVBoxLayout(self)
-
-        if self.is_branch:
-            parent_layout = self._create_parent_layout()
-            main_layout.addLayout(parent_layout)
 
         name_layout = QtWidgets.QHBoxLayout()
         name_layout.addWidget(QtWidgets.QLabel("Name:"))
@@ -589,33 +585,6 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
 
         btn_layout = self._create_button_layout(self.confirm, self.reject)
         main_layout.addLayout(btn_layout)
-
-    def _create_parent_layout(self):
-        parent_layout = QtWidgets.QHBoxLayout()
-        parent_label = QtWidgets.QLabel("Parent Organization:")
-        parent_label.setStyleSheet("font-weight: bold; color: #084924;")
-        parent_layout.addWidget(parent_label)
-        self.parent_combo = QtWidgets.QComboBox()
-        self.parent_combo.setStyleSheet(EDIT_STYLE)
-
-        organizations = self.parent_window._load_data()
-        parent_orgs = [org for org in organizations if not org.get("is_branch", False)]
-
-        if not parent_orgs:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "No Organizations",
-                "No parent organizations available. Please create an organization first.",
-                QtWidgets.QMessageBox.StandardButton.Ok
-            )
-            QtCore.QTimer.singleShot(0, self.reject) 
-            return parent_layout
-
-        for org in parent_orgs:
-            self.parent_combo.addItem(org["name"], org)
-
-        parent_layout.addWidget(self.parent_combo)
-        return parent_layout
 
     def _create_content_layout(self):
         content_layout = QtWidgets.QHBoxLayout()
@@ -637,7 +606,51 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
         right_widget = QtWidgets.QWidget()
         right_layout = QtWidgets.QVBoxLayout(right_widget)
 
-        self.brief_edit = BlurredDialog._add_text_edit(right_layout, "Brief Overview", is_brief=True)
+        # Organization Level dropdown
+        org_level_layout = QtWidgets.QHBoxLayout()
+        org_level_label = QtWidgets.QLabel("Organization Level:")
+        org_level_label.setStyleSheet(LABEL_STYLE)
+        org_level_layout.addWidget(org_level_label)
+        
+        self.org_level_combo = QtWidgets.QComboBox()
+        self.org_level_combo.setStyleSheet(EDIT_STYLE)
+        self.org_level_combo.addItem("College", "col")
+        self.org_level_combo.addItem("Program", "prog")
+        org_level_layout.addWidget(self.org_level_combo)
+        right_layout.addLayout(org_level_layout)
+
+        # Main Organization multi-select (using QListWidget with checkboxes)
+        main_org_label = QtWidgets.QLabel("Main Organization(s) (optional):")
+        main_org_label.setStyleSheet(LABEL_STYLE)
+        right_layout.addWidget(main_org_label)
+        
+        self.main_org_list = QtWidgets.QListWidget()
+        self.main_org_list.setStyleSheet(EDIT_STYLE)
+        self.main_org_list.setMaximumHeight(100)
+        self.main_org_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
+        
+        # Fetch organizations from API
+        api_response = OrganizationAPIService.fetch_organizations()
+        
+        if api_response.get('success'):
+            organizations_data = api_response.get('data', {}).get('data', [])
+            for org in organizations_data:
+                item = QtWidgets.QListWidgetItem(org["name"])
+                item.setData(QtCore.Qt.ItemDataRole.UserRole, org["id"])
+                self.main_org_list.addItem(item)
+        else:
+            # Fallback to JSON data if API fails
+            print(f"API Error: {api_response.get('message')}, falling back to JSON")
+            organizations = self.parent_window._load_data()
+            for org in organizations:
+                if not org.get("is_branch", False):  # Only show organizations, not branches
+                    item = QtWidgets.QListWidgetItem(org["name"])
+                    item.setData(QtCore.Qt.ItemDataRole.UserRole, org["id"])
+                    self.main_org_list.addItem(item)
+        
+        right_layout.addWidget(self.main_org_list)
+
+        # Description text edit
         self.desc_edit = BlurredDialog._add_text_edit(right_layout, "Description")
 
         content_layout.addWidget(right_widget)
@@ -649,49 +662,110 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
 class EditOrgDialog(BaseOrgDialog):
     def __init__(self, org_data: dict, parent: QtWidgets.QMainWindow):
         self.org_data = org_data
-        super().__init__(parent, "Edit Organization/Branch Details", (600, 500), org_data.get("is_branch", False))
+        super().__init__(parent, "Edit Organization/Branch Details", (600, 500))
         self.name_edit.setText(org_data.get("name", ""))
-        self.brief_edit.setPlainText(org_data.get("brief", ""))
+        
+        # Set org level if available
+        org_level = org_data.get("org_level", "col")
+        index = self.org_level_combo.findData(org_level)
+        if index >= 0:
+            self.org_level_combo.setCurrentIndex(index)
+        
         self.desc_edit.setPlainText(org_data.get("description", ""))
-        logo_path = get_image_path(org_data["logo_path"])
+        logo_path = get_image_path(org_data.get("logo_path", "No Photo"))
         self.parent_window.set_circular_logo(self.preview_label, logo_path)
+        
+        # Pre-select main organizations if any
+        main_orgs = org_data.get("main_org", [])
+        for i in range(self.main_org_list.count()):
+            item = self.main_org_list.item(i)
+            org_id = item.data(QtCore.Qt.ItemDataRole.UserRole)
+            if org_id in main_orgs:
+                item.setSelected(True)
 
     def _create_parent_layout(self):
         return None
 
     def confirm(self):
-        old_name = self.org_data.get("name", "")
         new_name = self.name_edit.text().strip()
         
         if not new_name:
             QtWidgets.QMessageBox.warning(self, "Invalid Input", "Name is required.")
             return
 
-        old_logo_path = self.org_data.get("logo_path")
+        # Get organization ID
+        org_id = self.org_data.get("id")
+        if not org_id:
+            QtWidgets.QMessageBox.critical(self, "Error", "Organization ID not found.")
+            return
+
+        # Handle logo upload if changed
+        logo_full_path = None
         if self.temp_image_path:
             new_filename = self._save_temp_image(new_name)
             if new_filename is None:
                 return
             if new_filename != "No Photo":
-                self.org_data["logo_path"] = new_filename
-                delete_image(old_logo_path)
+                logo_full_path = get_image_path(new_filename)
+                # Delete old logo
+                old_logo_path = self.org_data.get("logo_path")
+                if old_logo_path:
+                    delete_image(old_logo_path)
 
-        self.org_data["name"] = new_name
-        self.org_data["brief"] = self.brief_edit.toPlainText().strip()
-        self.org_data["description"] = self.desc_edit.toPlainText().strip()
-
-        self.parent_window.ui.org_name.setText(self.org_data["name"])
-        self.parent_window.ui.brief_label.setText(self.org_data["brief"])
-        self.parent_window.ui.obj_label.setText(self.org_data["description"])
-        logo_path = get_image_path(self.org_data["logo_path"])
-        self.parent_window.set_circular_logo(self.parent_window.ui.logo, logo_path)
-
-        self.parent_window.save_data()
-        self.accept()
+        # Get updated values
+        new_description = self.desc_edit.toPlainText().strip()
+        new_org_level = self.org_level_combo.currentData()
+        
+        # Get selected main organizations
+        selected_main_orgs = []
+        for i in range(self.main_org_list.count()):
+            item = self.main_org_list.item(i)
+            if item.isSelected():
+                item_org_id = item.data(QtCore.Qt.ItemDataRole.UserRole)
+                selected_main_orgs.append(item_org_id)
+        
+        # Call API to update organization
+        api_response = OrganizationAPIService.update_organization(
+            org_id=org_id,
+            name=new_name,
+            description=new_description,
+            org_level=new_org_level,
+            logo_path=logo_full_path,
+            status="active",
+            main_org_ids=selected_main_orgs if selected_main_orgs else None
+        )
+        
+        # Handle API response
+        if api_response.get('success'):
+            print(f"Updated organization '{new_name}' (ID: {org_id})")
+            
+            # Refresh the UI to load updated data from database
+            if hasattr(self.parent_window, 'load_orgs'):
+                self.parent_window.load_orgs()
+            
+            QtWidgets.QMessageBox.information(
+                self,
+                "Success",
+                f"Organization '{new_name}' updated successfully!",
+                QtWidgets.QMessageBox.StandardButton.Ok
+            )
+            
+            self.accept()
+        else:
+            # API call failed
+            error_msg = api_response.get('message', 'Unknown error occurred')
+            error_details = api_response.get('error', '')
+            
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Update Failed",
+                f"{error_msg}\n\nDetails: {error_details}",
+                QtWidgets.QMessageBox.StandardButton.Ok
+            )
 
 class CreateOrgDialog(BaseOrgDialog):
-    def __init__(self, parent, is_branch: bool = False):
-        super().__init__(parent, f"Create {'Branch' if is_branch else 'Organization'}", (600, 500), is_branch)
+    def __init__(self, parent):
+        super().__init__(parent, "Create Organization", (600, 500))
 
     def confirm(self):
         name = self.name_edit.text().strip()
@@ -699,89 +773,65 @@ class CreateOrgDialog(BaseOrgDialog):
             QtWidgets.QMessageBox.warning(self, "Invalid Input", "Name is required.")
             return
 
-        brief = self.brief_edit.toPlainText().strip()
         description = self.desc_edit.toPlainText().strip()
         
         logo_filename = self._save_temp_image(name)
         if logo_filename is None:
             return
 
-        new_org = {
-            "id": None,
-            "name": name,
-            "is_joined": False,
-            "is_branch": self.is_branch,
-            "logo_path": logo_filename,
-            "brief": brief,
-            "description": description,
-            "events": [],
-            "officers": [],
-            "members": [],
-            "applicants": [],
-            "officer_history": {}
-        }
+        # Get organization level from dropdown
+        org_level = self.org_level_combo.currentData()
+        
+        # Get selected main organizations
+        selected_main_orgs = []
+        for i in range(self.main_org_list.count()):
+            item = self.main_org_list.item(i)
+            if item.isSelected():
+                org_id = item.data(QtCore.Qt.ItemDataRole.UserRole)
+                selected_main_orgs.append(org_id)
+        
+        # Get the full path to the logo file for API upload
+        logo_full_path = None
+        if logo_filename != "No Photo":
+            logo_full_path = get_image_path(logo_filename)
+        
+        # Call the API to create the organization
+        api_response = OrganizationAPIService.create_organization(
+            name=name,
+            description=description,
+            org_level=org_level,
+            logo_path=logo_full_path,
+            status="active",
+            main_org_ids=selected_main_orgs if selected_main_orgs else None
+        )
+        
+        # Handle API response
+        if api_response.get('success'):
+            org_data = api_response.get('data', {}).get('data', {})
+            
+            print(f"Created organization '{name}' with ID {org_data.get('id')}")
+            if selected_main_orgs:
+                print(f"  -> Part of main organization(s): {selected_main_orgs}")
 
-        if not self.is_branch:
-            new_org["branches"] = []
-
-        organizations = self.parent_window._load_data()
-
-        if self.is_branch:
-            if not hasattr(self, 'parent_combo') or self.parent_combo.count() == 0:
-                QtWidgets.QMessageBox.warning(self, "Invalid Input", "No parent organizations available.")
-                return
-
-            parent_org = self.parent_combo.currentData()
-            if not parent_org:
-                QtWidgets.QMessageBox.warning(self, "Invalid Input", "Please select a parent organization.")
-                return
-
-            branch_count = len(parent_org.get("branches", []))
-            new_org["id"] = parent_org["id"] * 100 + branch_count + 1
-            new_org["parent_id"] = parent_org["id"]
-
-            if "branches" not in parent_org:
-                parent_org["branches"] = []
-            parent_org["branches"].append(new_org)
-
-            for i, org in enumerate(organizations):
-                if org["id"] == parent_org["id"]:
-                    organizations[i] = parent_org
-                    break
-
-            print(f"Created branch '{name}' under parent org '{parent_org['name']}' with ID {new_org['id']}")
-        else:
-            max_id = max((org.get("id", 0) for org in organizations if org.get("id")), default=0)
-            new_org["id"] = max_id + 1
-            organizations.append(new_org)
-            print(f"Created organization '{name}' with ID {new_org['id']}")
-
-        try:
-            with open(self.parent_window.data_file, 'w') as file:
-                json.dump({"organizations": organizations}, file, indent=4)
-            print(f"Successfully saved new {'branch' if self.is_branch else 'organization'} to {self.parent_window.data_file}")
-        except Exception as e:
-            print(f"Error saving {self.parent_window.data_file}: {str(e)}")
-            QtWidgets.QMessageBox.critical(self, "Save Error", f"Failed to save data: {str(e)}")
-            return
-
-        if self.is_branch:
-            if hasattr(self.parent_window.ui, 'comboBox') and self.parent_window.ui.comboBox.currentIndex() == 1:
-                self.parent_window.load_branches()
-            else:
-                if hasattr(self.parent_window.ui, 'comboBox'):
-                    self.parent_window.ui.comboBox.setCurrentIndex(1)
-                self.parent_window.load_branches()
-        else:
-            if hasattr(self.parent_window.ui, 'comboBox'):
-                self.parent_window.ui.comboBox.setCurrentIndex(0)
+            # Refresh the UI to load from database
             self.parent_window.load_orgs()
 
-        QtWidgets.QMessageBox.information(
-            self,
-            "Success",
-            f"{'Branch' if self.is_branch else 'Organization'} '{name}' created successfully!",
-            QtWidgets.QMessageBox.StandardButton.Ok
-        )
+            QtWidgets.QMessageBox.information(
+                self,
+                "Success",
+                f"Organization '{name}' created successfully!",
+                QtWidgets.QMessageBox.StandardButton.Ok
+            )
 
-        self.accept()
+            self.accept()
+        else:
+            # API call failed
+            error_msg = api_response.get('message', 'Unknown error occurred')
+            error_details = api_response.get('error', '')
+            
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Creation Failed",
+                f"{error_msg}\n\nDetails: {error_details}",
+                QtWidgets.QMessageBox.StandardButton.Ok
+            )

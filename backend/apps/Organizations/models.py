@@ -32,7 +32,7 @@ class Organization(models.Model):
     default= Status.ACTIVE
 
     )
-    logo_path = models.CharField(max_length= 100)
+    logo_path = models.FileField(upload_to='logo/')
     created_at = models.DateTimeField(auto_now_add=True)
     # program_id = models.ForeignKey() needs program table
     

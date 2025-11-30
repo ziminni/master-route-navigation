@@ -138,53 +138,16 @@ class Student(OrganizationViewBase):
         self._update_scroll_areas()
 
     def load_branches(self, search_text: str = "") -> None:
-        organizations = self._load_data()
-        self._clear_grid(self.ui.joined_org_grid)
-        self._clear_grid(self.ui.college_org_grid)
-        self.joined_org_count = 0
-        self.college_org_count = 0
-
-        student_name = self.name
-
-        temp_joined_branches = []
-        for org in organizations:
-            for branch in org.get("branches", []):
-                if not branch.get("is_archived", False) and (search_text in branch["name"].lower() or not search_text):
-                    is_member = any(member[0] == student_name for member in branch.get("members", []))
-                    if is_member:
-                        temp_joined_branches.append(branch)
-        
-        joined_branch_ids = {branch['id'] for branch in temp_joined_branches}
-
-        filtered_joined_branches = []
-        filtered_college_branches = []
-        
-        for org in organizations:
-            for branch in org.get("branches", []):
-                if not branch.get("is_archived", False) and (search_text in branch["name"].lower() or not search_text):
-                    if branch['id'] in joined_branch_ids:
-                        if branch not in filtered_joined_branches:
-                            filtered_joined_branches.append(branch)
-                    else:
-                        if branch not in filtered_college_branches:
-                            filtered_college_branches.append(branch)
-        
-        for branch in filtered_joined_branches:
-            self._add_joined_org(branch)
-        for branch in filtered_college_branches:
-            self._add_college_org(branch)
-
-        if self.joined_org_count == 0:
-            self._add_no_record_label(self.ui.joined_org_grid)
-        if self.college_org_count == 0:
-            self._add_no_record_label(self.ui.college_org_grid)
-
-        self._update_scroll_areas()
+        """Load branches - now just redirects to load_orgs since branches are organizations with main_org."""
+    def load_branches(self, search_text: str = "") -> None:
+        """Load branches - now just redirects to load_orgs since branches are organizations with main_org."""
+        self.load_orgs(search_text)
 
     def _on_combobox_changed(self, index: int) -> None:
-        self.ui.joined_label.setText("Joined Organization(s)" if index == 0 else "Joined Branch(es)")
-        self.ui.college_label.setText("College Organization(s)" if index == 0 else "College Branch(es)")
-        self.load_orgs() if index == 0 else self.load_branches()
+        """Handle combo box change - now always shows organizations."""
+        self.ui.joined_label.setText("Joined Organization(s)")
+        self.ui.college_label.setText("College Organization(s)")
+        self.load_orgs()
         self.ui.joined_org_scrollable.verticalScrollBar().setValue(0)
         self.ui.college_org_scrollable.verticalScrollBar().setValue(0)
 

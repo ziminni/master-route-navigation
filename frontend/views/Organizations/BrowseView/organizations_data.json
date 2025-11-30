@@ -768,6 +768,36 @@
             "name": "Radiant",
             "officer_history": {},
             "officers": []
+        },
+        {
+            "id": 1,
+            "name": "asd",
+            "is_joined": false,
+            "is_branch": false,
+            "logo_path": "asd/RobloxScreenShot20250112_203621942.png",
+            "brief": "asd",
+            "description": "asd",
+            "events": [],
+            "officers": [],
+            "members": [],
+            "applicants": [],
+            "officer_history": {},
+            "branches": []
+        },
+        {
+            "id": 2,
+            "name": "cccc",
+            "is_joined": false,
+            "logo_path": "cccc/RobloxScreenShot20250112_203616019.png",
+            "brief": "College Level",
+            "description": "cccc",
+            "org_level": "col",
+            "branches": [],
+            "events": [],
+            "officers": [],
+            "members": [],
+            "applicants": [],
+            "officer_history": {}
         }
     ]
 }

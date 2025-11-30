@@ -297,34 +297,62 @@ class User(QtWidgets.QWidget):
         
     def show_org_details(self, org_data: Dict) -> None:
         """Display organization details on the details page."""
-        self.current_org = org_data
-        self.ui.header_label_2.setText("Organization" if not org_data["is_branch"] else "Branch")
-        self.ui.status_btn.setText("Active")
-        self.ui.org_name.setText(org_data["name"])
-        self.ui.org_type.setText("Branch" if org_data["is_branch"] else "Organization")
-        brief_content = org_data.get("brief", "")
-        self.ui.brief_label.setText(brief_content if brief_content else "No brief overview.")
-        description_content = org_data.get("description", "")
-        self.ui.obj_label.setText(description_content if description_content else "No objectives.")
+        from services.organization_api_service import OrganizationAPIService
         
-        branches = org_data.get("branches")
-        if branches is None or not isinstance(branches, list):
-            branches_text = "No branches available"
-        elif len(branches) == 0:
-            branches_text = "No branches available"
+        # Fetch detailed organization data from API
+        org_id = org_data.get('id')
+        if org_id:
+            api_response = OrganizationAPIService.fetch_organization_details(org_id)
+            if api_response.get('success'):
+                org_details = api_response.get('data', {}).get('data', {})
+            else:
+                # Fallback to provided org_data if API fails
+                org_details = org_data
         else:
+            org_details = org_data
+        
+        self.current_org = org_details
+        
+        # Set organization name
+        org_name = org_details.get("name", "Unknown Organization")
+        self.ui.org_name.setText(org_name)
+        self.ui.header_label_2.setText("Organization")
+        
+        # Set status
+        status = org_details.get("status", "active")
+        self.ui.status_btn.setText(status.capitalize())
+        
+        # Set organization type/level (in org_type field)
+        org_level = org_details.get("org_level", "col")
+        org_level_text = "College Level" if org_level == "col" else "Program Level"
+        self.ui.org_type.setText(org_level_text)
+        
+        # Set Brief Overview (description/objectives of the organization)
+        description = org_details.get("description", "")
+        self.ui.brief_label.setText(description if description else "No objectives available.")
+        
+        # Set Level (obj_label shows the program level)
+        self.ui.obj_label.setText(org_level_text)
+        
+        # Set branches (organizations that have this org as their main_org)
+        branches = org_details.get("branches", [])
+        if branches and isinstance(branches, list) and len(branches) > 0:
             branches_text = "\n".join([branch.get("name", "Unnamed") for branch in branches])
+        else:
+            branches_text = "No branches available"
         self.ui.obj_label_2.setText(branches_text)
         
-        self.set_circular_logo(self.ui.logo, self._get_logo_path(org_data["logo_path"]))
+        # Set logo
+        logo_path = org_details.get("logo_path", "No Photo")
+        self.set_circular_logo(self.ui.logo, self._get_logo_path(logo_path))
         
+        # Clear and set up officer history dropdown (keeping this for future functionality)
         self.ui.officer_history_dp.clear()
-        semesters = org_data.get("officer_history", {}).keys()
         self.ui.officer_history_dp.addItem("Current Officers")
-        self.ui.officer_history_dp.addItems(sorted(semesters))
         
-        self.load_officers(org_data.get("officers", []))
-        self.load_events(org_data.get("events", []))
+        # Load officers and events (keeping empty for now, can be added later)
+        self.load_officers([])
+        self.load_events([])
         self.ui.label.setText("A.Y. 2025-2026 - 1st Semester")
         self.ui.stacked_widget.setCurrentIndex(1)
 

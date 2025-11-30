@@ -1,6 +1,7 @@
 from PyQt6 import QtWidgets
 from typing import Dict
 from .organization_view_base import OrganizationViewBase
+from services.organization_api_service import OrganizationAPIService
 
 class FacultyAdminBase(OrganizationViewBase):
     """
@@ -15,7 +16,39 @@ class FacultyAdminBase(OrganizationViewBase):
         self.ui.joined_container.setVisible(False)
 
     def load_orgs(self, search_text: str = "") -> None:
-        organizations = self._load_data()
+        # Fetch organizations from API
+        api_response = OrganizationAPIService.fetch_organizations()
+        
+        if api_response.get('success'):
+            organizations_data = api_response.get('data', {}).get('data', [])
+            
+            # Convert API data to the format expected by the UI
+            organizations = []
+            for org in organizations_data:
+                org_dict = {
+                    "id": org.get('id'),
+                    "name": org.get('name'),
+                    "description": org.get('description', ''),
+                    "status": org.get('status', 'active'),
+                    "logo_path": org.get('logo_path', 'No Photo'),
+                    "org_level": org.get('org_level', 'col'),
+                    "created_at": org.get('created_at'),
+                    "is_branch": False,  # TODO: Add is_branch field to backend model
+                    "is_archived": False,  # TODO: Check status field
+                    "brief": "College Level" if org.get('org_level') == 'col' else "Program Level",
+                    "branches": [],
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [],
+                    "officer_history": {}
+                }
+                organizations.append(org_dict)
+        else:
+            # Fallback to JSON data if API fails
+            print(f"API Error: {api_response.get('message')}")
+            organizations = self._load_data()
+        
         self._clear_grid(self.ui.college_org_grid)
         self.college_org_count = 0
         
@@ -34,24 +67,8 @@ class FacultyAdminBase(OrganizationViewBase):
         self.hide_apply_buttons()
     
     def load_branches(self, search_text: str = "") -> None:
-        organizations = self._load_data()
-        self._clear_grid(self.ui.college_org_grid)
-        self.college_org_count = 0
-        
-        filtered_college_branches = []
-        for org in organizations:
-            for branch in org.get("branches", []):
-                if not branch.get("is_archived", False) and (search_text in branch["name"].lower() or not search_text):
-                    filtered_college_branches.append(branch)
-        
-        for branch in filtered_college_branches:
-            self._add_college_org(branch)
-        
-        if self.college_org_count == 0:
-            self._add_no_record_label(self.ui.college_org_grid)
-        
-        self._update_scroll_areas()
-        self.hide_apply_buttons()
+        """Load branches - now just redirects to load_orgs since branches are organizations with main_org."""
+        self.load_orgs(search_text)
     
     def hide_apply_buttons(self) -> None:
         """Hide all 'Apply' buttons in the organization cards."""
@@ -80,3 +97,40 @@ class FacultyAdminBase(OrganizationViewBase):
                 spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
                 self.ui.verticalLayout_10.addItem(spacer)
                 self.ui.verticalLayout_10.addWidget(self.edit_btn)
+    
+    def open_edit_dialog(self):
+        """Open the edit dialog for current organization."""
+        from widgets.orgs_custom_widgets.dialogs import EditOrgDialog
+        
+        if self.current_org:
+            # Fetch fresh organization data from API
+            org_id = self.current_org.get("id")
+            if org_id:
+                api_response = OrganizationAPIService.fetch_organization_details(org_id)
+                
+                if api_response.get('success'):
+                    org_data = api_response.get('data', {}).get('data', {})
+                    
+                    # Open edit dialog with fresh data
+                    dialog = EditOrgDialog(org_data, self)
+                    
+                    if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+                        # Refresh the details view with updated data
+                        updated_response = OrganizationAPIService.fetch_organization_details(org_id)
+                        if updated_response.get('success'):
+                            updated_org = updated_response.get('data', {}).get('data', {})
+                            self.show_org_details(updated_org)
+                else:
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Error",
+                        f"Failed to load organization details: {api_response.get('message')}",
+                        QtWidgets.QMessageBox.StandardButton.Ok
+                    )
+            else:
+                QtWidgets.QMessageBox.critical(
+                    self,
+                    "Error",
+                    "Organization ID not found.",
+                    QtWidgets.QMessageBox.StandardButton.Ok
+                )

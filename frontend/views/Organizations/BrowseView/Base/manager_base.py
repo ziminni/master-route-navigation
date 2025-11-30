@@ -666,17 +666,11 @@ class ManagerBase:
                 self.ui.stacked_widget.setCurrentIndex(1)
         
         elif current_index == 1:
-            if self.ui.comboBox.currentIndex() == 0:
-                self.load_orgs()
-            else:
-                self.load_branches()
+            self.load_orgs()
             self.ui.stacked_widget.setCurrentIndex(0)
             
         else:
-            if self.ui.comboBox.currentIndex() == 0:
-                self.load_orgs()
-            else:
-                self.load_branches()
+            self.load_orgs()
             self.ui.stacked_widget.setCurrentIndex(0)
     
     def _setup_action_delegate(self):

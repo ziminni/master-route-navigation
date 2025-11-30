@@ -530,25 +530,10 @@ class Admin(ManagerBase, FacultyAdminBase):
         return archived
 
     def _create_organization(self) -> None:
-        """Handle create organization/branch action."""
-        from PyQt6.QtWidgets import QInputDialog
-        
-        items = ["Organization", "Branch"]
-        item, ok = QInputDialog.getItem(
-            self, 
-            "Create", 
-            "What would you like to create?", 
-            items, 
-            0, 
-            False
-        )
-        
-        if ok and item:
-            is_branch = item == "Branch"
-            dialog = CreateOrgDialog(self, is_branch=is_branch)
-            dialog.exec()
-            
-            self.load_orgs() if not is_branch else self.load_branches()
+        """Handle create organization action."""
+        dialog = CreateOrgDialog(self)
+        dialog.exec()
+        self.load_orgs()
             
     def _return_to_prev_page(self) -> None:
         """Navigate back, handling admin pages."""
@@ -1022,4 +1007,4 @@ class Admin(ManagerBase, FacultyAdminBase):
             self.archive_org(self.current_org["id"], is_branch)
             QMessageBox.information(self, "Success", f"{'Branch' if is_branch else 'Organization'} archived.")
             self._return_to_prev_page()  # Refresh list
-            self.load_orgs() if self.ui.comboBox.currentIndex() == 0 else self.load_branches()
+            self.load_orgs()
