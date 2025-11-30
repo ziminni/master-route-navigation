@@ -1,6 +1,6 @@
 import os
 import sys
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton
 from PyQt6 import uic
 
 
@@ -34,6 +34,9 @@ class Schedule(QWidget):
             ui_path = os.path.join(project_root, "ui", "Academic Schedule", "schedule.ui")
             loaded = uic.loadUi(ui_path)
 
+        # HIDE CURRICULUM BUTTON - Target the specific button name
+        self._hide_curriculum_button(loaded)
+
         # Embed the loaded widget into this container
         container = QVBoxLayout(self)
         container.setContentsMargins(0, 0, 0, 0)
@@ -52,31 +55,19 @@ class Schedule(QWidget):
         try:
             setattr(loaded, "user_role", "faculty" if is_faculty else "student")
             if not is_faculty:
-                # Prefer a valid student_id; if username isn't an id, fallback to first student in JSON
                 from services.students_service import list_students, get_student_year
                 
-                #This calls the username instead of the actual user_id, Is actually useless if backend is considered
-                
                 student_id = username if (isinstance(username, str) and username and username.count("-") == 1) else None
-                # Find a way to get the user id data from the json from the backend
                 
-                #We currently have username and token, we need to get the student_id from the backend using the username and token
-                #Let's refer to the login process. Login process does not return student_id, only username, roles, primary_role and token
-                #It's ideal to make a service, but for now, we'll put the code here
-                #This is a temporary solution, ideally we should have a service to get the student_id. This uses the auth_service as reference
-                ###########################3 Move this to a service if possible
-
-                #########################333
                 if not student_id:
                     try:
                         students = list_students() or []
                         if students:
-                            student_id = students[0].get("studentId")#This will default to the first student id in students.json
+                            student_id = students[0].get("studentId")
                     except Exception:
                         student_id = None
                 if student_id:
                     setattr(loaded, "student_id", student_id)
-                    # Optionally tag student_year to help controller restrict years
                     try:
                         year = get_student_year(student_id)
                         if year:
@@ -91,8 +82,54 @@ class Schedule(QWidget):
             from controller.module3.schedule_controller import wire_schedule_signals
             wire_schedule_signals(loaded)
         except Exception as e:
-            # Best-effort: ignore wiring errors to avoid crashing the whole app
             print(f"Schedule: warning wiring controller signals failed: {e}")
 
+    def _hide_curriculum_button(self, widget):
+        """Hide the viewCurriculum button specifically"""
+        try:
+            # Method 1: Direct attribute access - this should work based on your code
+            if hasattr(widget, 'viewCurriculum'):
+                button = getattr(widget, 'viewCurriculum')
+                if isinstance(button, QPushButton):
+                    button.hide()
+                    button.setEnabled(False)
+                    print("✓ Curriculum button 'viewCurriculum' hidden and disabled")
+                    return
+                else:
+                    print(f"⚠ viewCurriculum exists but is not a QPushButton: {type(button)}")
 
+            # Method 2: Search by object name
+            curriculum_buttons = widget.findChildren(QPushButton, "viewCurriculum")
+            if curriculum_buttons:
+                for button in curriculum_buttons:
+                    button.hide()
+                    button.setEnabled(False)
+                print(f"✓ Found {len(curriculum_buttons)} curriculum button(s) by object name 'viewCurriculum'")
+                return
 
+            # Method 3: Search by text content
+            all_buttons = widget.findChildren(QPushButton)
+            curriculum_text_buttons = []
+            for button in all_buttons:
+                text = button.text().lower()
+                if any(keyword in text for keyword in ['curriculum', 'syllabus']):
+                    curriculum_text_buttons.append(button)
+            
+            if curriculum_text_buttons:
+                for button in curriculum_text_buttons:
+                    button.hide()
+                    button.setEnabled(False)
+                print(f"✓ Found {len(curriculum_text_buttons)} curriculum button(s) by text")
+                return
+
+            # Debug: List all buttons if not found
+            if not hasattr(widget, 'viewCurriculum') and not curriculum_buttons:
+                all_buttons = widget.findChildren(QPushButton)
+                print(f"🔍 All buttons found: {len(all_buttons)}")
+                for i, button in enumerate(all_buttons):
+                    print(f"  {i+1}. ObjectName: '{button.objectName()}', Text: '{button.text()}'")
+
+            print("⚠ Could not find curriculum button to hide")
+
+        except Exception as e:
+            print(f"Error hiding curriculum button: {e}")
