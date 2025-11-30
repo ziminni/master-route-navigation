@@ -3,6 +3,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QMessageBox, QFileDialog
 from .appointment_crud import appointment_crud
 from .StudentRequestPage import StudentRequestPage_ui
+from .api_client import APIClient
 import logging
 import os
 
@@ -17,7 +18,8 @@ class StudentAppointmentPage_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-        self.Appointment_crud = appointment_crud()
+        # self.Appointment_crud = appointment_crud()
+        self.Appointment_crud = APIClient(token=token)
         self.rows = []
         self.student_request_page = None
         self.setFixedSize(1000, 550)
@@ -35,30 +37,39 @@ class StudentAppointmentPage_ui(QWidget):
         """Load appointments data from JSON database for the current student"""
         self.rows.clear()
         try:
-            # Get student ID based on username/email
-            students = self.Appointment_crud.list_students()
-            current_student_id = None
-            current_student_name = None
+            # # Get student ID based on username/email
+            # students = self.Appointment_crud.list_students()
+            
+            # current_student_id = None
+            # current_student_name = None
 
-            # Find the current student
-            for student in students:
-                if student.get('email') == self.username or student.get('name') == self.username:
-                    current_student_id = student.get('id')
-                    current_student_name = student.get('name', self.username)
-                    break
+            # # Find the current student
+            # for student in students:
+            #     if student.get('email') == self.username or student.get('name') == self.username:
+            #         current_student_id = student.get('id')
+            #         current_student_name = student.get('name', self.username)
+            #         break
 
-            if current_student_id is None:
-                print(f"Student not found for username: {self.username}")
-                current_student_id = self.Appointment_crud.create_student(
-                    name=self.username,
-                    email=self.username,
-                    course="Unknown Course",
-                    year_level="Unknown Year"
-                )
-                current_student_name = self.username
+            # if current_student_id is None:
+            #     print(f"Student not found for username: {self.username}")
+            #     current_student_id = self.Appointment_crud.create_student(
+            #         name=self.username,
+            #         email=self.username,
+            #         course="Unknown Course",
+            #         year_level="Unknown Year"
+            #     )
+            #     current_student_name = self.username
 
             # Get appointments for this student
-            appointments = self.Appointment_crud.get_student_appointments(current_student_id)
+            appointment_data = {
+                "faculty": 2,
+                "start_at": "2025-01-15T10:00:00",
+                "end_at": "2025-01-15T10:30:00",
+                "reason": "Project consultation"
+            }
+            self.Appointment_crud.create_appointment(appointment_data)
+            appointments = self.Appointment_crud.get_student_appointments()
+            print(f"Test Lord: {appointments}")
             self.rows = []
 
             for appointment in appointments:
@@ -555,20 +566,20 @@ class StudentAppointmentPage_ui(QWidget):
         info_layout.setHorizontalSpacing(20)
         
         # Extract student info
-        student_info = self.Appointment_crud.list_students()
-        student_data = next((s for s in student_info if s.get('id') == appointment_data[6]), {})
+        # student_info = self.Appointment_crud.list_students()
+        # student_data = next((s for s in student_info if s.get('id') == appointment_data[6]), {})
         
         # Prepare appointment data
         appointment_info = [
-            ("Student:", student_data.get('name', 'Unknown')),
-            ("Date & Time:", appointment_data[0]),
+            ("Student:", "student_data.get('name', 'Unknown')"),
+            ("Date & Time:", "appointment_data[0]"),
             ("Duration:", "30 minutes"),  # Assuming default duration
-            ("Status:", appointment_data[4]),
-            ("Course:", student_data.get('course', 'Unknown')),
-            ("Year Level:", student_data.get('year_level', 'Unknown')),
-            ("Contact Email:", student_data.get('email', 'Unknown')),
-            ("Address:", appointment_data[8] or "Not specified"),
-            ("Created At:", appointment_data[10] or "Unknown"),
+            ("Status:", "appointment_data[4]"),
+            ("Course:", "student_data.get('course', 'Unknown')"),
+            ("Year Level:", "student_data.get('year_level', 'Unknown')"),
+            ("Contact Email:", "student_data.get('email', 'Unknown')"),
+            ("Address:", "appointment_data[8] or Not specified"),
+            ("Created At:", "appointment_data[10] or Unknown"),
         ]
         
         for label, value in appointment_info:

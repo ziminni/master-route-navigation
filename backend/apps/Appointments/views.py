@@ -7,10 +7,10 @@ from datetime import datetime, timedelta, time
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from django.utils.timezone import make_aware
 from .models import AvailabilityRule, BusyBlock, Appointment
-from .serializers import AvailabilityRuleSerializer, AvailableSlotSerializer, AppointmentCreateSerializer, AppointmentListSerializer, AppointmentUpdateSerializer
+from .serializers import FacultyProfileListSerializer, AvailabilityRuleSerializer, AvailableSlotSerializer, AppointmentCreateSerializer, AppointmentListSerializer, AppointmentUpdateSerializer
 from rest_framework.permissions import IsAuthenticated
 from django.utils.dateparse import parse_datetime
-
+from apps.Users.models import FacultyProfile
 
 
 class AvailabilityRuleCreateView(generics.CreateAPIView):
@@ -33,6 +33,7 @@ class FacultyAvailableScheduleView(generics.ListAPIView):
     - AvailabilityRule (base schedule)
     - BusyBlock (overrides)
     - Appointments (if applicable)
+    
     """
     serializer_class = AvailableSlotSerializer
 
@@ -269,3 +270,51 @@ class AppointmentUpdateView(generics.UpdateAPIView):
 
         if busy_conflict:
             raise ValidationError("This time slot is blocked in the faculty schedule.")
+
+
+
+class AvailabilityRuleListView(generics.ListAPIView):
+    serializer_class = AvailabilityRuleSerializer
+
+    def get_queryset(self):
+        faculty_id = self.kwargs.get("faculty_id")
+        semester_id = self.kwargs.get("semester_id")
+        
+        # Build the queryset with filters
+        queryset = AvailabilityRule.objects.all()
+        
+        if faculty_id:
+            queryset = queryset.filter(faculty_id=faculty_id)
+        
+        if semester_id:
+            queryset = queryset.filter(semester_id=semester_id)
+            
+        return queryset
+
+
+
+
+
+
+
+
+
+
+
+
+
+class FacultyProfileListView(generics.ListAPIView):
+    """
+    Get all faculty profiles with their user details
+    """
+    queryset = FacultyProfile.objects.all()
+    serializer_class = FacultyProfileListSerializer
+    permission_classes = [permissions.IsAuthenticated]  # Or [permissions.AllowAny] if public
+
+    def get_queryset(self):
+        """Optionally add filtering and ordering"""
+        return FacultyProfile.objects.select_related(
+            'user', 
+            'faculty_department',  # This is crucial!
+            'position'
+        ).all().order_by('user__last_name', 'user__first_name')

@@ -1,8 +1,8 @@
 from django.db import models
-from backend.apps.Users import models as user_models
+from apps.Users import models as user_models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from backend.apps.Academics import models as academic_models
+from apps.Academics import models as academic_models
     
 class DoW(models.TextChoices):
     MON = 'MON', 'Monday'

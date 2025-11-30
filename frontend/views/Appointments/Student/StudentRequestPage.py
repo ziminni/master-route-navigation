@@ -1,6 +1,8 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QMessageBox
 from .appointment_crud import appointment_crud
+from .api_client import APIClient
+
 from datetime import datetime
 import os
 import shutil
@@ -16,7 +18,7 @@ class StudentRequestPage_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-        self.Appointment_crud = appointment_crud()
+        self.Appointment_crud = APIClient()
         self.selected_faculty = None
         self.selected_schedule_entry = None
         self.selected_date = None

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import AvailabilityRule, Appointment
+from apps.Users.models import FacultyProfile, BaseUser
 
 class AvailabilityRuleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -47,21 +48,21 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         return data
 
 class AppointmentListSerializer(serializers.ModelSerializer):
-    faculty_name = serializers.CharField(
-        source="faculty.user.get_full_name", read_only=True
-    )
-    student_name = serializers.CharField(
-        source="student.user.get_full_name", read_only=True
-    )
+    # faculty_name = serializers.CharField(
+    #     source="faculty.user.get_full_name", read_only=True
+    # )
+    # student_name = serializers.CharField(
+    #     source="student.user.get_full_name", read_only=True
+    # )
 
     class Meta:
         model = Appointment
         fields = [
             "id",
             "faculty",
-            "faculty_name",
+            # "faculty_name",
             "student",
-            "student_name",
+            # "student_name",
             "start_at",
             "end_at",
             "reason",
@@ -95,3 +96,46 @@ class AppointmentUpdateSerializer(serializers.ModelSerializer):
 
 
 
+
+
+
+
+
+
+class FacultyUserSerializer(serializers.ModelSerializer):
+    """Serializer for BaseUser details"""
+    class Meta:
+        model = BaseUser
+        fields = ['id', 'first_name', 'last_name', 'middle_name', 'email', 'institutional_id']
+
+class FacultyProfileListSerializer(serializers.ModelSerializer):
+    """Serializer for FacultyProfile with user details"""
+    user = FacultyUserSerializer(read_only=True)
+    faculty_department_name = serializers.SerializerMethodField()
+    position_title = serializers.CharField(source='position.title', read_only=True)
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FacultyProfile
+        fields = [
+            'id',
+            'user',
+            'full_name',
+            'faculty_department',
+            'faculty_department_name', 
+            'position',
+            'position_title',
+            'hire_date'
+        ]
+
+    def get_faculty_department_name(self, obj):
+        """Safely get department name even if department is null"""
+        if obj.faculty_department:
+            return obj.faculty_department.department_name
+        return None
+
+    def get_full_name(self, obj):
+        """Get the full name of the faculty member"""
+        if obj.user.middle_name:
+            return f"{obj.user.last_name}, {obj.user.first_name} {obj.user.middle_name}"
+        return f"{obj.user.last_name}, {obj.user.first_name}"

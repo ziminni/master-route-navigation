@@ -28,7 +28,7 @@
 # ALLOWED_HOSTS = []
 
 
-# # Application definition
+# # # Application definition
 
 # INSTALLED_APPS = [
 #     'django.contrib.admin',
@@ -37,6 +37,8 @@
 #     'django.contrib.sessions',
 #     'django.contrib.messages',
 #     'django.contrib.staticfiles',
+
+       
 
 #     # API 
 #     'rest_framework',
@@ -169,6 +171,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+   
+
     # API
     'rest_framework',
     'rest_framework_simplejwt',
@@ -177,6 +181,9 @@ INSTALLED_APPS = [
     # CORS Headers - tried to fix backend conn, should work if front and back runs on different ports
     'corsheaders',
     'apps.Users.apps.UsersConfig',
+
+    'apps.Academics.apps.AcademicsConfig',    
+    'apps.Appointments.apps.AppointmentsConfig', 
 ]
 
 MIDDLEWARE = [

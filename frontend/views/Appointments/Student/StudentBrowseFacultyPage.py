@@ -1,6 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QMessageBox, QLineEdit
 from .appointment_crud import appointment_crud
+from .api_client import APIClient
 
 class StudentBrowseFaculty_ui(QWidget):
     go_to_RequestPage = QtCore.pyqtSignal(dict)  # Emit faculty data
@@ -12,7 +13,7 @@ class StudentBrowseFaculty_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-        self.Appointment_crud = appointment_crud()
+        self.Appointment_crud = APIClient(token=token)
         
         self.setWindowTitle("Appointment Scheduler")
         self.current_page = 0
@@ -26,29 +27,22 @@ class StudentBrowseFaculty_ui(QWidget):
     def load_faculties_data(self):
         """Load faculty data from JSON database"""
         try:
-            faculties_data = self.Appointment_crud.list_faculty()
+            faculties_data = self.Appointment_crud.get_faculties()
+            print(f"Test Mary: {faculties_data}")
             self.faculties = []
             
             for faculty in faculties_data:
+               
+            
                 self.faculties.append({
                     "id": faculty.get('id'),
-                    "name": faculty.get('name', 'Unknown'),
-                    "email": faculty.get('email', 'No email'),
-                    "department": faculty.get('department', 'Unknown Department'),
+                    "name": faculty.get('full_name', 'Unknown'),
+                    "email": faculty["user"].get('email', 'No email'),
+                    "department": faculty.get('faculty_department_name', 'Unknown Department'),
                     "role": "Request"
                 })
+        
             
-            if not self.faculties:
-                self._create_sample_faculties()
-                faculties_data = self.Appointment_crud.list_faculty()
-                for faculty in faculties_data:
-                    self.faculties.append({
-                        "id": faculty.get('id'),
-                        "name": faculty.get('name', 'Unknown'),
-                        "email": faculty.get('email', 'No email'),
-                        "department": faculty.get('department', 'Unknown Department'),
-                        "role": "Request"
-                    })
             
             # Initialize filtered faculties with all faculties
             self.filtered_faculties = self.faculties.copy()
@@ -57,42 +51,10 @@ class StudentBrowseFaculty_ui(QWidget):
         except Exception as e:
             print(f"Error loading faculties data: {e}")
             QMessageBox.warning(self, "Error", f"Failed to load faculty data: {str(e)}")
-            self.faculties = [
-                {"id": 1, "name": "Dr. Smith", "email": "smith@university.edu", "department": "Computer Science", "role": "Request"},
-                {"id": 2, "name": "Prof. Johnson", "email": "johnson@university.edu", "department": "Mathematics", "role": "Request"},
-                {"id": 3, "name": "Dr. Brown", "email": "brown@university.edu", "department": "Physics", "role": "Request"},
-                {"id": 4, "name": "Prof. Davis", "email": "davis@university.edu", "department": "Chemistry", "role": "Request"},
-                {"id": 5, "name": "Dr. Wilson", "email": "wilson@university.edu", "department": "Biology", "role": "Request"},
-                {"id": 6, "name": "Prof. Taylor", "email": "taylor@university.edu", "department": "Engineering", "role": "Request"},
-            ]
-            self.filtered_faculties = self.faculties.copy()
+            
             self._populateFacultiesGrid()
 
-    def _create_sample_faculties(self):
-        """Create sample faculty data if none exists"""
-        try:
-            sample_faculties = [
-                {"name": "Dr. Smith", "email": "smith@university.edu", "department": "Computer Science"},
-                {"name": "Prof. Johnson", "email": "johnson@university.edu", "department": "Mathematics"},
-                {"name": "Dr. Brown", "email": "brown@university.edu", "department": "Physics"},
-                {"name": "Prof. Davis", "email": "davis@university.edu", "department": "Chemistry"},
-                {"name": "Dr. Wilson", "email": "wilson@university.edu", "department": "Biology"},
-                {"name": "Prof. Taylor", "email": "taylor@university.edu", "department": "Engineering"},
-                {"name": "Dr. Anderson", "email": "anderson@university.edu", "department": "Psychology"},
-                {"name": "Prof. Martinez", "email": "martinez@university.edu", "department": "Sociology"},
-                {"name": "Dr. Clark", "email": "clark@university.edu", "department": "Economics"},
-                {"name": "Prof. Rodriguez", "email": "rodriguez@university.edu", "department": "Business"},
-            ]
-            
-            for faculty in sample_faculties:
-                self.Appointment_crud.create_faculty(
-                    faculty["name"],
-                    faculty["email"],
-                    faculty["department"]
-                )
-                
-        except Exception as e:
-            print(f"Error creating sample faculties: {e}")
+    
 
     def _setupBrowseFacultyPage(self):
         self.setObjectName("AppointmentScheduler")
@@ -379,7 +341,7 @@ class StudentBrowseFaculty_ui(QWidget):
                 faculty for faculty in self.faculties
                 if (search_text in faculty["name"].lower() or
                     search_text in faculty["email"].lower() or
-                    search_text in faculty["department"].lower())
+                    search_text in faculty["faculty_department_name"].lower())
             ]
         
         # Reset to first page after search
@@ -456,6 +418,7 @@ class StudentBrowseFaculty_ui(QWidget):
         self.next_button.setEnabled(self.current_page < total_pages - 1)
 
     def _createFacultyCard(self, faculty):
+        print(f"Testing: {faculty}")
         card = QtWidgets.QWidget()
         card.setFixedSize(250, 300)
         card.setStyleSheet("""
@@ -525,35 +488,25 @@ class StudentBrowseFaculty_ui(QWidget):
         # Request button
         request_button = QPushButton(faculty["role"])
         request_button.setFixedSize(230, 40)
-        active_block = self.Appointment_crud.get_active_block(faculty["id"])
-        if active_block and "error" not in active_block:
-            request_button.setEnabled(True)
-            request_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #084924;
-                    color: white;
-                    border-radius: 8px;
-                    font: bold 12pt 'Poppins';
-                    border: none;
-                }
-                QPushButton:hover {
-                    background-color: #0a5a2f;
-                }
-                QPushButton:pressed {
-                    background-color: #063818;
-                }
-            """)
-        else:
-            request_button.setEnabled(False)
-            request_button.setToolTip("No available schedule")
-            request_button.setText("No available schedule")
-            request_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #E0E0E0;
-                    color: black;
-                    border-radius: 8px;
-                }
-            """)
+
+    
+        request_button.setEnabled(True)
+        request_button.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
+                border-radius: 8px;
+                font: bold 12pt 'Poppins';
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #0a5a2f;
+            }
+            QPushButton:pressed {
+                background-color: #063818;
+            }
+        """)
+    
         
         request_button.clicked.connect(lambda checked, f=faculty: self._onRequestClicked(f))
         
@@ -569,25 +522,9 @@ class StudentBrowseFaculty_ui(QWidget):
         return card
 
     def _onRequestClicked(self, faculty):
-        """Handle request button click"""
-        print(f"Request appointment with {faculty['name']}")
-        try:
-            active_block = self.Appointment_crud.get_active_block(faculty["id"])
-            if active_block and "error" not in active_block:
-                self.go_to_RequestPage.emit(faculty)
-            else:
-                QMessageBox.information(
-                    self,
-                    "No Available Schedule",
-                    f"{faculty['name']} doesn't have any available schedule at the moment.\n\nPlease check back later or contact the faculty directly."
-                )
-        except Exception as e:
-            print(f"Error checking faculty availability: {e}")
-            QMessageBox.warning(
-                self,
-                "Error",
-                f"Failed to check faculty availability: {str(e)}"
-            )
+        
+        self.go_to_RequestPage.emit(faculty)
+         
 
     def _previousPage(self):
         if self.current_page > 0:
