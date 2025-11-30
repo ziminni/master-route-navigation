@@ -1,6 +1,18 @@
 from django.db import models
+from django.contrib.contenttypes.fields import GenericRelation
 
-class ActivityTrackingMixin:
+class ActivityTrackingMixin(models.Model):
+    """Mixin to add activity tracking to any model"""
+    
+    activities = GenericRelation(
+        'ActivityLog',
+        content_type_field='content_type',
+        object_id_field='object_id',
+        related_query_name='%(class)s'
+    )
+    
+    class Meta:
+        abstract = True
    
     def log_activity(self, action, user=None, description='', **metadata):
         """Log an activity for this instance"""

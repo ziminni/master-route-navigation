@@ -138,7 +138,7 @@
           "name": "Documents",
           "function": "DocumentsView()",
           "path": "views.Documents.Documents",
-          "access": ["student","admin"],
+          "access": ["student","admin","faculty"],
           "modulars":[]
         },
         {

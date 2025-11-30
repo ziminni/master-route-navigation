@@ -1,0 +1,242 @@
+// Database Schema for Documents App
+// Use this at https://dbdiagram.io/
+
+Table categories {
+  id integer [primary key, increment]
+  name varchar(100) [unique, not null]
+  slug varchar(100) [unique, not null]
+  description text
+  icon varchar(50)
+  display_order integer [default: 0]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  
+  indexes {
+    (display_order, slug)
+  }
+}
+
+Table folders {
+  id integer [primary key, increment]
+  name varchar(255) [not null]
+  slug varchar(255)
+  description text
+  parent_id integer [ref: > folders.id, note: 'CASCADE - Self-referencing for hierarchy']
+  category_id integer [ref: > categories.id, not null, note: 'PROTECT']
+  created_by_id integer [ref: > auth_user.id, note: 'SET_NULL']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  is_public boolean [default: true, note: 'If false, requires explicit permissions']
+  deleted_at timestamp [note: 'Soft delete']
+  deleted_by_id integer [ref: > auth_user.id, note: 'SET_NULL']
+  
+  indexes {
+    parent_id
+    category_id
+    created_by_id
+    deleted_at
+    (parent_id, name) [unique, note: 'Only for non-deleted folders']
+  }
+  
+  note: 'Hierarchical folder structure. Supports unlimited nesting.'
+}
+
+Table folder_permissions {
+  id integer [primary key, increment]
+  folder_id integer [ref: > folders.id, not null, note: 'CASCADE']
+  user_id integer [ref: > auth_user.id, not null, note: 'CASCADE']
+  can_view boolean [default: true]
+  can_upload boolean [default: false]
+  can_edit boolean [default: false]
+  can_delete boolean [default: false]
+  created_at timestamp [not null]
+  
+  indexes {
+    folder_id
+    user_id
+    (folder_id, user_id) [unique]
+  }
+  
+  note: 'User-specific permissions for folders'
+}
+
+Table folder_role_permissions {
+  id integer [primary key, increment]
+  folder_id integer [ref: > folders.id, not null, note: 'CASCADE']
+  role varchar(50) [not null, note: 'admin, student, faculty, staff']
+  can_view boolean [default: true]
+  can_upload boolean [default: false]
+  can_edit boolean [default: false]
+  can_delete boolean [default: false]
+  created_at timestamp [not null]
+  
+  indexes {
+    folder_id
+    role
+    (folder_id, role) [unique]
+  }
+  
+  note: 'Role-based permissions for folders'
+}
+
+Table document_types {
+  id integer [primary key, increment]
+  name varchar(100) [not null]
+  slug varchar(100) [unique, not null]
+  description text
+  allowed_extensions json [note: 'Array of allowed file extensions']
+  max_file_size_mb integer [default: 10, note: 'Min: 1, Max: 100']
+  requires_approval boolean [default: false]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  
+  indexes {
+    slug
+  }
+}
+
+Table documents {
+  id integer [primary key, increment]
+  title varchar(255) [not null]
+  description text
+  file_path varchar(255) [not null]
+  file_size bigint
+  file_extension varchar(10)
+  mime_type varchar(100)
+  category_id integer [ref: > categories.id, not null, note: 'PROTECT']
+  folder_id integer [ref: > folders.id, note: 'CASCADE - Documents stored in folders']
+  uploaded_by_id integer [ref: > auth_user.id, note: 'SET_NULL']
+  document_type_id integer [ref: > document_types.id, note: 'PROTECT']
+  uploaded_at timestamp [not null]
+  updated_at timestamp [not null]
+  is_active boolean [default: true]
+  view_count integer [default: 0]
+  is_featured boolean [default: false]
+  deleted_at timestamp [note: 'Soft delete timestamp']
+  deleted_by_id integer [ref: > auth_user.id, note: 'SET_NULL']
+  
+  indexes {
+    (category_id, uploaded_at) [note: 'DESC on uploaded_at']
+    uploaded_by_id
+    is_active
+    is_featured
+    document_type_id
+    title
+    deleted_at
+    folder_id
+  }
+  
+  note: 'CHECK constraint: file_size >= 0. File metadata auto-populated on save. Permissions inherited from folder.'
+}
+
+Table document_permissions {
+  id integer [primary key, increment]
+  document_id integer [ref: > documents.id, not null, note: 'CASCADE']
+  role varchar(50) [not null, note: 'admin, student, faculty, staff - matches BaseUser.ROLE_CHOICES']
+  can_view boolean [default: true]
+  can_download boolean [default: true]
+  can_edit boolean [default: false]
+  can_delete boolean [default: false]
+  created_at timestamp [not null]
+  
+  indexes {
+    document_id
+    role
+    (document_id, role) [unique]
+  }
+}
+
+Table document_approvals {
+  id integer [primary key, increment]
+  document_id integer [ref: - documents.id, unique, not null, note: 'CASCADE - OneToOne']
+  status varchar(20) [not null, default: 'pending', note: 'pending, approved, rejected, resubmitted']
+  previous_status varchar(20)
+  resubmission_count integer [default: 0]
+  submitted_at timestamp [not null]
+  reviewed_at timestamp
+  last_resubmitted_at timestamp
+  reviewed_by_id integer [ref: > auth_user.id, note: 'SET_NULL']
+  review_notes text
+  resubmission_notes text
+  
+  indexes {
+    status
+    reviewed_by_id
+  }
+  
+  note: 'Status transitions validated: PENDING→APPROVED/REJECTED, REJECTED→RESUBMITTED, RESUBMITTED→APPROVED/REJECTED. Auto-creates ApprovalHistory entries.'
+}
+
+Table approval_history {
+  id integer [primary key, increment]
+  approval_id integer [ref: > document_approvals.id, not null, note: 'CASCADE']
+  status_from varchar(20)
+  status_to varchar(20) [not null]
+  changed_by_id integer [ref: > auth_user.id, note: 'SET_NULL']
+  changed_at timestamp [not null]
+  notes text
+}
+
+Table document_versions {
+  id integer [primary key, increment]
+  document_id integer [ref: > documents.id, not null, note: 'CASCADE']
+  version_number integer [not null]
+  file_path varchar(255) [not null]
+  file_size integer
+  mime_type varchar(100)
+  uploaded_by_id integer [ref: > auth_user.id, note: 'SET_NULL']
+  uploaded_at timestamp [not null]
+  change_notes text
+  is_current boolean [default: false]
+  
+  indexes {
+    document_id
+    version_number
+    (document_id, version_number) [unique]
+  }
+  
+  note: 'UNIQUE constraint: Only one version can be current per document'
+}
+
+Table activity_logs {
+  id integer [primary key, increment]
+  content_type_id integer [ref: > django_content_type.id, not null, note: 'CASCADE']
+  object_id integer [not null, note: 'Generic FK to any model']
+  user_id integer [ref: > auth_user.id, note: 'SET_NULL']
+  action varchar(20) [not null, note: 'doc_upload, doc_update, doc_delete, doc_view, doc_download, app_submit, app_approve, app_reject, app_resubmit, ver_create, ver_rollback']
+  description text
+  metadata json [note: 'Additional data about the action']
+  created_at timestamp [not null]
+  
+  indexes {
+    content_type_id
+    object_id
+    user_id
+    action
+    created_at
+    (content_type_id, object_id, created_at) [note: 'DESC on created_at']
+    (user_id, created_at) [note: 'DESC on created_at']
+    (action, created_at) [note: 'DESC on created_at']
+    (action, content_type_id, created_at) [note: 'DESC on created_at']
+  }
+  
+  note: 'Generic relation - can track activities for any model'
+}
+
+// Django built-in tables (referenced by foreign keys)
+Table auth_user {
+  id integer [primary key, increment]
+  username varchar(150) [unique, not null]
+  email varchar(254)
+  // ... other Django user fields
+  
+  note: 'Django built-in User model'
+}
+
+Table django_content_type {
+  id integer [primary key, increment]
+  app_label varchar(100) [not null]
+  model varchar(100) [not null]
+  
+  note: 'Django built-in ContentType model for generic relations'
+}

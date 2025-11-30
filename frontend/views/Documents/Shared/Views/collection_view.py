@@ -216,10 +216,39 @@ class CollectionView(QWidget):
         widget = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
+        
         reject_btn = QPushButton("Reject")
-        accept_btn = QPushButton("Accept")
+        reject_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                font-weight: bold;
+                padding: 4px 12px;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """)
         reject_btn.clicked.connect(lambda: print(f"Reject clicked for {filename}"))
+        
+        accept_btn = QPushButton("Accept")
+        accept_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                font-weight: bold;
+                padding: 4px 12px;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+        """)
         accept_btn.clicked.connect(lambda: print(f"Accept clicked for {filename}"))
+        
         layout.addWidget(reject_btn)
         layout.addWidget(accept_btn)
         widget.setLayout(layout)

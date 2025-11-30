@@ -2,11 +2,15 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 import os
+import mimetypes
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from .mixins import ActivityTrackingMixin
+
+# Constants
+BYTES_PER_MB = 1024 * 1024
 
 def document_upload_path(instance, filename):
     # Sanitize filename
@@ -75,11 +79,216 @@ class DocumentType(models.Model):
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+class Folder(models.Model):
+    """Hierarchical folder structure for organizing documents"""
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
+    
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='subfolders'
+    )
+    
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.PROTECT,
+        related_name='folders',
+        help_text="Root category for this folder"
+    )
+    
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='created_folders'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Permissions
+    is_public = models.BooleanField(
+        default=True,
+        help_text="If False, only users with explicit permissions can access"
+    )
+    
+    # Soft delete
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='deleted_folders'
+    )
+    
+    class Meta:
+        db_table = 'folders'
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['parent']),
+            models.Index(fields=['category']),
+            models.Index(fields=['created_by']),
+            models.Index(fields=['deleted_at']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['parent', 'name'],
+                condition=models.Q(deleted_at__isnull=True),
+                name='unique_folder_name_per_parent'
+            )
+        ]
+    
+    def __str__(self):
+        return self.get_full_path()
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+    
+    def get_full_path(self):
+        """Get the full path like /Academic/CS101/Lectures"""
+        if self.parent:
+            return f"{self.parent.get_full_path()}/{self.name}"
+        return f"/{self.name}"
+    
+    def get_ancestors(self):
+        """Get all parent folders up to root"""
+        ancestors = []
+        current = self.parent
+        while current:
+            ancestors.insert(0, current)
+            current = current.parent
+        return ancestors
+    
+    def get_descendants(self):
+        """Get all child folders recursively"""
+        descendants = list(self.subfolders.filter(deleted_at__isnull=True))
+        for subfolder in list(descendants):
+            descendants.extend(subfolder.get_descendants())
+        return descendants
+    
+    def can_user_access(self, user, action='view'):
+        """Check if user can perform action on this folder"""
+        if not user or not user.is_authenticated:
+            return self.is_public and action == 'view'
+        
+        # Admin can do everything
+        if user.role_type == 'admin':
+            return True
+        
+        # Check folder permissions
+        permission = self.folder_permissions.filter(user=user).first()
+        if permission:
+            if action == 'view':
+                return permission.can_view
+            elif action == 'upload':
+                return permission.can_upload
+            elif action == 'edit':
+                return permission.can_edit
+            elif action == 'delete':
+                return permission.can_delete
+        
+        # Check role-based permissions
+        role_permission = self.folder_role_permissions.filter(role=user.role_type).first()
+        if role_permission:
+            if action == 'view':
+                return role_permission.can_view
+            elif action == 'upload':
+                return role_permission.can_upload
+            elif action == 'edit':
+                return role_permission.can_edit
+            elif action == 'delete':
+                return role_permission.can_delete
+        
+        # Faculty can access their own folders
+        if user.role_type == 'faculty' and self.created_by == user:
+            return True
+        
+        # Default: students can view public folders
+        if self.is_public and action == 'view':
+            return True
+        
+        return False
+
+class FolderPermission(models.Model):
+    """User-specific permissions for folders"""
+    folder = models.ForeignKey(
+        Folder,
+        on_delete=models.CASCADE,
+        related_name='folder_permissions'
+    )
+    
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='folder_permissions'
+    )
+    
+    can_view = models.BooleanField(default=True)
+    can_upload = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'folder_permissions'
+        unique_together = [['folder', 'user']]
+        indexes = [
+            models.Index(fields=['folder']),
+            models.Index(fields=['user']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.folder.name}"
+
+class FolderRolePermission(models.Model):
+    """Role-based permissions for folders"""
+    
+    class Roles(models.TextChoices):
+        ADMIN = 'admin', 'Admin'
+        STUDENT = 'student', 'Student'
+        FACULTY = 'faculty', 'Faculty'
+        STAFF = 'staff', 'Staff'
+    
+    folder = models.ForeignKey(
+        Folder,
+        on_delete=models.CASCADE,
+        related_name='folder_role_permissions'
+    )
+    
+    role = models.CharField(
+        max_length=50,
+        choices=Roles.choices
+    )
+    
+    can_view = models.BooleanField(default=True)
+    can_upload = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'folder_role_permissions'
+        unique_together = [['folder', 'role']]
+        indexes = [
+            models.Index(fields=['folder']),
+            models.Index(fields=['role']),
+        ]
+    
+    def __str__(self):
+        return f"{self.role} - {self.folder.name}"
+
 class ActiveDocumentManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(is_active=True)
+        return super().get_queryset().filter(is_active=True, deleted_at__isnull=True)
 
-class Document(ActivityTrackingMixin,models.Model):
+class Document(ActivityTrackingMixin, models.Model):
     title = models.CharField(max_length=255, db_index=True)
     description = models.TextField(blank=True)
     file_path = models.FileField(upload_to=document_upload_path)
@@ -91,6 +300,14 @@ class Document(ActivityTrackingMixin,models.Model):
         Category,
         on_delete=models.PROTECT,
         related_name='documents'
+    )
+    
+    folder = models.ForeignKey(
+        Folder,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='documents',
+        help_text="Folder where this document is stored"
     )
 
     uploaded_by = models.ForeignKey(
@@ -114,25 +331,22 @@ class Document(ActivityTrackingMixin,models.Model):
         related_name='documents'
     )
 
-    tags = models.ManyToManyField(
-        'Tag',
-        related_name='documents',
-        blank=True
-    )
-
     uploaded_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     is_active = models.BooleanField(default=True)
     view_count = models.IntegerField(default=0)
 
-    # Generic relation to activities (reverse relation)
-    activities = GenericRelation(
-        'ActivityLog',
-        related_query_name='document'
-    )
-
     is_featured = models.BooleanField(default=False)
+    
+    # Soft delete fields
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='deleted_documents'
+    )
 
     # Custom managers
     objects = models.Manager()
@@ -148,6 +362,8 @@ class Document(ActivityTrackingMixin,models.Model):
             models.Index(fields=['is_featured']),
             models.Index(fields=['document_type']),
             models.Index(fields=['title']),
+            models.Index(fields=['deleted_at']),
+            models.Index(fields=['folder']),
         ]
         
         constraints = [
@@ -164,7 +380,7 @@ class Document(ActivityTrackingMixin,models.Model):
     def file_size_mb(self):
         """Return file size in megabytes"""
         if self.file_size:
-            return round(self.file_size / (1024 * 1024), 2)
+            return round(self.file_size / BYTES_PER_MB, 2)
         return 0
     
     @property
@@ -176,18 +392,10 @@ class Document(ActivityTrackingMixin,models.Model):
             return hasattr(self, 'approval') and self.approval.status == 'approved'
         return True
     
-    @property
-    def download_count(self):
-        """Get number of downloads from activity log"""
+    def get_download_count(self):
+        """Get number of downloads from activity log (use in querysets with annotations)"""
         return self.get_activity_count(
             action=ActivityLog.ActionTypes.DOCUMENT_DOWNLOAD
-        )
-    
-    @property
-    def view_count_from_log(self):
-        """Get view count from activity log (alternative to view_count field)"""
-        return self.get_activity_count(
-            action=ActivityLog.ActionTypes.DOCUMENT_VIEW
         )
     
     def increment_view_count(self):
@@ -195,6 +403,53 @@ class Document(ActivityTrackingMixin,models.Model):
         from django.db.models import F
         Document.objects.filter(pk=self.pk).update(view_count=F('view_count') + 1)
         self.refresh_from_db()
+    
+    def can_user_access(self, user, action='view'):
+        """Check if user can perform action on this document"""
+        if not user or not user.is_authenticated:
+            # Anonymous users can only view if no approval required
+            if action == 'view' and not self.document_type:
+                return True
+            if action == 'view' and self.document_type and not self.document_type.requires_approval:
+                return True
+            return False
+        
+        # Admin can do everything
+        if user.role_type == 'admin':
+            return True
+        
+        # Check folder permissions first (inherited)
+        if self.folder and not self.folder.can_user_access(user, action):
+            return False
+        
+        # Faculty can do everything with their own documents
+        if user.role_type == 'faculty' and self.uploaded_by == user:
+            return True
+        
+        # Check document-specific permissions
+        permission = self.permissions.filter(role=user.role_type).first()
+        if permission:
+            if action == 'view':
+                return permission.can_view
+            elif action == 'download':
+                return permission.can_download and self.can_be_downloaded
+        
+        # Default role-based permissions
+        if user.role_type == 'student':
+            # Students can view and download (if approved)
+            if action in ['view', 'download']:
+                return self.can_be_downloaded
+            return False
+        
+        if user.role_type == 'staff':
+            # Staff org officers - view and download, upload needs approval
+            if action in ['view', 'download']:
+                return self.can_be_downloaded
+            elif action == 'upload':
+                return True  # But requires approval
+            return False
+        
+        return False
     
     def clean(self):
         """Validate document before saving"""
@@ -209,20 +464,41 @@ class Document(ActivityTrackingMixin,models.Model):
                 )
         
         if self.document_type and self.file_size:
-            max_size = self.document_type.max_file_size_mb * 1024 * 1024
+            max_size = self.document_type.max_file_size_mb * BYTES_PER_MB
             if self.file_size > max_size:
                 raise ValidationError(
                     f"File size exceeds maximum allowed "
                     f"({self.document_type.max_file_size_mb}MB)"
                 )
+    
+    def save(self, *args, **kwargs):
+        """Auto-populate file metadata before saving"""
+        if self.file_path:
+            # Auto-populate file_size
+            if not self.file_size and hasattr(self.file_path, 'size'):
+                self.file_size = self.file_path.size
+            
+            # Auto-populate file_extension
+            if not self.file_extension:
+                _, ext = os.path.splitext(self.file_path.name)
+                self.file_extension = ext.lower().lstrip('.')
+            
+            # Auto-populate mime_type
+            if not self.mime_type:
+                mime_type, _ = mimetypes.guess_type(self.file_path.name)
+                if mime_type:
+                    self.mime_type = mime_type
+        
+        super().save(*args, **kwargs)
 
 class DocumentPermission(models.Model):
+    """Role-based permissions for documents (matches BaseUser.ROLE_CHOICES)"""
 
     class Roles(models.TextChoices):
         ADMIN = 'admin', 'Admin'
         STUDENT = 'student', 'Student'
         FACULTY = 'faculty', 'Faculty'
-        ORG_OFFICER = 'org_officer', 'Organization Officer'
+        STAFF = 'staff', 'Staff'
 
     document = models.ForeignKey(
         Document,
@@ -238,6 +514,8 @@ class DocumentPermission(models.Model):
     
     can_view = models.BooleanField(default=True)
     can_download = models.BooleanField(default=True)
+    can_edit = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -252,26 +530,6 @@ class DocumentPermission(models.Model):
     
     def __str__(self):
         return f"{self.document.title} - {self.role}"
-
-class Tag(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-    slug = models.SlugField(max_length=50, unique=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'tags'
-        ordering = ['name']
-        indexes = [
-            models.Index(fields=['slug'])
-        ]
-    
-    def __str__(self):
-        return self.name
-    
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
 
 class DocumentApproval(ActivityTrackingMixin, models.Model):
 
@@ -302,11 +560,6 @@ class DocumentApproval(ActivityTrackingMixin, models.Model):
 
     resubmission_count = models.IntegerField(default=0)
 
-    activities = GenericRelation(
-        'ActivityLog',
-        related_query_name='approval'
-    )
-
     submitted_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(blank=True, null=True)
     last_resubmitted_at = models.DateTimeField(blank=True, null=True)
@@ -329,6 +582,58 @@ class DocumentApproval(ActivityTrackingMixin, models.Model):
     
     def __str__(self):
         return f"{self.document.title} - {self.status}"
+    
+    def clean(self):
+        """Validate approval status transitions"""
+        super().clean()
+        
+        if self.pk:  # Only validate on updates
+            old_instance = DocumentApproval.objects.get(pk=self.pk)
+            old_status = old_instance.status
+            new_status = self.status
+            
+            # Define allowed transitions
+            ALLOWED_TRANSITIONS = {
+                self.StatusChoices.PENDING: [self.StatusChoices.APPROVED, self.StatusChoices.REJECTED],
+                self.StatusChoices.REJECTED: [self.StatusChoices.RESUBMITTED],
+                self.StatusChoices.RESUBMITTED: [self.StatusChoices.APPROVED, self.StatusChoices.REJECTED],
+                self.StatusChoices.APPROVED: [],  # No transitions from approved
+            }
+            
+            if old_status != new_status:
+                allowed = ALLOWED_TRANSITIONS.get(old_status, [])
+                if new_status not in allowed:
+                    raise ValidationError(
+                        f"Cannot transition from {old_status} to {new_status}"
+                    )
+    
+    def save(self, *args, **kwargs):
+        """Track status changes and update timestamps"""
+        from django.utils import timezone
+        
+        if self.pk:
+            old_instance = DocumentApproval.objects.get(pk=self.pk)
+            if old_instance.status != self.status:
+                self.previous_status = old_instance.status
+                
+                # Update resubmission tracking
+                if self.status == self.StatusChoices.RESUBMITTED:
+                    self.resubmission_count += 1
+                    self.last_resubmitted_at = timezone.now()
+                elif self.status in [self.StatusChoices.APPROVED, self.StatusChoices.REJECTED]:
+                    self.reviewed_at = timezone.now()
+        
+        super().save(*args, **kwargs)
+        
+        # Create approval history entry
+        if self.pk and self.previous_status:
+            ApprovalHistory.objects.create(
+                approval=self,
+                status_from=self.previous_status,
+                status_to=self.status,
+                changed_by=self.reviewed_by,
+                notes=self.review_notes
+            )
 
 class ApprovalHistory(models.Model):
 
@@ -467,11 +772,6 @@ class DocumentVersion(ActivityTrackingMixin, models.Model):
 
     uploaded_at = models.DateTimeField(auto_now_add=True)
     change_notes = models.TextField(blank=True, null=True)
-
-    activities = GenericRelation(
-        'ActivityLog',
-        related_query_name='version'
-    )
 
     is_current = models.BooleanField(default=False)
 
