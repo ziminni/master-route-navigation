@@ -85,41 +85,47 @@ class OrganizationViewBase(User):
         search_text = self.ui.search_line_3.text().strip().lower()
         self.load_members(search_text)
 
-    def load_members(self, search_text: str = "") -> None:
-        """Load and filter members into the table view (non-manager version)."""
-        if not self.current_org:
-            return
+    def load_members(self, search_text: str = "") -> None: # MODIFIED
+            """Load and filter members into the table view (non-manager version)."""
+            from widgets.orgs_custom_widgets.tables import ViewMembers 
 
-        members_data = self.current_org.get("members", [])
-        self.filtered_members = [
-            member for member in members_data
-            if any(search_text in str(field).lower() for field in member)
-        ] if search_text else members_data.copy()
+            if not self.current_org:
+                return
 
-        total_items = len(self.filtered_members)
-        self.total_members_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
-        self.current_members_page = max(0, min(self.current_members_page, self.total_members_pages - 1))
+            members_data = self.current_org.get("members", [])
+            self.filtered_members = [
+                member for member in members_data
+                if any(search_text in str(field).lower() for field in member)
+            ] if search_text else members_data.copy()
 
-        start = self.current_members_page * self.items_per_page
-        end = start + self.items_per_page
-        paged_data = self.filtered_members[start:end]
+            total_items = len(self.filtered_members)
+            self.total_members_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
+            self.current_members_page = max(0, min(self.current_members_page, self.total_members_pages - 1))
 
-        self.ui.list_view.setModel(None)
-        self.ui.list_view.clearSpans()
-        self.ui.list_view.verticalHeader().reset()
+            start = self.current_members_page * self.items_per_page
+            end = start + self.items_per_page
+            paged_data = self.filtered_members[start:end]
 
-        model = ViewMembers(paged_data, is_managing=False)
-        self.ui.list_view.setModel(model)
+            model = self.ui.list_view.model()
+            
+            if model and isinstance(model, ViewMembers):
+                model.update_data(paged_data)
+            else:
+                self.ui.list_view.setModel(None)
+                self.ui.list_view.clearSpans()
+                self.ui.list_view.verticalHeader().reset()
+                model = ViewMembers(paged_data, is_managing=False)
+                self.ui.list_view.setModel(model)
+                self._apply_table_style()
+                
+            self._update_pagination_buttons()
 
-        self._apply_table_style()
-        self._update_pagination_buttons()
-
-        if total_items:
-            self.ui.list_view.show()
-            self.no_member_label.hide()
-        else:
-            self.ui.list_view.hide()
-            self.no_member_label.show()
+            if total_items:
+                self.ui.list_view.show()
+                self.no_member_label.hide()
+            else:
+                self.ui.list_view.hide()
+                self.no_member_label.show()
 
     def _on_combobox_changed(self, index: int) -> None:
         """Handle combo box change (default version for Faculty/Admin)."""
@@ -194,8 +200,6 @@ class OrganizationViewBase(User):
         self.prev_btn.setEnabled(self.current_members_page > 0)
         self.next_btn.setEnabled(self.current_members_page < self.total_members_pages - 1)
             
-    # --- Abstract methods to be implemented by subclasses ---
-    
     def load_orgs(self, search_text: str = "") -> None:
         """Load and display organizations."""
         raise NotImplementedError("Subclass must implement load_orgs")

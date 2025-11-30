@@ -23,7 +23,7 @@ class Browse(QWidget):
                 self.view = Officer(officer_name=username)
             else:
                 print("Browse: Loading Student view")
-                self.view = Student(student_name=username)
+                self.view = Dean(dean_name=username)
         else:
             print("Browse: Loading default Faculty view")
             self.view = Faculty(faculty_name=username)

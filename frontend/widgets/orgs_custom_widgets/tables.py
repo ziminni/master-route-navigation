@@ -107,6 +107,12 @@ class BaseTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.DisplayRole and index.column() == 0:
             return str(index.row() + 1)
         return None
+        
+    def update_data(self, new_data):
+        """Method to update the model's underlying data."""
+        self.beginResetModel()
+        self._data = new_data
+        self.endResetModel()
 
 
 class ViewMembers(BaseTableModel):

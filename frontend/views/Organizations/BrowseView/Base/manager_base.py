@@ -130,7 +130,7 @@ class ManagerBase:
             self.ui.label_2.setText("Member List")
             self.manage_applicants_btn.show()
             
-    def load_members(self, search_text: str = "") -> None:
+    def load_members(self, search_text: str = "") -> None: # MODIFIED
         """Load and filter members into the table view with management controls."""
         from widgets.orgs_custom_widgets.tables import ViewMembers
         
@@ -153,14 +153,18 @@ class ManagerBase:
         end = start + self.items_per_page
         paged_data = self.filtered_members[start:end]
 
-        self.ui.list_view.setModel(None)
-        self.ui.list_view.clearSpans()
-        self.ui.list_view.verticalHeader().reset()
-
-        model = ViewMembers(paged_data, is_managing=self.is_managing)
-        self.ui.list_view.setModel(model)
-
-        self._apply_table_style()
+        model = self.ui.list_view.model()
+        
+        if model and isinstance(model, ViewMembers) and model.is_managing == self.is_managing:
+            model.update_data(paged_data)
+        else:
+            self.ui.list_view.setModel(None)
+            self.ui.list_view.clearSpans()
+            self.ui.list_view.verticalHeader().reset()
+            model = ViewMembers(paged_data, is_managing=self.is_managing)
+            self.ui.list_view.setModel(model)
+            self._apply_table_style()
+            self._setup_action_delegate()
 
         if total_items:
             self.ui.list_view.show()
@@ -170,10 +174,9 @@ class ManagerBase:
             self.no_member_label.show()
 
         self._setup_list_header()
-        self._setup_action_delegate()
         self._update_pagination_buttons_members()
 
-    def load_applicants(self, search_text: str = "") -> None:
+    def load_applicants(self, search_text: str = "") -> None: # MODIFIED
         from widgets.orgs_custom_widgets.tables import ViewApplicants
 
         if not self.current_org:
@@ -195,14 +198,17 @@ class ManagerBase:
         end = start + self.items_per_page
         paged_data = self.filtered_applicants[start:end]
 
-        self.ui.list_view.setModel(None)
-        self.ui.list_view.clearSpans()
-        self.ui.list_view.verticalHeader().reset()
-
-        model = ViewApplicants(paged_data)
-        self.ui.list_view.setModel(model)
-
-        self._apply_table_style()
+        model = self.ui.list_view.model()
+        
+        if model and isinstance(model, ViewApplicants):
+             model.update_data(paged_data)
+        else:
+            self.ui.list_view.setModel(None)
+            self.ui.list_view.clearSpans()
+            self.ui.list_view.verticalHeader().reset()
+            model = ViewApplicants(paged_data)
+            self.ui.list_view.setModel(model)
+            self._apply_table_style()
 
         if total_items:
             self.ui.list_view.show()
@@ -679,9 +685,9 @@ class ManagerBase:
         if not model or not getattr(self, 'is_managing', False):
             return
 
-        delegate = ActionDelegate(self.ui.list_view)
-        delegate.edit_clicked.connect(self._handle_delegate_edit_click)
-        delegate.kick_clicked.connect(self._handle_delegate_kick_click)
+        delegate = ActionDelegate(self.ui.list_view)  # Pass the view!
+        delegate.edit_clicked.connect(self._handle_delegate_edit_click) # MODIFIED
+        delegate.kick_clicked.connect(self._handle_delegate_kick_click) # MODIFIED
 
         last_column = model.columnCount() - 1
         self.ui.list_view.setItemDelegateForColumn(last_column, delegate)
@@ -692,4 +698,4 @@ class ManagerBase:
 
     def _handle_delegate_kick_click(self, row: int):
         """Kick button clicked - now correctly calls kick_member core logic"""
-        self.kick_member(row) 
+        self.kick_member(row)

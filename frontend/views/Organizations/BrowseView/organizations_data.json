@@ -91,13 +91,6 @@
             ],
             "officers": [
                 {
-                    "name": "admin",
-                    "position": "Treasurer",
-                    "card_image_path": "CISCo/Internal.jpg",
-                    "photo_path": "CISCo/Internal.jpg",
-                    "start_date": "07/08/2025"
-                },
-                {
                     "name": "Pescasio, Jacob Hermon",
                     "position": "Vice - Internal Chairperson",
                     "card_image_path": "CISCo/Internal.jpg",

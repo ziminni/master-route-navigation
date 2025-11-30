@@ -5,7 +5,7 @@ from PyQt6.QtGui import QDesktopServices
 import json
 import os
 
-from views.Organizations.BrowseView.Utils.image_utils import copy_image_to_data, get_image_path
+from views.Organizations.BrowseView.Utils.image_utils import copy_image_to_data, get_image_path, delete_image
 from .styles import (
     CONFIRM_STYLE, CANCEL_STYLE, BROWSE_STYLE, 
     EDIT_STYLE, LABEL_STYLE, DIALOG_STYLE
@@ -478,7 +478,7 @@ class EditOfficerDialog(BaseEditDialog):
             self.temp_cv_path = file_path
             self.cv_label.setText(os.path.basename(file_path))
 
-    def confirm(self):
+    def confirm(self): # MODIFIED
         new_position = self.position_edit.currentText()
         main_window = self.parent().parent()
         
@@ -494,13 +494,16 @@ class EditOfficerDialog(BaseEditDialog):
 
         org_name = main_window.current_org.get("name", "Unknown")
 
+        old_cv_path = self.data.get("cv_path") 
         if self.temp_cv_path:
             new_cv_filename = copy_image_to_data(self.temp_cv_path, org_name)
             if new_cv_filename is None:
                 return
             if new_cv_filename != "No Photo":
                 self.data["cv_path"] = new_cv_filename
+                delete_image(old_cv_path)
 
+        old_photo_path = self.data.get("photo_path") 
         if self.temp_image_path:
             new_filename = self._save_temp_image(org_name)
             
@@ -510,6 +513,7 @@ class EditOfficerDialog(BaseEditDialog):
                 self.data["photo_path"] = new_filename
                 if "card_image_path" in self.data:
                     self.data["card_image_path"] = new_filename
+                delete_image(old_photo_path)
 
         self.data["position"] = new_position
         
@@ -663,12 +667,14 @@ class EditOrgDialog(BaseOrgDialog):
             QtWidgets.QMessageBox.warning(self, "Invalid Input", "Name is required.")
             return
 
+        old_logo_path = self.org_data.get("logo_path")
         if self.temp_image_path:
             new_filename = self._save_temp_image(new_name)
             if new_filename is None:
                 return
             if new_filename != "No Photo":
                 self.org_data["logo_path"] = new_filename
+                delete_image(old_logo_path)
 
         self.org_data["name"] = new_name
         self.org_data["brief"] = self.brief_edit.toPlainText().strip()

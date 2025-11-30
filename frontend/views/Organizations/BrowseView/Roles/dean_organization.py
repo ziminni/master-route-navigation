@@ -46,7 +46,16 @@ class Dean(ManagerBase, FacultyAdminBase):
             }
         """)
         self.adviser_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.ui.verticalLayout_10.insertWidget(2, self.adviser_label)  # Right after org name
+        
+        # --- MODIFIED: Insert adviser_label above brief_btn ---
+        brief_idx = self.ui.verticalLayout_10.indexOf(self.ui.brief_btn)
+        
+        if brief_idx != -1:
+            self.ui.verticalLayout_10.insertWidget(brief_idx, self.adviser_label)
+        else:
+            # Fallback to original insertion point (index 2)
+            self.ui.verticalLayout_10.insertWidget(2, self.adviser_label)
+        # --- END MODIFIED ---
 
         # === 3. Assign Adviser Button (Dean only) ===
         self.assign_adviser_btn = QtWidgets.QPushButton("Assign / Change Faculty Adviser")

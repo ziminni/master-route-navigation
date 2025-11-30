@@ -188,7 +188,7 @@ def get_image_path(relative_path: str) -> str:
         return "No Photo"
 
 
-def delete_image(relative_path: str) -> bool:
+def delete_image(relative_path: str) -> bool: # MODIFIED (Completed)
     """
     Delete an image from the Data directory.
     
@@ -201,8 +201,10 @@ def delete_image(relative_path: str) -> bool:
     if relative_path == "No Photo" or not relative_path:
         return False
     
-    normalized_relative_path = relative_path.replace('/', os.sep).replace('\\', os.sep)
-    file_path = os.path.join(DATA_DIR, normalized_relative_path)
+    file_path = get_image_path(relative_path) 
+    
+    if file_path == "No Photo":
+        return False 
     
     try:
         if os.path.exists(file_path):
