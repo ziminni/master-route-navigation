@@ -2,6 +2,7 @@ from ..Base.faculty_admin_base import FacultyAdminBase
 from ..Base.manager_base import ManagerBase
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QMessageBox
+from services.organization_api_service import OrganizationAPIService
 import datetime
 from typing import Dict
 
@@ -146,15 +147,49 @@ class Faculty(ManagerBase, FacultyAdminBase):
         self.show_org_details(self.current_org)
 
     def load_orgs(self, search_text: str = "") -> None:
-        organizations = self._load_data()
+        # Fetch organizations from API with optional search query
+        api_response = OrganizationAPIService.fetch_organizations(search_query=search_text if search_text else None)
+        
+        if api_response.get('success'):
+            organizations_data = api_response.get('data', [])
+            
+            # Convert API data to the format expected by the UI
+            organizations = []
+            for org in organizations_data:
+                org_dict = {
+                    "id": org.get('id'),
+                    "name": org.get('name'),
+                    "description": org.get('description', ''),
+                    "objectives": org.get('objectives', ''),
+                    "status": org.get('status', 'active'),
+                    "logo_path": org.get('logo_path', 'No Photo'),
+                    "org_level": org.get('org_level', 'col'),
+                    "created_at": org.get('created_at'),
+                    "is_branch": False,  # TODO: Add is_branch field to backend model
+                    "is_archived": False,  # TODO: Check status field
+                    "brief": "College Level" if org.get('org_level') == 'col' else "Program Level",
+                    "branches": [],
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": [],
+                    "adviser": org.get('adviser', ''),
+                    "officer_history": {}
+                }
+                organizations.append(org_dict)
+        else:
+            # Fallback to JSON data if API fails
+            print(f"API Error: {api_response.get('message')}")
+            organizations = self._load_data()
+        
         self._clear_grid(self.ui.college_org_grid)
         self.college_org_count = 0
 
+        # Filter by adviser (search is done on backend)
         filtered = [
             org for org in organizations
             if not org.get("is_archived", False)
             and not org.get("is_branch", False)
-            and (search_text.lower() in org["name"].lower() or not search_text)
             and org.get("adviser") == self.name
         ]
 

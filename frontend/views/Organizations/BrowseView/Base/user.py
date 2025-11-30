@@ -330,7 +330,7 @@ class User(QtWidgets.QWidget):
         if org_id:
             api_response = OrganizationAPIService.fetch_organization_details(org_id)
             if api_response.get('success'):
-                org_details = api_response.get('data', {}).get('data', {})
+                org_details = api_response.get('data', {})
             else:
                 # Fallback to provided org_data if API fails
                 org_details = org_data
@@ -348,17 +348,22 @@ class User(QtWidgets.QWidget):
         status = org_details.get("status", "active")
         self.ui.status_btn.setText(status.capitalize())
         
-        # Set organization type/level (in org_type field)
+        # Set organization type/level (in org_type field under org name)
         org_level = org_details.get("org_level", "col")
         org_level_text = "College Level" if org_level == "col" else "Program Level"
         self.ui.org_type.setText(org_level_text)
+        self.ui.org_type.setVisible(True)
         
-        # Set Brief Overview (description/objectives of the organization)
+        # Set Brief Overview (description of the organization)
         description = org_details.get("description", "")
-        self.ui.brief_label.setText(description if description else "No objectives available.")
+        self.ui.brief_label.setText(description if description else "No description available.")
         
-        # Set Level (obj_label shows the program level)
-        self.ui.obj_label.setText(org_level_text)
+        # Set Objectives (obj_label shows the objectives)
+        objectives = org_details.get("objectives", "")
+        # Treat "None" string as empty
+        if objectives == "None":
+            objectives = ""
+        self.ui.obj_label.setText(objectives if objectives else "No objectives available.")
         
         # Set branches (organizations that have this org as their main_org)
         branches = org_details.get("branches", [])

@@ -958,7 +958,7 @@ QScrollBar:vertical {
                 <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
                  <widget class="QLabel" name="org_type">
                   <property name="visible">
-                   <bool>false</bool>
+                   <bool>true</bool>
                   </property>
                   <property name="maximumSize">
                    <size>
@@ -1065,7 +1065,7 @@ QScrollBar:vertical {
 </string>
                      </property>
                      <property name="text">
-                      <string>Level</string>
+                      <string>Objectives</string>
                      </property>
                     </widget>
                    </item>

@@ -518,5 +518,13 @@
         "organization": "CISCO",
         "subject": "Okit, Maki Auri",
         "details": "Position \u2192 Member"
+    },
+    {
+        "timestamp": "2025-12-01T01:58:19.113176",
+        "actor": "admin",
+        "action": "EDIT_ORGANIZATION",
+        "organization": "org name",
+        "subject": "org name",
+        "details": "Org details updated."
     }
 ]

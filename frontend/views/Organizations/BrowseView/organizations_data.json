@@ -679,51 +679,29 @@
             }
         },
         {
-            "applicants": [],
-            "branches": [
-                {
-                    "id": 601,
-                    "name": "Heeloo",
-                    "is_joined": false,
-                    "is_branch": true,
-                    "logo_path": "No Photo",
-                    "brief": "",
-                    "description": "",
-                    "events": [],
-                    "officers": [],
-                    "members": [],
-                    "applicants": [],
-                    "officer_history": {},
-                    "parent_id": 6
-                }
-            ],
-            "brief": "",
-            "description": "",
-            "events": [],
             "id": 6,
+            "name": "engineer",
+            "description": "desct engineer\t\ndesc",
+            "objectives": "obcjs 1\nobjs 2\nobjs 3",
+            "status": "active",
+            "logo_path": "/uploads/logo/Screenshot_2025-02-15_193832.png",
+            "org_level": "col",
+            "created_at": "2025-11-30T17:38:48.040255Z",
             "is_branch": false,
-            "is_joined": false,
-            "logo_path": "No Photo",
-            "members": [
+            "is_archived": false,
+            "brief": "College Level",
+            "branches": [],
+            "events": [],
+            "officers": [],
+            "members": [],
+            "applicants": [
                 [
                     "Marcus",
-                    "Chairperson",
-                    "Active",
-                    "2025-10-28"
+                    "Member",
+                    "2025-12-01"
                 ]
             ],
-            "name": "Just Bingo Plus my Location Sir",
-            "officer_history": {},
-            "officers": [
-                {
-                    "name": "Marcus",
-                    "position": "Chairperson",
-                    "card_image_path": "Just_Bingo_Plus_my_Location_Sir/IMG_4184.JPG",
-                    "photo_path": "Just_Bingo_Plus_my_Location_Sir/IMG_4184.JPG",
-                    "start_date": "10/28/2025",
-                    "cv_path": "Just_Bingo_Plus_my_Location_Sir/CISCO_Membership_Report.pdf"
-                }
-            ]
+            "officer_history": {}
         },
         {
             "applicants": [],

@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'org_main.ui'
+# Form implementation generated from reading ui file 'ui/Organization/org_main.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -489,7 +489,7 @@ class Ui_Widget(object):
         self.line_6.setObjectName("line_6")
         self.verticalLayout.addWidget(self.line_6)
         self.org_type = QtWidgets.QLabel(parent=self.scroll_area_contents_2)
-        self.org_type.setVisible(False)
+        self.org_type.setVisible(True)
         self.org_type.setMaximumSize(QtCore.QSize(300, 16777215))
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -963,7 +963,7 @@ class Ui_Widget(object):
         self.org_type.setText(_translate("Widget", "OrgType"))
         self.brief_btn.setText(_translate("Widget", "Brief Overview"))
         self.brief_label.setText(_translate("Widget", "BriefContent"))
-        self.obj_btn.setText(_translate("Widget", "Level"))
+        self.obj_btn.setText(_translate("Widget", "Objectives"))
         self.obj_label.setText(_translate("Widget", "ObjectivesContent"))
         self.branch_btn.setText(_translate("Widget", "Branches"))
         self.obj_label_2.setText(_translate("Widget", "BranchList"))

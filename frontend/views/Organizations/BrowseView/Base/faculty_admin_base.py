@@ -16,11 +16,11 @@ class FacultyAdminBase(OrganizationViewBase):
         self.ui.joined_container.setVisible(False)
 
     def load_orgs(self, search_text: str = "") -> None:
-        # Fetch organizations from API
-        api_response = OrganizationAPIService.fetch_organizations()
+        # Fetch organizations from API with optional search query
+        api_response = OrganizationAPIService.fetch_organizations(search_query=search_text if search_text else None)
         
         if api_response.get('success'):
-            organizations_data = api_response.get('data', {}).get('data', [])
+            organizations_data = api_response.get('data', [])
             
             # Convert API data to the format expected by the UI
             organizations = []
@@ -29,6 +29,7 @@ class FacultyAdminBase(OrganizationViewBase):
                     "id": org.get('id'),
                     "name": org.get('name'),
                     "description": org.get('description', ''),
+                    "objectives": org.get('objectives', ''),
                     "status": org.get('status', 'active'),
                     "logo_path": org.get('logo_path', 'No Photo'),
                     "org_level": org.get('org_level', 'col'),
@@ -52,9 +53,10 @@ class FacultyAdminBase(OrganizationViewBase):
         self._clear_grid(self.ui.college_org_grid)
         self.college_org_count = 0
         
+        # Since search is now done on backend, no need to filter again in frontend
         filtered_college = [
             org for org in organizations 
-            if not org.get("is_archived", False) and not org["is_branch"] and (search_text in org["name"].lower() or not search_text)
+            if not org.get("is_archived", False) and not org["is_branch"]
         ]
         
         for org in filtered_college:
@@ -109,7 +111,7 @@ class FacultyAdminBase(OrganizationViewBase):
                 api_response = OrganizationAPIService.fetch_organization_details(org_id)
                 
                 if api_response.get('success'):
-                    org_data = api_response.get('data', {}).get('data', {})
+                    org_data = api_response.get('data', {})
                     
                     # Open edit dialog with fresh data
                     dialog = EditOrgDialog(org_data, self)
@@ -118,7 +120,7 @@ class FacultyAdminBase(OrganizationViewBase):
                         # Refresh the details view with updated data
                         updated_response = OrganizationAPIService.fetch_organization_details(org_id)
                         if updated_response.get('success'):
-                            updated_org = updated_response.get('data', {}).get('data', {})
+                            updated_org = updated_response.get('data', {})
                             self.show_org_details(updated_org)
                 else:
                     QtWidgets.QMessageBox.critical(

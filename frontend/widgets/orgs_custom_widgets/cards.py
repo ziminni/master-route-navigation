@@ -172,15 +172,6 @@ class CollegeOrgCard(BaseOrgCard):
                 except (ValueError, TypeError):
                     pass 
 
-            is_on_global_cooldown, global_cooldown_end = self.main_window.check_application_cooldown()
-            global_cooldown_str = ""
-            if is_on_global_cooldown:
-                remaining = global_cooldown_end - datetime.datetime.now()
-                total_seconds = int(remaining.total_seconds())
-                hours, remainder = divmod(total_seconds, 3600)
-                minutes, _ = divmod(remainder, 60)
-                global_cooldown_str = f" ({hours}h {minutes}m left)"
-
             try:
                 self.btn_apply.clicked.disconnect()
             except TypeError:
@@ -199,11 +190,6 @@ class CollegeOrgCard(BaseOrgCard):
                 self.btn_apply.setStyleSheet(STYLE_RED_BTN) 
                 self.btn_apply.setEnabled(False)
                 self.btn_apply.setToolTip(f"You were removed from this org. {kick_cooldown_str.strip()} left")
-            elif is_on_global_cooldown:
-                self.btn_apply.setText(f"Cooldown")
-                self.btn_apply.setStyleSheet(STYLE_RED_BTN)
-                self.btn_apply.setEnabled(False)
-                self.btn_apply.setToolTip(f"Cooldown active. {global_cooldown_str.strip()} left")
             else:
                 self.btn_apply.setText("Apply")
                 self.btn_apply.setStyleSheet(STYLE_GREEN_BTN)
@@ -211,49 +197,57 @@ class CollegeOrgCard(BaseOrgCard):
                 self.btn_apply.clicked.connect(self._apply_to_org)
 
     def _apply_to_org(self):
-        """Handles the 'Apply' button click."""
+        """Handles the 'Apply' button click using API."""
+        from services.organization_api_service import OrganizationAPIService
         
-        is_on_cooldown, cooldown_end = self.main_window.check_application_cooldown()
-        if is_on_cooldown:
-            remaining = cooldown_end - datetime.datetime.now()
-            total_seconds = int(remaining.total_seconds())
-            hours, remainder = divmod(total_seconds, 3600)
-            minutes, _ = divmod(remainder, 60)
-            QMessageBox.warning(
-                self, 
-                "Cooldown Active", 
-                f"You cannot apply to another organization for {hours}h {minutes}m."
-            )
-            return
-        
+        # TODO: Get actual student user_id from the main window/session
+        # For now, we'll need to pass user_id - this should come from login session
         student_name = self.main_window.name
         
-        if "applicants" not in self.org_data:
-            self.org_data["applicants"] = []
-            
-        self.org_data["applicants"].append([
-            student_name, 
-            "Member",
-            datetime.date.today().isoformat()
-        ])
-        
-        self.main_window.save_data_for_org(self.org_data)
-            
-        self.main_window.set_application_cooldown(hours=7) 
-        
-        QMessageBox.information(
-            self, 
-            "Application Submitted", 
-            f"You have successfully applied to {self.org_data['name']}.\n"
-            "You must wait 7 hours before applying to another organization."
+        # Show confirmation dialog
+        from PyQt6.QtWidgets import QMessageBox
+        confirm = QMessageBox.question(
+            self,
+            "Confirm Application",
+            f"Do you want to apply to {self.org_data.get('name', 'this organization')}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
-
-        self._update_apply_button_status()
         
-        if self.main_window.ui.comboBox.currentIndex() == 0:
+        if confirm == QMessageBox.StandardButton.No:
+            return
+        
+        # TODO: Replace with actual user_id from session/login
+        # This is a placeholder - you need to store user_id when student logs in
+        user_id = getattr(self.main_window, 'user_id', 1)  # Temporary fallback
+        org_id = self.org_data.get('id')
+        
+        if not org_id:
+            QMessageBox.warning(self, "Error", "Organization ID not found.")
+            return
+        
+        # Submit application via API
+        response = OrganizationAPIService.submit_membership_application(user_id, org_id)
+        
+        if response.get('success'):
+            # Update the org_data to reflect pending status immediately
+            if 'applicants' not in self.org_data:
+                self.org_data['applicants'] = []
+            self.org_data['applicants'].append([student_name, "Member", ""])
+            
+            QMessageBox.information(
+                self,
+                "Success",
+                "Your application has been submitted successfully!"
+            )
+            
+            # Update button status immediately
+            self._update_apply_button_status()
+            
+            # Refresh the organization list in background
             self.main_window.load_orgs()
         else:
-            self.main_window.load_branches()
+            error_msg = response.get('message', 'Failed to submit application')
+            QMessageBox.warning(self, "Application Failed", error_msg)
 
 class ArchivedOrgCard(CollegeOrgCard):
     # FIX: Explicitly pass and store the admin_window instance

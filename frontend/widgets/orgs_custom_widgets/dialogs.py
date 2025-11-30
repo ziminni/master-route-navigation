@@ -757,7 +757,7 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
         api_response = OrganizationAPIService.fetch_organizations()
         
         if api_response.get('success'):
-            organizations_data = api_response.get('data', {}).get('data', [])
+            organizations_data = api_response.get('data', [])
             for org in organizations_data:
                 item = QtWidgets.QListWidgetItem(org["name"])
                 item.setData(QtCore.Qt.ItemDataRole.UserRole, org["id"])
@@ -776,6 +776,9 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
 
         # Description text edit
         self.desc_edit = BlurredDialog._add_text_edit(right_layout, "Description")
+        
+        # Objectives text edit
+        self.objectives_edit = BlurredDialog._add_text_edit(right_layout, "Objectives")
 
         content_layout.addWidget(right_widget)
         return content_layout
@@ -796,6 +799,13 @@ class EditOrgDialog(BaseOrgDialog):
             self.org_level_combo.setCurrentIndex(index)
         
         self.desc_edit.setPlainText(org_data.get("description", ""))
+        
+        # Handle objectives - treat "None" string as empty
+        objectives = org_data.get("objectives", "")
+        if objectives == "None" or objectives is None:
+            objectives = ""
+        self.objectives_edit.setPlainText(objectives)
+        
         logo_path = get_image_path(org_data.get("logo_path", "No Photo"))
         self.parent_window.set_circular_logo(self.preview_label, logo_path)
         
@@ -838,6 +848,7 @@ class EditOrgDialog(BaseOrgDialog):
 
         # Get updated values
         new_description = self.desc_edit.toPlainText().strip()
+        new_objectives = self.objectives_edit.toPlainText().strip()
         new_org_level = self.org_level_combo.currentData()
         
         # Get selected main organizations
@@ -853,6 +864,7 @@ class EditOrgDialog(BaseOrgDialog):
             org_id=org_id,
             name=new_name,
             description=new_description,
+            objectives=new_objectives,
             org_level=new_org_level,
             logo_path=logo_full_path,
             status="active",
@@ -898,6 +910,7 @@ class CreateOrgDialog(BaseOrgDialog):
             return
 
         description = self.desc_edit.toPlainText().strip()
+        objectives = self.objectives_edit.toPlainText().strip()
         
         logo_filename = self._save_temp_image(name)
         if logo_filename is None:
@@ -923,6 +936,7 @@ class CreateOrgDialog(BaseOrgDialog):
         api_response = OrganizationAPIService.create_organization(
             name=name,
             description=description,
+            objectives=objectives,
             org_level=org_level,
             logo_path=logo_full_path,
             status="active",
@@ -931,7 +945,7 @@ class CreateOrgDialog(BaseOrgDialog):
         
         # Handle API response
         if api_response.get('success'):
-            org_data = api_response.get('data', {}).get('data', {})
+            org_data = api_response.get('data', {})
             
             print(f"Created organization '{name}' with ID {org_data.get('id')}")
             if selected_main_orgs:

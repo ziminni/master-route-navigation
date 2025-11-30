@@ -25,7 +25,7 @@ class Organization(models.Model):
 
     name = models.CharField(max_length=150)
     description = models.TextField()
-    
+    objectives = models.TextField(default="", blank=True)
     status = models.CharField(
     max_length=10,
     choices= Status.choices,

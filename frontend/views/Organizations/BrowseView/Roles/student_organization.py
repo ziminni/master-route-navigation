@@ -4,7 +4,7 @@ from PyQt6.QtCore import QTimer
 from typing import Dict
 from ..Base.organization_view_base import OrganizationViewBase
 from widgets.orgs_custom_widgets.cards import JoinedOrgCard, CollegeOrgCard
-
+from services.organization_api_service import OrganizationAPIService
 from ..Utils.image_utils import get_image_path, copy_image_to_data
 
 class Student(OrganizationViewBase):
@@ -104,16 +104,64 @@ class Student(OrganizationViewBase):
             )
 
     def load_orgs(self, search_text: str = "") -> None:
-        organizations = self._load_data()
+        # Fetch organizations from API with optional search query
+        api_response = OrganizationAPIService.fetch_organizations(search_query=search_text if search_text else None)
+        
+        # Fetch student's application statuses
+        user_id = getattr(self, 'user_id', 1)  # TODO: Use actual user_id from session
+        app_statuses_response = OrganizationAPIService.get_student_application_statuses(user_id)
+        application_statuses = app_statuses_response.get('data', {}) if app_statuses_response.get('success') else {}
+        
+        if api_response.get('success'):
+            organizations_data = api_response.get('data', [])
+            
+            # Convert API data to the format expected by the UI
+            organizations = []
+            for org in organizations_data:
+                org_id = org.get('id')
+                
+                # Check if student has applied to this org
+                applicants = []
+                if str(org_id) in application_statuses:
+                    app_status = application_statuses[str(org_id)]['status']
+                    if app_status == 'pen':  # Pending
+                        applicants.append([self.name, "Member", ""])  # Add to applicants list
+                
+                org_dict = {
+                    "id": org_id,
+                    "name": org.get('name'),
+                    "description": org.get('description', ''),
+                    "objectives": org.get('objectives', ''),
+                    "status": org.get('status', 'active'),
+                    "logo_path": org.get('logo_path', 'No Photo'),
+                    "org_level": org.get('org_level', 'col'),
+                    "created_at": org.get('created_at'),
+                    "is_branch": False,  # TODO: Add is_branch field to backend model
+                    "is_archived": False,  # TODO: Check status field
+                    "brief": "College Level" if org.get('org_level') == 'col' else "Program Level",
+                    "branches": [],
+                    "events": [],
+                    "officers": [],
+                    "members": [],
+                    "applicants": applicants,
+                    "officer_history": {}
+                }
+                organizations.append(org_dict)
+        else:
+            # Fallback to JSON data if API fails
+            print(f"API Error: {api_response.get('message')}")
+            organizations = self._load_data()
+        
         self._clear_grid(self.ui.joined_org_grid)
         self._clear_grid(self.ui.college_org_grid)
         self.joined_org_count = 0
         self.college_org_count = 0
 
         student_name = self.name
+        # Since search is now done on backend, no need to filter by name again
         filtered_joined = [
             org for org in organizations
-            if not org.get("is_archived", False) and not org["is_branch"] and (search_text in org["name"].lower() or not search_text) and
+            if not org.get("is_archived", False) and not org.get("is_branch", False) and
             any(member[0] == student_name for member in org.get("members", []))
         ]
         
@@ -121,7 +169,7 @@ class Student(OrganizationViewBase):
         
         filtered_college = [
             org for org in organizations
-            if not org.get("is_archived", False) and not org["is_branch"] and (search_text in org["name"].lower() or not search_text) and
+            if not org.get("is_archived", False) and not org.get("is_branch", False) and
             org['id'] not in joined_org_ids
         ]
 
