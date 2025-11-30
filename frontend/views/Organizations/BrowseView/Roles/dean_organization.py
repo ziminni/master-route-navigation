@@ -1,89 +1,157 @@
-from PyQt6 import QtWidgets, QtCore
+from PyQt6 import QtWidgets, QtCore, QtGui
+from PyQt6.QtWidgets import QMessageBox
+from typing import Dict
 from ..Base.faculty_admin_base import FacultyAdminBase
 from ..Base.manager_base import ManagerBase
 from widgets.orgs_custom_widgets.adviser_assign_dialog import AdviserAssignDialog
-
+from widgets.orgs_custom_widgets.pending_officer_dialog import PendingOfficerDialog
+import datetime
 
 class Dean(ManagerBase, FacultyAdminBase):
     """
-    Dean view – identical UI to Faculty/Admin but with extra powers:
-    1. Assign a faculty adviser to any org/branch
-    2. Approve/Reject pending officer changes
-    3. See current adviser and pending officer requests clearly
+    Dean view – with full control:
+    - Assign advisers
+    - Approve/Reject officer position changes
+    - See pending changes clearly via top button
     """
 
     def __init__(self, dean_name: str):
         FacultyAdminBase.__init__(self, name=dean_name)
         ManagerBase.__init__(self)
+        self.pending_btn = None
+        self._per_org_pending_btn = None
         self.load_orgs()
 
-    def show_org_details(self, org_data: dict) -> None:
-        super().show_org_details(org_data)
-        self.current_org = org_data
-        self.ui.view_members_btn.setText("Manage Members")
+    def load_orgs(self, search_text: str = "") -> None:
+        super().load_orgs(search_text)
+        self._update_pending_button()
 
-        # === 1. Remove old dynamic widgets to prevent duplicates ===
-        for attr in ["adviser_label", "assign_adviser_btn", "pending_container"]:
-            if hasattr(self, attr) and getattr(self, attr) is not None:
-                widget = getattr(self, attr)
-                self.ui.verticalLayout_10.removeWidget(widget)
-                widget.deleteLater()
-                setattr(self, attr, None)
+    def load_branches(self, search_text: str = "") -> None:
+        super().load_branches(search_text)
+        self._update_pending_button()
+            
+    def _update_pending_button(self):
+            """Show global pending changes button on landing page"""
+            if self.pending_btn and self.pending_btn.parent():
+                self.ui.horizontalLayout_2.removeWidget(self.pending_btn)
+                self.pending_btn.deleteLater()
+                self.pending_btn = None
 
-        # === 2. Show current Faculty Adviser ===
-        adviser = org_data.get("adviser") or "Not Assigned"
+            try:
+                organizations = self._load_data()
+            except:
+                return
+
+            total_pending = 0
+            first_pending_org = None
+
+            for org in organizations:
+                pending_count = len(org.get("pending_officers", []))
+                total_pending += pending_count
+                if pending_count > 0 and not first_pending_org:
+                    first_pending_org = org
+
+                for branch in org.get("branches", []):
+                    branch_pending = len(branch.get("pending_officers", []))
+                    total_pending += branch_pending
+                    if branch_pending > 0 and not first_pending_org:
+                        first_pending_org = branch
+
+            if total_pending == 0:
+                return
+
+            self.pending_btn = QtWidgets.QPushButton(f"Pending Changes ({total_pending})")
+            self.pending_btn.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
+            self.pending_btn.setStyleSheet("""
+                QPushButton {
+                    background: #F2C94C;
+                    color: black;
+                    font-weight: bold;
+                    border-radius: 20px;
+                    padding: 10px 20px;
+                    border: 2px solid #F2C94C;
+                    font-size: 14px;
+                }
+                QPushButton:hover { background: #e0b843; }
+            """)
+
+            self._first_pending_org = first_pending_org
+            self.pending_btn.clicked.connect(self._open_first_pending_dialog)
+
+            back_idx = self.ui.horizontalLayout_2.indexOf(self.ui.back_btn)
+            if back_idx != -1:
+                self.ui.horizontalLayout_2.insertWidget(back_idx, self.pending_btn)
+            else:
+                self.ui.horizontalLayout_2.addWidget(self.pending_btn)
+
+    def _open_first_pending_dialog(self):
+        if not hasattr(self, "_first_pending_org") or not self._first_pending_org:
+            QMessageBox.information(self, "No Changes", "No pending officer changes found.")
+            return
+
+        self.current_org = self._first_pending_org
+        dialog = PendingOfficerDialog(self.current_org, self, self)
+        dialog.exec()
+        self._update_pending_button()
+
+        if self.ui.stacked_widget.currentIndex() == 1:
+            self.show_org_details(self.current_org)
+
+    def show_org_details(self, org_data: Dict) -> None:
+            super().show_org_details(org_data)
+            self.current_org = org_data
+            self.ui.view_members_btn.setText("Manage Members")
+
+            self._remove_per_org_pending_btn()
+            
+            pending_count = len(org_data.get("pending_officers", []))
+            if pending_count > 0:
+                btn = QtWidgets.QPushButton(f"Pending ({pending_count})")
+                btn.setStyleSheet("background:#F2C94C;color:black;font-weight:bold;border-radius:20px;padding:8px 16px;")
+                btn.clicked.connect(lambda: PendingOfficerDialog(org_data, self, self).exec())
+                
+                self._per_org_pending_btn = btn
+                idx = self.ui.horizontalLayout_2.indexOf(self.ui.back_btn)
+                self.ui.horizontalLayout_2.insertWidget(idx, self._per_org_pending_btn)
+
+            self._update_pending_button()
+    
+    def _remove_per_org_pending_btn(self):
+        if self._per_org_pending_btn and self._per_org_pending_btn.parent():
+            self.ui.horizontalLayout_2.removeWidget(self._per_org_pending_btn)
+            self._per_org_pending_btn.deleteLater()
+            self._per_org_pending_btn = None
+
+    def _return_to_prev_page(self) -> None:
+        self._remove_per_org_pending_btn()
+        super()._return_to_prev_page()
+
+    def _show_current_adviser(self):
+        if hasattr(self, "adviser_label") and self.adviser_label:
+            self.ui.verticalLayout_10.removeWidget(self.adviser_label)
+            self.adviser_label.deleteLater()
+
+        adviser = self.current_org.get("adviser") or "Not Assigned"
         self.adviser_label = QtWidgets.QLabel(f"Faculty Adviser: <b>{adviser}</b>")
+        self.adviser_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.adviser_label.setStyleSheet("""
             QLabel {
                 color: #084924;
-                font-size: 12px;
-                font-weight: bold;
-                background-color: #e8f5e8;
+                font-size: 13px;
+                background: #e8f5e8;
                 padding: 12px;
                 border-radius: 12px;
-                margin: 10px 0;
                 border: 2px solid #084924;
+                margin: 10px 0;
             }
         """)
-        self.adviser_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        
-        # --- MODIFIED: Insert adviser_label above brief_btn ---
+
         brief_idx = self.ui.verticalLayout_10.indexOf(self.ui.brief_btn)
-        
         if brief_idx != -1:
             self.ui.verticalLayout_10.insertWidget(brief_idx, self.adviser_label)
         else:
-            # Fallback to original insertion point (index 2)
             self.ui.verticalLayout_10.insertWidget(2, self.adviser_label)
-        # --- END MODIFIED ---
 
-        # === 3. Assign Adviser Button (Dean only) ===
-        self.assign_adviser_btn = QtWidgets.QPushButton("Assign / Change Faculty Adviser")
-        self.assign_adviser_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #084924;
-                color: white;
-                border-radius: 12px;
-                padding: 10px;
-                font-weight: bold;
-                font-size: 14px;
-            }
-            QPushButton:hover { background-color: #098f42; }
-        """)
-        self.assign_adviser_btn.clicked.connect(self._open_assign_adviser_dialog)
-
-        # Insert after Edit button
-        edit_idx = self.ui.verticalLayout_10.indexOf(self.edit_btn)
-        spacer1 = QtWidgets.QSpacerItem(20, 15, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
-        self.ui.verticalLayout_10.insertItem(edit_idx + 1, spacer1)
-        self.ui.verticalLayout_10.insertWidget(edit_idx + 2, self.assign_adviser_btn)
-
-        # === 4. Show Pending Officer Changes ===
-        self._refresh_pending_officers_display()
-
-    # ===================================================================
-    # Assign Faculty Adviser
-    # ===================================================================
     def _open_assign_adviser_dialog(self):
         if not self.current_org:
             return
@@ -98,113 +166,108 @@ class Dean(ManagerBase, FacultyAdminBase):
                     "ASSIGN_ADVISER",
                     self.current_org["name"],
                     subject_name=selected_faculty,
-                    changes=f"Adviser changed from '{old_adviser or 'None'}' to '{selected_faculty}'"
+                    changes=f"from {old_adviser or 'None'} → {selected_faculty}"
                 )
-                QtWidgets.QMessageBox.information(
-                    self, "Success", f"Faculty adviser updated to: <b>{selected_faculty}</b>"
-                )
-                # Refresh the label
                 self.show_org_details(self.current_org)
 
-    # ===================================================================
-    # Pending Officer Changes System
-    # ===================================================================
-    def update_officer_in_org(self, updated_officer: dict, bypass_cooldown: bool = False):
+    def update_officer_in_org(self, updated_officer: Dict, bypass_cooldown: bool = False):
+            """Dean applies officer change — CHECKS IF ALREADY APPLIED & PRESERVES VISUALS"""
+            if not self.current_org:
+                return
+
+            officers = self.current_org.get("officers", [])
+            target_officer = None
+
+            for off in officers:
+                if off.get("name") == updated_officer.get("name"):
+                    target_officer = off
+                    break
+            
+            # --- FIX: Check if the change is already in effect ---
+            # If the officer already has this position, we do nothing.
+            # The calling function _approve_pending_officer will proceed to clear the 
+            # pending request, effectively treating it as 'resolved'.
+            if target_officer and target_officer.get("position") == updated_officer.get("position"):
+                return
+            # -----------------------------------------------------
+
+            is_new_officer = target_officer is None
+
+            officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
+            
+            if is_new_officer and updated_officer["position"] in officer_positions:
+                target_officer = {
+                    "name": updated_officer["name"],
+                    "position": updated_officer["position"],
+                    "photo_path": updated_officer.get("photo_path", "No Photo"),
+                    "card_image_path": updated_officer.get("card_image_path", "No Photo"),
+                    "cv_path": updated_officer.get("cv_path"),
+                    "start_date": updated_officer.get("start_date", datetime.datetime.now().strftime("%m/%d/%Y")),
+                }
+                officers.append(target_officer)
+            elif not is_new_officer:
+                target_officer["position"] = updated_officer["position"]
+
+                if updated_officer.get("photo_path") and updated_officer["photo_path"] != "No Photo":
+                    target_officer["photo_path"] = updated_officer["photo_path"]
+                
+                if updated_officer.get("card_image_path") and updated_officer["card_image_path"] != "No Photo":
+                    target_officer["card_image_path"] = updated_officer["card_image_path"]
+                
+                if "cv_path" in updated_officer:
+                    target_officer["cv_path"] = updated_officer["cv_path"]
+                
+                if "start_date" in updated_officer:
+                    target_officer["start_date"] = updated_officer["start_date"]
+
+            if updated_officer["position"] not in officer_positions:
+                self.current_org["officers"] = [
+                    o for o in self.current_org.get("officers", []) 
+                    if o["name"] != updated_officer["name"]
+                ]
+            else:
+                self.current_org["officers"] = officers
+
+            action = "APPROVE_OFFICER_CHANGE" if bypass_cooldown else "UPDATE_OFFICER"
+            self._log_action(
+                action,
+                self.current_org["name"],
+                subject_name=updated_officer["name"],
+                changes=f"Position → {updated_officer.get('position')}"
+            )
+
+            self.save_data()
+            self.load_officers(self.current_org["officers"])
+
+    def _approve_pending_officer(self, officer_data: dict, dialog=None):
+        if not officer_data:
+            return 
+        # This will now return early if the change is already done
+        self.update_officer_in_org(officer_data, bypass_cooldown=True)
+        # This cleans up the request regardless
+        self._clear_pending_officer(officer_data["name"])
+        
+        QMessageBox.information(self, "Approved", f"{officer_data['name']} is now {officer_data.get('position')}.")
+        if self.current_org:
+            self.show_org_details(self.current_org)
+        if dialog and hasattr(dialog, 'load_data'):
+            dialog.load_data()
+        self._update_pending_button()
+
+    def _reject_pending_officer(self, officer_data: dict, dialog=None):
         if not self.current_org:
             return
-
-        # Dean bypasses pending system → apply immediately
-        if bypass_cooldown:
-            super(Dean, self).update_officer_in_org(updated_officer, bypass_cooldown=True)
-            self._clear_pending_for_officer(updated_officer["name"])
-            self._refresh_pending_officers_display()
-            self._log_action("APPROVE_OFFICER_CHANGE", self.current_org["name"],
-                             subject_name=updated_officer["name"],
-                             changes=f"Position → {updated_officer.get('position')}")
-            return
-
-        # Normal path: officer or adviser → goes to pending
-        pending = self.current_org.setdefault("pending_officers", [])
-        pending = [p for p in pending if p.get("name") != updated_officer.get("name")]
-        pending.append(updated_officer)
-        self.current_org["pending_officers"] = pending
-        self.save_data()
-
-        QtWidgets.QMessageBox.information(
-            self,
-            "Pending Approval",
-            f"<b>{updated_officer['name']}</b> → <b>{updated_officer.get('position')}</b><br><br>"
-            "This officer change is now <b>pending Dean approval</b>."
-        )
-        self._refresh_pending_officers_display()
-
-    def _refresh_pending_officers_display(self):
-        # Remove old pending container
-        if hasattr(self, "pending_container") and self.pending_container:
-            self.ui.verticalLayout_10.removeWidget(self.pending_container)
-            self.pending_container.deleteLater()
-            self.pending_container = None
-
-        pending = self.current_org.get("pending_officers", [])
-        if not pending:
-            return
-
-        self.pending_container = QtWidgets.QGroupBox("Pending Officer Changes")
-        self.pending_container.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 16px;
-                color: #084924;
-                border: 2px solid #084924;
-                border-radius: 12px;
-                margin-top: 10px;
-                padding-top: 10px;
-            }
-        """)
-        layout = QtWidgets.QVBoxLayout(self.pending_container)
-
-        for officer in pending:
-            frame = QtWidgets.QFrame()
-            frame.setStyleSheet("background-color: #f8fff8; border-radius: 8px; margin: 5px; padding: 10px;")
-            hbox = QtWidgets.QHBoxLayout(frame)
-
-            name_pos = f"<b>{officer.get('name')}</b> → <b>{officer.get('position')}</b>"
-            hbox.addWidget(QtWidgets.QLabel(name_pos))
-
-            approve_btn = QtWidgets.QPushButton("Approve")
-            approve_btn.setStyleSheet("background:#084924; color:white; border-radius:8px; padding:6px 12px;")
-            approve_btn.clicked.connect(lambda _, o=officer.copy(): self._approve_pending(o))
-
-            reject_btn = QtWidgets.QPushButton("Reject")
-            reject_btn.setStyleSheet("background:#EB5757; color:white; border-radius:8px; padding:6px 12px;")
-            reject_btn.clicked.connect(lambda _, o=officer.copy(): self._reject_pending(o))
-
-            hbox.addStretch()
-            hbox.addWidget(approve_btn)
-            hbox.addWidget(reject_btn)
-
-            layout.addWidget(frame)
-
-        # Insert below adviser info
-        edit_idx = self.ui.verticalLayout_10.indexOf(self.edit_btn) if self.edit_btn else -1
-        insert_pos = edit_idx + 3 if edit_idx != -1 else -1
-        self.ui.verticalLayout_10.insertWidget(insert_pos, self.pending_container)
-
-    def _approve_pending(self, officer_data: dict):
-        self.update_officer_in_org(officer_data, bypass_cooldown=True)
-        QtWidgets.QMessageBox.information(
-            self, "Approved", f"<b>{officer_data['name']}</b> is now <b>{officer_data.get('position')}</b>"
-        )
-
-    def _reject_pending(self, officer_data: dict):
         name = officer_data.get("name", "Unknown")
-        self._clear_pending_for_officer(name)
-        self.save_data()
-        QtWidgets.QMessageBox.warning(
-            self, "Rejected", f"Officer change for <b>{name}</b> has been rejected."
-        )
-        self._refresh_pending_officers_display()
+        self._clear_pending_officer(name)
+        QMessageBox.warning(self, "Rejected", f"Officer change for <b>{name}</b> has been rejected.")
+        self.show_org_details(self.current_org)
+        if dialog and hasattr(dialog, 'load_data'):
+            dialog.load_data()
 
-    def _clear_pending_for_officer(self, name: str):
-        pending = self.current_org.get("pending_officers", [])
-        self.current_org["pending_officers"] = [p for p in pending if p.get("name") != name]
+    def _clear_pending_officer(self, name: str):
+        if not self.current_org:
+            return
+        self.current_org["pending_officers"] = [
+            p for p in self.current_org.get("pending_officers", []) if p.get("name") != name
+        ]
+        self.save_data()

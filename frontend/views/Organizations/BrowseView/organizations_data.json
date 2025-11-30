@@ -91,39 +91,26 @@
             ],
             "officers": [
                 {
-                    "name": "Pescasio, Jacob Hermon",
-                    "position": "Vice - Internal Chairperson",
-                    "card_image_path": "CISCo/Internal.jpg",
-                    "photo_path": "CISCo/Internal.jpg",
-                    "start_date": "07/08/2025"
-                },
-                {
-                    "name": "Unajan, Vianca Louise",
-                    "position": "Secretary",
-                    "card_image_path": "CISCo/Secretary.jpg",
-                    "photo_path": "CISCo/Secretary.jpg",
-                    "start_date": "07/08/2025"
-                },
-                {
-                    "name": "Okit, Maki Auri",
-                    "position": "Treasurer",
-                    "card_image_path": "No Photo",
-                    "photo_path": "No Photo",
-                    "start_date": "10/28/2025"
-                },
-                {
                     "name": "Marcus",
                     "position": "Vice - External Chairperson",
                     "card_image_path": "CISCO/UCD_-_Snap__Fix.drawio.png",
                     "photo_path": "CISCO/UCD_-_Snap__Fix.drawio.png",
                     "start_date": "10/28/2025",
                     "cv_path": "CISCO/CV_sample_1.jpg"
+                },
+                {
+                    "name": "Yuri Salise",
+                    "position": "Chairperson",
+                    "card_image_path": "No Photo",
+                    "photo_path": "No Photo",
+                    "start_date": "11/30/2025",
+                    "cv_path": null
                 }
             ],
             "members": [
                 [
                     "Yuri Salise",
-                    "Member",
+                    "Secretary",
                     "Inactive",
                     "2023-04-09"
                 ],

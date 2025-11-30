@@ -1,9 +1,12 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QScrollArea, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
-from PyQt6.QtCore import Qt, QUrl, QTimer
+from PyQt6.QtWidgets import QDialog
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTableView, QHeaderView, QPushButton, QLabel, QHBoxLayout
+from PyQt6.QtCore import Qt, QAbstractTableModel, QUrl, QTimer
 from PyQt6.QtGui import QDesktopServices
 import json
 import os
+import datetime
 
 from views.Organizations.BrowseView.Utils.image_utils import copy_image_to_data, get_image_path, delete_image
 from .styles import (
@@ -167,6 +170,127 @@ class ArchiveConfirmDialog(BlurredDialog):
         buttons_layout.addWidget(confirm_btn)
         buttons_layout.addWidget(cancel_btn)
         layout.addLayout(buttons_layout)
+
+class PendingOfficerChangeModel(QAbstractTableModel):
+    def __init__(self, data, parent=None):
+        super().__init__(parent)
+        self._data = data
+        self.headers = ["Name", "From → To", "Proposed By", "Date", "Actions"]
+
+    def rowCount(self, parent): return len(self._data)
+    def columnCount(self, parent): return len(self.headers)
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if not index.isValid():
+            return None
+        row = self._data[index.row()]
+        col = index.column()
+
+        if role == Qt.ItemDataRole.DisplayRole:
+            if col == 0: return row.get("name")
+            elif col == 1:
+                old = row.get("old_position", "Member")
+                new = row.get("position")
+                return f"{old} → {new}"
+            elif col == 2: return row.get("proposed_by", "Unknown")
+            elif col == 3:
+                try:
+                    dt = datetime.datetime.fromisoformat(row["proposed_at"])
+                    return dt.strftime("%b %d, %Y %I:%M %p")
+                except:
+                    return row.get("proposed_at", "N/A")
+        return None
+
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+            return self.headers[section]
+        return None
+
+class PendingOfficerChangesDialog(QDialog):
+    def __init__(self, org_data, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Pending Officer Changes")
+        self.setMinimumSize(800, 500)
+        self.org_data = org_data
+        self.parent = parent
+
+        layout = QVBoxLayout(self)
+
+        title = QLabel(f"<h2>Pending Officer Changes – {org_data['name']}</h2>")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+
+        self.table = QTableView()
+        self.table.setAlternatingRowColors(True)
+        self.table.setStyleSheet("font-size: 14px;")
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.verticalHeader().setVisible(False)
+        layout.addWidget(self.table)
+
+        self.load_data()
+
+    def load_data(self):
+        pending = self.org_data.get("pending_officers", [])
+        model = PendingOfficerChangeModel(pending, self)
+        self.table.setModel(model)
+
+        # Clear any old index widgets first (important!)
+        for row in range(self.table.model().rowCount()):
+            self.table.setIndexWidget(self.table.model().index(row, 4), None)
+
+        if not pending:
+            # Clear table and show message
+            self.table.setModel(None)
+            no_label = QtWidgets.QLabel("No pending officer changes.")
+            no_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            no_label.setStyleSheet("font-size: 18px; color: #666; padding: 40px;")
+            self.layout().addWidget(no_label)
+            return
+
+        # Add Confirm/Decline buttons in last column
+        for row in range(len(pending)):
+            officer_data = pending[row]  # Capture current officer data
+
+            widget = QtWidgets.QWidget()
+            hbox = QtWidgets.QHBoxLayout(widget)
+            hbox.setContentsMargins(8, 4, 8, 4)
+            hbox.setSpacing(6)
+
+            confirm_btn = QtWidgets.QPushButton("Confirm")
+            confirm_btn.setStyleSheet("""
+                QPushButton {
+                    background:#084924; 
+                    color:white; 
+                    border-radius:6px; 
+                    padding:6px 12px; 
+                    font-weight: bold;
+                }
+                QPushButton:hover { background:#098f42; }
+            """)
+
+            decline_btn = QtWidgets.QPushButton("Decline")
+            decline_btn.setStyleSheet("""
+                QPushButton {
+                    background:#EB5757; 
+                    color:white; 
+                    border-radius:6px; 
+                    padding:6px 12px; 
+                    font-weight: bold;
+                }
+                QPushButton:hover { background:#d64545; }
+            """)
+
+            confirm_btn.clicked.connect(lambda checked=False, data=officer_data: self.parent._approve_pending(data))
+            decline_btn.clicked.connect(lambda checked=False, data=officer_data: self.parent._reject_pending(data))
+
+            hbox.addWidget(confirm_btn)
+            hbox.addWidget(decline_btn)
+            widget.setLayout(hbox)
+
+            self.table.setIndexWidget(model.index(row, 4), widget)
+
+            self.table.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeMode.Fixed)
+            self.table.resizeColumnToContents(4)
 
 class CVViewerDialog(BlurredDialog):
     """
