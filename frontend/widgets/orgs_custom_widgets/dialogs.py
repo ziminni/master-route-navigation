@@ -646,39 +646,270 @@ class EditOfficerDialog(BaseEditDialog):
         self.accept()
 
 class EditMemberDialog(BlurredDialog):
-    def __init__(self, member_data: list, parent=None):
+    def __init__(self, member_data: list, member_id: int, parent=None):
         super().__init__(parent)
         self.member_data = member_data
+        self.member_id = member_id  # OrganizationMembers.id
         self.original_position = member_data[1]
+        self.positions_list = []  # Will store position data from DB
+        self.selected_position_id = None
+        
         self.setWindowTitle("Edit Member Position")
-        self.setFixedSize(300, 150)
+        self.setFixedSize(350, 240)
         self.setStyleSheet(DIALOG_STYLE)
 
         main_layout = QtWidgets.QVBoxLayout(self)
-        main_layout.addWidget(QtWidgets.QLabel("Position:"))
+        main_layout.setSpacing(5)
+        main_layout.setContentsMargins(12, 12, 12, 12)
+        
+        # Member name label
+        name_label = QtWidgets.QLabel(f"Member: {member_data[0]}")
+        name_label.setStyleSheet("font-weight: bold; font-size: 13px;")
+        main_layout.addWidget(name_label)
+        
+        # Position dropdown label
+        position_label = QtWidgets.QLabel("Position:")
+        position_label.setContentsMargins(0, 3, 0, 1)
+        position_label.setStyleSheet("font-size: 12px;")
+        main_layout.addWidget(position_label)
+        
+        # Position combobox
         self.position_edit = QtWidgets.QComboBox()
         self.position_edit.setStyleSheet(EDIT_STYLE)
-        possible_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer", "Member"]
-        self.position_edit.addItems(possible_positions)
-        self.position_edit.setCurrentText(member_data[1])
+        self.position_edit.currentIndexChanged.connect(self._on_position_changed)
         main_layout.addWidget(self.position_edit)
-
+        
+        # Term dates section (initially hidden)
+        self.term_dates_widget = QtWidgets.QWidget()
+        term_dates_layout = QtWidgets.QVBoxLayout(self.term_dates_widget)
+        term_dates_layout.setSpacing(3)
+        term_dates_layout.setContentsMargins(0, 3, 0, 0)
+        
+        # Start term date
+        start_term_label = QtWidgets.QLabel("Start Term Date:")
+        start_term_label.setContentsMargins(0, 2, 0, 1)
+        start_term_label.setStyleSheet("font-size: 12px;")
+        term_dates_layout.addWidget(start_term_label)
+        
+        self.start_term_edit = QtWidgets.QDateEdit()
+        self.start_term_edit.setCalendarPopup(True)
+        self.start_term_edit.setDate(QtCore.QDate.currentDate())
+        self.start_term_edit.setDisplayFormat("yyyy-MM-dd")
+        self.start_term_edit.setStyleSheet(EDIT_STYLE)
+        term_dates_layout.addWidget(self.start_term_edit)
+        
+        # End term date
+        end_term_label = QtWidgets.QLabel("End Term Date:")
+        end_term_label.setContentsMargins(0, 2, 0, 1)
+        end_term_label.setStyleSheet("font-size: 12px;")
+        term_dates_layout.addWidget(end_term_label)
+        
+        self.end_term_edit = QtWidgets.QDateEdit()
+        self.end_term_edit.setCalendarPopup(True)
+        # Set a consistent minimum date from the start
+        from PyQt6.QtCore import QDate
+        self.end_term_edit.setMinimumDate(QDate(1900, 1, 1))
+        # Set special value text for when date is at minimum
+        self.end_term_edit.setSpecialValueText("Not Set")
+        self.end_term_edit.setDisplayFormat("yyyy-MM-dd")
+        self.end_term_edit.setStyleSheet(EDIT_STYLE)
+        # Set to minimum date initially to show "Not Set"
+        self.end_term_edit.setDate(QDate(1900, 1, 1))
+        term_dates_layout.addWidget(self.end_term_edit)
+        
+        self.term_dates_widget.hide()  # Hidden by default
+        main_layout.addWidget(self.term_dates_widget)
+        
+        # Loading label
+        self.loading_label = QtWidgets.QLabel("Loading positions...")
+        self.loading_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(self.loading_label)
+        
+        # Buttons
         btn_layout = BlurredDialog._create_button_layout(self.confirm, self.reject)
         main_layout.addLayout(btn_layout)
+        
+        # Disable confirm button until positions are loaded
+        for btn in btn_layout.parentWidget().findChildren(QtWidgets.QPushButton):
+            if btn.text() == "Confirm":
+                self.confirm_btn = btn
+                self.confirm_btn.setEnabled(False)
+                break
+        
+        # Fetch positions from database and existing term data
+        self._fetch_positions()
+        self._fetch_member_term_data()
+
+    def _fetch_positions(self):
+        """Fetch positions from the database via API"""
+        from services.organization_api_service import OrganizationAPIService
+        
+        api_response = OrganizationAPIService.get_positions()
+        
+        if api_response.get('success'):
+            self.positions_list = api_response.get('data', [])
+            self._populate_positions()
+        else:
+            error_msg = api_response.get('message', 'Failed to load positions')
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to load positions from database:\n{error_msg}"
+            )
+            self.loading_label.setText("Failed to load positions")
+    
+    def _fetch_member_term_data(self):
+        """Fetch existing term data for this member from the database"""
+        from services.organization_api_service import OrganizationAPIService
+        
+        print(f"DEBUG: Fetching term data for member_id={self.member_id}")
+        api_response = OrganizationAPIService.get_member_term_data(self.member_id)
+        
+        if api_response.get('success'):
+            term_data = api_response.get('data', {})
+            print(f"DEBUG: Received term data: {term_data}")
+            
+            # If member has an officer term, populate the date fields
+            if term_data.get('has_officer_term'):
+                start_term_str = term_data.get('start_term')
+                end_term_str = term_data.get('end_term')
+                
+                # Set start term date
+                if start_term_str:
+                    from PyQt6.QtCore import QDate
+                    start_date = QDate.fromString(start_term_str, "yyyy-MM-dd")
+                    if start_date.isValid():
+                        self.start_term_edit.setDate(start_date)
+                        print(f"DEBUG: Set start_term to {start_term_str}")
+                
+                # Set end term date if it exists
+                if end_term_str:
+                    from PyQt6.QtCore import QDate
+                    end_date = QDate.fromString(end_term_str, "yyyy-MM-dd")
+                    print(f"DEBUG: Parsed end_date: {end_date}, isValid: {end_date.isValid()}")
+                    if end_date.isValid():
+                        self.end_term_edit.setDate(end_date)
+                        print(f"DEBUG: Set end_term to {end_term_str}")
+                        print(f"DEBUG: Current end_term widget date: {self.end_term_edit.date().toString('yyyy-MM-dd')}")
+                        print(f"DEBUG: Current end_term widget text: {self.end_term_edit.text()}")
+                else:
+                    # No end term set in database - keep at minimum (shows "Not Set")
+                    print(f"DEBUG: No end_term in database, keeping 'Not Set'")
+            else:
+                print(f"DEBUG: Member has no officer term, is regular member")
+        else:
+            error_msg = api_response.get('message', 'Failed to load term data')
+            print(f"WARNING: Failed to fetch member term data: {error_msg}")
+            # Don't show error to user - just use default dates
+            
+    def _populate_positions(self):
+        """Populate the position dropdown with data from database"""
+        self.position_edit.clear()
+        
+        # Add "Member" as the first option (regular member, no officer role)
+        self.position_edit.addItem("Member", None)
+        
+        # Add positions from database
+        for position in self.positions_list:
+            self.position_edit.addItem(
+                position['name'],
+                position['id']  # Store position ID as userData
+            )
+        
+        # Set current position
+        current_index = self.position_edit.findText(self.original_position)
+        if current_index >= 0:
+            self.position_edit.setCurrentIndex(current_index)
+        
+        # Hide loading label and enable confirm button
+        self.loading_label.hide()
+        if hasattr(self, 'confirm_btn'):
+            self.confirm_btn.setEnabled(True)
+    
+    def _on_position_changed(self, index):
+        """Show/hide term date fields based on position selection"""
+        current_position = self.position_edit.currentText()
+        
+        # Show date fields for all positions except "Member"
+        if current_position != "Member":
+            self.term_dates_widget.show()
+            self.setFixedSize(350, 340)  # Expand dialog
+        else:
+            self.term_dates_widget.hide()
+            self.setFixedSize(350, 240)  # Shrink dialog
 
     def confirm(self):
         new_position = self.position_edit.currentText()
+        position_id = self.position_edit.currentData()  # Get the position ID
+        
         main_window = self.parent()
-        if BlurredDialog._check_position_conflict(main_window, new_position, self.member_data[0], self.original_position):
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Position Already Taken",
-                f"The position '{new_position}' is already occupied by another officer.",
-                QtWidgets.QMessageBox.StandardButton.Ok
-            )
-            return
+        
+        # Check for position conflict (except for "Member" position)
+        if new_position != "Member":
+            # Validate term dates for officer positions
+            if not self.start_term_edit.date().isValid():
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Invalid Date",
+                    "Please provide a valid start term date for officer positions.",
+                    QtWidgets.QMessageBox.StandardButton.Ok
+                )
+                return
+            
+            if BlurredDialog._check_position_conflict(main_window, new_position, self.member_data[0], self.original_position):
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Position Already Taken",
+                    f"The position '{new_position}' is already occupied by another officer.",
+                    QtWidgets.QMessageBox.StandardButton.Ok
+                )
+                return
 
         self.updated_position = new_position
+        self.updated_position_id = position_id
+        
+        # Store term dates if officer position
+        if new_position != "Member":
+            self.start_term = self.start_term_edit.date().toString("yyyy-MM-dd")
+            
+            # Get the current end_term text and date
+            current_end_text = self.end_term_edit.text()
+            current_end_date = self.end_term_edit.date()
+            
+            print(f"DEBUG confirm: end_term_edit.text() = '{current_end_text}'")
+            print(f"DEBUG confirm: end_term_edit.date() = {current_end_date.toString('yyyy-MM-dd')}")
+            print(f"DEBUG confirm: end_term_edit.date().isValid() = {current_end_date.isValid()}")
+            
+            # Validate that end_term is set (required for officer positions)
+            if current_end_text == "Not Set" or not current_end_date.isValid():
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Missing End Term",
+                    "End term date is required for officer positions.",
+                    QtWidgets.QMessageBox.StandardButton.Ok
+                )
+                return
+            
+            # Set the end_term value
+            self.end_term = current_end_date.toString("yyyy-MM-dd")
+            print(f"DEBUG confirm: Setting end_term to {self.end_term}")
+            
+            # Validate that start_term is before end_term
+            if self.start_term_edit.date() >= current_end_date:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Invalid Date Range",
+                    "Start term date must be before end term date.",
+                    QtWidgets.QMessageBox.StandardButton.Ok
+                )
+                return
+        else:
+            self.start_term = None
+            self.end_term = None
+        
+        print(f"DEBUG confirm FINAL: position={new_position}, position_id={position_id}")
+        print(f"DEBUG confirm FINAL: start_term={getattr(self, 'start_term', None)}, end_term={getattr(self, 'end_term', None)}")
+        
         self.accept()
 
 class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):

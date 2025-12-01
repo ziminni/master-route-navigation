@@ -109,8 +109,11 @@ class Student(OrganizationViewBase):
         
         # Fetch student's application statuses
         user_id = getattr(self, 'user_id', 1)  # TODO: Use actual user_id from session
+        print(f"[DEBUG] Fetching application statuses for user_id: {user_id}")
         app_statuses_response = OrganizationAPIService.get_student_application_statuses(user_id)
+        print(f"[DEBUG] Application statuses response: {app_statuses_response}")
         application_statuses = app_statuses_response.get('data', {}) if app_statuses_response.get('success') else {}
+        print(f"[DEBUG] Parsed application statuses: {application_statuses}")
         
         if api_response.get('success'):
             organizations_data = api_response.get('data', [])
@@ -124,8 +127,10 @@ class Student(OrganizationViewBase):
                 applicants = []
                 if str(org_id) in application_statuses:
                     app_status = application_statuses[str(org_id)]['status']
+                    print(f"[DEBUG] Org {org_id} ({org.get('name')}) has application status: {app_status}")
                     if app_status == 'pen':  # Pending
                         applicants.append([self.name, "Member", ""])  # Add to applicants list
+                        print(f"[DEBUG] Added {self.name} to applicants list for org {org_id}")
                 
                 org_dict = {
                     "id": org_id,

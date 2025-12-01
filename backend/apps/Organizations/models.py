@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Q, F
+from django.conf import settings
 from apps.Users.models import StudentProfile, FacultyProfile
 
 # Create your models here.
@@ -129,9 +130,9 @@ class OfficerTerm(models.Model):
     position     = models.ForeignKey(Positions, on_delete=models.PROTECT, related_name="terms")
     member       = models.ForeignKey(OrganizationMembers, on_delete=models.CASCADE, related_name="officer_terms")
     start_term   = models.DateField()
-    end_term     = models.DateField(null=True, blank=True)
+    end_term     = models.DateField()
     status       = models.CharField(max_length=10, choices=[("active","Active"), ("inactive","Inactive")], default="active")
-    updated_by   = models.ForeignKey(StudentProfile, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    updated_by   = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     updated_at   = models.DateTimeField(auto_now=True)
 
     class Meta:

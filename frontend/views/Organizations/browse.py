@@ -1,4 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtCore import QSettings
 
 from .BrowseView import Student, Officer, Admin, Faculty, Dean
 
@@ -10,6 +11,9 @@ class Browse(QWidget):
         print(f"Browse: Initializing for username={username}, primary_role={primary_role}, roles={roles}")
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Store user profile ID in settings for later use
+        self._fetch_and_store_profile_id(token)
 
         if primary_role == "admin":
             print("Browse: Loading Admin view")
@@ -34,3 +38,32 @@ class Browse(QWidget):
         print(f"Browse: View created, type={type(self.view)}, ui={hasattr(self.view, 'ui')}")
         self.layout.addWidget(self.view)
         print("Browse: Widget added to layout")
+    
+    def _fetch_and_store_profile_id(self, token):
+        """Fetch user profile from backend and store profile_id"""
+        try:
+            import requests
+            from services.auth_service import AuthService
+            
+            base_url = AuthService.BASE_URL.replace('/auth', '')
+            url = f"{base_url}/users/me/"
+            
+            headers = {'Authorization': f'Bearer {token}'} if token else {}
+            response = requests.get(url, headers=headers, timeout=5)
+            
+            if response.status_code == 200:
+                user_data = response.json()
+                profile_id = user_data.get('profile_id')
+                
+                if profile_id:
+                    # Store in QSettings
+                    settings = QSettings("CISC", "MasterRoute")
+                    settings.setValue("user_profile_id", profile_id)
+                    print(f"DEBUG: Stored profile_id={profile_id} in QSettings")
+                else:
+                    print("WARNING: No profile_id in user data")
+            else:
+                print(f"WARNING: Failed to fetch user profile: {response.status_code}")
+                
+        except Exception as e:
+            print(f"WARNING: Could not fetch user profile: {e}")

@@ -1,6 +1,18 @@
 from rest_framework import serializers
 from .models import Organization, ApplicationDetails, MembershipApplication
-from apps.Users.models import StudentProfile
+from apps.Users.models import StudentProfile, BaseUser
+
+
+class CurrentUserSerializer(serializers.ModelSerializer):
+    """Serializer for current user's basic info"""
+    full_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = BaseUser
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'full_name']
+    
+    def get_full_name(self, obj):
+        return obj.get_full_name()
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -98,3 +110,20 @@ class MembershipApplicationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You already have a pending application for this organization.")
         
         return data
+
+
+class ApplicantSerializer(serializers.ModelSerializer):
+    """Serializer for viewing applicants with student details"""
+    student_id = serializers.IntegerField(source='user_id.id', read_only=True)
+    student_name = serializers.CharField(source='user_id.user.get_full_name', read_only=True)
+    student_username = serializers.CharField(source='user_id.user.username', read_only=True)
+    student_email = serializers.EmailField(source='user_id.user.email', read_only=True)
+    program = serializers.CharField(source='user_id.program', read_only=True)
+    year_level = serializers.IntegerField(source='user_id.year_level', read_only=True)
+    organization_name = serializers.CharField(source='organization_id.name', read_only=True)
+    
+    class Meta:
+        model = MembershipApplication
+        fields = ['id', 'student_id', 'student_name', 'student_username', 'student_email', 
+                  'program', 'year_level', 'organization_name', 'application_status']
+        read_only_fields = ['id']

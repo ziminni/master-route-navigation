@@ -125,9 +125,19 @@ class ManagerBase:
 
         if self.is_viewing_applicants:
             self.ui.label_2.setText("Applicant List")
-            self.manage_applicants_btn.hide()
+            self.manage_applicants_btn.setText("View Members")
+            self.manage_applicants_btn.disconnect()
+            self.manage_applicants_btn.clicked.connect(
+                lambda: self.load_members(self._get_search_text())
+            )
+            self.manage_applicants_btn.show()
         else:
             self.ui.label_2.setText("Member List")
+            self.manage_applicants_btn.setText("Manage Applicants")
+            self.manage_applicants_btn.disconnect()
+            self.manage_applicants_btn.clicked.connect(
+                lambda: self.load_applicants(self._get_search_text())
+            )
             self.manage_applicants_btn.show()
             
     def load_members(self, search_text: str = "") -> None: # MODIFIED
@@ -135,23 +145,31 @@ class ManagerBase:
         from widgets.orgs_custom_widgets.tables import ViewMembers
         
         if not self.current_org:
+            print("DEBUG load_members: No current_org")
             return
             
         self.is_viewing_applicants = False
         
         members_data = self.current_org.get("members", [])
+        print(f"DEBUG load_members: Found {len(members_data)} members in current_org")
+        print(f"DEBUG load_members: Members data: {members_data}")
+        
         self.filtered_members = [
             member for member in members_data
             if any(search_text in str(field).lower() for field in member)
         ] if search_text else members_data.copy()
 
         total_items = len(self.filtered_members)
+        print(f"DEBUG load_members: Total items after filter: {total_items}")
+        
         self.total_members_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
         self.current_members_page = max(0, min(self.current_members_page, self.total_members_pages - 1))
 
         start = self.current_members_page * self.items_per_page
         end = start + self.items_per_page
         paged_data = self.filtered_members[start:end]
+        
+        print(f"DEBUG load_members: Paged data ({start}:{end}): {paged_data}")
 
         model = self.ui.list_view.model()
         
@@ -167,10 +185,13 @@ class ManagerBase:
             self._setup_action_delegate()
 
         if total_items:
+            print("DEBUG load_members: Showing table, hiding no_member_label")
             self.ui.list_view.show()
             self.no_member_label.hide()
         else:
+            print("DEBUG load_members: Hiding table, showing no_member_label")
             self.ui.list_view.hide()
+            self.no_member_label.setText("No Member(s) Found")
             self.no_member_label.show()
 
         self._setup_list_header()
@@ -187,7 +208,7 @@ class ManagerBase:
         applicants_data = self.current_org.get("applicants", [])
         self.filtered_applicants = [
             applicant for applicant in applicants_data
-            if any(search_text in str(field).lower() for field in applicant)
+            if any(search_text in str(field).lower() for field in applicant.values())
         ] if search_text else applicants_data.copy()
 
         total_items = len(self.filtered_applicants)
@@ -219,6 +240,7 @@ class ManagerBase:
             self.no_member_label.show()
 
         self._setup_list_header()
+        self._setup_applicant_action_delegate()
         self._update_pagination_buttons_applicants()
 
     def _update_pagination_buttons_members(self) -> None:
@@ -332,109 +354,167 @@ class ManagerBase:
             self.load_applicants(search_text)
     
     def edit_member(self, row: int, bypass_cooldown: bool = False) -> None:
-            """Open dialog to edit member's position.
-            
-            [UPDATE] Clears pending officer request for the edited member.
-            """
-            from widgets.orgs_custom_widgets.dialogs import EditMemberDialog
-            
-            if not self.current_org:
-                return
-            
-            search_text = self._get_search_text()
-            members = self.current_org.get("members", [])
-            
-            original_index, member = self._filter_and_find_original_index(
-                members, row, search_text
+        """Open dialog to edit member's position via API"""
+        from widgets.orgs_custom_widgets.dialogs import EditMemberDialog
+        from services.organization_api_service import OrganizationAPIService
+        
+        if not self.current_org:
+            return
+        
+        search_text = self._get_search_text()
+        members = self.current_org.get("members", [])
+        
+        original_index, member = self._filter_and_find_original_index(
+            members, row, search_text
+        )
+        
+        if original_index is None:
+            return
+        
+        # Get member_id from members_dict (set by admin view's _fetch_members)
+        member_name = member[0]
+        member_id = None
+        
+        # Try to find member_id from members_dict if it exists
+        if hasattr(self, 'members_dict'):
+            for mid, mdata in self.members_dict.items():
+                if mdata.get('name') == member_name:
+                    member_id = mid
+                    break
+        
+        if member_id is None:
+            QMessageBox.critical(
+                self,
+                "Error",
+                "Could not identify member. Please refresh and try again."
             )
+            return
+        
+        dialog = EditMemberDialog(member, member_id, self)
+        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+            new_position = dialog.updated_position
+            position_id = dialog.updated_position_id
+            start_term = getattr(dialog, 'start_term', None)
+            end_term = getattr(dialog, 'end_term', None)
+            old_position = member[1]
             
-            if original_index is None:
-                return
+            print(f"DEBUG manager_base: Extracted from dialog - start_term={start_term}, end_term={end_term}")
             
-            dialog = EditMemberDialog(member, self)
-            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-                new_position = dialog.updated_position
-                old_position = member[1]
-                member_name = member[0]
+            # Get current user ID for audit trail
+            updated_by_id = None
+            
+            # Try API call first
+            if hasattr(self, 'name') and self.name:
+                print(f"DEBUG: self.name = '{self.name}', calling API...")
+                try:
+                    api_response = OrganizationAPIService.get_current_user_by_username(self.name)
+                    print(f"DEBUG: API response = {api_response}")
+                    if api_response.get('success') and api_response.get('data'):
+                        updated_by_id = api_response['data'].get('profile_id')
+                        print(f"DEBUG: Got updated_by_id from API: {updated_by_id}")
+                    else:
+                        print(f"DEBUG: API call failed or no data: {api_response}")
+                except Exception as e:
+                    print(f"DEBUG: Exception calling API: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print(f"DEBUG: self.name not available (hasattr={hasattr(self, 'name')}, value={getattr(self, 'name', None)})")
+            
+            # Fallback to other sources
+            if not updated_by_id:
+                if hasattr(self, 'admin_profile') and self.admin_profile:
+                    updated_by_id = self.admin_profile.get('id')
+                elif hasattr(self, 'current_user') and self.current_user:
+                    updated_by_id = self.current_user.get('id')
+                elif hasattr(self, 'user_id'):
+                    updated_by_id = self.user_id
+                elif hasattr(self, 'profile_id'):
+                    updated_by_id = self.profile_id
+            
+            # Try QSettings as last resort
+            if not updated_by_id:
+                try:
+                    from PyQt6.QtCore import QSettings
+                    settings = QSettings("CISC", "MasterRoute")
+                    updated_by_id = settings.value("user_profile_id", type=int)
+                    if updated_by_id:
+                        print(f"DEBUG: Got updated_by_id from QSettings: {updated_by_id}")
+                except Exception as e:
+                    print(f"DEBUG: Could not get user_profile_id from QSettings: {e}")
+            
+            print(f"DEBUG: Updating member {member_id} with updated_by_id={updated_by_id}")
+            print(f"DEBUG manager_base: position_id={position_id}, position_name={new_position}")
+            print(f"DEBUG manager_base: start_term={start_term}, end_term={end_term}")
+            
+            if not updated_by_id:
+                print("WARNING: Could not determine updated_by_id - audit trail will be incomplete")
+            
+            # Update position via API
+            try:
+                api_response = OrganizationAPIService.update_member_position(
+                    member_id=member_id,
+                    position_id=position_id,
+                    position_name=new_position,
+                    start_term=start_term,
+                    end_term=end_term,
+                    updated_by_id=updated_by_id
+                )
                 
-                officer_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer"]
-                is_officer_change = (new_position in officer_positions) or (old_position in officer_positions)
-
-                # --- ADDED: Cooldown Check ---
-                if is_officer_change and not bypass_cooldown:
-                    # --- FIX: Standardized cooldown key ---
-                    is_on_cooldown, end_time = self.check_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE")
-                    if is_on_cooldown:
-                        QMessageBox.warning(
-                            self, 
-                            "Action Cooldown", 
-                            f"Officer changes are on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
-                        )
-                        return
-                # --- END Cooldown Check ---
-
-                self.current_org["members"][original_index][1] = new_position
+                if not api_response:
+                    raise Exception("No response from API")
                 
-                # --- FIX: Clear pending request for the edited member ---
-                self.current_org["pending_officers"] = [
-                    p for p in self.current_org.get("pending_officers", []) 
-                    if p.get("name") != member_name
-                ]
-                # --- END FIX ---
-                
-                if new_position in officer_positions:
-                    officers = self.current_org.get("officers", [])
-                    is_already_officer = False
-                    for officer in officers:
-                        if officer["name"] == member_name:
-                            officer["position"] = new_position
-                            is_already_officer = True
-                            break
-                    
-                    if not is_already_officer:
-                        # New officer data will use 'No Photo' as default, but if the member
-                        # was already an officer and demoted to member, the old photo data
-                        # might be needed here to re-promote them if they were not removed.
-                        # Since this is a simple member edit dialog, we stick to defaults 
-                        # for safety if the officer entry was cleared.
-                        new_officer = {
-                            "name": member_name,
-                            "position": new_position,
-                            "card_image_path": "No Photo",
-                            "photo_path": "No Photo",
-                            "start_date": QtCore.QDate.currentDate().toString("MM/dd/yyyy")
-                        }
-                        self.current_org["officers"].append(new_officer)
-                        
-                elif old_position in officer_positions and new_position == "Member":
-                    officers = self.current_org.get("officers", [])
-                    self.current_org["officers"] = [
-                        officer for officer in officers if officer["name"] != member_name
-                    ]
-                
-                org_name = self.current_org.get('name', 'Unknown Org')
-                details = f"Position changed from '{old_position}' to '{new_position}'."
-                self._log_action("EDIT_MEMBER", org_name, subject_name=member_name, changes=details)
-                
-                self.save_data()
-                
-                # --- ADDED: Set Cooldown ---
-                if is_officer_change and not bypass_cooldown:
-                    # --- FIX: Standardized cooldown key ---
-                    self.set_manager_action_cooldown(self.current_org['id'], "OFFICER_CHANGE", minutes=5)
-                # --- END Set Cooldown ---
-
-                self.load_members(search_text)
-                
-                if new_position in officer_positions or old_position in officer_positions:
-                    current_index = self.ui.officer_history_dp.currentIndex()
-                    selected_semester = self.ui.officer_history_dp.itemText(current_index)
-                    officers = (
-                        self.current_org.get("officer_history", {}).get(selected_semester, [])
-                        if selected_semester != "Current Officers"
-                        else self.current_org.get("officers", [])
+                if api_response.get('success'):
+                    QMessageBox.information(
+                        self,
+                        "Success",
+                        f"{member_name}'s position updated to {new_position}."
                     )
-                    self.load_officers(officers)
+                    
+                    # Get updated member data from API response
+                    updated_member_data = api_response.get('data', {})
+                    print(f"DEBUG: Received updated member data: {updated_member_data}")
+                    
+                    # Update the member in memory without full refresh
+                    if updated_member_data and hasattr(self, '_update_member_in_list'):
+                        try:
+                            self._update_member_in_list(member_id, updated_member_data)
+                            self.load_members(search_text)
+                        except Exception as e:
+                            print(f"WARNING: Failed to update member in list: {e}")
+                            # Fallback to full refresh
+                            if self.current_org and hasattr(self, '_fetch_members'):
+                                self._fetch_members(self.current_org["id"])
+                                self.load_members(search_text)
+                    elif self.current_org and hasattr(self, '_fetch_members'):
+                        # Fallback: full refresh if _update_member_in_list not available
+                        self._fetch_members(self.current_org["id"])
+                        self.load_members(search_text)
+                    else:
+                        # Last resort: update locally
+                        self.current_org["members"][original_index][1] = new_position
+                        self.load_members(search_text)
+                    
+                    org_name = self.current_org.get('name', 'Unknown Org')
+                    details = f"Position changed from '{old_position}' to '{new_position}'."
+                    self._log_action("EDIT_MEMBER", org_name, subject_name=member_name, changes=details)
+                else:
+                    error_msg = api_response.get('message', 'Failed to update position')
+                    QMessageBox.critical(
+                        self,
+                        "Error",
+                        f"Failed to update member position:\n{error_msg}"
+                    )
+                    
+            except Exception as e:
+                print(f"ERROR: Exception during member position update: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    f"An unexpected error occurred:\n{str(e)}"
+                )
     
     def kick_member(self, row: int, bypass_cooldown: bool = False) -> None:
         """
@@ -740,3 +820,86 @@ class ManagerBase:
     def _handle_delegate_kick_click(self, row: int):
         """Kick button clicked - now correctly calls kick_member core logic"""
         self.kick_member(row)
+
+    def _setup_applicant_action_delegate(self):
+        """Setup permanent Accept/Reject buttons for applicants view"""
+        from widgets.orgs_custom_widgets.tables import ApplicantActionDelegate
+        
+        model = self.ui.list_view.model()
+        if not model:
+            return
+
+        delegate = ApplicantActionDelegate(self.ui.list_view)
+        delegate.accept_clicked.connect(self._handle_accept_applicant)
+        delegate.reject_clicked.connect(self._handle_reject_applicant)
+
+        last_column = model.columnCount() - 1
+        self.ui.list_view.setItemDelegateForColumn(last_column, delegate)
+
+    def _handle_accept_applicant(self, row: int):
+        """Accept button clicked - process acceptance"""
+        if row < 0 or row >= len(self.filtered_applicants):
+            return
+        
+        applicant = self.filtered_applicants[row]
+        application_id = applicant.get("id")
+        applicant_name = applicant.get("student_name", "this student")
+        
+        # Confirm acceptance
+        from PyQt6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(
+            self, 
+            "Confirm Acceptance",
+            f"Accept {applicant_name}'s application?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self._process_application_action(application_id, "accept", applicant_name)
+
+    def _handle_reject_applicant(self, row: int):
+        """Reject button clicked - process rejection"""
+        if row < 0 or row >= len(self.filtered_applicants):
+            return
+        
+        applicant = self.filtered_applicants[row]
+        application_id = applicant.get("id")
+        applicant_name = applicant.get("student_name", "this student")
+        
+        # Confirm rejection
+        from PyQt6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(
+            self, 
+            "Confirm Rejection",
+            f"Reject {applicant_name}'s application?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self._process_application_action(application_id, "reject", applicant_name)
+
+    def _process_application_action(self, application_id: int, action: str, applicant_name: str):
+        """Process accept or reject action via API"""
+        from services.organization_api_service import OrganizationAPIService
+        from PyQt6.QtWidgets import QMessageBox
+        
+        api_response = OrganizationAPIService.process_application(application_id, action)
+        
+        if api_response.get("success"):
+            action_text = "accepted" if action == "accept" else "rejected"
+            QMessageBox.information(
+                self,
+                "Success",
+                f"{applicant_name}'s application has been {action_text}."
+            )
+            # Refresh the applicants list
+            if self.current_org:
+                self._fetch_applicants(self.current_org["id"])
+                self.load_applicants(self._get_search_text())
+        else:
+            error_msg = api_response.get("error", f"Failed to {action} application")
+            QMessageBox.critical(self, "Error", error_msg)
+
+    def _fetch_applicants(self, org_id: int):
+        """Override in subclass to fetch applicants from API"""
+        pass

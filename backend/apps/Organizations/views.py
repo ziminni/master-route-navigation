@@ -1,10 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, permissions
 from .models import Organization, MembershipApplication, ApplicationDetails
-from .serializers import OrganizationSerializer, MembershipApplicationSerializer
+from .serializers import OrganizationSerializer, MembershipApplicationSerializer, ApplicantSerializer, CurrentUserSerializer
 from django.db.models import Q
-from apps.Users.models import StudentProfile
+from apps.Users.models import StudentProfile, BaseUser
 
 
 class OrganizationListView(APIView):
@@ -211,9 +211,10 @@ class StudentApplicationStatusView(APIView):
     """API View for getting student's application statuses"""
     
     def get(self, request, user_id):
-        """Get all pending/accepted/rejected applications for a student"""
+        """Get all pending/accepted/rejected applications for a student by StudentProfile ID"""
         try:
-            student = StudentProfile.objects.get(user__id=user_id)
+            # user_id here is the StudentProfile ID, not Django User ID
+            student = StudentProfile.objects.get(id=user_id)
             
             # Get all applications for this student
             applications = MembershipApplication.objects.filter(user_id=student).select_related('organization_id')
@@ -221,7 +222,7 @@ class StudentApplicationStatusView(APIView):
             # Build response with organization IDs and their status
             application_statuses = {}
             for app in applications:
-                application_statuses[app.organization_id.id] = {
+                application_statuses[str(app.organization_id.id)] = {
                     'status': app.application_status,
                     'org_name': app.organization_id.name,
                     'application_id': app.id
@@ -238,5 +239,187 @@ class StudentApplicationStatusView(APIView):
         except StudentProfile.DoesNotExist:
             return Response(
                 {'message': 'Student profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class OrganizationApplicantsView(APIView):
+    """API View for getting pending applicants for an organization"""
+    
+    def get(self, request, org_id):
+        """Get all pending applicants for a specific organization"""
+        try:
+            organization = Organization.objects.get(id=org_id)
+            
+            # Get all pending applications for this organization
+            pending_applications = MembershipApplication.objects.filter(
+                organization_id=organization,
+                application_status='pen'
+            ).select_related('user_id__user', 'user_id')
+            
+            print(f"DEBUG: Found {pending_applications.count()} pending applications for org {org_id}")
+            
+            # Serialize the applications with student details
+            from .serializers import ApplicantSerializer
+            serializer = ApplicantSerializer(pending_applications, many=True)
+            
+            print(f"DEBUG: Serialized data: {serializer.data}")
+            
+            return Response(
+                {
+                    'message': 'Applicants retrieved successfully',
+                    'data': serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Organization.DoesNotExist:
+            return Response(
+                {'message': 'Organization not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class ApplicationActionView(APIView):
+    """API View for accepting or rejecting applications"""
+    
+    def put(self, request, application_id):
+        """Accept or reject a membership application"""
+        try:
+            print(f"DEBUG: Processing application {application_id} with action: {request.data.get('action')}")
+            
+            application = MembershipApplication.objects.get(id=application_id)
+            action = request.data.get('action')  # 'accept' or 'reject'
+            
+            if action not in ['accept', 'reject']:
+                return Response(
+                    {'message': 'Invalid action. Must be "accept" or "reject"'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if action == 'accept':
+                # Update application status to accepted
+                application.application_status = 'acc'
+                application.save()
+                print(f"DEBUG: Updated application status to accepted")
+                
+                # Create OrganizationMembers entry (only use existing fields)
+                from .models import OrganizationMembers
+                try:
+                    member, created = OrganizationMembers.objects.get_or_create(
+                        organization_id=application.organization_id,
+                        user_id=application.user_id,
+                        defaults={'status': 'act'}  # Active status
+                    )
+                    if created:
+                        print(f"DEBUG: Created new organization member - org_id: {application.organization_id.id}, user_id: {application.user_id.id}")
+                    else:
+                        print(f"DEBUG: Member already exists, updating status to active")
+                        member.status = 'act'
+                        member.save()
+                    
+                    # Verify the member was saved
+                    verify_count = OrganizationMembers.objects.filter(
+                        organization_id=application.organization_id,
+                        user_id=application.user_id,
+                        status='act'
+                    ).count()
+                    print(f"DEBUG: Verification - Active member count for this org/user: {verify_count}")
+                    
+                except Exception as e:
+                    print(f"DEBUG ERROR: Failed to create member - {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    return Response(
+                        {'message': f'Application accepted but failed to create member: {str(e)}'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                
+                return Response(
+                    {'message': 'Application accepted successfully'},
+                    status=status.HTTP_200_OK
+                )
+            
+            elif action == 'reject':
+                # Update application status to rejected
+                application.application_status = 'rej'
+                application.save()
+                print(f"DEBUG: Updated application status to rejected")
+                
+                return Response(
+                    {'message': 'Application rejected successfully'},
+                    status=status.HTTP_200_OK
+                )
+                
+        except MembershipApplication.DoesNotExist:
+            print(f"DEBUG ERROR: Application {application_id} not found")
+            return Response(
+                {'message': 'Application not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            print(f"DEBUG ERROR: Unexpected error - {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'message': f'An error occurred: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class OrganizationMembersView(APIView):
+    """API View for getting members of an organization"""
+    
+    def get(self, request, org_id):
+        """Get all active members for a specific organization"""
+        try:
+            organization = Organization.objects.get(id=org_id)
+            
+            # Get all active members for this organization
+            from .models import OrganizationMembers, OfficerTerm
+            members = OrganizationMembers.objects.filter(
+                organization_id=organization,
+                status='act'  # Active status
+            ).select_related('user_id__user', 'user_id')
+            
+            print(f"DEBUG: Found {members.count()} active members for org {org_id}")
+            
+            # Build member data
+            members_data = []
+            for member in members:
+                # Get current officer position if exists
+                officer_term = OfficerTerm.objects.filter(
+                    member=member,
+                    status='active'
+                ).select_related('position').first()
+                
+                position_name = officer_term.position.name if officer_term else 'Member'
+                position_id = officer_term.position.id if officer_term else None
+                
+                members_data.append({
+                    'id': member.id,
+                    'student_id': member.user_id.id,
+                    'name': member.user_id.user.get_full_name(),
+                    'username': member.user_id.user.username,
+                    'email': member.user_id.user.email,
+                    'program': str(member.user_id.program) if member.user_id.program else 'N/A',
+                    'year_level': member.user_id.year_level,
+                    'joined_at': member.joined_at.isoformat() if member.joined_at else None,
+                    'status': member.status,
+                    'position': position_name,
+                    'position_id': position_id
+                })
+            
+            return Response(
+                {
+                    'message': 'Members retrieved successfully',
+                    'data': members_data
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Organization.DoesNotExist:
+            return Response(
+                {'message': 'Organization not found'},
                 status=status.HTTP_404_NOT_FOUND
             )

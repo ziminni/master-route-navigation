@@ -364,6 +364,178 @@ class OrganizationAPIService:
                 'error': str(e),
                 'message': f'An unexpected error occurred: {str(e)}'
             }
+    
+    @staticmethod
+    def get_organization_applicants(org_id: int) -> Dict:
+        """
+        Get all pending applicants for a specific organization
+        
+        Args:
+            org_id: The organization ID
+            
+        Returns:
+            Dictionary containing list of applicants
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/{org_id}/applicants/"
+        
+        try:
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', []),
+                    'count': response_data.get('count', 0),
+                    'message': response_data.get('message', 'Applicants retrieved successfully')
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': response.json() if response.text else 'Unknown error',
+                    'message': 'Failed to retrieve applicants',
+                    'status_code': response.status_code
+                }
+                
+        except requests.exceptions.ConnectionError:
+            return {
+                'success': False,
+                'error': 'Connection Error',
+                'message': 'Could not connect to the backend server. Please ensure the server is running.'
+            }
+        except requests.exceptions.Timeout:
+            return {
+                'success': False,
+                'error': 'Timeout Error',
+                'message': 'Request timed out. Please try again.'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'An unexpected error occurred: {str(e)}'
+            }
+    
+    @staticmethod
+    def process_application(application_id: int, action: str) -> Dict:
+        """
+        Accept or reject a membership application
+        
+        Args:
+            application_id: The application ID
+            action: 'accept' or 'reject'
+            
+        Returns:
+            Dictionary containing the API response
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/applications/{application_id}/action/"
+        
+        data = {
+            "action": action
+        }
+        
+        try:
+            response = requests.put(url, json=data, timeout=10)
+            
+            print(f"DEBUG: Response status code: {response.status_code}")
+            print(f"DEBUG: Response text: {response.text}")
+            
+            if response.status_code == 200:
+                try:
+                    response_data = response.json()
+                    return {
+                        'success': True,
+                        'data': response_data.get('data', {}),
+                        'message': response_data.get('message', f'Application {action}ed successfully')
+                    }
+                except ValueError as e:
+                    print(f"DEBUG: JSON decode error - {str(e)}")
+                    return {
+                        'success': False,
+                        'error': f'Invalid JSON response: {str(e)}',
+                        'message': f'Server returned invalid response'
+                    }
+            else:
+                try:
+                    error_data = response.json() if response.text else {}
+                except ValueError:
+                    error_data = {'message': response.text}
+                    
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', f'Failed to {action} application'),
+                    'status_code': response.status_code
+                }
+                
+        except requests.exceptions.ConnectionError:
+            return {
+                'success': False,
+                'error': 'Connection Error',
+                'message': 'Could not connect to the backend server. Please ensure the server is running.'
+            }
+        except requests.exceptions.Timeout:
+            return {
+                'success': False,
+                'error': 'Timeout Error',
+                'message': 'Request timed out. Please try again.'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'An unexpected error occurred: {str(e)}'
+            }
+
+    @staticmethod
+    def get_organization_members(org_id: int) -> Dict:
+        """
+        Get all active members for a specific organization
+        
+        Args:
+            org_id: The organization ID
+            
+        Returns:
+            Dictionary containing list of members
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/{org_id}/members/"
+        
+        try:
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', []),
+                    'message': response_data.get('message', 'Members retrieved successfully')
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': response.json() if response.text else 'Unknown error',
+                    'message': 'Failed to retrieve members',
+                    'status_code': response.status_code
+                }
+                
+        except requests.exceptions.ConnectionError:
+            return {
+                'success': False,
+                'error': 'Connection Error',
+                'message': 'Could not connect to the backend server. Please ensure the server is running.'
+            }
+        except requests.exceptions.Timeout:
+            return {
+                'success': False,
+                'error': 'Timeout Error',
+                'message': 'Request timed out. Please try again.'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'An unexpected error occurred: {str(e)}'
+            }
 
     @staticmethod
     def submit_membership_application(user_id: int, organization_id: int) -> Dict:
@@ -421,3 +593,246 @@ class OrganizationAPIService:
                 'error': str(e),
                 'message': f'An unexpected error occurred: {str(e)}'
             }
+
+    @staticmethod
+    def get_member_term_data(member_id: int) -> dict:
+        """
+        Get current officer term data for a member.
+        
+        Args:
+            member_id: OrganizationMembers ID
+            
+        Returns:
+            dict with success, message, and data (position_id, position_name, start_term, end_term)
+        """
+        try:
+            url = f"{OrganizationAPIService.BASE_URL}/members/{member_id}/position/"
+            print(f"DEBUG: Fetching member term data from {url}")
+            
+            response = requests.get(url, timeout=10)
+            print(f"DEBUG: Response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                print(f"DEBUG: Member term data: {data}")
+                return data
+            else:
+                print(f"ERROR: Failed to get member term data - Status {response.status_code}")
+                return {
+                    'success': False,
+                    'message': f'Server returned status {response.status_code}'
+                }
+                
+        except requests.exceptions.RequestException as e:
+            print(f"ERROR: Network error getting member term data: {e}")
+            return {
+                'success': False,
+                'message': f'Network error: {str(e)}'
+            }
+        except Exception as e:
+            print(f"ERROR: Unexpected error getting member term data: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }
+
+    @staticmethod
+    def get_positions() -> Dict:
+        """
+        Get all available positions from the database
+        
+        Returns:
+            Dictionary containing list of positions
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/positions/"
+        
+        try:
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', []),
+                    'message': response_data.get('message', 'Positions retrieved successfully')
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': response.json() if response.text else 'Unknown error',
+                    'message': 'Failed to retrieve positions',
+                    'status_code': response.status_code
+                }
+                
+        except requests.exceptions.ConnectionError:
+            return {
+                'success': False,
+                'error': 'Connection Error',
+                'message': 'Could not connect to the backend server. Please ensure the server is running.'
+            }
+        except requests.exceptions.Timeout:
+            return {
+                'success': False,
+                'error': 'Timeout Error',
+                'message': 'Request timed out. Please try again.'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'An unexpected error occurred: {str(e)}'
+            }
+
+    @staticmethod
+    def get_current_user_by_username(username: str) -> Dict:
+        """
+        Get current user profile ID by username
+        
+        Args:
+            username: The username of the logged-in user
+            
+        Returns:
+            Dictionary containing user data with profile_id and profile_type
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/current-user/"
+        
+        params = {'username': username}
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', {}),
+                    'message': response_data.get('message', 'User retrieved successfully')
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to retrieve user'),
+                    'status_code': response.status_code
+                }
+                
+        except requests.exceptions.ConnectionError:
+            return {
+                'success': False,
+                'error': 'Connection Error',
+                'message': 'Could not connect to the backend server. Please ensure the server is running.'
+            }
+        except requests.exceptions.Timeout:
+            return {
+                'success': False,
+                'error': 'Timeout Error',
+                'message': 'Request timed out. Please try again.'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'An unexpected error occurred: {str(e)}'
+            }
+
+    @staticmethod
+    def update_member_position(member_id: int, position_id: int = None, position_name: str = "Member", 
+                               start_term: str = None, end_term: str = None, updated_by_id: int = None) -> Dict:
+        """
+        Update a member's position
+        
+        Args:
+            member_id: The OrganizationMembers ID
+            position_id: The Positions ID (None for regular member)
+            position_name: The position name for display
+            start_term: Start date in YYYY-MM-DD format (required for officers)
+            end_term: End date in YYYY-MM-DD format (optional)
+            updated_by_id: StudentProfile ID of user making the update
+            
+        Returns:
+            Dictionary containing the API response
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/members/{member_id}/position/"
+        
+        data = {
+            "position_id": position_id,
+            "position_name": position_name
+        }
+        
+        # Add term dates if provided
+        if start_term:
+            data["start_term"] = start_term
+        if end_term:
+            data["end_term"] = end_term
+        if updated_by_id:
+            data["updated_by_id"] = updated_by_id
+        
+        try:
+            response = requests.put(url, json=data, timeout=10)
+            
+            print(f"DEBUG: Response status: {response.status_code}")
+            print(f"DEBUG: Response content-type: {response.headers.get('content-type', 'unknown')}")
+            
+            # Check if response is JSON
+            content_type = response.headers.get('content-type', '')
+            if 'application/json' not in content_type:
+                print(f"ERROR: Backend returned non-JSON response (content-type: {content_type})")
+                print(f"ERROR: Response text preview: {response.text[:500]}")
+                return {
+                    'success': False,
+                    'error': 'Server Error',
+                    'message': f'Backend server error. Check backend logs for details. Status: {response.status_code}'
+                }
+            
+            if response.status_code == 200:
+                try:
+                    response_data = response.json()
+                except ValueError as json_err:
+                    print(f"ERROR: JSON decode failed: {json_err}")
+                    print(f"ERROR: Full response text: {response.text}")
+                    return {
+                        'success': False,
+                        'error': 'Invalid JSON response from server',
+                        'message': f'Server returned invalid JSON: {str(json_err)}'
+                    }
+                    
+                return {
+                    'success': True,
+                    'data': response_data.get('data', {}),
+                    'message': response_data.get('message', 'Member position updated successfully')
+                }
+            else:
+                try:
+                    error_data = response.json() if response.text else {}
+                except ValueError:
+                    error_data = {'message': response.text[:200] if response.text else 'Unknown error'}
+                    
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to update member position'),
+                    'status_code': response.status_code
+                }
+                
+        except requests.exceptions.ConnectionError:
+            return {
+                'success': False,
+                'error': 'Connection Error',
+                'message': 'Could not connect to the backend server. Please ensure the server is running.'
+            }
+        except requests.exceptions.Timeout:
+            return {
+                'success': False,
+                'error': 'Timeout Error',
+                'message': 'Request timed out. Please try again.'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'An unexpected error occurred: {str(e)}'
+            }
+

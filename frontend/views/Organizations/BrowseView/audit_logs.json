@@ -526,5 +526,93 @@
         "organization": "org name",
         "subject": "org name",
         "details": "Org details updated."
+    },
+    {
+        "timestamp": "2025-12-01T19:59:57.719672",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Member' to 'Vice President - Internal'."
+    },
+    {
+        "timestamp": "2025-12-01T20:21:11.335154",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Member' to 'Vice President - Internal'."
+    },
+    {
+        "timestamp": "2025-12-01T21:08:12.541048",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Vice President - Internal' to 'President'."
+    },
+    {
+        "timestamp": "2025-12-01T21:08:43.469353",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'President' to 'Secretary'."
+    },
+    {
+        "timestamp": "2025-12-01T21:12:30.233620",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Secretary' to 'President'."
+    },
+    {
+        "timestamp": "2025-12-01T21:15:59.322029",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'President' to 'Secretary'."
+    },
+    {
+        "timestamp": "2025-12-01T21:18:49.687372",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Member' to 'President'."
+    },
+    {
+        "timestamp": "2025-12-01T21:19:07.085417",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'President' to 'Vice President - Internal'."
+    },
+    {
+        "timestamp": "2025-12-01T21:24:11.742848",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Vice President - Internal' to 'Treasurer'."
+    },
+    {
+        "timestamp": "2025-12-01T21:27:39.149621",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Treasurer' to 'President'."
+    },
+    {
+        "timestamp": "2025-12-01T21:33:46.289438",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Member' to 'President'."
     }
 ]
