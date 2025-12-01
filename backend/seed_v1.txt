@@ -1,0 +1,110 @@
+🔑 ADMIN ACCOUNTS
+Username	Password	Email	Institutional ID	Role
+admin	admin123	admin@cmu.edu.ph	ADM0001	Super Admin
+👨‍🏫 FACULTY ACCOUNTS
+Username	Password	First Name	Last Name	Department
+einstein	password123	Albert	Einstein	CISC
+lovelace	password123	Ada	Lovelace	CISC
+torvalds	password123	Linus	Torvalds	CISC
+knuth	password123	Donald	Knuth	MATH
+hopper	password123	Grace	Hopper	CISC
+turing	password123	Alan	Turing	MATH
+curie	password123	Marie	Curie	SCI
+newton	password123	Isaac	Newton	MATH
+👨‍🎓 STUDENT ACCOUNTS
+Year 1 Students
+Username	Password	First Name	Last Name	Section
+stud0001	password123	(Random)	(Random)	IT-1A
+stud0002	password123	(Random)	(Random)	IT-1A
+stud0003	password123	(Random)	(Random)	IT-1A
+stud0004	password123	(Random)	(Random)	IT-1B
+stud0005	password123	(Random)	(Random)	IT-1B
+stud0006	password123	(Random)	(Random)	IT-1B
+stud0007	password123	(Random)	(Random)	IT-1C
+stud0008	password123	(Random)	(Random)	IT-1C
+stud0009	password123	(Random)	(Random)	IT-1C
+Year 2 Students
+Username	Password	First Name	Last Name	Section
+stud0010	password123	(Random)	(Random)	IT-2A
+stud0011	password123	(Random)	(Random)	IT-2A
+stud0012	password123	(Random)	(Random)	IT-2A
+stud0013	password123	(Random)	(Random)	IT-2B
+stud0014	password123	(Random)	(Random)	IT-2B
+stud0015	password123	(Random)	(Random)	IT-2B
+stud0016	password123	(Random)	(Random)	IT-2C
+stud0017	password123	(Random)	(Random)	IT-2C
+stud0018	password123	(Random)	(Random)	IT-2C
+Year 3 Students
+Username	Password	First Name	Last Name	Section
+stud0019	password123	(Random)	(Random)	IT-3A
+stud0020	password123	(Random)	(Random)	IT-3A
+stud0021	password123	(Random)	(Random)	IT-3A
+stud0022	password123	(Random)	(Random)	IT-3B
+stud0023	password123	(Random)	(Random)	IT-3B
+stud0024	password123	(Random)	(Random)	IT-3B
+stud0025	password123	(Random)	(Random)	IT-3C
+stud0026	password123	(Random)	(Random)	IT-3C
+stud0027	password123	(Random)	(Random)	IT-3C
+Year 4 Students
+Username	Password	First Name	Last Name	Section
+stud0028	password123	(Random)	(Random)	IT-4A
+stud0029	password123	(Random)	(Random)	IT-4A
+stud0030	password123	(Random)	(Random)	IT-4A
+stud0031	password123	(Random)	(Random)	IT-4B
+stud0032	password123	(Random)	(Random)	IT-4B
+stud0033	password123	(Random)	(Random)	IT-4B
+stud0034	password123	(Random)	(Random)	IT-4C
+stud0035	password123	(Random)	(Random)	IT-4C
+stud0036	password123	(Random)	(Random)	IT-4C
+📋 QUICK REFERENCE LOGINS
+For Testing Different Roles:
+
+    Admin Dashboard: admin / admin123
+
+    Faculty View (CISC): einstein / password123
+
+    Faculty View (MATH): knuth / password123
+
+    Faculty View (SCI): curie / password123
+
+    Student View (Year 1): stud0001 / password123
+
+    Student View (Year 4): stud0028 / password123
+
+Student Distribution by Section:
+
+    IT-1A, 1B, 1C: stud0001-0009
+
+    IT-2A, 2B, 2C: stud0010-0018
+
+    IT-3A, 3B, 3C: stud0019-0027
+
+    IT-4A, 4B, 4C: stud0028-0036
+
+🔐 PASSWORD NOTES
+
+    ALL faculty and student accounts use: password123
+
+    Only the admin account uses: admin123
+
+    All emails follow pattern: username@cmu.edu.ph
+
+    Institutional IDs:
+
+        Admin: ADM0001
+
+        Faculty: FAC0001 to FAC0008
+
+        Students: STU0001 to STU0036
+
+📊 STATISTICS
+
+    Total Admin: 1
+
+    Total Faculty: 8
+
+    Total Students: 36
+
+    Total Users: 45
+
+    Sections: 12 (1A-4C, 3 students each)

@@ -6,6 +6,8 @@ class AuthService:
         # should point to core-urls, then core-urls to api-urls.py, then api-urls.py to user_api.py then handle login logic
         # self.base_url = 'http://localhost:8000/api/users/login/api/'
         self.base_url = "http://127.0.0.1:8000/api/users/login/api/"
+        BASE_URL = "http://127.0.0.1:8000"
+        token = None
 
     def login(self, username, password):
         """Authenticate user by sending a POST request to the Django backend."""
@@ -73,6 +75,21 @@ class AuthService:
     #             return LoginResult(False, error=msg)
     #     except requests.RequestException as e:
     #         return LoginResult(False, error=f"Cannot reach backend: {e}")
+
+    @classmethod
+    def set_auth_token_from_response(cls, login_json):
+        cls.token = login_json.get("access")
+
+    @classmethod
+    def get_headers(cls):
+        headers = {"Content-Type": "application/json"}
+        if cls.token:
+            headers["Authorization"] = f"Bearer {cls.token}"
+        return headers
+
+    @classmethod
+    def get(cls, path, params=None):
+        return requests.get(f"{cls.BASE_URL}{path}", headers=cls.get_headers(), params=params)
 
 
 class LoginResult:

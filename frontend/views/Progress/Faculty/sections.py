@@ -1,38 +1,44 @@
+# frontend/views/Progress/Faculty/sections.py
 import os
-import json
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox,
-    QScrollArea, QGridLayout, QFrame, QStackedWidget
+    QScrollArea, QGridLayout, QFrame, QStackedWidget, QMessageBox
 )
-from PyQt6.QtCore import Qt, QFileSystemWatcher
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QPixmap, QFont
 
-from .studentslist import StudentsListWidget  # ✅ import
-from .studentprofile import StudentProfileWidget  # ✅ import
+from .base import FacultyAPIClient
+from .studentslist import StudentsListWidget
 
 
 class SectionsWidget(QWidget):
     """
-    Faculty Progress page – displays list of sections per year level.
-    Each section card shows:
-        • Section name
-        • Number of students
-        • Optional image
-        • 'View Students' button (opens StudentsListWidget)
+    Faculty Progress page – displays list of sections assigned to the faculty.
+    Fetches from backend API: GET /api/progress/faculty/sections/
     """
-
-    def __init__(self, user_role="faculty", username=""):
+    
+    sections_loaded = pyqtSignal(dict)  # Signal when sections data is loaded
+    api_error_signal = pyqtSignal(str)  # Signal for API errors
+    show_message_signal = pyqtSignal(str, str)  # Signal for messages
+    
+    def __init__(self, username=None, user_role="faculty", token=None, 
+                 api_base="http://127.0.0.1:8000"):
         super().__init__()
+        
+        self.username = username
         self.user_role = user_role
-        self.username = username  # ✅ Faculty username (from login)
         self.sections_data = {}
         self.current_year = None
+        
+        # Create API client as a separate object (COMPOSITION)
+        self.api_client = FacultyAPIClient(token, api_base)
+        
+        # Connect API client signals to local slots
+        self.api_client.api_error.connect(self._on_api_error)
+        self.api_client.show_message.connect(self._on_show_message)
 
-        # JSON watcher setup
-        self.file_watcher = QFileSystemWatcher(self)
-        self.sections_file = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "data", "faculty_sections.json"
-        )
+        # Connect local signals
+        self.sections_loaded.connect(self._on_sections_loaded)
 
         # --- Main Layout ---
         self.setObjectName("sectionsWidget")
@@ -51,11 +57,11 @@ class SectionsWidget(QWidget):
         self.sections_layout.setSpacing(15)
 
         # Header
-        header_label = QLabel("Sections")
-        header_label.setFont(QFont("Poppins", 14, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
+        header_label = QLabel("My Sections")
+        header_label.setFont(QFont("Poppins", 14, 75))
         self.sections_layout.addWidget(header_label)
 
-        # Dropdown (same style as Student)
+        # Dropdown for year levels
         top_layout = QHBoxLayout()
         top_layout.setSpacing(10)
 
@@ -72,7 +78,7 @@ class SectionsWidget(QWidget):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.scroll_area.setObjectName("facultyNotesScroll")
+        self.scroll_area.setObjectName("facultySectionsScroll")
 
         self.scroll_content = QWidget()
         self.grid_layout = QGridLayout(self.scroll_content)
@@ -86,57 +92,109 @@ class SectionsWidget(QWidget):
         # Add to stack
         self.stack.addWidget(self.sections_page)
 
-        # --- Load JSON data ---
-        self.load_sections_from_json()
-
-        # Add file watcher
-        if os.path.exists(self.sections_file):
-            self.file_watcher.addPath(self.sections_file)
-            self.file_watcher.fileChanged.connect(self.on_file_changed)
+        # --- Load sections from API ---
+        self.load_sections_from_api()
 
         self.setLayout(main_layout)
 
     # ---------------------------------------------------------
-    def load_sections_from_json(self):
-        """Load section data from JSON file"""
-        if not os.path.exists(self.sections_file):
-            print(f"⚠️ File not found: {self.sections_file}")
-            return
+    def load_sections_from_api(self):
+        """Load section data from backend API - FACULTY SPECIFIC"""
+        endpoint = "/api/progress/faculty/sections/"  # Faculty-specific endpoint
+        
+        def handle_response(data):
+            self.sections_loaded.emit(data)
+        
+        self.api_client.api_get(endpoint, callback=handle_response)
 
-        try:
-            with open(self.sections_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                self.sections_data = data.get("year_levels", {})
+    @pyqtSlot(dict)
+    def _on_sections_loaded(self, data):
+        """Handle loaded sections data"""
+        print(f"DEBUG [Faculty]: Sections data received: {data.keys() if isinstance(data, dict) else 'Not dict'}")
+        
+        if isinstance(data, dict) and "year_levels" in data:
+            self.sections_data = data.get("year_levels", {})
+        elif isinstance(data, dict) and "sections" in data:
+            # Alternative format: {"sections": [...]}
+            self.sections_data = {"All Years": data.get("sections", [])}
+        elif isinstance(data, dict) and "detail" in data:
+            # Error response
+            error_msg = data.get("detail", "Unknown error")
+            self.api_error_signal.emit(error_msg)
+            self.sections_data = {}
+        else:
+            self.sections_data = {}
+            print(f"WARNING [Faculty]: Unexpected sections data format: {data}")
 
-            # Populate dropdown
-            self.year_combo.blockSignals(True)
-            self.year_combo.clear()
-            self.year_combo.addItems(self.sections_data.keys())
-            self.year_combo.blockSignals(False)
-
-            if not self.current_year and self.sections_data:
-                self.current_year = list(self.sections_data.keys())[0]
+        # Populate dropdown
+        self.year_combo.blockSignals(True)
+        self.year_combo.clear()
+        
+        if self.sections_data:
+            years = list(self.sections_data.keys())
+            self.year_combo.addItems(years)
+            
+            if not self.current_year and years:
+                self.current_year = years[0]
                 self.year_combo.setCurrentText(self.current_year)
+                self.populate_sections(self.current_year)
+        else:
+            self.year_combo.addItem("No Sections Available")
+            self.clear_sections_display()
+            
+        self.year_combo.blockSignals(False)
 
-            # Load cards
-            self.populate_sections(self.current_year)
+    @pyqtSlot(str)
+    def _on_api_error(self, error_msg):
+        """Handle API errors from API client"""
+        print(f"❌ API Error [Faculty]: {error_msg}")
+        self.show_message_signal.emit("Error", error_msg)
+        self.clear_sections_display()
 
-        except Exception as e:
-            print(f"❌ Error reading faculty_sections.json: {e}")
+    @pyqtSlot(str, str)
+    def _on_show_message(self, title, message):
+        """Show message dialog from API client"""
+        self.show_message_signal.emit(title, message)
+
+    @pyqtSlot(str, str)
+    def _on_show_message_signal(self, title, message):
+        """Handle show message signal"""
+        QMessageBox.information(self, title, message)
+
+    # ---------------------------------------------------------
+    def clear_sections_display(self):
+        """Clear all section cards"""
+        for i in reversed(range(self.grid_layout.count())):
+            w = self.grid_layout.itemAt(i).widget()
+            if w:
+                w.deleteLater()
 
     # ---------------------------------------------------------
     def populate_sections(self, year_level):
         """Populate section cards for the selected year"""
-        for i in reversed(range(self.grid_layout.count())):
-            widget = self.grid_layout.itemAt(i).widget()
-            if widget:
-                widget.deleteLater()
+        self.clear_sections_display()
 
         if not year_level or year_level not in self.sections_data:
+            # Show message if no sections
+            no_sections_label = QLabel(f"No sections found for {year_level}")
+            no_sections_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            no_sections_label.setStyleSheet("color: #6c757d; font-style: italic; padding: 30px;")
+            self.grid_layout.addWidget(no_sections_label, 0, 0)
             return
 
         sections = self.sections_data[year_level]
+        if not isinstance(sections, list):
+            sections = []
 
+        if not sections:
+            # Show empty message
+            empty_label = QLabel(f"No sections in {year_level}")
+            empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_label.setStyleSheet("color: #6c757d; font-style: italic; padding: 30px;")
+            self.grid_layout.addWidget(empty_label, 0, 0)
+            return
+
+        print(f"DEBUG [Faculty]: Displaying {len(sections)} sections for {year_level}")
         for index, section in enumerate(sections):
             card = self.create_section_card(section)
             row, col = divmod(index, 4)
@@ -147,57 +205,74 @@ class SectionsWidget(QWidget):
         """Create a single section card"""
         frame = QFrame()
         frame.setObjectName("sectionCard")
-        frame.setFixedSize(220, 260)
+        frame.setMinimumSize(200, 240)
+        frame.setMaximumSize(240, 280)
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setSpacing(8)
 
-        # Image
-        image_label = QLabel()
-        image_label.setFixedHeight(120)
-        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        image_path = section.get("image", "")
+        # Image/Icon area
+        img_label = QLabel()
+        img_label.setFixedHeight(120)
+        img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Try to get image from section data
+        img_path = ""
+        for field in ["image", "image_path", "img_url", "photo"]:
+            if field in section and section[field]:
+                img_path = section[field]
+                break
+        
+        try:
+            if img_path and isinstance(img_path, str) and img_path.strip():
+                pixmap = QPixmap(img_path).scaled(
+                    200, 120,
+                    Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                img_label.setPixmap(pixmap)
+            else:
+                # Default section icon
+                img_label.setText("📚")
+                img_label.setStyleSheet("font-size: 48px; color: #495057; background-color: #e9ecef; border-radius: 8px;")
+        except Exception:
+            img_label.setText("📚")
+            img_label.setStyleSheet("font-size: 48px; color: #495057; background-color: #e9ecef; border-radius: 8px;")
+        
+        layout.addWidget(img_label)
 
-        if os.path.exists(image_path):
-            pixmap = QPixmap(image_path).scaled(
-                220, 120,
-                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                Qt.TransformationMode.SmoothTransformation
-            )
-            image_label.setPixmap(pixmap)
-        else:
-            image_label.setStyleSheet(
-                "background-color: #dce0dd; border-top-left-radius: 6px; border-top-right-radius: 6px;"
-            )
-            image_label.setText("No Image")
-            image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        layout.addWidget(image_label)
-
-        # Info
-        info_frame = QFrame()
-        info_layout = QVBoxLayout(info_frame)
-        info_layout.setContentsMargins(10, 10, 10, 10)
-        info_layout.setSpacing(5)
-
-        section_name = section.get("section_name", "Unknown")
-        section_label = QLabel(section_name)
-        section_label.setFont(QFont("Poppins", 11, 75))  # 75 = Bold weight for Python 3.9.11 compatibility
-        students_label = QLabel(f"{section.get('students', 0)} STUDENTS")
-        students_label.setFont(QFont("Poppins", 9))
-        students_label.setStyleSheet("color: #555;")
-
-        info_layout.addWidget(section_label)
-        info_layout.addWidget(students_label)
-        info_layout.addStretch()
-        layout.addWidget(info_frame)
+        # Section info
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(4)
+        
+        # Get section name
+        section_name = ""
+        for field in ["section_name", "name", "title", "code"]:
+            if field in section:
+                section_name = section[field]
+                break
+        
+        name_label = QLabel(section_name or "Unknown Section")
+        name_label.setFont(QFont("Poppins", 11, 75))
+        name_label.setWordWrap(True)
+        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        student_count = section.get("students", section.get("student_count", 0))
+        count_label = QLabel(f"{student_count} STUDENTS")
+        count_label.setFont(QFont("Poppins", 9))
+        count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        count_label.setStyleSheet("color: #6c757d;")
+        
+        info_layout.addWidget(name_label)
+        info_layout.addWidget(count_label)
+        layout.addLayout(info_layout)
 
         # View Students Button
         btn = QPushButton("View Students")
         btn.setObjectName("viewStudentsButton")
         btn.setFixedHeight(36)
-        btn.clicked.connect(lambda: self.open_students_list(section_name))
-        layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignBottom)
+        btn.clicked.connect(lambda: self.open_students_list(section_name or "Unknown"))
+        layout.addWidget(btn)
 
         return frame
 
@@ -205,22 +280,22 @@ class SectionsWidget(QWidget):
     def open_students_list(self, section_name):
         """Switch to StudentsListWidget for the given section"""
         print(f"📖 Opening Students List for {section_name}")
-
-        # ✅ Pass parent stack and username
+        
         students_page = StudentsListWidget(
             section_name=section_name,
-            faculty_name=self.username if hasattr(self, "username") else "Faculty",
+            faculty_name=self.username,
+            token=self.api_client.token,
+            parent_stack=self.stack,
             go_back_callback=self.show_sections_page,
-            parent_stack=self.stack
+            api_base=self.api_client.api_base
         )
-
+        
         self.stack.addWidget(students_page)
         self.stack.setCurrentWidget(students_page)
 
     # ---------------------------------------------------------
     def show_sections_page(self):
         """Go back to the main Sections page"""
-        print("↩️ Returning to Sections page")
         self.stack.setCurrentWidget(self.sections_page)
 
     # ---------------------------------------------------------
@@ -228,14 +303,3 @@ class SectionsWidget(QWidget):
         """Triggered when year dropdown changes"""
         self.current_year = year
         self.populate_sections(year)
-
-    # ---------------------------------------------------------
-    def on_file_changed(self, path):
-        """Triggered when JSON file changes"""
-        print(f"🔄 Detected change in {path}, reloading sections...")
-        self.load_sections_from_json()
-
-        # Re-add watcher if needed
-        if os.path.exists(self.sections_file):
-            if self.sections_file not in self.file_watcher.files():
-                self.file_watcher.addPath(self.sections_file)

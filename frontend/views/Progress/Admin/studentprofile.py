@@ -1,48 +1,58 @@
-import os
-import json
+# frontend/views/Progress/Admin/studentprofile.py
+import threading
+import traceback
+import requests
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidget, QTableWidgetItem,
-    QHeaderView, QAbstractItemView, QProgressBar, QFrame, QScrollArea
+    QHeaderView, QAbstractItemView, QProgressBar, QFrame, QScrollArea, QMessageBox
 )
-from PyQt6.QtCore import Qt, QFileSystemWatcher
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QFont, QColor, QCursor
 
 
 class StudentProfileWidget(QWidget):
-    """
-    Admin read-only view of a specific student's profile.
-    Displays student info, grades, and degree progress.
-    (Faculty-only send-message UI removed for Admin.)
-    """
+    # Signals for thread-safe UI updates
+    data_loaded = pyqtSignal(dict)
+    show_error = pyqtSignal(str)
+    show_not_found = pyqtSignal()
+    show_unknown = pyqtSignal()
 
-    def __init__(self, student_id, admin_name=None, go_back_callback=None):
+    def __init__(self, student_id, admin_name=None, go_back_callback=None, token=None, api_base="http://127.0.0.1:8000"):
         super().__init__()
-        self.student_id = student_id
+        self.student_id = str(student_id).strip() if student_id else ""
         self.admin_name = admin_name
         self.go_back_callback = go_back_callback
-
-        # JSON paths (same faculty files)
-        base_dir = os.path.dirname(os.path.dirname(__file__))
-        self.profile_file = os.path.join(base_dir, "data", "faculty_studentProfile.json")
-        self.notes_file = os.path.join(base_dir, "data", "student_facultyNotes.json")
-
-        # File watcher for dynamic note updates (read-only for admin)
-        self.file_watcher = QFileSystemWatcher(self)
-        if os.path.exists(self.notes_file):
-            self.file_watcher.addPath(self.notes_file)
-            self.file_watcher.fileChanged.connect(self.reload_notes)
+        self.token = token or ""
+        self.api_base = (api_base or "http://127.0.0.1:8000").rstrip("/")
 
         self.student_data = {}
         self.notes_data = []
 
         self.setObjectName("studentProfileWidget")
         self.init_ui()
-        self.load_student_data()
-        self.load_faculty_notes()
+        
+        # Connect signals
+        self.data_loaded.connect(self._update_ui_with_data)
+        self.show_error.connect(self._show_error_message)
+        self.show_not_found.connect(self._show_not_found_message)
+        self.show_unknown.connect(self._show_unknown_user)
 
-    # ---------------------------------------------------------
+        # Ensure no invalid API request is made
+        if self.student_id:
+            self.load_student()
+        else:
+            self._show_unknown_user()
+
+    def _headers(self):
+        token = (self.token or "").strip()
+        if not token:
+            return {}
+        if token.startswith("Bearer ") or token.startswith("Token "):
+            token = token.split(" ", 1)[1]
+        return {"Authorization": f"Bearer {token}"}
+
+
     def init_ui(self):
-        # === Scrollable root ===
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.setSpacing(0)
@@ -59,23 +69,35 @@ class StudentProfileWidget(QWidget):
         main_layout.setContentsMargins(50, 20, 50, 20)
         main_layout.setSpacing(15)
 
-        # ============================
-        # HEADER SECTION
-        # ============================
         header_frame = QFrame()
         header_layout = QHBoxLayout(header_frame)
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(15)
 
+        # Avatar with better styling
         avatar = QLabel()
         avatar.setFixedSize(80, 80)
         avatar.setObjectName("studentAvatar")
+        avatar.setStyleSheet("""
+            QLabel#studentAvatar {
+                background-color: #e9ecef;
+                border-radius: 40px;
+                border: 2px solid #155724;
+                font-size: 24px;
+                color: #155724;
+                qproperty-alignment: AlignCenter;
+            }
+        """)
+        avatar.setText("Img")  # Default avatar
         header_layout.addWidget(avatar)
 
-        self.name_label = QLabel("Unknown")
+        # Student info
+        self.name_label = QLabel("Loading...")
         self.name_label.setFont(QFont("Poppins", 16, 75))
-        self.id_label = QLabel("2023000001")
-        self.course_label = QLabel("BS Information Technology")
+        self.id_label = QLabel(f"ID: {self.student_id}")
+        self.id_label.setFont(QFont("Poppins", 12))
+        self.course_label = QLabel("Course: Loading...")
+        self.course_label.setFont(QFont("Poppins", 12))
 
         info_layout = QVBoxLayout()
         info_layout.addWidget(self.name_label)
@@ -91,10 +113,8 @@ class StudentProfileWidget(QWidget):
         header_layout.addWidget(back_button)
         main_layout.addWidget(header_frame)
 
-        # ============================
-        # GRADES TABLE
-        # ============================
-        grade_label = QLabel("Student Grade")
+        # Grades section
+        grade_label = QLabel("Student Grades")
         grade_label.setFont(QFont("Poppins", 13, 75))
         main_layout.addWidget(grade_label)
 
@@ -108,18 +128,28 @@ class StudentProfileWidget(QWidget):
         self.grade_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.grade_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.grade_table.setAlternatingRowColors(True)
-
+        self.grade_table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                border: 1px solid #dee2e6;
+            }
+            QTableWidget::item {
+                padding: 5px;
+            }
+        """)
         header = self.grade_table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         main_layout.addWidget(self.grade_table)
 
-        # ============================
-        # DEGREE PROGRESS
-        # ============================
+        # Progress section
         progress_frame = QFrame()
         progress_layout = QVBoxLayout(progress_frame)
         progress_layout.setSpacing(10)
         progress_layout.setContentsMargins(0, 0, 0, 0)
+
+        progress_label = QLabel("Degree Progress")
+        progress_label.setFont(QFont("Poppins", 13, 75))
+        main_layout.addWidget(progress_label)
 
         self.progress_bars = {
             "Core Courses": QProgressBar(),
@@ -130,65 +160,223 @@ class StudentProfileWidget(QWidget):
         }
 
         for label, bar in self.progress_bars.items():
+            container = QHBoxLayout()
             lbl = QLabel(label)
             lbl.setFont(QFont("Poppins", 10, 75))
+            lbl.setFixedWidth(150)
             bar.setObjectName("progressBar")
             bar.setTextVisible(True)
-            progress_layout.addWidget(lbl)
-            progress_layout.addWidget(bar)
+            bar.setFormat("%p%")
+            bar.setValue(0)
+            bar.setStyleSheet("""
+                QProgressBar {
+                    border: 1px solid #dee2e6;
+                    border-radius: 3px;
+                    text-align: center;
+                }
+                QProgressBar::chunk {
+                    background-color: #28a745;
+                    border-radius: 3px;
+                }
+            """)
+            container.addWidget(lbl)
+            container.addWidget(bar)
+            progress_layout.addLayout(container)
 
         main_layout.addWidget(progress_frame)
 
         # ============================
-        # FACULTY NOTES SECTION (READ-ONLY)
+        # FACULTY NOTES SECTION - EXACT MATCH TO FACULTYNOTES.PY
         # ============================
-        notes_label = QLabel("Faculty Notes (Read-only)")
+        notes_label = QLabel("Faculty Notes")
         notes_label.setFont(QFont("Poppins", 13, 75))
         main_layout.addWidget(notes_label)
 
+        # Create a frame for the notes section
+        notes_frame = QFrame()
+        notes_frame.setObjectName("notesFrame")
+        notes_frame.setStyleSheet("""
+            QFrame#notesFrame {
+                border: none;
+                background-color: transparent;
+                min-height: 350px;
+            }
+        """)
+        notes_layout = QVBoxLayout(notes_frame)
+        notes_layout.setContentsMargins(0, 0, 0, 0)
+
         notes_scroll = QScrollArea()
         notes_scroll.setWidgetResizable(True)
+        notes_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        notes_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         notes_scroll.setObjectName("facultyNotesScroll")
+        notes_scroll.setMinimumHeight(350)
+        notes_scroll.setStyleSheet("""
+            QScrollArea#facultyNotesScroll {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background-color: #f8f9fa;
+                width: 6px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #ced4da;
+                border-radius: 3px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #adb5bd;
+            }
+        """)
+        notes_layout.addWidget(notes_scroll)
 
+        # Scroll Content Container
         self.notes_container = QWidget()
         self.notes_layout = QVBoxLayout(self.notes_container)
-        self.notes_layout.setContentsMargins(10, 10, 10, 10)
-        self.notes_layout.setSpacing(8)
+        self.notes_layout.setContentsMargins(0, 0, 0, 0)
+        self.notes_layout.setSpacing(0)
         notes_scroll.setWidget(self.notes_container)
-        main_layout.addWidget(notes_scroll)
 
-    # ---------------------------------------------------------
-    def load_student_data(self):
-        if not os.path.exists(self.profile_file):
-            print(f"⚠️ Missing profile file: {self.profile_file}")
-            return
+        main_layout.addWidget(notes_frame)
+        main_layout.addStretch()
 
+    def _show_unknown_user(self):
+        self.name_label.setText("Student Not Found")
+        self.id_label.setText(f"ID: {self.student_id}")
+        self.course_label.setText("Course: Unknown")
+        
+        # Clear tables and progress bars
+        self.grade_table.setRowCount(0)
+        for bar in self.progress_bars.values():
+            bar.setValue(0)
+        
+        # Show error in notes
+        self._display_error_notes("Student profile not found or doesn't exist.")
+
+    def _display_error_notes(self, message):
+        """Display an error message in the notes section"""
+        for i in reversed(range(self.notes_layout.count())):
+            widget = self.notes_layout.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+        
+        label = QLabel(message)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setStyleSheet("color: #dc3545; font-weight: bold; padding: 20px; font-size: 14px;")
+        self.notes_layout.addWidget(label)
+        self.notes_layout.addStretch()
+
+    def load_student(self):
+        url = f"{self.api_base}/api/progress/admin/student/{self.student_id}/profile/"
+
+        def fetch():
+            try:
+                print(f"DEBUG: Fetching student profile from {url}")
+                r = requests.get(url, headers=self._headers(), timeout=10)
+                print(f"DEBUG: Response status: {r.status_code}")
+                
+                if r.status_code == 200:
+                    data = r.json()
+                    print(f"DEBUG: Received profile data")
+                    
+                    if isinstance(data, dict):
+                        # Emit signal with data
+                        self.data_loaded.emit(data)
+                        return
+                    else:
+                        print(f"DEBUG: Unexpected response format: {type(data)}")
+                        self.show_unknown.emit()
+                elif r.status_code == 404:
+                    print(f"DEBUG: Student not found (404)")
+                    self.show_not_found.emit()
+                else:
+                    print(f"DEBUG: API error {r.status_code}: {r.text}")
+                    self.show_unknown.emit()
+                    
+            except Exception as e:
+                print(f"❌ Exception loading student: {e}")
+                traceback.print_exc()
+                self.show_error.emit(str(e))
+
+        threading.Thread(target=fetch, daemon=True).start()
+
+    @pyqtSlot(dict)
+    def _update_ui_with_data(self, student_data):
+        """Update UI with student data (runs on main thread)"""
+        # Use try-except to handle potential object deletion
         try:
-            with open(self.profile_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            s = student_data or {}
+            
+            print(f"DEBUG: Processing profile data on main thread")
+            print(f"DEBUG: Full student data keys: {s.keys()}")
+            
+            # Extract name
+            name = s.get("student_name") or s.get("name") or ""
+            self.name_label.setText(name or "Unknown Student")
+            
+            # ID display
+            student_id = s.get("student_id") or self.student_id
+            self.id_label.setText(f"ID: {student_id}")
+            
+            # Course display
+            course = s.get("course") or s.get("program") or ""
+            self.course_label.setText(f"Course: {course}")
 
-            student = data.get(self.student_id, {})
-            self.student_data = student
-
-            self.name_label.setText(student.get("name", "Unknown"))
-            self.id_label.setText(str(student.get("student_id", self.student_id)))
-            self.course_label.setText(student.get("course", "BS Information Technology"))
-
-            grades = student.get("grades", [])
+            # Populate grades
+            grades = s.get("grades", [])
+            print(f"DEBUG: Found {len(grades)} grades")
             self.populate_grades(grades)
-
-            progress = student.get("progress", {})
-            for key, bar in self.progress_bars.items():
-                bar.setValue(progress.get(key, 0))
-
+            
+            # Populate progress
+            progress = s.get("progress", {})
+            print(f"DEBUG: Progress data: {progress}")
+            self._populate_progress(progress)
+            
+            # Populate notes
+            notes = s.get("notes", [])
+            print(f"DEBUG: Found {len(notes)} notes")
+            self.notes_data = notes
+            
+            # Try to display notes, catch any errors
+            self._display_notes()
+            
+        except RuntimeError as e:
+            print(f"WARNING: Widget or layout was deleted, skipping UI update: {e}")
         except Exception as e:
-            print(f"❌ Error loading student profile: {e}")
+            print(f"ERROR in _update_ui_with_data: {e}")
+            traceback.print_exc()
 
-    # ---------------------------------------------------------
+    @pyqtSlot(str)
+    def _show_error_message(self, error_msg):
+        """Show error message (runs on main thread)"""
+        QMessageBox.critical(self, "Error", f"Failed to load student profile: {error_msg}")
+        self._show_unknown_user()
+
+    @pyqtSlot()
+    def _show_not_found_message(self):
+        """Show student not found message (runs on main thread)"""
+        QMessageBox.warning(self, "Not Found", f"Student with ID '{self.student_id}' not found.")
+        self._show_unknown_user()
+
     def populate_grades(self, grades):
         self.grade_table.setRowCount(0)
+        
+        if not grades:
+            # Show empty message
+            self.grade_table.setRowCount(1)
+            self.grade_table.setSpan(0, 0, 1, 6)
+            empty_item = QTableWidgetItem("No grade records found")
+            empty_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_item.setForeground(QColor("#6c757d"))
+            self.grade_table.setItem(0, 0, empty_item)
+            return
+
         for i, g in enumerate(grades, start=1):
             self.grade_table.insertRow(self.grade_table.rowCount())
+            
             items = [
                 str(i),
                 g.get("subject_code", ""),
@@ -197,86 +385,190 @@ class StudentProfileWidget(QWidget):
                 str(g.get("midterm", "")),
                 str(g.get("finals", "")),
             ]
+            
             for col, val in enumerate(items):
                 item = QTableWidgetItem(val)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                
+                # Highlight failed grades (assuming > 3.0 is failing)
+                if col in [4, 5]:  # Midterm and Finals columns
+                    try:
+                        grade_val = float(val)
+                        if grade_val > 3.0:
+                            item.setForeground(QColor("#dc3545"))
+                            font = item.font()
+                            font.setBold(True)
+                            item.setFont(font)
+                        elif grade_val <= 1.5:
+                            item.setForeground(QColor("#28a745"))
+                    except ValueError:
+                        pass
+                
                 self.grade_table.setItem(i - 1, col, item)
+        
+        self.grade_table.resizeRowsToContents()
 
-    # ---------------------------------------------------------
-    def load_faculty_notes(self):
-        if not os.path.exists(self.notes_file):
-            # no notes file is fine — admin will just see none
-            self.notes_data = []
-            self.display_notes()
+    def _populate_progress(self, progress):
+        if not progress:
+            progress = {
+                "Core Courses": 0,
+                "Electives": 0,
+                "Capstone Project": 0,
+                "Internship": 0,
+                "General Education": 0
+            }
+        
+        for key, bar in self.progress_bars.items():
+            try:
+                value = progress.get(key)
+                if value is None:
+                    # Try different key formats
+                    for alt_key in [key.lower(), key.replace(" ", "_").lower(), key.replace(" ", "").lower()]:
+                        if alt_key in progress:
+                            value = progress[alt_key]
+                            break
+                
+                if value is not None:
+                    value = max(0, min(100, int(value)))
+                    bar.setValue(value)
+                else:
+                    bar.setValue(0)
+            except (ValueError, TypeError) as e:
+                print(f"Error setting progress for {key}: {e}")
+                bar.setValue(0)
+
+    def _display_notes(self):
+        """Display faculty notes matching the design from facultynotes.py"""
+        try:
+            # Clear existing notes
+            for i in reversed(range(self.notes_layout.count())):
+                widget = self.notes_layout.itemAt(i).widget()
+                if widget:
+                    widget.deleteLater()
+        except RuntimeError as e:
+            print(f"ERROR: Cannot clear notes: {e}")
             return
 
-        try:
-            with open(self.notes_file, "r", encoding="utf-8") as f:
-                all_notes = json.load(f)
-
-            # notes JSON structure may be a list or a dict per your existing file.
-            # We'll support both: flatten to list of notes where receiver matches student_id
-            notes_list = []
-            if isinstance(all_notes, dict):
-                # if keys are semesters or receiver lists
-                # attempt to flatten values
-                for val in all_notes.values():
-                    if isinstance(val, list):
-                        notes_list.extend(val)
-            elif isinstance(all_notes, list):
-                notes_list = all_notes
-
-            # filter notes for this student
-            self.notes_data = [n for n in notes_list if n.get("receiver") == self.student_id]
-            self.display_notes()
-
-        except Exception as e:
-            print(f"❌ Error reading notes: {e}")
-
-    # ---------------------------------------------------------
-    def display_notes(self):
-        for i in reversed(range(self.notes_layout.count())):
-            widget = self.notes_layout.itemAt(i).widget()
-            if widget:
-                widget.deleteLater()
-
+        print(f"DEBUG _display_notes: Processing {len(self.notes_data)} notes")
+        
         if not self.notes_data:
             label = QLabel("No faculty notes available.")
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setStyleSheet("color: #6c757d; font-style: italic; padding: 30px;")
             self.notes_layout.addWidget(label)
             self.notes_layout.addStretch()
             return
 
-        for note in reversed(self.notes_data):
-            msg_frame = QFrame()
-            msg_frame.setObjectName("noteFrame")
-            msg_layout = QVBoxLayout(msg_frame)
-            msg_layout.setContentsMargins(10, 6, 10, 6)
+        # Display notes in chronological order (oldest first)
+        for note in self.notes_data:
+            try:
+                # Extract note data with fallbacks
+                faculty = note.get("faculty", "Unknown")
+                subject = note.get("subject", "General")
+                message = note.get("message", "")
+                
+                # Format date
+                date = note.get("date", "")
+                if date:
+                    formatted_date = date
+                else:
+                    formatted_date = "Unknown date"
 
-            sender = note.get("faculty", "Unknown")
-            subject = note.get("subject", "No Subject")
-            message = note.get("message", "")
-            date = note.get("date", "")
+                # Card Container (borderless - exact match from facultynotes.py)
+                note_card = QFrame()
+                note_card.setObjectName("noteCard")
+                card_layout = QVBoxLayout(note_card)
+                card_layout.setContentsMargins(0, 0, 0, 0)
+                card_layout.setSpacing(0)
 
-            sender_label = QLabel(f"{subject} • {sender}")
-            sender_label.setObjectName("noteSender")
-            msg_label = QLabel(message)
-            msg_label.setWordWrap(True)
-            date_label = QLabel(date)
-            date_label.setObjectName("noteDate")
+                # Header (subject + faculty) - exact match from facultynotes.py
+                header_btn = QPushButton(f"{subject} – {faculty}")
+                header_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+                header_btn.setCheckable(True)
+                header_btn.setChecked(False)
+                header_btn.setObjectName("noteHeaderBtn")
+                header_btn.setStyleSheet("""
+                    QPushButton#noteHeaderBtn {
+                        text-align: left;
+                        padding: 12px 15px;
+                        border: none;
+                        font-family: "Poppins";
+                        font-size: 11px;
+                        font-weight: bold;
+                        border-radius: 8px 8px 0 0;
+                    }
+                    QPushButton#noteHeaderBtn:checked {
+                        border-bottom: 1px solid #dee2e6;
+                    }
+                    QPushButton#noteHeaderBtn:hover {
+                    }
+                """)
+                card_layout.addWidget(header_btn)
 
-            msg_layout.addWidget(sender_label)
-            msg_layout.addWidget(msg_label)
-            msg_layout.addWidget(date_label)
-            self.notes_layout.addWidget(msg_frame)
+                # Collapsible message body - exact match from facultynotes.py
+                message_body = QFrame()
+                message_body.setVisible(False)
+                message_body.setObjectName("noteMessageBody")
+                message_body.setStyleSheet("""
+                    QFrame#noteMessageBody {
+                        background-color: white;
+                        border-radius: 0 0 8px 8px;
+                        padding: 0;
+                    }
+                """)
+                msg_layout = QVBoxLayout(message_body)
+                msg_layout.setContentsMargins(20, 12, 20, 12)
+                msg_layout.setSpacing(8)
+
+                # Message label with word wrap - exact match from facultynotes.py
+                msg_label = QLabel(message)
+                msg_label.setWordWrap(True)
+                msg_label.setFont(QFont("Poppins", 10))
+                msg_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                msg_label.setObjectName("noteMessageLabel")
+                msg_label.setStyleSheet("""
+                    QLabel#noteMessageLabel {
+                        color: #222;
+                        font-size: 12px;
+                        font-family: "Poppins";
+                        text-align: left;
+                        line-height: 1.4;
+                    }
+                """)
+                msg_layout.addWidget(msg_label)
+
+                # Bottom bar (date) - exact match from facultynotes.py
+                bottom_bar = QHBoxLayout()
+                bottom_bar.setContentsMargins(0, 10, 0, 0)
+
+                date_label = QLabel(formatted_date)
+                date_label.setFont(QFont("Poppins", 9))
+                date_label.setObjectName("noteFooterLabel")
+                date_label.setStyleSheet("""
+                    QLabel#noteFooterLabel {
+                        color: #666;
+                        font-size: 11px;
+                        font-family: "Poppins";
+                    }
+                """)
+                bottom_bar.addWidget(date_label)
+
+                bottom_bar.addStretch()
+                msg_layout.addLayout(bottom_bar)
+                card_layout.addWidget(message_body)
+
+                # Toggle visibility when header clicked
+                header_btn.clicked.connect(lambda checked, body=message_body: body.setVisible(checked))
+
+                self.notes_layout.addWidget(note_card)
+                
+            except Exception as e:
+                print(f"ERROR creating note card: {e}")
+                continue
 
         self.notes_layout.addStretch()
+        print("DEBUG: Finished adding all notes")
 
-    # ---------------------------------------------------------
-    def reload_notes(self, path):
-        self.load_faculty_notes()
-
-    # ---------------------------------------------------------
     def handle_back(self):
         if callable(self.go_back_callback):
             self.go_back_callback()

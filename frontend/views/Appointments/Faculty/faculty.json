@@ -4,5 +4,29 @@
     "email": "Kim@school.edu",
     "department": "Sample Department",
     "id": 1
+  },
+  {
+    "name": "profA",
+    "email": "profA@school.edu",
+    "department": "Sample Department",
+    "id": 2
+  },
+  {
+    "name": "profB",
+    "email": "profB@school.edu",
+    "department": "Sample Department",
+    "id": 3
+  },
+  {
+    "name": "profC",
+    "email": "profC@school.edu",
+    "department": "Sample Department",
+    "id": 4
+  },
+  {
+    "name": "lovelace",
+    "email": "lovelace@school.edu",
+    "department": "Sample Department",
+    "id": 5
   }
 ]

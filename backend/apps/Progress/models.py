@@ -6,7 +6,7 @@ from apps.Academics.models import Course, Semester
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
-
+faculty_notes = models.TextField(blank=True, default="")
 
 class FinalGrade(models.Model):
     """
@@ -38,6 +38,29 @@ class FinalGrade(models.Model):
 
     def __str__(self):
         return f"{self.student.get_full_name()} - {self.course.code} ({self.final_grade})"
+    
+    def is_passed(self):
+        """Check if this grade represents a passed course"""
+        return self.status.lower() == "passed"
+    
+    def get_category(self):
+        """Determine the category of this course"""
+        if not self.course:
+            return "Unknown"
+        
+        course_code = self.course.code.upper() if self.course.code else ""
+        course_title = self.course.title.upper() if self.course.title else ""
+        
+        if "GE" in course_code or "GENERAL" in course_title or "LIBERAL" in course_title:
+            return "General Education"
+        elif "CAPSTONE" in course_title or "THESIS" in course_title or "PROJECT" in course_title:
+            return "Capstone"
+        elif "INTERNSHIP" in course_title or "PRACTICUM" in course_title:
+            return "Internship"
+        elif "ELECT" in course_code or "ELECTIVE" in course_title:
+            return "Elective"
+        else:
+            return "Core"  # For admin view, "Major" for student view
 
 
 class GWA(models.Model):
@@ -73,9 +96,13 @@ class FacultyFeedbackMessage(models.Model):
         User, on_delete=models.CASCADE, related_name="feedback_given"
     )
     grade = models.ForeignKey(
-        FinalGrade, on_delete=models.CASCADE, related_name="feedback_messages"
+        FinalGrade, 
+        on_delete=models.CASCADE, 
+        related_name="feedback_messages",
+        null=True,
+        blank=True
     )
-
+    
     message = models.TextField()
     date_sent = models.DateTimeField(auto_now_add=True)
 
