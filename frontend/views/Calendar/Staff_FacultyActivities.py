@@ -3,7 +3,7 @@ import requests
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
-    QMessageBox, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, QListWidget
+    QMessageBox, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, QListWidget,QGridLayout
 )
 from PyQt6.QtCore import Qt
 
@@ -219,8 +219,10 @@ class StaffFacultyActivities(QWidget):
         frame_layout.addWidget(title_label)
         
         # Legend
-        legend_layout = QHBoxLayout()
-        legend_layout.setSpacing(8)
+        legend_grid = QGridLayout()
+        legend_grid.setSpacing(8)
+        legend_grid.setContentsMargins(5, 5, 5, 5)
+        
         
         legend_style = """
             QLabel {
@@ -233,21 +235,28 @@ class StaffFacultyActivities(QWidget):
             }
         """
         
+          # Create labels
         label_academic = QLabel("🟢 Academic")
         label_academic.setStyleSheet(legend_style)
+        
         label_org = QLabel("🔵 Organizational")
         label_org.setStyleSheet(legend_style)
+        
         label_deadline = QLabel("🟠 Deadlines")
         label_deadline.setStyleSheet(legend_style)
+        
         label_holiday = QLabel("🔴 Holidays")
         label_holiday.setStyleSheet(legend_style)
+        # Add to grid in 2x2 layout
+        # Row 0: Academic, Organizational
+        legend_grid.addWidget(label_academic, 0, 0)
+        legend_grid.addWidget(label_org, 0, 1)
         
-        legend_layout.addWidget(label_academic)
-        legend_layout.addWidget(label_org)
-        legend_layout.addWidget(label_deadline)
-        legend_layout.addWidget(label_holiday)
-        
-        frame_layout.addLayout(legend_layout)
+        # Row 1: Deadlines, Holidays
+        legend_grid.addWidget(label_deadline, 1, 0)
+        legend_grid.addWidget(label_holiday, 1, 1)
+
+        frame_layout.addLayout(legend_grid)
         
         # Filter dropdown
         self.combo_upcoming_filter = QComboBox()

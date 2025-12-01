@@ -12,21 +12,21 @@
             "event": "Testing Staff Adding",
             "type": "Organizational",
             "location": "N/A",
-            "status": "Upcoming"
+            "status": "Finished"
         },
         {
             "date_time": "10/21/2025\n9:00 AM",
             "event": "Testing Faculty Adding",
             "type": "Deadline",
             "location": "N/A",
-            "status": "Upcoming"
+            "status": "Finished"
         },
         {
             "date_time": "10/16/2025\n9:00 AM",
             "event": "Hotdog",
             "type": "Organizational",
             "location": "N/A",
-            "status": "Upcoming"
+            "status": "Finished"
         },
         {
             "date_time": "7/16/2025\n9:00 AM",
@@ -40,6 +40,13 @@
             "event": "qwert",
             "type": "Academic",
             "location": "N/A",
+            "status": "Finished"
+        },
+        {
+            "date_time": "12/12/2025\n7:00 AM",
+            "event": "Test sa new upcoming",
+            "type": "Deadline",
+            "location": "TESTING",
             "status": "Upcoming"
         }
     ]

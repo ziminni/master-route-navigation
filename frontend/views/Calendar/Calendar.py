@@ -1,7 +1,7 @@
-# Calendar.py LAYOUT FOR THE CALENDAR with Search Integration and Toggle
+# Calendar.py LAYOUT FOR THE CALENDAR with Search Integration and Toggle - 2x2 Legend
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget,
-    QPushButton, QComboBox, QLineEdit, QListWidget, QCalendarWidget
+    QPushButton, QComboBox, QLineEdit, QListWidget, QCalendarWidget, QGridLayout
 )
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
@@ -394,7 +394,7 @@ class Calendar(QWidget):
         
 
     def create_upcoming_events_panel(self):
-        """Create upcoming events panel"""
+        """Create upcoming events panel with 2x2 legend layout"""
         panel = QWidget()
         panel.setMinimumWidth(300)
         panel.setMaximumWidth(400)
@@ -426,8 +426,11 @@ class Calendar(QWidget):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         frame_layout.addWidget(title)
         
-        # Legend
-        legend_layout = QHBoxLayout()
+        # Legend - CHANGED TO 2x2 GRID LAYOUT
+        legend_grid = QGridLayout()
+        legend_grid.setSpacing(8)
+        legend_grid.setContentsMargins(5, 5, 5, 5)
+        
         legend_style = """
             QLabel {
                 padding: 5px 8px;
@@ -438,11 +441,30 @@ class Calendar(QWidget):
                 font-weight: 500;
             }
         """
-        for text in ["🟢 Academic", "🔵 Organizational", "🟠 Deadlines", "🔴 Holidays"]:
-            label = QLabel(text)
-            label.setStyleSheet(legend_style)
-            legend_layout.addWidget(label)
-        frame_layout.addLayout(legend_layout)
+        
+        # Create labels
+        label_academic = QLabel("🟢 Academic")
+        label_academic.setStyleSheet(legend_style)
+        
+        label_org = QLabel("🔵 Organizational")
+        label_org.setStyleSheet(legend_style)
+        
+        label_deadline = QLabel("🟠 Deadlines")
+        label_deadline.setStyleSheet(legend_style)
+        
+        label_holiday = QLabel("🔴 Holidays")
+        label_holiday.setStyleSheet(legend_style)
+        
+        # Add to grid in 2x2 layout
+        # Row 0: Academic, Organizational
+        legend_grid.addWidget(label_academic, 0, 0)
+        legend_grid.addWidget(label_org, 0, 1)
+        
+        # Row 1: Deadlines, Holidays
+        legend_grid.addWidget(label_deadline, 1, 0)
+        legend_grid.addWidget(label_holiday, 1, 1)
+        
+        frame_layout.addLayout(legend_grid)
         
         # Filter
         self.month_filter_combo = QComboBox()
