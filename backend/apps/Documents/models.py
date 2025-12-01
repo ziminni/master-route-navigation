@@ -13,10 +13,13 @@ from .mixins import ActivityTrackingMixin
 BYTES_PER_MB = 1024 * 1024
 
 def document_upload_path(instance, filename):
-    # Sanitize filename
     name, ext = os.path.splitext(filename)
     safe_name = slugify(name)
-    return f'documents/{instance.category.slug}/{safe_name}{ext}'
+    # Ensure category slug is also safe
+    safe_category = slugify(instance.category.slug)
+    # Limit extension length to prevent abuse
+    safe_ext = ext[:10].lower()
+    return f'documents/{safe_category}/{safe_name}{safe_ext}'
 
 User = get_user_model()
 
@@ -761,7 +764,7 @@ class DocumentVersion(ActivityTrackingMixin, models.Model):
     )
     version_number = models.IntegerField()
     file_path = models.FileField(upload_to='document_versions/')
-    file_size = models.IntegerField(blank=True, null=True)
+    file_size = models.PositiveBigIntegerField(null=True, blank=True)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
     
     uploaded_by = models.ForeignKey(

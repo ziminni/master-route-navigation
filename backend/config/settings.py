@@ -172,6 +172,7 @@ INSTALLED_APPS = [
     # API
     'rest_framework',
     'rest_framework_simplejwt',
+    'django_filters',
 
     # TODO: Add your apps here
     # CORS Headers - tried to fix backend conn, should work if front and back runs on different ports
@@ -292,7 +293,7 @@ from datetime import timedelta
 
 # JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
