@@ -99,8 +99,8 @@ class CollectionView(QWidget):
 
         # Table logic with checkboxes for bulk selection
         self.table = QTableWidget()
-        self.table.setColumnCount(5)  # Added checkbox column
-        self.table.setHorizontalHeaderLabels(["", "Filename", "Time", "Extension", "Actions"])
+        self.table.setColumnCount(7)  # Added checkbox column
+        self.table.setHorizontalHeaderLabels(["", "Filename", "Category", "Uploader", "Time", "Size", "Actions"])
         
         # Create "Select All" checkbox in header
         self.select_all_checkbox = QTableWidgetItem()
@@ -148,14 +148,23 @@ class CollectionView(QWidget):
             else:
                 # Populate table
                 for idx, file_data in enumerate(files_data):
-                    self.add_file_to_table(file_data['filename'], file_data['time'], file_data['extension'])
+                    self.add_file_to_table(
+                        file_data['filename'],
+                        file_data.get('category', 'Uncategorized'),
+                        file_data.get('uploader', 'Unknown'),
+                        file_data['time'],
+                        file_data.get('size', 'N/A')
+                    )
                     # Track file data in cache (including file_id for deletion)
                     self.file_data_cache[file_data['filename']] = {
                         'time': file_data['time'],
                         'extension': file_data['extension'],
+                        'category': file_data.get('category', 'Uncategorized'),
+                        'uploader': file_data.get('uploader', 'Unknown'),
+                        'size': file_data.get('size', 'N/A'),
                         'row_index': idx,
-                        'file_id': file_data.get('file_id'),  # Store file_id for bulk operations
-                        'timestamp': file_data.get('timestamp')  # Store timestamp as fallback
+                        'file_id': file_data.get('file_id'),
+                        'timestamp': file_data.get('timestamp')
                     }
                 self.table.setVisible(True)
         else:
@@ -217,24 +226,8 @@ class CollectionView(QWidget):
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         
-        reject_btn = QPushButton("Reject")
-        reject_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #dc3545;
-                color: white;
-                font-weight: bold;
-                padding: 4px 12px;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #c82333;
-            }
-        """)
-        reject_btn.clicked.connect(lambda: print(f"Reject clicked for {filename}"))
-        
-        accept_btn = QPushButton("Accept")
-        accept_btn.setStyleSheet("""
+        download_btn = QPushButton("Download")
+        download_btn.setStyleSheet("""
             QPushButton {
                 background-color: #28a745;
                 color: white;
@@ -247,19 +240,23 @@ class CollectionView(QWidget):
                 background-color: #218838;
             }
         """)
-        accept_btn.clicked.connect(lambda: print(f"Accept clicked for {filename}"))
+        download_btn.clicked.connect(lambda: self.handle_download(filename))
         
-        layout.addWidget(reject_btn)
-        layout.addWidget(accept_btn)
+        layout.addWidget(download_btn)
         widget.setLayout(layout)
         return widget
+    
+    def handle_download(self, filename):
+        """Handle file download"""
+        print(f"Download file: {filename}")
+        QMessageBox.information(self, "Download", f"Downloading '{filename}'...\n\n(Download functionality to be implemented)")
 
     def go_back(self):
         print("Back button clicked")  # Added this
         if self.stack:
             self.stack.setCurrentIndex(0)  # Assuming dashboard is at index 0
 
-    def add_file_to_table(self, name, time, ext):
+    def add_file_to_table(self, name, category, uploader, time, size):
         row = self.table.rowCount()
         self.table.insertRow(row)
         
@@ -271,23 +268,25 @@ class CollectionView(QWidget):
         
         # Add file data
         self.table.setItem(row, 1, QTableWidgetItem(name))
-        self.table.setItem(row, 2, QTableWidgetItem(time))
-        self.table.setItem(row, 3, QTableWidgetItem(ext))
+        self.table.setItem(row, 2, QTableWidgetItem(category))
+        self.table.setItem(row, 3, QTableWidgetItem(uploader))
+        self.table.setItem(row, 4, QTableWidgetItem(time))
+        self.table.setItem(row, 5, QTableWidgetItem(size))
         
         # Add actions widget
         actions_widget = self.create_actions_widget(name)
-        self.table.setCellWidget(row, 4, actions_widget)
+        self.table.setCellWidget(row, 6, actions_widget)
 
     def handle_item_clicked(self, item):
-        # Skip checkbox column (0) and actions column (4)
-        if item.column() != 0 and item.column() != 4:
+        # Skip checkbox column (0) and actions column (6)
+        if item.column() != 0 and item.column() != 6:
             filename = self.table.item(item.row(), 1).text()
             print(f"File row clicked: {filename}")
     
     def handle_item_double_clicked(self, item):
         """Handle table item double-click - show file details dialog"""
-        # Skip checkbox column (0) and actions column (4)
-        if item.column() != 0 and item.column() != 4:
+        # Skip checkbox column (0) and actions column (6)
+        if item.column() != 0 and item.column() != 6:
             filename = self.table.item(item.row(), 1).text()
             self.show_file_details(filename)
     
@@ -477,12 +476,17 @@ class CollectionView(QWidget):
             # Update existing file data (accounting for checkbox column)
             row_idx = self.file_data_cache[filename]['row_index']
             self.table.item(row_idx, 1).setText(file_data.get('filename', filename))
-            self.table.item(row_idx, 2).setText(file_data.get('time', ''))
-            self.table.item(row_idx, 3).setText(file_data.get('extension', ''))
+            self.table.item(row_idx, 2).setText(file_data.get('category', 'Uncategorized'))
+            self.table.item(row_idx, 3).setText(file_data.get('uploader', 'Unknown'))
+            self.table.item(row_idx, 4).setText(file_data.get('time', ''))
+            self.table.item(row_idx, 5).setText(file_data.get('size', 'N/A'))
             
             # Update cache
             self.file_data_cache[filename]['time'] = file_data.get('time', '')
             self.file_data_cache[filename]['extension'] = file_data.get('extension', '')
+            self.file_data_cache[filename]['category'] = file_data.get('category', 'Uncategorized')
+            self.file_data_cache[filename]['uploader'] = file_data.get('uploader', 'Unknown')
+            self.file_data_cache[filename]['size'] = file_data.get('size', 'N/A')
             self.file_data_cache[filename]['file_id'] = file_data.get('file_id')
             self.file_data_cache[filename]['timestamp'] = file_data.get('timestamp')
             print(f"Updated existing file in collection UI: {filename}")
@@ -490,14 +494,19 @@ class CollectionView(QWidget):
             # Add new file incrementally
             self.add_file_to_table(
                 file_data.get('filename', ''),
+                file_data.get('category', 'Uncategorized'),
+                file_data.get('uploader', 'Unknown'),
                 file_data.get('time', ''),
-                file_data.get('extension', '')
+                file_data.get('size', 'N/A')
             )
             
             # Add to cache
             self.file_data_cache[filename] = {
                 'time': file_data.get('time', ''),
                 'extension': file_data.get('extension', ''),
+                'category': file_data.get('category', 'Uncategorized'),
+                'uploader': file_data.get('uploader', 'Unknown'),
+                'size': file_data.get('size', 'N/A'),
                 'row_index': self.table.rowCount() - 1,
                 'file_id': file_data.get('file_id'),
                 'timestamp': file_data.get('timestamp')
@@ -555,7 +564,10 @@ class CollectionView(QWidget):
         for filename in existing_files:
             cached = self.file_data_cache[filename]
             fresh = fresh_files[filename]
-            if cached['time'] != fresh['time'] or cached['extension'] != fresh['extension']:
+            if (cached['time'] != fresh['time'] or cached['extension'] != fresh['extension'] or
+                cached.get('category') != fresh.get('category', 'Uncategorized') or
+                cached.get('uploader') != fresh.get('uploader', 'Unknown') or
+                cached.get('size') != fresh.get('size', 'N/A')):
                 modified_files.add(filename)
         
         # Remove deleted files (sort by row index descending)
@@ -573,12 +585,17 @@ class CollectionView(QWidget):
             fresh = fresh_files[filename]
             
             self.table.item(row_idx, 1).setText(fresh['filename'])
-            self.table.item(row_idx, 2).setText(fresh['time'])
-            self.table.item(row_idx, 3).setText(fresh['extension'])
+            self.table.item(row_idx, 2).setText(fresh.get('category', 'Uncategorized'))
+            self.table.item(row_idx, 3).setText(fresh.get('uploader', 'Unknown'))
+            self.table.item(row_idx, 4).setText(fresh['time'])
+            self.table.item(row_idx, 5).setText(fresh.get('size', 'N/A'))
             
             # Update cache
             self.file_data_cache[filename]['time'] = fresh['time']
             self.file_data_cache[filename]['extension'] = fresh['extension']
+            self.file_data_cache[filename]['category'] = fresh.get('category', 'Uncategorized')
+            self.file_data_cache[filename]['uploader'] = fresh.get('uploader', 'Unknown')
+            self.file_data_cache[filename]['size'] = fresh.get('size', 'N/A')
             self.file_data_cache[filename]['file_id'] = fresh.get('file_id')
             self.file_data_cache[filename]['timestamp'] = fresh.get('timestamp')
             print(f"Updated file in collection: {filename}")
@@ -586,12 +603,21 @@ class CollectionView(QWidget):
         # Add new files
         for filename in new_files:
             fresh = fresh_files[filename]
-            self.add_file_to_table(fresh['filename'], fresh['time'], fresh['extension'])
+            self.add_file_to_table(
+                fresh['filename'],
+                fresh.get('category', 'Uncategorized'),
+                fresh.get('uploader', 'Unknown'),
+                fresh['time'],
+                fresh.get('size', 'N/A')
+            )
             
             # Add to cache with file_id and timestamp
             self.file_data_cache[filename] = {
                 'time': fresh['time'],
                 'extension': fresh['extension'],
+                'category': fresh.get('category', 'Uncategorized'),
+                'uploader': fresh.get('uploader', 'Unknown'),
+                'size': fresh.get('size', 'N/A'),
                 'row_index': self.table.rowCount() - 1,
                 'file_id': fresh.get('file_id'),
                 'timestamp': fresh.get('timestamp')

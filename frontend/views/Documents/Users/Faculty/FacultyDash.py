@@ -215,8 +215,25 @@ class FacultyDash(QWidget):
         """)
         delete_btn.clicked.connect(self.handle_manage_deleted_files)
         
+        # Approval requests button (faculty can also approve files)
+        approval_btn = QPushButton("Approval Requests")
+        approval_btn.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                border: none;
+                border-bottom: 1.5px solid black;
+                color: black;
+                background-color: transparent;
+            }
+            QPushButton:hover {
+                color: #555555;
+            }
+        """)
+        approval_btn.clicked.connect(self.handle_file_upload_requests)
+        
         files_header_layout.addWidget(uploaded_files_label)
         files_header_layout.addStretch()
+        files_header_layout.addWidget(approval_btn)
         files_header_layout.addWidget(files_title)
         files_header_layout.addWidget(delete_btn)
         files_layout.addLayout(files_header_layout)
@@ -495,7 +512,14 @@ class FacultyDash(QWidget):
         
         for idx, file_data in enumerate(files_data):
             approval_status = file_data.get('approval_status', 'approved')
-            status_display = '✅ Approved' if approval_status == 'approved' else '⏳ Pending'
+            # Display all statuses using emoji map
+            approval_map = {
+                'pending': '🟡 Pending',
+                'approved': '🟢 Approved',
+                'accepted': '🟢 Accepted',
+                'rejected': '🔴 Rejected'
+            }
+            status_display = approval_map.get(approval_status, '⚪ Unknown')
             
             self.add_file_to_table(
                 file_data['filename'], 
@@ -591,3 +615,35 @@ class FacultyDash(QWidget):
                 if count_label:
                     file_count = len(collection_data.get('files', []))
                     count_label.setText(f"Files: {file_count}")
+    
+    def handle_file_upload_requests(self):
+        """Open the file upload approval view"""
+        print("File Upload Requests clicked - Opening approval view")
+        from ...Shared.Views.approval_view import ApprovalView
+        approval_view = ApprovalView(
+            self.username, 
+            self.roles, 
+            self.primary_role, 
+            self.token,
+            stack=self.stack
+        )
+        approval_view.file_approved.connect(self.on_file_approved)
+        approval_view.file_rejected.connect(self.on_file_rejected)
+        self.stack.addWidget(approval_view)
+        self.stack.setCurrentWidget(approval_view)
+    
+    def on_file_approved(self, file_data):
+        """Handle file approved event"""
+        print(f"File approved: {file_data}")
+        # Refresh files table to show updated approval status
+        self.refresh_files_table()
+        # Update collection counts if needed
+        collection_id = file_data.get('collection_id')
+        if collection_id is not None:
+            self.update_collection_file_count(collection_id)
+    
+    def on_file_rejected(self, file_data):
+        """Handle file rejected event"""
+        print(f"File rejected: {file_data}")
+        # Refresh files table to show updated approval status
+        self.refresh_files_table()
