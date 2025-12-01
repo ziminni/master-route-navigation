@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QHeaderView, QWidget, QPushButton, QTableWidget, QTableWidgetItem
 )
 from datetime import datetime
-
+#TODO
 def ui_path(filename):
     # Returns the absolute path to the shared ui file under frontend/ui/Event Manager
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "ui", "Event Manager", filename))

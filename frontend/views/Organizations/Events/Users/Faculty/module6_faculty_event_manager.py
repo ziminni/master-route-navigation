@@ -3,7 +3,7 @@ from PyQt6 import uic
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QHeaderView, QDialog, QInputDialog, QTableWidgetItem, QPushButton, QHBoxLayout
 )
-
+#TODO
 def ui_path(filename):
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "ui", "Event Manager", filename))
 
