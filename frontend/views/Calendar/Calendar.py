@@ -1,4 +1,4 @@
-# Calendar.py LAYOUT FOR THE CALENDAR with Search Integration
+# Calendar.py LAYOUT FOR THE CALENDAR with Search Integration and Toggle
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget,
     QPushButton, QComboBox, QLineEdit, QListWidget, QCalendarWidget
@@ -30,6 +30,9 @@ class Calendar(QWidget):
         
         # Store events list widget reference
         self.month_events_list = None
+        
+        # Toggle state for upcoming events panel
+        self.upcoming_events_visible = True
 
         # Initialize main layout
         main_layout = QVBoxLayout(self)
@@ -91,7 +94,7 @@ class Calendar(QWidget):
         self.setup_controls(container_layout)
         
         # Content area with upcoming events and calendar
-        content_layout = QHBoxLayout()
+        self.content_layout = QHBoxLayout()
         
         # Upcoming events panel
         self.month_upcoming_panel = self.create_upcoming_events_panel()
@@ -99,10 +102,10 @@ class Calendar(QWidget):
         # Calendar widget - using QCalendarWidget instead of circular import
         self.calendar_widget = self.create_calendar_grid()
         
-        content_layout.addWidget(self.month_upcoming_panel)
-        content_layout.addWidget(self.calendar_widget)
+        self.content_layout.addWidget(self.month_upcoming_panel)
+        self.content_layout.addWidget(self.calendar_widget)
         
-        container_layout.addLayout(content_layout)
+        container_layout.addLayout(self.content_layout)
 
     def create_calendar_grid(self):
         """Create the actual calendar grid widget"""
@@ -248,6 +251,32 @@ class Calendar(QWidget):
         """Setup controls section"""
         controls_layout = QHBoxLayout()
         
+        # Toggle Upcoming Events button (NEW)
+        self.btn_toggle_upcoming = QPushButton("◀ Hide Panel")
+        self.btn_toggle_upcoming.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 12px;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #FDC601;
+                color: #084924;
+            }
+            QPushButton:pressed {
+                background-color: #d4a000;
+            }
+        """)
+        self.btn_toggle_upcoming.clicked.connect(self.toggle_upcoming_events)
+        controls_layout.addWidget(self.btn_toggle_upcoming)
+        
+        controls_layout.addSpacing(20)
+        
         # View selector
         view_label = QLabel("View:")
         view_label.setStyleSheet("font-weight: bold; color: #084924; font-size: 14px;")
@@ -341,6 +370,19 @@ class Calendar(QWidget):
         controls_layout.addWidget(self.btn_search)
         
         layout.addLayout(controls_layout)
+
+    def toggle_upcoming_events(self):
+        """Toggle visibility of upcoming events panel"""
+        if self.upcoming_events_visible:
+            # Hide the panel
+            self.month_upcoming_panel.setVisible(False)
+            self.btn_toggle_upcoming.setText("▶ Show Panel")
+            self.upcoming_events_visible = False
+        else:
+            # Show the panel
+            self.month_upcoming_panel.setVisible(True)
+            self.btn_toggle_upcoming.setText("◀ Hide Panel")
+            self.upcoming_events_visible = True
 
     def setup_day_view(self):
         """Setup day view"""

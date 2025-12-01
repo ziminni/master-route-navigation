@@ -1,4 +1,4 @@
-# SearchView.py - Complete search view with new layout style
+# SearchView.py - Complete search view with toggle button
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QComboBox, QLineEdit, QScrollArea, QListWidget
@@ -23,6 +23,9 @@ class SearchView(QWidget):
         # Store all events for searching
         self.all_events = []
         
+        # Toggle state for upcoming events panel
+        self.upcoming_events_visible = True
+        
         # Initialize UI
         self.init_ui()
     
@@ -39,7 +42,7 @@ class SearchView(QWidget):
         self.setup_controls(main_layout)
         
         # Content area with upcoming events and search results
-        content_layout = QHBoxLayout()
+        self.content_layout = QHBoxLayout()
         
         # Upcoming events panel (left side)
         self.upcoming_panel = self.create_upcoming_events_panel()
@@ -47,10 +50,10 @@ class SearchView(QWidget):
         # Search results panel (right side)
         self.results_panel = self.create_search_results_panel()
         
-        content_layout.addWidget(self.upcoming_panel)
-        content_layout.addWidget(self.results_panel)
+        self.content_layout.addWidget(self.upcoming_panel)
+        self.content_layout.addWidget(self.results_panel)
         
-        main_layout.addLayout(content_layout)
+        main_layout.addLayout(self.content_layout)
     
     def setup_header(self, layout):
         """Setup header section"""
@@ -74,6 +77,32 @@ class SearchView(QWidget):
     def setup_controls(self, layout):
         """Setup controls section"""
         controls_layout = QHBoxLayout()
+        
+        # Toggle Upcoming Events button (NEW)
+        self.btn_toggle_upcoming = QPushButton("◀ Hide Panel")
+        self.btn_toggle_upcoming.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 12px;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #FDC601;
+                color: #084924;
+            }
+            QPushButton:pressed {
+                background-color: #d4a000;
+            }
+        """)
+        self.btn_toggle_upcoming.clicked.connect(self.toggle_upcoming_events)
+        controls_layout.addWidget(self.btn_toggle_upcoming)
+        
+        controls_layout.addSpacing(20)
         
         # Back button
         self.btn_back = QPushButton("← Back")
@@ -145,6 +174,19 @@ class SearchView(QWidget):
         controls_layout.addWidget(self.btn_search)
         
         layout.addLayout(controls_layout)
+    
+    def toggle_upcoming_events(self):
+        """Toggle visibility of upcoming events panel"""
+        if self.upcoming_events_visible:
+            # Hide the panel
+            self.upcoming_panel.setVisible(False)
+            self.btn_toggle_upcoming.setText("▶ Show Panel")
+            self.upcoming_events_visible = False
+        else:
+            # Show the panel
+            self.upcoming_panel.setVisible(True)
+            self.btn_toggle_upcoming.setText("◀ Hide Panel")
+            self.upcoming_events_visible = True
     
     def create_upcoming_events_panel(self):
         """Create upcoming events panel (same as Calendar.py)"""
