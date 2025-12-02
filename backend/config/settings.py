@@ -184,6 +184,7 @@ INSTALLED_APPS = [
 
     'apps.Academics.apps.AcademicsConfig',    
     'apps.Appointments.apps.AppointmentsConfig', 
+    'apps.Calendar.apps.CalendarConfig',
 ]
 
 MIDDLEWARE = [

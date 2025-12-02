@@ -3,7 +3,7 @@ from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, timezone
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from django.utils.timezone import make_aware
 from .models import AvailabilityRule, BusyBlock, Appointment
@@ -146,6 +146,13 @@ class StudentAppointmentListView(generics.ListAPIView):
         """Return appointments only for THIS student user."""
         student_profile = self.request.user.student_profile
         return Appointment.objects.filter(student=student_profile).order_by("-created_at")
+    
+class AllAppointmentListView(generics.ListAPIView):
+    serializer_class = AppointmentListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Appointment.objects.all().order_by("-created_at")
 
 class AppointmentUpdateView(generics.UpdateAPIView):
     queryset = Appointment.objects.all()
@@ -159,7 +166,7 @@ class AppointmentUpdateView(generics.UpdateAPIView):
         
         # Check permissions based on user role
         if hasattr(user, 'faculty_profile') and appointment.faculty.user == user:
-            self.allowed_actions = ['approve', 'deny', 'cancel', 'reschedule']
+            self.allowed_actions = ['approve', 'deny', 'cancel', 'reschedule', 'complete']
         elif hasattr(user, 'student_profile') and appointment.student.user == user:
             self.allowed_actions = ['cancel', 'reschedule']
         else:
@@ -211,11 +218,17 @@ class AppointmentUpdateView(generics.UpdateAPIView):
             if 'deny' not in self.allowed_actions:
                 raise PermissionDenied("You cannot deny appointments.")
                 
-        elif new_status == Appointment.CANCELED:
+        if new_status == Appointment.CANCELED:
             if 'cancel' not in self.allowed_actions:
                 raise PermissionDenied("You cannot cancel this appointment.")
             if current_status in [Appointment.COMPLETED, Appointment.DENIED]:
                 raise ValidationError("This appointment cannot be canceled.")
+            
+        elif new_status == Appointment.COMPLETED:
+            if 'completed' not in self.allowed_actions:
+                raise PermissionDenied("You cannot complete appointments.")
+            if appointment.start_at > timezone.now():
+                raise ValidationError("Cannot complete appointment before it starts.")
 
     def _validate_reschedule(self, appointment, new_start, new_end):
         """Validate rescheduling"""
@@ -270,7 +283,6 @@ class AppointmentUpdateView(generics.UpdateAPIView):
 
         if busy_conflict:
             raise ValidationError("This time slot is blocked in the faculty schedule.")
-
 
 
 class AvailabilityRuleListView(generics.ListAPIView):

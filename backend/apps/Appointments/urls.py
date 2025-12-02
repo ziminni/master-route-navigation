@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import FacultyProfileListView, AvailabilityRuleListView, AvailabilityRuleCreateView, FacultyAvailableScheduleView, AppointmentCreateView, FacultyAppointmentListView, StudentAppointmentListView, AppointmentUpdateView
+from .views import FacultyProfileListView, AvailabilityRuleListView, AvailabilityRuleCreateView, FacultyAvailableScheduleView, AppointmentCreateView, FacultyAppointmentListView, StudentAppointmentListView, AppointmentUpdateView, AllAppointmentListView
 
 app_name = "appointment"
 urlpatterns = [
@@ -20,6 +20,7 @@ urlpatterns = [
     path('update_appointment/<int:id>/', AppointmentUpdateView.as_view(), name='update_appointment'),
     path('get_availability_rule/',  AvailabilityRuleListView.as_view(), name='get_availability_rule'),
     path('faculty_profiles/', FacultyProfileListView.as_view(), name='faculty_profiles_list'),
+    path('all_appointment_list/', AllAppointmentListView.as_view(), name='all_appointments'),
     # path('approve_appointment/<int:id>/', FacultyApproveAppointmentView.as_view(), name='faculty_appointment'),
     # path("cancel_appointment/<int:id>/", CancelAppointmentView.as_view(), name="cancel_appointment"),
     # path("reschedule_appointment/<int:id>/", RescheduleAppointmentView.as_view(), name="reschedule_appointment")

@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QMessageBox, QLineEdit
 from .appointment_crud import appointment_crud
-from .api_client import APIClient
+from ..api_client import APIClient
 
 class StudentBrowseFaculty_ui(QWidget):
     go_to_RequestPage = QtCore.pyqtSignal(dict)  # Emit faculty data

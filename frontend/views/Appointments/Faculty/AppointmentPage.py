@@ -5,6 +5,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QMessageBox, QFileDialog
 from .appointment_crud import appointment_crud
 from .FacultyReschedulePage import FacultyReschedulePage_ui
+from ..api_client import APIClient
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,41 +21,25 @@ class AppointmentPage_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-        self.crud = appointment_crud()
-        self.faculty_id = self._get_faculty_id()
+        self.crud = APIClient(token=token)
         self.rows = []  # Store appointment data for easy access
         self.selected_appointment_id = None  # Track selected appointment for rescheduling
-        logging.debug(f"Initialized AppointmentPage_ui with username: {self.username}, faculty_id: {self.faculty_id}")
+       
         
         # Create sample data if no appointments exist
         self._ensure_sample_data()
-        logging.debug(f"Sample data ensured for faculty_id: {self.faculty_id}")
         self.setFixedSize(1000, 550)
         self._setupAppointmentsPage()
         self.retranslateUi()
 
-    def _get_faculty_id(self):
-        """Get faculty ID based on username."""
-        faculty = self.crud.get_faculty_by_username(self.username)
-        if faculty:
-            logging.debug(f"Found faculty: {faculty['name']} with ID: {faculty['id']}")
-            return faculty["id"]
-        else:
-            # If no faculty found, create one for testing
-            logging.warning(f"No faculty found for username: {self.username}, creating sample faculty")
-            new_faculty = self.crud.create_faculty(self.username, f"{self.username}@school.edu", "Sample Department")
-            if new_faculty:
-                return new_faculty["id"]
-            else:
-                logging.error("Failed to create sample faculty")
-                return 1  # Fallback ID
+    
 
     def _ensure_sample_data(self):
         """Ensure there is sample data for testing."""
-        appointments = self.crud.get_faculty_appointments(self.faculty_id)
+        appointments = self.crud.get_faculty_appointments()
         if not appointments:
             logging.info("No appointments found, creating sample data")
-            self.crud.create_sample_data()
+            
 
     def _setupAppointmentsPage(self):
         self.setObjectName("Appointments_2")
@@ -1104,11 +1089,11 @@ class AppointmentPage_ui(QWidget):
     def _populateAppointmentsTable(self):
         """Populate the appointments table with faculty appointments."""
         try:
-            logging.debug(f"Populating appointments table for faculty_id: {self.faculty_id}")
             
             # Get appointments
-            appointments = self.crud.get_faculty_appointments(self.faculty_id)
-            logging.debug(f"Found {len(appointments)} appointments")
+            appointments = self.crud.get_faculty_appointments()
+            if appointments is not None:
+                logging.debug(f"Found {len(appointments)} appointments")
             
             if not appointments:
                 logging.info("No appointments found")

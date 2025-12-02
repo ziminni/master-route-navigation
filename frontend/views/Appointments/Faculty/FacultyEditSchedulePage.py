@@ -1,7 +1,65 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QDialog
-from PyQt6.QtCore import QDate
-from .appointment_crud import appointment_crud
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QDialog, QTimeEdit, QMessageBox
+from PyQt6.QtCore import QDate, QTime
+import requests
+import json
+from datetime import datetime, timedelta
+import logging
+
+# Set up logging for debugging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+class APIClient:
+    def __init__(self, base_url="http://localhost:8000/api", token=None):
+        self.base_url = base_url
+        self.token = token
+        self.headers = {"Authorization": f"Bearer {token}"} if token else {}
+
+    def create_availability_rule(self, data):
+        """Create availability rule"""
+        try:
+            response = requests.post(
+                f"{self.base_url}/appointment/create_availability_rule/", 
+                json=data, 
+                headers={**self.headers, "Content-Type": "application/json"}
+            )
+            if response.status_code == 201:
+                return response.json()
+            else:
+                logging.error(f"Error creating availability rule: {response.text}")
+                return None
+        except Exception as e:
+            logging.error(f"Error creating availability rule: {e}")
+            return None
+
+    def get_availability_rules(self, faculty_id=None, semester_id=None):
+        """Get availability rules for faculty"""
+        try:
+            params = {}
+            if faculty_id:
+                params['faculty_id'] = faculty_id
+            if semester_id:
+                params['semester_id'] = semester_id
+                
+            response = requests.get(f"{self.base_url}/appointment/get_availability_rule/", 
+                                  params=params, headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            logging.error(f"Error fetching availability rules: {e}")
+            return []
+
+    def get_faculty_profiles(self):
+        """Get all faculty profiles"""
+        try:
+            response = requests.get(f"{self.base_url}/appointment/faculty_profiles/", headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            logging.error(f"Error fetching faculty profiles: {e}")
+            return []
 
 class FacultyEditSchedulePage_ui(QWidget):
     back = QtCore.pyqtSignal()
@@ -12,21 +70,21 @@ class FacultyEditSchedulePage_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-        self.crud = appointment_crud()
+        self.crud = APIClient(token=token)
         self.faculty_id = self._get_faculty_id()
         self.current_date = QDate.currentDate()
-        self.selected_slots = {}  # Track selected slots: {(row, col): True}
+        self.time_frames = {}  # Track time frames: {(day, start_row, end_row): True}
         self._setupEditSchedulePage()
         self.retranslateUi()
         self._populateEditWeeklyGrid()
-        self.setFixedSize(1100, 550)
+        self.setFixedSize(1100, 600)
 
     def _get_faculty_id(self):
-        faculty_list = self.crud.list_faculty()
-        for faculty in faculty_list:
-            if faculty["email"] == self.username:
-                return faculty["id"]
-        return 1
+        faculty_profiles = self.crud.get_faculty_profiles()
+        for faculty in faculty_profiles:
+            if faculty['user']['username'] == self.username:
+                return faculty['id']
+        return None
 
     def _setupEditSchedulePage(self):
         self.setObjectName("Editschedule")
@@ -46,11 +104,27 @@ class FacultyEditSchedulePage_ui(QWidget):
         header_layout.addWidget(self.RequestPage)
         header_layout.addStretch(1)
 
-        self.backButton_3 = QtWidgets.QPushButton()
-        self.backButton_3.setFixedSize(40, 40)
-        self.backButton_3.setStyleSheet("border: none; background: transparent;")
-        self.backButton_3.setIcon(QtGui.QIcon(":/assets/back_button.png"))
-        self.backButton_3.setIconSize(QtCore.QSize(40, 40))
+        self.backButton_3 = QtWidgets.QPushButton("<- Back")
+        self.backButton_3.setFixedSize(100, 40)
+        self.backButton_3.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #084924, stop:1 #0a5a2f);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font: 600 11pt 'Poppins';
+                padding: 8px 12px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #0a5a2f, stop:1 #0c6b3a);
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #06381b, stop:1 #084924);
+            }
+        """)
         self.backButton_3.clicked.connect(self.back.emit)
         header_layout.addWidget(self.backButton_3)
 
@@ -66,7 +140,7 @@ class FacultyEditSchedulePage_ui(QWidget):
         controls_layout = QtWidgets.QHBoxLayout(controls_widget)
         controls_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.label_93 = QtWidgets.QLabel("Set Available Slots")
+        self.label_93 = QtWidgets.QLabel("Set Available Time Frames")
         font = QtGui.QFont("Poppins", 18, QtGui.QFont.Weight.Bold)
         self.label_93.setFont(font)
         controls_layout.addWidget(self.label_93)
@@ -108,31 +182,49 @@ class FacultyEditSchedulePage_ui(QWidget):
         self.comboBox_3.addItems(["1st Semester 2025 - 2026", "2nd Semester 2025 - 2026", "Summer 2026"])
         controls_layout.addWidget(self.comboBox_3)
 
-        # Unselect All Button
-        self.unselectButton = QtWidgets.QPushButton("Unselect All")
-        self.unselectButton.setFixedSize(100, 35)
-        self.unselectButton.setStyleSheet("""
+        # Add Time Frame Button
+        self.addTimeFrameButton = QtWidgets.QPushButton("Add Time Frame")
+        self.addTimeFrameButton.setFixedSize(120, 35)
+        self.addTimeFrameButton.setStyleSheet("""
             QPushButton { 
-                background-color: #6c757d; 
+                background-color: #084924; 
                 color: white; 
                 border-radius: 6px; 
                 font: 600 10pt 'Poppins'; 
             }
             QPushButton:hover { 
-                background-color: #5a6268; 
+                background-color: #0a5a2f; 
+            }
+        """)
+        self.addTimeFrameButton.clicked.connect(self._showAddTimeFrameDialog)
+        controls_layout.addWidget(self.addTimeFrameButton)
+
+        # Clear All Button
+        self.clearAllButton = QtWidgets.QPushButton("Clear All")
+        self.clearAllButton.setFixedSize(100, 35)
+        self.clearAllButton.setStyleSheet("""
+            QPushButton { 
+                background-color: #dc3545; 
+                color: white; 
+                border-radius: 6px; 
+                font: 600 10pt 'Poppins'; 
+            }
+            QPushButton:hover { 
+                background-color: #c82333; 
             }
             QPushButton:disabled {
                 background-color: #cccccc;
                 color: #666666;
             }
         """)
-        self.unselectButton.clicked.connect(self._unselectAllSlots)
-        self.unselectButton.setEnabled(False)  # Initially disabled
-        controls_layout.addWidget(self.unselectButton)
+        self.clearAllButton.clicked.connect(self._clearAllTimeFrames)
+        self.clearAllButton.setEnabled(False)
+        controls_layout.addWidget(self.clearAllButton)
 
-        self.createButton = QtWidgets.QPushButton("Create")
-        self.createButton.setFixedSize(80, 35)
-        self.createButton.setStyleSheet("""
+        # Save Schedule Button
+        self.saveButton = QtWidgets.QPushButton("Save Schedule")
+        self.saveButton.setFixedSize(120, 35)
+        self.saveButton.setStyleSheet("""
             QPushButton { 
                 background-color: #084924; 
                 color: white; 
@@ -147,62 +239,14 @@ class FacultyEditSchedulePage_ui(QWidget):
                 color: #666666;
             }
         """)
-        self.createButton.clicked.connect(self._createSchedule)
-        self.createButton.setEnabled(False)  # Initially disabled
-        controls_layout.addWidget(self.createButton)
-
-        self.cancelButton = QtWidgets.QPushButton("Cancel")
-        self.cancelButton.setFixedSize(80, 35)
-        self.cancelButton.setStyleSheet("""
-            QPushButton { 
-                background-color: #dc3545; 
-                color: white; 
-                border-radius: 6px; 
-                font: 600 10pt 'Poppins'; 
-            }
-            QPushButton:hover { 
-                background-color: #c82333; 
-            }
-        """)
-        self.cancelButton.clicked.connect(self._cancelChanges)
-        controls_layout.addWidget(self.cancelButton)
-
-        self.backButton_7 = QtWidgets.QPushButton("<- Back")
-        self.backButton_7.setFixedSize(40, 40)
-        self.backButton_7.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #084924, stop:1 #0a5a2f);
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font: 600 11pt 'Poppins';
-                padding: 8px 12px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #0a5a2f, stop:1 #0c6b3a);
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #06381b, stop:1 #084924);
-            }
-        """)
-        self.backButton_7.setFixedSize(100, 40)
-        self.backButton_7.clicked.connect(self.back.emit)
-        controls_layout.addWidget(self.backButton_7)
+        self.saveButton.clicked.connect(self._saveSchedule)
+        self.saveButton.setEnabled(False)
+        controls_layout.addWidget(self.saveButton)
 
         widget_layout.addWidget(controls_widget)
         self._setupEditWeeklyGrid(widget_layout)
 
         edit_layout.addWidget(self.widget_26, 1)
-
-    def resizeEvent(self, event):
-        width = self.weeklyGridEdit.width()
-        self.weeklyGridEdit.setColumnWidth(0, 100)
-        for c in range(1, 8):
-            self.weeklyGridEdit.setColumnWidth(c, int((width - 100) / 7))
-        super().resizeEvent(event)
 
     def _setupEditWeeklyGrid(self, parent_layout):
         grid_container = QtWidgets.QWidget()
@@ -212,17 +256,31 @@ class FacultyEditSchedulePage_ui(QWidget):
 
         self.weeklyGridEdit = QtWidgets.QTableWidget()
         self.weeklyGridEdit.setColumnCount(8)
-        self.weeklyGridEdit.setRowCount(24)  # 7 AM to 7 PM with 30-min increments
-        self.weeklyGridEdit.setShowGrid(False)
+        self.weeklyGridEdit.setRowCount(32)  # 8:00 AM to 12:00 AM with 30-min increments
+        self.weeklyGridEdit.setShowGrid(True)
         self.weeklyGridEdit.verticalHeader().setVisible(False)
         self.weeklyGridEdit.horizontalHeader().setVisible(True)
         self.weeklyGridEdit.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         self.weeklyGridEdit.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
         self.weeklyGridEdit.setStyleSheet("""
-            QTableWidget { background: white; font: 10pt 'Poppins'; border: none; }
-            QHeaderView::section { background-color: #0a5a2f; color: white; border: 0; padding: 12px 8px; font: 600 11pt 'Poppins'; }
+            QTableWidget { 
+                background: #f9f9f9; 
+                font: 10pt 'Poppins'; 
+                border: 1px solid #e0e0e0; 
+            }
+            QTableWidget::item { 
+                padding: 5px; 
+                border: 1px solid #e0e0e0; 
+            }
+            QHeaderView::section { 
+                background-color: #0a5a2f; 
+                color: white; 
+                border: 0; 
+                padding: 12px 8px; 
+                font: 600 11pt 'Poppins'; 
+            }
         """)
-        headers = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        headers = ["Time", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
         for i, h in enumerate(headers):
             self.weeklyGridEdit.setHorizontalHeaderItem(i, QtWidgets.QTableWidgetItem(h))
 
@@ -232,9 +290,9 @@ class FacultyEditSchedulePage_ui(QWidget):
         for c in range(1, 8):
             header.setSectionResizeMode(c, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
-        # Create time labels (7:00 AM to 7:00 PM with 30-min increments)
+        # Create time labels (8:00 AM to 12:00 AM with 30-min increments)
         times = []
-        for hour in range(7, 19):  # 7 AM to 7 PM
+        for hour in range(8, 24):  # 8 AM to 12 AM
             times.append(f"{hour % 12 or 12}:00 {'AM' if hour < 12 else 'PM'}")
             times.append(f"{hour % 12 or 12}:30 {'AM' if hour < 12 else 'PM'}")
         
@@ -243,73 +301,102 @@ class FacultyEditSchedulePage_ui(QWidget):
             item.setForeground(QtGui.QBrush(QtGui.QColor("#6b6b6b")))
             item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.weeklyGridEdit.setItem(r, 0, item)
-            self.weeklyGridEdit.setRowHeight(r, 40)  # Reduced height for better fit
+            self.weeklyGridEdit.setRowHeight(r, 35)
             for c in range(1, 8):
-                self._addPlusCell(r, c)
+                self._addEmptyCell(r, c)
 
         grid_layout.addWidget(self.weeklyGridEdit, 1)
         parent_layout.addWidget(grid_container, 1)
 
-    def _addPlusCell(self, row, col):
+    def _addEmptyCell(self, row, col):
+        """Add an empty cell to the grid"""
         container = QtWidgets.QWidget()
-        container.setStyleSheet("QWidget { border: 1px dashed #cfd8dc; border-radius: 4px; background: transparent; }")
+        container.setStyleSheet("QWidget { background: white; border: 1px solid #e0e0e0; }")
         layout = QtWidgets.QHBoxLayout(container)
-        layout.setContentsMargins(2, 2, 2, 2)
-        plus_btn = QtWidgets.QPushButton("+")
-        plus_btn.setFixedSize(24, 24)
-        plus_btn.setStyleSheet("""
-            QPushButton { 
-                background-color: #e8f5e8; 
-                color: #084924; 
-                border: 1px solid #084924; 
-                border-radius: 12px; 
-                font: bold 12pt 'Poppins'; 
-            }
-            QPushButton:hover { 
-                background-color: #d4edda; 
-                border: 2px solid #084924; 
-            }
-        """)
-        plus_btn.clicked.connect(lambda checked, r=row, c=col: self._showMakeAvailableDialog(r, c))
-        layout.addWidget(plus_btn, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.weeklyGridEdit.setCellWidget(row, col, container)
 
-    def _showMakeAvailableDialog(self, row, col):
+    def _showAddTimeFrameDialog(self):
+        """Show dialog to add a time frame"""
         dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle("Make Time Slot Available")
+        dialog.setWindowTitle("Add Time Frame")
         dialog.setModal(True)
-        dialog.setFixedSize(400, 200)
-        dialog.setStyleSheet("QDialog { background-color: white; border-radius: 10px; }")
+        dialog.setFixedSize(400, 300)
+        dialog.setStyleSheet("""
+            QDialog { 
+                background-color: white; 
+                border-radius: 12px; 
+            }
+            QLabel {
+                font: 11pt 'Poppins';
+                color: #333;
+            }
+            QComboBox, QTimeEdit {
+                border: 2px solid #064420;
+                border-radius: 6px;
+                padding: 8px;
+                font: 10pt 'Poppins';
+                color: #064420;
+                background: white;
+            }
+        """)
         
         layout = QtWidgets.QVBoxLayout(dialog)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
-        time_item = self.weeklyGridEdit.item(row, 0)
-        time_text = time_item.text() if time_item else "Unknown"
-        day_header = self.weeklyGridEdit.horizontalHeaderItem(col)
-        day_text = day_header.text() if day_header else "Unknown"
+        # Header
+        header_label = QtWidgets.QLabel("Add Available Time Frame")
+        header_label.setStyleSheet("QLabel { color: #084924; font: 600 16pt 'Poppins'; }")
+        header_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(header_label)
 
-        title_label = QtWidgets.QLabel("Make this slot available")
-        title_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("QLabel { color: #2b2b2b; font: 600 14pt 'Poppins'; }")
-        layout.addWidget(title_label)
+        # Day selection
+        day_layout = QtWidgets.QHBoxLayout()
+        day_label = QtWidgets.QLabel("Day:")
+        day_label.setStyleSheet("QLabel { font: 600 11pt 'Poppins'; color: #333; }")
+        day_combo = QtWidgets.QComboBox()
+        day_combo.addItems(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+        day_layout.addWidget(day_label)
+        day_layout.addWidget(day_combo)
+        layout.addLayout(day_layout)
 
-        time_info = QtWidgets.QLabel(f"{day_text} {time_text}")
-        time_info.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        time_info.setStyleSheet("""
-            QLabel { 
-                color: #6b6b6b; 
-                font: 11pt 'Poppins'; 
-                background-color: #f8f9fa; 
-                padding: 8px; 
-                border-radius: 6px; 
-            }
-        """)
-        layout.addWidget(time_info)
+        # Start time
+        start_time_layout = QtWidgets.QHBoxLayout()
+        start_time_label = QtWidgets.QLabel("Start Time:")
+        start_time_label.setStyleSheet("QLabel { font: 600 11pt 'Poppins'; color: #333; }")
+        start_time_edit = QTimeEdit()
+        start_time_edit.setTime(QTime(8, 0))  # Default to 8:00 AM
+        start_time_edit.setDisplayFormat("hh:mm AP")
+        start_time_layout.addWidget(start_time_label)
+        start_time_layout.addWidget(start_time_edit)
+        layout.addLayout(start_time_layout)
+
+        # End time
+        end_time_layout = QtWidgets.QHBoxLayout()
+        end_time_label = QtWidgets.QLabel("End Time:")
+        end_time_label.setStyleSheet("QLabel { font: 600 11pt 'Poppins'; color: #333; }")
+        end_time_edit = QTimeEdit()
+        end_time_edit.setTime(QTime(17, 0))  # Default to 5:00 PM
+        end_time_edit.setDisplayFormat("hh:mm AP")
+        end_time_layout.addWidget(end_time_label)
+        end_time_layout.addWidget(end_time_edit)
+        layout.addLayout(end_time_layout)
+
+        # Slot duration
+        duration_layout = QtWidgets.QHBoxLayout()
+        duration_label = QtWidgets.QLabel("Slot Duration (minutes):")
+        duration_label.setStyleSheet("QLabel { font: 600 11pt 'Poppins'; color: #333; }")
+        duration_combo = QtWidgets.QComboBox()
+        duration_combo.addItems(["15", "30", "45", "60"])
+        duration_combo.setCurrentText("30")
+        duration_layout.addWidget(duration_label)
+        duration_layout.addWidget(duration_combo)
+        layout.addLayout(duration_layout)
 
         layout.addStretch(1)
-        
+
+        # Buttons
         button_layout = QtWidgets.QHBoxLayout()
         cancel_btn = QtWidgets.QPushButton("Cancel")
         cancel_btn.setFixedHeight(35)
@@ -326,9 +413,9 @@ class FacultyEditSchedulePage_ui(QWidget):
         """)
         cancel_btn.clicked.connect(dialog.reject)
         
-        make_available_btn = QtWidgets.QPushButton("Make Available")
-        make_available_btn.setFixedHeight(35)
-        make_available_btn.setStyleSheet("""
+        add_btn = QtWidgets.QPushButton("Add Time Frame")
+        add_btn.setFixedHeight(35)
+        add_btn.setStyleSheet("""
             QPushButton { 
                 background-color: #084924; 
                 color: white; 
@@ -339,420 +426,333 @@ class FacultyEditSchedulePage_ui(QWidget):
                 background-color: #0a5a2f; 
             }
         """)
-        make_available_btn.clicked.connect(lambda: self._convertToAvailableSlot(row, col, time_text, day_text))
-        make_available_btn.clicked.connect(dialog.accept)
+        
+        def add_time_frame():
+            day = day_combo.currentText()
+            start_time = start_time_edit.time().toString("hh:mm AP")
+            end_time = end_time_edit.time().toString("hh:mm AP")
+            slot_duration = int(duration_combo.currentText())
+            
+            self._addTimeFrameToGrid(day, start_time, end_time, slot_duration)
+            dialog.accept()
+        
+        add_btn.clicked.connect(add_time_frame)
         
         button_layout.addWidget(cancel_btn)
         button_layout.addStretch(1)
-        button_layout.addWidget(make_available_btn)
+        button_layout.addWidget(add_btn)
         layout.addLayout(button_layout)
         
         dialog.exec()
 
-    def _convertToAvailableSlot(self, row, col, time_text, day_text):
-        container = QtWidgets.QWidget()
-        container.setStyleSheet("QWidget { background: transparent; }")
-        layout = QtWidgets.QHBoxLayout(container)
-        layout.setContentsMargins(2, 2, 2, 2)
+    def _addTimeFrameToGrid(self, day, start_time_str, end_time_str, slot_duration):
+        """Add a time frame to the grid visualization"""
+        # Convert day to column number
+        day_map = {"Sunday": 1, "Monday": 2, "Tuesday": 3, "Wednesday": 4, 
+                  "Thursday": 5, "Friday": 6, "Saturday": 7}
+        col = day_map.get(day)
+        if not col:
+            return
+
+        # Convert time strings to row numbers
+        start_row = self._timeToRow(start_time_str)
+        end_row = self._timeToRow(end_time_str)
         
-        slot_widget = QtWidgets.QWidget()
-        slot_widget.setStyleSheet("""
+        if start_row is None or end_row is None or start_row >= end_row:
+            QMessageBox.warning(self, "Invalid Time", "Please check the start and end times.")
+            return
+
+        # Store the time frame
+        time_frame_key = (day, start_row, end_row, slot_duration)
+        self.time_frames[time_frame_key] = True
+
+        # Visualize the time frame on the grid
+        for row in range(start_row, end_row):
+            self._colorTimeSlot(row, col, day, start_time_str, end_time_str, slot_duration)
+
+        # Update button states
+        self._updateButtonStates()
+
+    def _timeToRow(self, time_str):
+        """Convert time string to row number"""
+        try:
+            # Parse time string (e.g., "08:00 AM", "05:30 PM")
+            time_part, period = time_str.split()
+            hour, minute = map(int, time_part.split(':'))
+            
+            # Convert to 24-hour format
+            if period.upper() == "PM" and hour != 12:
+                hour += 12
+            elif period.upper() == "AM" and hour == 12:
+                hour = 0
+            
+            # Calculate row (each row is 30 minutes starting from 8:00 AM)
+            base_hour = 8  # Grid starts at 8:00 AM
+            total_minutes = (hour - base_hour) * 60 + minute
+            row = total_minutes // 30
+            
+            return max(0, min(row, self.weeklyGridEdit.rowCount() - 1))
+        except:
+            return None
+
+    def _colorTimeSlot(self, row, col, day, start_time, end_time, slot_duration):
+        """Color a time slot in the grid"""
+        container = QtWidgets.QWidget()
+        container.setStyleSheet("""
             QWidget { 
                 background: #ffc000; 
-                border-radius: 6px; 
                 border: 1px solid #e6ac00; 
+                border-radius: 4px; 
+                margin: 1px;
             }
         """)
-        slot_widget.setMinimumHeight(36)
         
-        slot_layout = QtWidgets.QVBoxLayout(slot_widget)
-        slot_layout.setContentsMargins(8, 4, 8, 4)
-        slot_layout.setSpacing(2)
+        layout = QtWidgets.QVBoxLayout(container)
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(1)
         
-        time_label = QtWidgets.QLabel(time_text)
+        # Time label
+        time_label = QtWidgets.QLabel(self._getTimeFromRow(row))
         time_label.setStyleSheet("""
             QLabel { 
                 color: #2b2b2b; 
-                font: 600 9pt 'Poppins'; 
+                font: 600 8pt 'Poppins'; 
                 background: transparent; 
             }
         """)
         time_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         
-        status_label = QtWidgets.QLabel("Available")
-        status_label.setStyleSheet("""
+        # Duration label
+        duration_label = QtWidgets.QLabel(f"{slot_duration}min")
+        duration_label.setStyleSheet("""
             QLabel { 
                 color: #2b2b2b; 
-                font: 8pt 'Poppins'; 
+                font: 7pt 'Poppins'; 
                 background: transparent; 
             }
         """)
-        status_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        duration_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         
-        slot_layout.addWidget(time_label)
-        slot_layout.addWidget(status_label)
-        layout.addWidget(slot_widget)
+        layout.addWidget(time_label)
+        layout.addWidget(duration_label)
         
-        # Add unselect button
-        unselect_btn = QtWidgets.QPushButton("×")
-        unselect_btn.setFixedSize(20, 20)
-        unselect_btn.setStyleSheet("""
+        # Add delete button
+        delete_btn = QtWidgets.QPushButton("×")
+        delete_btn.setFixedSize(16, 16)
+        delete_btn.setStyleSheet("""
             QPushButton { 
                 background-color: #dc3545; 
                 color: white; 
-                border-radius: 10px; 
-                font: bold 8pt 'Poppins'; 
+                border-radius: 8px; 
+                font: bold 7pt 'Poppins'; 
                 border: none;
             }
             QPushButton:hover { 
                 background-color: #c82333; 
             }
         """)
-        unselect_btn.clicked.connect(lambda: self._unselectSlot(row, col))
-        layout.addWidget(unselect_btn)
+        delete_btn.clicked.connect(lambda: self._removeTimeFrame(day, row, col))
+        layout.addWidget(delete_btn, 0, QtCore.Qt.AlignmentFlag.AlignRight)
         
         self.weeklyGridEdit.setCellWidget(row, col, container)
+
+    def _getTimeFromRow(self, row):
+        """Convert row number back to time string"""
+        base_hour = 8  # Grid starts at 8:00 AM
+        total_minutes = row * 30
+        hour = base_hour + total_minutes // 60
+        minute = total_minutes % 60
         
-        # Mark as selected
-        self.selected_slots[(row, col)] = True
+        period = "AM" if hour < 12 else "PM"
+        hour_12 = hour % 12 if hour != 12 else 12
+        return f"{hour_12}:{minute:02d} {period}"
+
+    def _removeTimeFrame(self, day, row, col):
+        """Remove a specific time frame"""
+        # Find and remove the time frame that includes this row
+        for time_frame_key in list(self.time_frames.keys()):
+            frame_day, start_row, end_row, slot_duration = time_frame_key
+            if frame_day == day and start_row <= row < end_row:
+                # Remove all slots in this time frame
+                for r in range(start_row, end_row):
+                    self._addEmptyCell(r, col)
+                # Remove from time frames
+                del self.time_frames[time_frame_key]
+                break
         
-        # Enable buttons
         self._updateButtonStates()
 
-    def _unselectSlot(self, row, col):
-        """Remove the selected slot and restore the plus button"""
-        # Remove from selected slots
-        if (row, col) in self.selected_slots:
-            del self.selected_slots[(row, col)]
-        
-        # Restore the plus button
-        self._addPlusCell(row, col)
-        
-        # Update button states
-        self._updateButtonStates()
-
-    def _unselectAllSlots(self):
-        """Unselect all selected slots"""
-        if not self.selected_slots:
+    def _clearAllTimeFrames(self):
+        """Clear all time frames"""
+        if not self.time_frames:
             return
             
-        # Show confirmation dialog
-        dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle("Unselect All Slots")
-        dialog.setModal(True)
-        dialog.setFixedSize(350, 180)
-        dialog.setStyleSheet("QDialog { background-color: white; border-radius: 10px; }")
+        reply = QMessageBox.question(
+            self,
+            "Clear All Time Frames",
+            "Are you sure you want to clear all time frames?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
         
-        layout = QtWidgets.QVBoxLayout(dialog)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
-        
-        title_label = QtWidgets.QLabel("Unselect All Slots?")
-        title_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("QLabel { color: #2b2b2b; font: 600 14pt 'Poppins'; }")
-        layout.addWidget(title_label)
-        
-        message_label = QtWidgets.QLabel(f"This will unselect all {len(self.selected_slots)} selected time slots.")
-        message_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        message_label.setStyleSheet("QLabel { color: #666666; font: 11pt 'Poppins'; }")
-        message_label.setWordWrap(True)
-        layout.addWidget(message_label)
-        
-        layout.addStretch(1)
-        
-        button_layout = QtWidgets.QHBoxLayout()
-        cancel_btn = QtWidgets.QPushButton("Cancel")
-        cancel_btn.setFixedHeight(35)
-        cancel_btn.setStyleSheet("""
-            QPushButton { 
-                background-color: #6c757d; 
-                color: white; 
-                border-radius: 6px; 
-                font: 600 11pt 'Poppins'; 
-            }
-            QPushButton:hover { 
-                background-color: #5a6268; 
-            }
-        """)
-        cancel_btn.clicked.connect(dialog.reject)
-        
-        confirm_btn = QtWidgets.QPushButton("Unselect All")
-        confirm_btn.setFixedHeight(35)
-        confirm_btn.setStyleSheet("""
-            QPushButton { 
-                background-color: #dc3545; 
-                color: white; 
-                border-radius: 6px; 
-                font: 600 11pt 'Poppins'; 
-            }
-            QPushButton:hover { 
-                background-color: #c82333; 
-            }
-        """)
-        confirm_btn.clicked.connect(dialog.accept)
-        
-        button_layout.addWidget(cancel_btn)
-        button_layout.addStretch(1)
-        button_layout.addWidget(confirm_btn)
-        layout.addLayout(button_layout)
-        
-        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-            # Unselect all slots
-            for (row, col) in list(self.selected_slots.keys()):
-                self._unselectSlot(row, col)
+        if reply == QMessageBox.StandardButton.Yes:
+            # Clear all colored cells
+            for row in range(self.weeklyGridEdit.rowCount()):
+                for col in range(1, self.weeklyGridEdit.columnCount()):
+                    self._addEmptyCell(row, col)
+            
+            # Clear time frames dictionary
+            self.time_frames.clear()
+            self._updateButtonStates()
 
-    def _cancelChanges(self):
-        """Cancel all changes and go back"""
-        if self.selected_slots:
-            # Show confirmation dialog if there are unsaved changes
-            dialog = QtWidgets.QDialog(self)
-            dialog.setWindowTitle("Cancel Changes")
-            dialog.setModal(True)
-            dialog.setFixedSize(350, 180)
-            dialog.setStyleSheet("QDialog { background-color: white; border-radius: 10px; }")
+    def _saveSchedule(self):
+        """Save the schedule by creating availability rules"""
+        if not self.time_frames:
+            QMessageBox.warning(self, "No Time Frames", "Please add time frames before saving.")
+            return
+
+        if not self.faculty_id:
+            QMessageBox.critical(self, "Error", "Faculty ID not found.")
+            return
+
+        # Map day names to Django format
+        day_map = {
+            "Monday": "MON", "Tuesday": "TUE", "Wednesday": "WED",
+            "Thursday": "THU", "Friday": "FRI", "Saturday": "SAT", "Sunday": "SUN"
+        }
+
+        success_count = 0
+        error_count = 0
+
+        for time_frame_key in self.time_frames:
+            day, start_row, end_row, slot_duration = time_frame_key
             
-            layout = QtWidgets.QVBoxLayout(dialog)
-            layout.setContentsMargins(20, 20, 20, 20)
-            layout.setSpacing(15)
+            # Convert rows back to time
+            start_time = self._rowToTime(start_row)
+            end_time = self._rowToTime(end_row)
             
-            title_label = QtWidgets.QLabel("Cancel Changes?")
-            title_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-            title_label.setStyleSheet("QLabel { color: #2b2b2b; font: 600 14pt 'Poppins'; }")
-            layout.addWidget(title_label)
-            
-            message_label = QtWidgets.QLabel(f"You have {len(self.selected_slots)} unsaved changes. Are you sure you want to cancel?")
-            message_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-            message_label.setStyleSheet("QLabel { color: #666666; font: 11pt 'Poppins'; }")
-            message_label.setWordWrap(True)
-            layout.addWidget(message_label)
-            
-            layout.addStretch(1)
-            
-            button_layout = QtWidgets.QHBoxLayout()
-            no_btn = QtWidgets.QPushButton("No")
-            no_btn.setFixedHeight(35)
-            no_btn.setStyleSheet("""
-                QPushButton { 
-                    background-color: #6c757d; 
-                    color: white; 
-                    border-radius: 6px; 
-                    font: 600 11pt 'Poppins'; 
+            if start_time and end_time and day in day_map:
+                # Create availability rule data
+                rule_data = {
+                    "faculty": self.faculty_id,
+                    "day_of_week": day_map[day],
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "slot_minutes": slot_duration
                 }
-                QPushButton:hover { 
-                    background-color: #5a6268; 
-                }
-            """)
-            no_btn.clicked.connect(dialog.reject)
+                
+                # Send to API
+                result = self.crud.create_availability_rule(rule_data)
+                if result:
+                    success_count += 1
+                else:
+                    error_count += 1
+
+        # Show result message
+        if success_count > 0:
+            message = f"Successfully created {success_count} availability rule(s)."
+            if error_count > 0:
+                message += f" {error_count} rule(s) failed to create."
+            QMessageBox.information(self, "Success", message)
             
-            yes_btn = QtWidgets.QPushButton("Yes, Cancel")
-            yes_btn.setFixedHeight(35)
-            yes_btn.setStyleSheet("""
-                QPushButton { 
-                    background-color: #dc3545; 
-                    color: white; 
-                    border-radius: 6px; 
-                    font: 600 11pt 'Poppins'; 
-                }
-                QPushButton:hover { 
-                    background-color: #c82333; 
-                }
-            """)
-            yes_btn.clicked.connect(dialog.accept)
-            
-            button_layout.addWidget(no_btn)
-            button_layout.addStretch(1)
-            button_layout.addWidget(yes_btn)
-            layout.addLayout(button_layout)
-            
-            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-                self.back.emit()
+            # Clear the grid after successful save
+            self._clearAllTimeFrames()
         else:
-            # No changes, just go back
-            self.back.emit()
+            QMessageBox.critical(self, "Error", "Failed to create any availability rules.")
+
+    def _rowToTime(self, row):
+        """Convert row number to time string (HH:MM:SS)"""
+        base_hour = 8  # Grid starts at 8:00 AM
+        total_minutes = row * 30
+        hour = base_hour + total_minutes // 60
+        minute = total_minutes % 60
+        
+        return f"{hour:02d}:{minute:02d}:00"
 
     def _updateButtonStates(self):
-        """Update the state of buttons based on selected slots"""
-        has_selections = len(self.selected_slots) > 0
-        self.unselectButton.setEnabled(has_selections)
-        self.createButton.setEnabled(has_selections)
-
-    def _createSchedule(self):
-        # Create time map for 12-hour to 24-hour conversion
-        time_map = {}
-        index = 0
-        for hour in range(7, 19):  # 7 AM to 7 PM
-            for minute in [0, 30]:
-                period = "AM" if hour < 12 else "PM"
-                hour_12 = hour % 12 if hour != 12 else 12
-                time_12h = f"{hour_12}:{minute:02d} {period}"
-                time_map[index] = time_12h
-                index += 1
-       
-        day_map = {1: "Sunday", 2: "Monday", 3: "Tuesday", 4: "Wednesday", 5: "Thursday", 6: "Friday", 7: "Saturday"}
-        time_slots = []
-        
-        # Find all available slots
-        for (row, col) in self.selected_slots.keys():
-            time_12h = time_map.get(row)
-            day_name = day_map.get(col)
-            
-            if time_12h and day_name:
-                # Convert 12-hour time to 24-hour format
-                time_part, period = time_12h.split()
-                hour_12, minute = map(int, time_part.split(':'))
-                
-                # Convert to 24-hour format
-                if period == "PM" and hour_12 != 12:
-                    hour_24 = hour_12 + 12
-                elif period == "AM" and hour_12 == 12:
-                    hour_24 = 0
-                else:
-                    hour_24 = hour_12
-                
-                start_time = f"{hour_24:02d}:{minute:02d}"
-                
-                # Calculate end time (30 minutes later)
-                end_minute = minute + 30
-                end_hour = hour_24
-                if end_minute >= 60:
-                    end_hour += 1
-                    end_minute -= 60
-                end_time = f"{end_hour:02d}:{end_minute:02d}"
-                
-                time_slots.append({
-                    "start": start_time,
-                    "end": end_time,
-                    "day": day_name
-                })
-        
-        if time_slots:
-            try:
-                result = self.crud.plot_schedule(self.faculty_id, time_slots)
-                if result:
-                    self._showScheduleUpdatedDialog("Schedule created successfully!")
-                    # Clear selections after successful creation
-                    self.selected_slots.clear()
-                    self._updateButtonStates()
-                    # Reload the grid to show existing schedule
-                    self._populateEditWeeklyGrid()
-                else:
-                    self._showScheduleUpdatedDialog("Failed to create schedule.", is_error=True)
-            except Exception as e:
-                self._showScheduleUpdatedDialog(f"Error creating schedule: {str(e)}", is_error=True)
-        else:
-            self._showScheduleUpdatedDialog("No time slots selected. Please add available slots first.", is_error=True)
+        """Update button states based on whether there are time frames"""
+        has_time_frames = len(self.time_frames) > 0
+        self.clearAllButton.setEnabled(has_time_frames)
+        self.saveButton.setEnabled(has_time_frames)
 
     def _populateEditWeeklyGrid(self):
-        # Clear all cells first
+        """Populate the grid with existing availability rules"""
+        if not self.faculty_id:
+            return
+
+        # Clear existing time frames and grid
+        self.time_frames.clear()
         for row in range(self.weeklyGridEdit.rowCount()):
             for col in range(1, self.weeklyGridEdit.columnCount()):
-                self.weeklyGridEdit.removeCellWidget(row, col)
-                self._addPlusCell(row, col)
+                self._addEmptyCell(row, col)
+
+        # Get existing availability rules
+        rules = self.crud.get_availability_rules(faculty_id=self.faculty_id)
         
-        # Clear selected slots
-        self.selected_slots.clear()
+        # Map Django day format to full day names
+        day_map = {
+            "MON": "Monday", "TUE": "Tuesday", "WED": "Wednesday",
+            "THU": "Thursday", "FRI": "Friday", "SAT": "Saturday", "SUN": "Sunday"
+        }
+
+        for rule in rules:
+            day_full = day_map.get(rule['day_of_week'])
+            if not day_full:
+                continue
+
+            # Convert time strings to row numbers
+            start_time = rule['start_time']
+            end_time = rule['end_time']
+            slot_duration = rule.get('slot_minutes', 30)
+
+            start_row = self._timeStringToRow(start_time)
+            end_row = self._timeStringToRow(end_time)
+
+            if start_row is not None and end_row is not None:
+                # Add to time frames
+                time_frame_key = (day_full, start_row, end_row, slot_duration)
+                self.time_frames[time_frame_key] = True
+
+                # Visualize on grid
+                col = list(day_map.values()).index(day_full) + 1
+                for row in range(start_row, end_row):
+                    self._colorTimeSlot(row, col, day_full, start_time, end_time, slot_duration)
+
         self._updateButtonStates()
-        
-        # Load existing schedule
-        block = self.crud.get_active_block(self.faculty_id)
-        if "error" not in block:
-            entries = self.crud.get_block_entries(block["id"])
-            day_map = {"Sunday": 1, "Monday": 2, "Tuesday": 3, "Wednesday": 4, "Thursday": 5, "Friday": 6, "Saturday": 7}
+
+    def _timeStringToRow(self, time_str):
+        """Convert time string (HH:MM:SS) to row number"""
+        try:
+            # Parse time string (e.g., "08:00:00")
+            parts = time_str.split(':')
+            hour = int(parts[0])
+            minute = int(parts[1])
             
-            # Create time map for conversion
-            time_map = {}
-            index = 0
-            for hour in range(7, 19):  # 7 AM to 7 PM
-                for minute in [0, 30]:
-                    period = "AM" if hour < 12 else "PM"
-                    hour_12 = hour % 12 if hour != 12 else 12
-                    time_12h = f"{hour_12}:{minute:02d} {period}"
-                    time_24h = f"{hour:02d}:{minute:02d}"
-                    time_map[time_24h] = index
-                    index += 1
+            # Calculate row (each row is 30 minutes starting from 8:00 AM)
+            base_hour = 8  # Grid starts at 8:00 AM
+            total_minutes = (hour - base_hour) * 60 + minute
+            row = total_minutes // 30
             
-            for entry in entries:
-                col = day_map.get(entry["day_of_week"])
-                start_time_24h = entry["start_time"]
-                if start_time_24h in time_map and col:
-                    row = time_map[start_time_24h]
-                    # Convert to 12-hour format for display
-                    hour, minute = map(int, start_time_24h.split(':'))
-                    period = "AM" if hour < 12 else "PM"
-                    hour_12 = hour % 12 if hour != 0 else 12
-                    time_12h = f"{hour_12}:{minute:02d} {period}"
-                    self._convertToAvailableSlot(row, col, time_12h, entry["day_of_week"])
+            return max(0, min(row, self.weeklyGridEdit.rowCount() - 1))
+        except:
+            return None
 
     def _updateWeek(self):
         self.current_date = self.dateEdit.date()
-        self._populateEditWeeklyGrid()
+        # Note: For availability rules, week navigation might not be needed
+        # as rules are day-based rather than date-based
 
     def _prevWeek(self):
         self.current_date = self.current_date.addDays(-7)
         self.dateEdit.setDate(self.current_date)
-        self._populateEditWeeklyGrid()
 
     def _nextWeek(self):
         self.current_date = self.current_date.addDays(7)
         self.dateEdit.setDate(self.current_date)
-        self._populateEditWeeklyGrid()
-
-    def _showScheduleUpdatedDialog(self, message="Schedule Updated!", is_error=False):
-        dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle("Success" if not is_error else "Error")
-        dialog.setModal(True)
-        dialog.setFixedSize(300, 150)
-        
-        if is_error:
-            dialog.setStyleSheet("QDialog { background-color: white; border-radius: 10px; }")
-        else:
-            dialog.setStyleSheet("QDialog { background-color: white; border-radius: 10px; }")
-        
-        layout = QtWidgets.QVBoxLayout(dialog)
-        layout.setContentsMargins(20, 20, 20, 20)
-        
-        message_label = QtWidgets.QLabel(message)
-        message_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        if is_error:
-            message_label.setStyleSheet("QLabel { color: #d32f2f; font: 600 12pt 'Poppins'; }")
-        else:
-            message_label.setStyleSheet("QLabel { color: #084924; font: 600 14pt 'Poppins'; }")
-        layout.addWidget(message_label)
-        
-        ok_button = QtWidgets.QPushButton("OK")
-        ok_button.setFixedHeight(40)
-        if is_error:
-            ok_button.setStyleSheet("""
-                QPushButton { 
-                    background-color: #d32f2f; 
-                    color: white; 
-                    border-radius: 8px; 
-                    font: 600 12pt 'Poppins'; 
-                }
-                QPushButton:hover { 
-                    background-color: #b71c1c; 
-                }
-            """)
-        else:
-            ok_button.setStyleSheet("""
-                QPushButton { 
-                    background-color: #084924; 
-                    color: white; 
-                    border-radius: 8px; 
-                    font: 600 12pt 'Poppins'; 
-                }
-                QPushButton:hover { 
-                    background-color: #0a5a2f; 
-                }
-            """)
-        ok_button.clicked.connect(dialog.accept)
-        layout.addWidget(ok_button)
-        
-        dialog.exec()
 
     def retranslateUi(self):
         self.RequestPage.setText("Edit Schedule")
-        self.label_93.setText("Set Available Slots")
-        self.unselectButton.setText("Unselect All")
-        self.cancelButton.setText("Cancel")
-        self.createButton.setText("Create")
+        self.label_93.setText("Set Available Time Frames")
+        self.addTimeFrameButton.setText("Add Time Frame")
+        self.clearAllButton.setText("Clear All")
+        self.saveButton.setText("Save Schedule")

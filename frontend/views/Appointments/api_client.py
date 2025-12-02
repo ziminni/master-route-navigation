@@ -2,7 +2,7 @@ import requests
 import json
 import os
 from datetime import datetime
-
+import logging
 
 class APIClient:
     BASE_URL = os.environ.get('API_BASE_URL', 'http://127.0.0.1:8000/api/appointments')
@@ -197,6 +197,201 @@ class APIClient:
         return dt.strftime("%H:%M:%S")
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def get_faculty_appointments(self):
+        """Get appointments for the currently authenticated student"""
+        try:
+            response = self.session.get(f'{self.BASE_URL}/student_appointment_list/')
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            print(f"Error fetching student appointments: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"Response status: {e.response.status_code}")
+                print(f"Response body: {e.response.text}")
+            return None
+    
+    def get_faculty_profiles(self):
+        """Get all faculty profiles"""
+        try:
+            response = requests.get(f"{self.base_url}/appointment/faculty_profiles/", headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            logging.error(f"Error fetching faculty profiles: {e}")
+            return []
+
+    def get_availability_rules(self, faculty_id=None, semester_id=None):
+        """Get availability rules for faculty"""
+        try:
+            params = {}
+            if faculty_id:
+                params['faculty_id'] = faculty_id
+            if semester_id:
+                params['semester_id'] = semester_id
+                
+            response = requests.get(f"{self.base_url}/appointment/get_availability_rule/", 
+                                  params=params, headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            logging.error(f"Error fetching availability rules: {e}")
+            return []
+
+    def get_faculty_available_schedule(self, faculty_id, date):
+        """Get available schedule for faculty on specific date"""
+        try:
+            response = requests.get(
+                f"{self.base_url}/available_schedule/{faculty_id}/{date}/", 
+                headers=self.headers
+            )
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            logging.error(f"Error fetching available schedule: {e}")
+            return []
+
+    def get_faculty_appointments(self):
+        """Get appointments for current faculty user"""
+        try:
+            response = requests.get(f"{self.base_url}/appointment/faculty_appointment_list/", headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            logging.error(f"Error fetching faculty appointments: {e}")
+            return []
+
+    def get_student_appointments(self):
+        """Get appointments for current student user"""
+        try:
+            response = requests.get(f"{self.base_url}/appointment/student_appointment_list/", headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            logging.error(f"Error fetching student appointments: {e}")
+            return []
+
+    def create_appointment(self, data):
+        """Create new appointment"""
+        try:
+            response = requests.post(
+                f"{self.base_url}/create_appointment/", 
+                json=data, 
+                headers={**self.headers, "Content-Type": "application/json"}
+            )
+            if response.status_code == 201:
+                return response.json()
+            else:
+                logging.error(f"Error creating appointment: {response.text}")
+                return None
+        except Exception as e:
+            logging.error(f"Error creating appointment: {e}")
+            return None
+
+    def update_appointment(self, appointment_id, data):
+        """Update existing appointment"""
+        try:
+            response = requests.patch(
+                f"{self.base_url}/appointment/update_appointment/{appointment_id}/", 
+                json=data, 
+                headers={**self.headers, "Content-Type": "application/json"}
+            )
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logging.error(f"Error updating appointment: {response.text}")
+                return None
+        except Exception as e:
+            logging.error(f"Error updating appointment: {e}")
+            return None
+
+    def create_availability_rule(self, data):
+        """Create availability rule"""
+        try:
+            response = requests.post(
+                f"{self.base_url}/create_availability_rule/", 
+                json=data, 
+                headers={**self.headers, "Content-Type": "application/json"}
+            )
+            if response.status_code == 201:
+                return response.json()
+            else:
+                logging.error(f"Error creating availability rule: {response.text}")
+                return None
+        except Exception as e:
+            logging.error(f"Error creating availability rule: {e}")
+            return None
+        
+
+
+    def get_all_appointments(self):
+        """Get appointments for current faculty user"""
+        try:
+            response = requests.get(f"{self.base_url}/all_appointment_list/", headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            logging.error(f"Error fetching faculty appointments: {e}")
+            return []
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ===== USAGE EXAMPLES =====
 
 if __name__ == "__main__":
@@ -249,3 +444,6 @@ if __name__ == "__main__":
     }
     result = api.create_availability_rule(rule_data)
     print("Created availability rule:", result)
+
+
+

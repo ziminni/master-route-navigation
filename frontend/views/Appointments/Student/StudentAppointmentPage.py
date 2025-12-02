@@ -3,7 +3,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QMessageBox, QFileDialog
 from .appointment_crud import appointment_crud
 from .StudentRequestPage import StudentRequestPage_ui
-from .api_client import APIClient
+from ..api_client import APIClient
 import logging
 import os
 

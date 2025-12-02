@@ -1,11 +1,15 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QDialog, QFormLayout, QPushButton, QDateEdit
-from .appointment_crud import appointment_crud
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QDialog, QFormLayout, QPushButton, QDateEdit, QMessageBox
+from PyQt6.QtCore import QDate
+import requests
+import json
+from datetime import datetime, timedelta
+from ..api_client import APIClient
+
 import logging
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
 class AppointmentSchedulerPage_ui(QWidget):
     go_to_EditSchedulePage = QtCore.pyqtSignal()
     back = QtCore.pyqtSignal()
@@ -25,22 +29,49 @@ class AppointmentSchedulerPage_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-        self.crud = appointment_crud()
-        self.faculty_id = self._get_faculty_id()
-        logging.debug(f"Initialized AppointmentSchedulerPage_ui with username: {self.username}, faculty_id: {self.faculty_id}")
+        self.crud = APIClient(token=token)
+        self.faculty_id = None  # Will be set based on user role
+        self.current_faculty_id = None  # For faculty selection
+       
         self._setupAppointmentSchedulerPage()
         self.retranslateUi()
-        self.setFixedSize(1100, 550)
+        self.setFixedSize(1000, 550)
+        self._initialize_user_data()
 
-    def _get_faculty_id(self):
-        faculty_list = self.crud.list_faculty()
-        logging.debug(f"Faculty list: {faculty_list}")
-        for faculty in faculty_list:
-            if faculty["email"] == self.username:
-                logging.debug(f"Found faculty: {faculty['name']} with ID: {faculty['id']}")
-                return faculty["id"]
-        logging.warning(f"No faculty found for username: {self.username}, using fallback ID: 1")
-        return 1
+    def _initialize_user_data(self):
+        """Initialize user data based on role"""
+        if self.primary_role == "faculty":
+            # For faculty, get their own profile
+            faculty_profiles = self.crud.get_faculty_profiles()
+            user_profile = next((fp for fp in faculty_profiles if fp['user']['username'] == self.username), None)
+            if user_profile:
+                self.faculty_id = user_profile['id']
+                self.current_faculty_id = self.faculty_id
+        else:
+            # For students, show all faculty
+            faculty_profiles = self.crud.get_faculty_profiles()
+            if faculty_profiles:
+                self.current_faculty_id = faculty_profiles[0]['id']
+        
+        self._populateFacultyComboBox()
+        self._populateWeeklySchedule()
+
+    def _populateFacultyComboBox(self):
+        """Populate faculty selection combo box"""
+        faculty_profiles = self.crud.get_faculty_profiles()
+        self.facultyComboBox.clear()
+        
+        for faculty in faculty_profiles:
+            user_info = faculty.get('user', {})
+            display_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+            if not display_name:
+                display_name = user_info.get('username', 'Unknown')
+            self.facultyComboBox.addItem(display_name, faculty['id'])
+        
+        if self.current_faculty_id:
+            index = self.facultyComboBox.findData(self.current_faculty_id)
+            if index >= 0:
+                self.facultyComboBox.setCurrentIndex(index)
 
     def _setupAppointmentSchedulerPage(self):
         self.setObjectName("AppointmentScheduler")
@@ -77,6 +108,15 @@ class AppointmentSchedulerPage_ui(QWidget):
         """)
         self.createschedule_2.clicked.connect(self.go_to_EditSchedulePage.emit)
         header_layout.addWidget(self.createschedule_2)
+
+        # Faculty selection combo box
+        self.facultyComboBox = QtWidgets.QComboBox()
+        self.facultyComboBox.setFixedSize(200, 30)
+        self.facultyComboBox.setStyleSheet("""
+            QComboBox { border: 2px solid #064420; border-radius: 6px; padding: 4px 8px; font: 10pt 'Poppins'; color: #064420; background: white; }
+        """)
+        self.facultyComboBox.currentIndexChanged.connect(self._onFacultyChanged)
+        header_layout.addWidget(self.facultyComboBox)
 
         self.comboBox_2 = QtWidgets.QComboBox()
         self.comboBox_2.setFixedSize(200, 30)
@@ -224,28 +264,185 @@ class AppointmentSchedulerPage_ui(QWidget):
                 w = QtWidgets.QWidget()
                 w.setStyleSheet("QWidget { background: white; }")
                 self.weeklyGrid.setCellWidget(r, c, w)
-        print(f"Test: {times}")
+
         grid_layout.addWidget(self.weeklyGrid, 1)
         parent_layout.addWidget(grid_container, 1)
-        self._populateWeeklySchedule()
 
-    def _addWeeklySlot(self, row, col, title="Available", appt_id=None):
+    def _addWeeklySlot(self, row, col, title="Available", appt_id=None, is_available=True):
+        """Add a slot to the weekly grid"""
         slot = QtWidgets.QLabel(title)
+        
         if appt_id:
-            # Booked appointment - different color
-            slot.setStyleSheet("QLabel { background: #4CAF50; color: white; border-radius: 4px; font: 9pt 'Poppins'; text-align: center; padding: 2px; }")
-        else:
+            # Booked appointment - different color based on status
+            if "Pending" in title:
+                slot.setStyleSheet("QLabel { background: #FFA500; color: white; border-radius: 4px; font: 9pt 'Poppins'; text-align: center; padding: 2px; }")
+            elif "Approved" in title:
+                slot.setStyleSheet("QLabel { background: #4CAF50; color: white; border-radius: 4px; font: 9pt 'Poppins'; text-align: center; padding: 2px; }")
+            elif "Denied" in title or "Canceled" in title:
+                slot.setStyleSheet("QLabel { background: #EB5757; color: white; border-radius: 4px; font: 9pt 'Poppins'; text-align: center; padding: 2px; }")
+            else:
+                slot.setStyleSheet("QLabel { background: #2196F3; color: white; border-radius: 4px; font: 9pt 'Poppins'; text-align: center; padding: 2px; }")
+        elif is_available:
             # Available slot
             slot.setStyleSheet("QLabel { background: #ffc000; border-radius: 4px; font: 9pt 'Poppins'; text-align: center; padding: 2px; }")
+        else:
+            # Unavailable slot
+            slot.setStyleSheet("QLabel { background: #e0e0e0; border-radius: 4px; font: 9pt 'Poppins'; text-align: center; padding: 2px; color: #999; }")
+            slot.setText("Unavailable")
         
-        slot.mousePressEvent = lambda event: self._showAppointmentDetails(row, col, appt_id) if appt_id else None
+        if appt_id or is_available:
+            slot.mousePressEvent = lambda event, r=row, c=col, aid=appt_id, avail=is_available: self._handleSlotClick(r, c, aid, avail)
+        
         container = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(2, 2, 2, 2)
         layout.addWidget(slot, 1)
         self.weeklyGrid.setCellWidget(row, col, container)
 
+    def _handleSlotClick(self, row, col, appt_id, is_available):
+        """Handle click on a schedule slot"""
+        if appt_id:
+            # Show appointment details
+            self._showAppointmentDetails(row, col, appt_id)
+        elif is_available and self.primary_role == "student":
+            # Student can book appointment
+            self._bookAppointment(row, col)
+        elif is_available and self.primary_role == "faculty":
+            # Faculty can mark as busy
+            self._markAsBusy(row, col)
+
+    def _bookAppointment(self, row, col):
+        """Book an appointment for student"""
+        if not self.current_faculty_id:
+            QMessageBox.warning(self, "Error", "Please select a faculty member.")
+            return
+
+        # Get date and time from grid position
+        selected_date = self.dateEdit.date()
+        day_offset = col - 1  # Column 1 is Sunday, 2 is Monday, etc.
+        target_date = selected_date.addDays(day_offset - selected_date.dayOfWeek() + 1)  # Adjust to get correct day
+        
+        # Calculate time from row
+        hour = row // 2
+        minute = 30 if row % 2 else 0
+        start_time = f"{hour:02d}:{minute:02d}"
+        
+        # Calculate end time (30 minutes later)
+        end_hour = hour + (1 if minute == 30 else 0)
+        end_minute = 0 if minute == 30 else 30
+        if end_hour == 24:
+            end_hour = 0
+        end_time = f"{end_hour:02d}:{end_minute:02d}"
+        
+        # Show booking dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Book Appointment")
+        dialog.setModal(True)
+        dialog.setFixedSize(400, 300)
+        dialog.setStyleSheet("QDialog { background-color: white; border-radius: 12px; }")
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        # Header
+        header_label = QLabel("Book New Appointment")
+        header_label.setStyleSheet("QLabel { color: #084924; font: 600 16pt 'Poppins'; }")
+        layout.addWidget(header_label)
+
+        # Form
+        form_layout = QFormLayout()
+        form_layout.setVerticalSpacing(10)
+        form_layout.setHorizontalSpacing(15)
+
+        date_label = QLabel("Date:")
+        date_label.setStyleSheet("QLabel { font: 600 11pt 'Poppins'; color: #333; }")
+        date_value = QLabel(target_date.toString("yyyy-MM-dd"))
+        date_value.setStyleSheet("QLabel { font: 11pt 'Poppins'; color: #666; }")
+        form_layout.addRow(date_label, date_value)
+
+        time_label = QLabel("Time:")
+        time_label.setStyleSheet("QLabel { font: 600 11pt 'Poppins'; color: #333; }")
+        time_value = QLabel(f"{self.convert_time(start_time)} - {self.convert_time(end_time)}")
+        time_value.setStyleSheet("QLabel { font: 11pt 'Poppins'; color: #666; }")
+        form_layout.addRow(time_label, time_value)
+
+        purpose_label = QLabel("Purpose:")
+        purpose_label.setStyleSheet("QLabel { font: 600 11pt 'Poppins'; color: #333; }")
+        purpose_edit = QtWidgets.QTextEdit()
+        purpose_edit.setMaximumHeight(80)
+        purpose_edit.setStyleSheet("QTextEdit { border: 1px solid #ccc; border-radius: 4px; padding: 8px; font: 10pt 'Poppins'; }")
+        form_layout.addRow(purpose_label, purpose_edit)
+
+        layout.addLayout(form_layout)
+
+        # Buttons
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addStretch(1)
+        
+        cancel_button = QPushButton("Cancel")
+        cancel_button.setFixedSize(100, 35)
+        cancel_button.setStyleSheet("""
+            QPushButton { 
+                background-color: #6c757d; 
+                color: white; 
+                border-radius: 6px; 
+                font: 600 11pt 'Poppins'; 
+            }
+            QPushButton:hover { 
+                background-color: #5a6268; 
+            }
+        """)
+        cancel_button.clicked.connect(dialog.reject)
+        button_layout.addWidget(cancel_button)
+        
+        book_button = QPushButton("Book Appointment")
+        book_button.setFixedSize(140, 35)
+        book_button.setStyleSheet("""
+            QPushButton { 
+                background-color: #084924; 
+                color: white; 
+                border-radius: 6px; 
+                font: 600 11pt 'Poppins'; 
+            }
+            QPushButton:hover { 
+                background-color: #0a5a2f; 
+            }
+        """)
+        button_layout.addWidget(book_button)
+        
+        layout.addLayout(button_layout)
+
+        def handle_booking():
+            purpose = purpose_edit.toPlainText().strip()
+            if not purpose:
+                QMessageBox.warning(dialog, "Error", "Please enter appointment purpose.")
+                return
+
+            # Create appointment data
+            appointment_data = {
+                "faculty": self.current_faculty_id,
+                "start_at": f"{target_date.toString('yyyy-MM-dd')}T{start_time}:00",
+                "end_at": f"{target_date.toString('yyyy-MM-dd')}T{end_time}:00",
+                "additional_details": purpose
+            }
+
+            result = self.crud.create_appointment(appointment_data)
+            if result:
+                QMessageBox.information(dialog, "Success", "Appointment booked successfully!")
+                dialog.accept()
+                self._populateWeeklySchedule()
+            else:
+                QMessageBox.critical(dialog, "Error", "Failed to book appointment. Please try again.")
+
+        book_button.clicked.connect(handle_booking)
+        dialog.exec()
+
     def _populateWeeklySchedule(self):
+        """Populate weekly schedule with available slots and appointments"""
+        if not self.current_faculty_id:
+            return
+
         # Clear all cells first
         for r in range(self.weeklyGrid.rowCount()):
             for c in range(1, self.weeklyGrid.columnCount()):
@@ -254,81 +451,58 @@ class AppointmentSchedulerPage_ui(QWidget):
                 w.setStyleSheet("QWidget { background: white; border: 1px solid #e0e0e0; }")
                 self.weeklyGrid.setCellWidget(r, c, w)
 
-        block = self.crud.get_active_block(self.faculty_id)
-        logging.debug(f"Active block: {block}")
-        if "error" in block:
-            logging.warning("No active block found")
-            return
-
-        entries = self.crud.get_block_entries(block["id"])
-        logging.debug(f"Block entries: {entries}")
-        appointments = self.crud.get_faculty_appointments(self.faculty_id)
-        logging.debug(f"Faculty appointments: {appointments}")
-        day_map = {"Sunday": 1, "Monday": 2, "Tuesday": 3, "Wednesday": 4, "Thursday": 5, "Friday": 6, "Saturday": 7}
-        
-        # Create time map for 12-hour format
-        time_map = {}
-        for i, (h, m) in enumerate([(h, m) for h in range(0, 24) for m in [0, 30]]):
-            period = "AM" if h < 12 else "PM"
-            hour = h % 12 if h != 0 else 12
-            time_str = f"{hour}:{m:02d} {period}"
-            time_map[time_str] = i
-        
-        print(f"Test:  {time_map}")
-
         # Get the selected week (Monday to Sunday based on dateEdit)
         selected_date = self.dateEdit.date()
         start_of_week = selected_date.addDays(-(selected_date.dayOfWeek() - 1))  # First day of the week (Monday)
-        end_of_week = start_of_week.addDays(6)  # Last day of the week (Sunday)
-        logging.debug(f"Selected week: {start_of_week.toString('yyyy-MM-dd')} to {end_of_week.toString('yyyy-MM-dd')}")
+        
+        # Day mapping for columns (0: Time, 1: Sun, 2: Mon, ..., 7: Sat)
+        day_map = {1: "Sun", 2: "Mon", 3: "Tue", 4: "Wed", 5: "Thu", 6: "Fri", 7: "Sat"}
+        date_map = {}
+        
+        # Map dates to columns
+        for i in range(7):
+            current_date = start_of_week.addDays(i)
+            col = i + 1  # Columns 1-7 for Sun-Sat
+            date_map[col] = current_date.toString("yyyy-MM-dd")
 
-        # Populate available slots
-        for entry in entries:
-            col = day_map.get(entry["day_of_week"])
-            if col:
-                # Convert 24-hour time to 12-hour format
-                start_time_24h = entry["start_time"]
-                if ":" in start_time_24h:
-                    hour, minute = map(int, start_time_24h.split(":"))
-                    period = "AM" if hour < 12 else "PM"
-                    hour_12 = hour % 12 if hour != 0 else 12
-                    start_time_12h = f"{hour_12}:{minute:02d} {period}"
-                    
-                    if start_time_12h in time_map:
-                        row = time_map[start_time_12h]
-                        self._addWeeklySlot(row, col, "Available")
+        # Get available slots and appointments for each day
+        for col, date_str in date_map.items():
+            available_slots = self.crud.get_faculty_available_schedule(self.current_faculty_id, date_str)
+            appointments = self.crud.get_faculty_appointments() if self.primary_role == "faculty" else self.crud.get_student_appointments()
+            
+            # Create time map for rows
+            time_map = {}
+            for row in range(48):  # 48 half-hour slots
+                hour = row // 2
+                minute = 30 if row % 2 else 0
+                time_key = f"{hour:02d}:{minute:02d}"
+                time_map[time_key] = row
 
-        # Populate booked appointments for the selected week
-        for appt in appointments:
-            appt_date_str = appt.get("appointment_date")
-            if appt_date_str:
-                try:
-                    appt_date = QtCore.QDate.fromString(appt_date_str, "yyyy-MM-dd")
-                    logging.debug(f"Checking appointment: {appt}, date: {appt_date.toString('yyyy-MM-dd')}")
-                    
-                    if start_of_week <= appt_date <= end_of_week:
-                        entry = next((e for e in entries if e["id"] == appt.get("appointment_schedule_entry_id")), {})
-                        if entry:
-                            col = day_map.get(entry["day_of_week"])
-                            if col:
-                                # Convert 24-hour time to 12-hour format
-                                start_time_24h = entry["start_time"]
-                                if ":" in start_time_24h:
-                                    hour, minute = map(int, start_time_24h.split(":"))
-                                    period = "AM" if hour < 12 else "PM"
-                                    hour_12 = hour % 12 if hour != 0 else 12
-                                    start_time_12h = f"{hour_12}:{minute:02d} {period}"
-                                    
-                                    if start_time_12h in time_map:
-                                        row = time_map[start_time_12h]
-                                        # Get student name
-                                        student = next((s for s in self.crud.list_students() if s['id'] == appt.get('student_id')), {})
-                                        student_name = student.get('name', 'Unknown')
-                                        status = appt.get('status', 'Booked')
-                                        title = f"{status}: {student_name}"
-                                        self._addWeeklySlot(row, col, title, appt["id"])
-                except Exception as e:
-                    logging.error(f"Error processing appointment date: {e}")
+            # Mark available slots
+            for slot in available_slots:
+                start_time = slot['start'].split('T')[1][:5]  # Extract HH:MM
+                if start_time in time_map:
+                    row = time_map[start_time]
+                    self._addWeeklySlot(row, col, "Available", None, True)
+
+            # Mark appointments
+            for appt in appointments:
+                if appt.get('faculty', {}).get('id') == self.current_faculty_id:
+                    appt_date = appt['start_at'].split('T')[0]
+                    if appt_date == date_str:
+                        start_time = appt['start_at'].split('T')[1][:5]
+                        if start_time in time_map:
+                            row = time_map[start_time]
+                            status = appt.get('status', 'Pending')
+                            student_name = appt.get('student', {}).get('user', {}).get('first_name', 'Unknown')
+                            title = f"{status}: {student_name}"
+                            self._addWeeklySlot(row, col, title, appt['id'], False)
+
+    def _onFacultyChanged(self, index):
+        """Handle faculty selection change"""
+        if index >= 0:
+            self.current_faculty_id = self.facultyComboBox.itemData(index)
+            self._populateWeeklySchedule()
 
     def _updateWeek(self):
         self._populateWeeklySchedule()
@@ -354,35 +528,38 @@ class AppointmentSchedulerPage_ui(QWidget):
         self._populateWeeklySchedule()
 
     def _showAppointmentDetails(self, row, col, appt_id):
-        if appt_id is None:
-            logging.info("No appointment details available for this slot")
-            return
-
-        appt = next((a for a in self.crud.get_faculty_appointments(self.faculty_id) if a["id"] == appt_id), {})
+        """Show appointment details dialog"""
+        appointments = self.crud.get_faculty_appointments() if self.primary_role == "faculty" else self.crud.get_student_appointments()
+        appt = next((a for a in appointments if a["id"] == appt_id), None)
+        
         if not appt:
-            logging.warning(f"No appointment found for ID: {appt_id}")
+            QMessageBox.warning(self, "Error", "Appointment not found.")
             return
 
-        entry = next((e for e in self.crud.entries_db.read_all() if e["id"] == appt.get("appointment_schedule_entry_id", -1)), {})
-        student = next((s for s in self.crud.list_students() if s["id"] == appt.get("student_id", -1)), {})
+        # Format appointment details
+        start_time = appt['start_at'].replace('T', ' ').split('.')[0]
+        end_time = appt['end_at'].replace('T', ' ').split('.')[0]
         
-        # Format time display
-        start_time = self.convert_time(entry.get('start_time', ''))
-        end_time = self.convert_time(entry.get('end_time', ''))
-        time_display = f"{start_time} - {end_time}" if start_time and end_time else "N/A"
-        
+        if self.primary_role == "faculty":
+            user_info = appt.get('student', {}).get('user', {})
+            user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+            user_role = "Student"
+        else:
+            user_info = appt.get('faculty', {}).get('user', {})
+            user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+            user_role = "Faculty"
+
         details = [
-            ("Student:", student.get("name", "Unknown")),
-            ("Date:", appt.get("appointment_date", "N/A")),
-            ("Time:", time_display),
-            ("Purpose:", appt.get("additional_details", "N/A")),
-            ("Status:", appt.get("status", "Pending").capitalize()),
-            ("Location:", appt.get("address", "N/A")),
-            ("Contact:", student.get("email", "N/A"))
+            (f"{user_role}:", user_name),
+            ("Date:", start_time.split()[0]),
+            ("Time:", f"{self.convert_time(start_time.split()[1][:5])} - {self.convert_time(end_time.split()[1][:5])}"),
+            ("Purpose:", appt.get('additional_details', 'N/A')),
+            ("Status:", appt.get('status', 'Pending').capitalize()),
+            ("Contact:", user_info.get('email', 'N/A'))
         ]
         
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"Appointment Details")
+        dialog.setWindowTitle("Appointment Details")
         dialog.setModal(True)
         dialog.setMinimumSize(450, 400)
         dialog.setStyleSheet("QDialog { background-color: white; border-radius: 12px; }")
@@ -426,18 +603,73 @@ class AppointmentSchedulerPage_ui(QWidget):
             form_layout.addRow(label_widget, value_widget)
         layout.addWidget(group)
 
+        # Action buttons for faculty
+        if self.primary_role == "faculty" and appt.get('status') in ['pending', 'Pending']:
+            button_layout = QtWidgets.QHBoxLayout()
+            
+            approve_button = QPushButton("Approve")
+            approve_button.setFixedSize(100, 35)
+            approve_button.setStyleSheet("""
+                QPushButton { 
+                    background-color: #4CAF50; 
+                    color: white; 
+                    border-radius: 6px; 
+                    font: 600 11pt 'Poppins'; 
+                }
+                QPushButton:hover { 
+                    background-color: #45a049; 
+                }
+            """)
+            approve_button.clicked.connect(lambda: self._updateAppointmentStatus(appt_id, 'approved', dialog))
+            button_layout.addWidget(approve_button)
+            
+            deny_button = QPushButton("Deny")
+            deny_button.setFixedSize(100, 35)
+            deny_button.setStyleSheet("""
+                QPushButton { 
+                    background-color: #EB5757; 
+                    color: white; 
+                    border-radius: 6px; 
+                    font: 600 11pt 'Poppins'; 
+                }
+                QPushButton:hover { 
+                    background-color: #d43f3f; 
+                }
+            """)
+            deny_button.clicked.connect(lambda: self._updateAppointmentStatus(appt_id, 'denied', dialog))
+            button_layout.addWidget(deny_button)
+            
+            layout.addLayout(button_layout)
+
         # Button layout
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addStretch(1)
         
+        if self.primary_role == "student" and appt.get('status') in ['pending', 'Pending', 'approved', 'Approved']:
+            cancel_button = QPushButton("Cancel Appointment")
+            cancel_button.setFixedSize(140, 35)
+            cancel_button.setStyleSheet("""
+                QPushButton { 
+                    background-color: #EB5757; 
+                    color: white; 
+                    border-radius: 6px; 
+                    font: 600 11pt 'Poppins'; 
+                }
+                QPushButton:hover { 
+                    background-color: #d43f3f; 
+                }
+            """)
+            cancel_button.clicked.connect(lambda: self._updateAppointmentStatus(appt_id, 'canceled', dialog))
+            button_layout.addWidget(cancel_button)
+        
         close_button = QPushButton("Close")
-        close_button.setFixedSize(120, 40)
+        close_button.setFixedSize(100, 35)
         close_button.setStyleSheet("""
             QPushButton { 
                 background-color: #084924; 
                 color: white; 
-                border-radius: 8px; 
-                font: 600 12pt 'Poppins'; 
+                border-radius: 6px; 
+                font: 600 11pt 'Poppins'; 
             }
             QPushButton:hover { 
                 background-color: #0a5a2f; 
@@ -450,86 +682,55 @@ class AppointmentSchedulerPage_ui(QWidget):
 
         dialog.exec()
 
-    def _deleteSelectedSlots(self):
-        selected = self.weeklyGrid.selectedIndexes()
-        # if not selected:
-        #     logging.info("No slots selected for deletion")
-        #     QtWidgets.QMessageBox.information(self, "No Selection", "Please select appointment slots to delete.")
-        #     return
-
-        # Confirm deletion
-        reply = QtWidgets.QMessageBox.question(
-            self, 
-            "Confirm Deletion", 
-            f"Are you sure you want to delete {len(selected)} selected appointment(s)?",
-            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
-            QtWidgets.QMessageBox.StandardButton.No
-        )
-        
-        if reply != QtWidgets.QMessageBox.StandardButton.Yes:
-            return
-
-        block = self.crud.get_active_block(self.faculty_id)
-        print(block)
-        print("Lord Have Mercy")
-        if "error" in block:
-            logging.warning("No active block found")
-            QtWidgets.QMessageBox.warning(self, "Error", "No active schedule block found.")
-            return
+    def _updateAppointmentStatus(self, appointment_id, status, dialog):
+        """Update appointment status"""
+        result = self.crud.update_appointment(appointment_id, {"status": status})
+        if result:
+            QMessageBox.information(self, "Success", f"Appointment {status} successfully!")
+            dialog.accept()
+            self._populateWeeklySchedule()
         else:
-            print(block["id"])
-            self.crud.delete_active_block(block["id"])
+            QMessageBox.critical(self, "Error", f"Failed to {status} appointment.")
+
+    def _markAsBusy(self, row, col):
+        """Mark time slot as busy (for faculty)"""
+        # This would require creating a BusyBlock via the API
+        # For now, show a message
+        QMessageBox.information(self, "Feature", "Mark as busy functionality would be implemented here.")
+
+    def _deleteSelectedSlots(self):
+        """Delete selected slots/appointments"""
+        selected = self.weeklyGrid.selectedIndexes()
+        if not selected:
+            QMessageBox.information(self, "No Selection", "Please select appointment slots to delete.")
+            return
+
+        # For now, this will cancel selected appointments
+        appointment_ids = []
+        for index in selected:
+            row, col = index.row(), index.column()
+            if col == 0:  # Skip time column
+                continue
             
-        # appointments = self.crud.get_faculty_appointments(self.faculty_id)
-        # day_map = {1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", 7: "Sunday"}
-        
-        # # Create time map for 12-hour format
-        # time_map = {}
-        # for i, (h, m) in enumerate([(h, m) for h in range(0, 13) for m in [0, 30]]):
-        #     period = "AM" if h < 12 else "PM"
-        #     hour = h % 12 if h != 0 else 12
-        #     time_str = f"{hour}:{m:02d} {period}"
-        #     time_map[i] = time_str
-
-        # deleted_count = 0
-        # for index in selected:
-        #     row, col = index.row(), index.column()
-        #     if col == 0:  # Skip time column
-        #         continue
-                
-        #     start_time = time_map.get(row)
-        #     day = day_map.get(col)
+            # In a real implementation, you would map the cell back to an appointment ID
+            # For now, we'll just collect potentially affected appointments
             
-        #     if not start_time or not day:
-        #         continue
-
-        #     # Find appointments for this time slot
-        #     for appt in appointments:
-        #         entry = next((e for e in self.crud.entries_db.read_all() if e["id"] == appt.get("appointment_schedule_entry_id")), {})
-        #         if entry and entry["day_of_week"] == day:
-        #             # Convert entry time to 12-hour format for comparison
-        #             entry_start_time_24h = entry["start_time"]
-        #             if ":" in entry_start_time_24h:
-        #                 hour, minute = map(int, entry_start_time_24h.split(":"))
-        #                 period = "AM" if hour < 12 else "PM"
-        #                 hour_12 = hour % 12 if hour != 0 else 12
-        #                 entry_start_time_12h = f"{hour_12}:{minute:02d} {period}"
-                        
-        #                 if entry_start_time_12h == start_time:
-        #                     logging.debug(f"Deleting appointment: {appt}")
-        #                     result = self.crud.delete_appointment(appt["id"])
-        #                     if result:
-        #                         deleted_count += 1
-        #                     break
-
-        # Refresh the schedule
-        self._populateWeeklySchedule()
-        
-        # # Show result message
-        # if deleted_count > 0:
-        #     QtWidgets.QMessageBox.information(self, "Success", f"Successfully deleted {deleted_count} appointment(s).")
-        # else:
-        #     QtWidgets.QMessageBox.information(self, "No Appointments", "No appointments found in the selected slots.")
+        if appointment_ids:
+            reply = QMessageBox.question(
+                self, 
+                "Confirm Cancellation", 
+                f"Cancel {len(appointment_ids)} selected appointment(s)?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                for appt_id in appointment_ids:
+                    self.crud.update_appointment(appt_id, {"status": "canceled"})
+                self._populateWeeklySchedule()
+                QMessageBox.information(self, "Success", "Appointments cancelled successfully.")
+        else:
+            QMessageBox.information(self, "Info", "No appointments found in selected slots.")
 
     def retranslateUi(self):
         self.Academics_5.setText("Appointment Scheduler")
@@ -539,4 +740,3 @@ class AppointmentSchedulerPage_ui(QWidget):
         self.comboBox_2.setItemText(0, "1st Semester 2025 - 2026")
         self.comboBox_2.setItemText(1, "2nd Semester 2025 - 2026")
         self.comboBox_2.setItemText(2, "Summer 2026")
-        
