@@ -24,7 +24,7 @@
           "function": "TaggingMain()",
           "path": "views.Academics.TaggingWrapper",
           "access": ["admin"],
-          "modulars":[]
+          "modulars": []
         },
         {
           "id": 3,
@@ -32,15 +32,15 @@
           "function": "ClassroomMain()",
           "path": "views.Academics.ClassroomWrapper",
           "access": ["student", "faculty", "admin"],
-          "modulars":[]
+          "modulars": []
         },
         {
           "id": 4,
           "name": "Schedule",
           "function": "Schedule()",
           "path": "views.Academics.Scheduler.Schedule",
-          "access": ["student", "admin","faculty"],
-          "modulars":[]
+          "access": ["student", "admin", "faculty"],
+          "modulars": []
         },
         {
           "id": 5,
@@ -48,15 +48,15 @@
           "function": "Progress()",
           "path": "views.Progress.Progress",
           "access": ["student", "admin", "faculty"],
-          "modulars":[]
+          "modulars": []
         },
         {
           "id": 6,
           "name": "Appointments",
           "function": "Appointment_main()",
           "path": "views.Appointments.Appointment_main",
-          "access": ["faculty","student", "admin"],
-          "modulars":[]
+          "access": ["faculty", "student", "admin"],
+          "modulars": []
         }
       ]
     },
@@ -65,35 +65,12 @@
       "name": "Organization",
       "mains": [
         {
-          "id": 40,
-          "name": "Organization",
-          "function": "OrganizationMain()",
-          "path": "views.Organization.Main.OrganizationMain",
-          "access": ["student","admin"],
-          "modulars": [
-            {
-              "id": 401,
-              "name": "Student Services",
-              "function": "StudentServices()",
-              "path": "views.Organizations.StudentServices.StudentServices",
-              "access": ["student"]
-            },
-            {
-              "id": 402,
-              "name": "Admin Dashboard",
-              "function": "AdminDashboard()",
-              "path": "views.Organizations.AdminDashboard.AdminDashboard",
-              "access": ["admin"]
-          }
-          ]
-        },
-        {
           "id": 7,
           "name": "Browse",
           "function": "Browse()",
           "path": "views.Organizations.browse",
-          "access": ["student","admin", "faculty"],
-          "modulars":[]
+          "access": ["student", "admin", "faculty"],
+          "modulars": []
         },
         {
           "id": 8,
@@ -101,7 +78,7 @@
           "function": "()",
           "path": "",
           "access": ["student", "admin"],
-          "modulars":[]
+          "modulars": []
         },
         {
           "id": 9,
@@ -109,7 +86,23 @@
           "function": "Events()",
           "path": "views.Organizations.Events",
           "access": ["student", "admin"],
-          "modulars":[]
+          "modulars": []
+        },
+        {
+          "id": 40,
+          "name": "Student Services",
+          "function": "StudentServices()",
+          "path": "views.Organizations.StudentServices",
+          "access": ["student"],
+          "modulars": []
+        },
+        {
+          "id": 41,
+          "name": "Admin Dashboard",
+          "function": "AdminDashboard()",
+          "path": "views.Organizations.AdminDashboard",
+          "access": ["admin"],
+          "modulars": []
         }
       ]
     },
@@ -123,7 +116,7 @@
           "function": "MainCalendar()",
           "path": "views.Calendar.MainCalendar",
           "access": ["admin", "faculty", "staff", "student"],
-          "modulars":[]
+          "modulars": []
         },
         {
           "id": 11,
@@ -131,7 +124,7 @@
           "icon": "bullhorn",
           "function": "AnnouncementsRouter()",
           "path": "views.Announcements.Announcements",
-          "access": ["admin","faculty","staff","student"],
+          "access": ["admin", "faculty", "staff", "student"],
           "modulars": []
         },
         {
@@ -139,15 +132,15 @@
           "name": "House System",
           "function": "HouseMain()",
           "path": "views.House.HouseMain",
-          "access": ["student","admin"],
-          "modulars":[]
+          "access": ["student", "admin"],
+          "modulars": []
         },
         {
           "id": 13,
           "name": "Showcase",
           "function": "ShowcaseRouter()",
           "path": "views.Showcase.Showcase",
-          "access": ["admin","faculty","staff","student"],
+          "access": ["admin", "faculty", "staff", "student"],
           "modulars": []
         }
       ]
@@ -161,35 +154,34 @@
           "name": "Documents",
           "function": "DocumentsView()",
           "path": "views.Documents.Documents",
-          "access": ["student","admin"],
-          "modulars":[]
+          "access": ["student", "admin"],
+          "modulars": []
         },
         {
           "id": 15,
           "name": "Messages",
           "function": "LauncherWindow()",
           "path": "views.Messaging.launcher",
-          "access": ["student","faculty","admin"],
-          "modulars":[]
+          "access": ["student", "faculty", "admin"],
+          "modulars": []
         },
         {
           "id": 16,
           "name": "Student Services",
           "function": "()",
           "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
+          "access": ["student", "admin"],
+          "modulars": []
         },
         {
           "id": 17,
           "name": "Help",
           "function": "()",
           "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
+          "access": ["student", "admin"],
+          "modulars": []
         }
       ]
     }
-
   ]
 }
