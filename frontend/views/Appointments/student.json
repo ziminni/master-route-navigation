@@ -1,0 +1,30 @@
+[
+    {
+        "name": "Alice Santos",
+        "email": "alice@student.edu",
+        "course": "BSIT",
+        "year_level": 3,
+        "id": 1
+    },
+    {
+        "name": "Badong Lee",
+        "email": "badong@student.edu",
+        "course": "BSIT",
+        "year_level": 3,
+        "id": 2
+    },
+    {
+        "id": 3,
+        "name": "Adolf",
+        "email": "Adolf",
+        "course": "Unknown Course",
+        "year_level": "Unknown Year"
+    },
+    {
+        "id": 4,
+        "name": "Marcus",
+        "email": "Marcus",
+        "course": "Unknown Course",
+        "year_level": "Unknown Year"
+    }
+]
