@@ -92,7 +92,7 @@
           "id": 40,
           "name": "Student Services",
           "function": "StudentServices()",
-          "path": "views.Organizations.StudentServices",
+          "path": "views.Organizations.StudentService",
           "access": ["student"],
           "modulars": []
         },
