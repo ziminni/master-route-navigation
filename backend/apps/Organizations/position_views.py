@@ -140,7 +140,9 @@ class MemberPositionUpdateView(APIView):
             updated_by_id = request.data.get('updated_by_id')
             
             print(f"DEBUG: Updating member {member_id} to position {position_name} (ID: {position_id})")
+            print(f"DEBUG: Raw request.data = {dict(request.data)}")
             print(f"DEBUG: Term dates - Start: {start_term_str}, End: {end_term_str}")
+            print(f"DEBUG: end_term_str type: {type(end_term_str)}, value: '{end_term_str}'")
             print(f"DEBUG: Updated by BaseUser ID: {updated_by_id}")
             
             # Get the member
@@ -190,6 +192,7 @@ class MemberPositionUpdateView(APIView):
                 else:
                     # Validate start_term and end_term are provided for officer positions
                     if not start_term_str:
+                        print(f"ERROR: start_term is missing")
                         return Response(
                             {
                                 'success': False,
@@ -199,6 +202,7 @@ class MemberPositionUpdateView(APIView):
                         )
                     
                     if not end_term_str:
+                        print(f"ERROR: end_term is missing or empty: '{end_term_str}'")
                         return Response(
                             {
                                 'success': False,
@@ -214,7 +218,7 @@ class MemberPositionUpdateView(APIView):
                         end_term = datetime.strptime(end_term_str, '%Y-%m-%d').date()
                         print(f"DEBUG: Parsed dates - Start: {start_term}, End: {end_term}")
                         
-                        # Validate date order - start_term must be before end_term
+                        # Validate date order
                         if start_term >= end_term:
                             print(f"ERROR: Invalid date range - start_term ({start_term}) >= end_term ({end_term})")
                             return Response(
@@ -267,18 +271,37 @@ class MemberPositionUpdateView(APIView):
                         )
                     
                     # Deactivate any existing officer terms for this member
-                    # Set end_term to NULL to avoid CHECK constraint issues (start_term < end_term)
-                    deactivated = OfficerTerm.objects.filter(
+                    # We need to update each term individually to handle CHECK constraint (start_term < end_term)
+                    from datetime import timedelta
+                    
+                    active_terms = OfficerTerm.objects.filter(
                         member=member,
                         status='active'
-                    ).update(
-                        status='inactive',
-                        end_term=None,
-                        updated_by=updated_by_user
                     )
+                    
+                    deactivated = 0
+                    for term in active_terms:
+                        # Set end_term to either the day before new term starts, or keep existing if it's valid
+                        day_before_new_term = start_term - timedelta(days=1)
+                        
+                        # Make sure end_term is after start_term to satisfy CHECK constraint
+                        if day_before_new_term > term.start_term:
+                            new_end_term = day_before_new_term
+                        else:
+                            # If day_before_new_term is not valid, use the existing end_term or new start_term
+                            new_end_term = term.end_term if term.end_term and term.end_term > term.start_term else start_term
+                        
+                        term.status = 'inactive'
+                        term.end_term = new_end_term
+                        term.updated_by = updated_by_user
+                        term.save()
+                        deactivated += 1
+                        print(f"DEBUG: Deactivated term (start={term.start_term}, end={new_end_term})")
+                    
                     print(f"DEBUG: Deactivated {deactivated} existing officer terms")
                     
                     # Create new officer term
+                    print(f"DEBUG: Creating new officer term with start_term={start_term}, end_term={end_term} (type: {type(end_term)})")
                     new_term = OfficerTerm.objects.create(
                         org=member.organization_id,
                         position=position,
@@ -289,6 +312,7 @@ class MemberPositionUpdateView(APIView):
                         updated_by=updated_by_user
                     )
                     print(f"DEBUG: Created new officer term (ID: {new_term.id}) for {member.user_id.user.get_full_name()} as {position.name}")
+                    print(f"DEBUG: Saved term - start_term={new_term.start_term}, end_term={new_term.end_term}")
                 
                 # Get updated member data with current position
                 current_officer = OfficerTerm.objects.filter(

@@ -836,3 +836,37 @@ class OrganizationAPIService:
                 'message': f'An unexpected error occurred: {str(e)}'
             }
 
+    
+
+    @staticmethod
+    def kick_member(member_id: int, username: str) -> Dict:
+        """
+        Kick/remove a member from the organization
+        
+        Args:
+            member_id: ID of the OrganizationMember to kick
+            username: Username of the admin performing the kick
+            
+        Returns:
+            Dictionary containing the API response
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/members/{member_id}/kick/?username={username}"
+        
+        try:
+            response = requests.post(url, timeout=10)
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                error_data = response.json() if response.headers.get('content-type') == 'application/json' else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Failed to kick member'),
+                    'message': error_data.get('message', f'Server returned status {response.status_code}')
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }

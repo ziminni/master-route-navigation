@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (OrganizationCreateView, OrganizationListView, OrganizationDetailView, 
                     MembershipApplicationCreateView, StudentApplicationStatusView,
-                    OrganizationApplicantsView, ApplicationActionView, OrganizationMembersView)
+                    OrganizationApplicantsView, ApplicationActionView, OrganizationMembersView, KickMemberView)
 from .position_views import PositionsListView, MemberPositionUpdateView
 from .current_user_view import CurrentUserView
 
@@ -16,5 +16,7 @@ urlpatterns = [
     path('applications/<int:application_id>/action/', ApplicationActionView.as_view(), name='application-action'),
     path('positions/', PositionsListView.as_view(), name='positions-list'),
     path('members/<int:member_id>/position/', MemberPositionUpdateView.as_view(), name='member-position-update'),
+    path('members/<int:member_id>/kick/', KickMemberView.as_view(), name='kick-member'),
     path('current-user/', CurrentUserView.as_view(), name='current-user'),
 ]
+

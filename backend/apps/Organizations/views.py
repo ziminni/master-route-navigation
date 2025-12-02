@@ -336,7 +336,11 @@ class ApplicationActionView(APIView):
                     )
                 
                 return Response(
-                    {'message': 'Application accepted successfully'},
+                    {
+                        'success': True,
+                        'message': 'Application accepted successfully',
+                        'application_id': application_id
+                    },
                     status=status.HTTP_200_OK
                 )
             
@@ -423,3 +427,82 @@ class OrganizationMembersView(APIView):
                 {'message': 'Organization not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+class KickMemberView(APIView):
+    """API View for kicking/removing members from an organization"""
+    
+    def post(self, request, member_id):
+        """Kick a member from the organization"""
+        try:
+            from .models import OrganizationMembers, OfficerTerm
+            from django.conf import settings
+            
+            # Get the member to kick
+            member = OrganizationMembers.objects.get(id=member_id)
+            
+            # Get the admin who is performing the kick
+            username = request.query_params.get('username')
+            if not username:
+                return Response(
+                    {'success': False, 'message': 'Username is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            try:
+                admin_user = BaseUser.objects.get(username=username)
+            except BaseUser.DoesNotExist:
+                return Response(
+                    {'success': False, 'message': 'Admin user not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Update member status and kick fields
+            member.status = 'inactive'
+            member.is_kick = True
+            member.kicked_by = admin_user
+            member.save()
+            
+            print(f"DEBUG: Member {member_id} kicked by admin {admin_user.username}")
+            
+            # Deactivate any active officer terms for this member
+            active_terms = OfficerTerm.objects.filter(
+                member=member,
+                status='active'
+            )
+            
+            for term in active_terms:
+                # Keep the existing end_term or set to today if not set
+                from datetime import date, timedelta
+                if not term.end_term or term.end_term > date.today():
+                    # Set end_term to today (or day before if it violates CHECK constraint)
+                    new_end_term = date.today() if date.today() > term.start_term else term.start_term + timedelta(days=1)
+                    term.end_term = new_end_term
+                
+                term.status = 'inactive'
+                term.updated_by = admin_user
+                term.save()
+                print(f"DEBUG: Deactivated officer term for kicked member")
+            
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Member kicked successfully'
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except OrganizationMembers.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'Member not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            print(f"ERROR: Failed to kick member - {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'success': False, 'message': f'Failed to kick member: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+

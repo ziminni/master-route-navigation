@@ -518,8 +518,7 @@ class ManagerBase:
     
     def kick_member(self, row: int, bypass_cooldown: bool = False) -> None:
         """
-        Remove a member from the organization, with special handling for officers.
-        [FIXED] Consolidated logic and corrected cooldown implementation.
+        Remove a member from the organization via API
         """
         if not self.current_org:
             return
@@ -535,78 +534,71 @@ class ManagerBase:
             return
         
         member_name = member[0]
-        officers = self.current_org.get("officers", [])
-        is_officer = any(o["name"] == member_name for o in officers)
         
-        # --- ADDED: Cooldown Check ---
-        if is_officer and not bypass_cooldown:
-            is_on_cooldown, end_time = self.check_manager_action_cooldown(self.current_org['id'], "KICK_OFFICER")
-            if is_on_cooldown:
-                QMessageBox.warning(
-                    self, 
-                    "Action Cooldown", 
-                    f"Kicking officers is on cooldown for this organization.\n\nPlease try again after {end_time.strftime('%I:%M:%S %p')}."
-                )
-                return
-        # --- END Cooldown Check ---
-
-        kick_confirmed = False
+        # Get member_id from members_dict
+        member_id = None
+        if hasattr(self, 'members_dict'):
+            for mid, mdata in self.members_dict.items():
+                if mdata.get('name') == member_name:
+                    member_id = mid
+                    break
         
+        if member_id is None:
+            QMessageBox.critical(
+                self,
+                "Error",
+                "Could not identify member. Please refresh and try again."
+            )
+            return
+        
+        # Check if member is an officer
+        position = member[1] if len(member) > 1 else "Member"
+        is_officer = position and position.lower() != "member"
+        
+        # Confirm kick action
         if is_officer:
-            message = f"Caution: {member_name} is an officer of this {'organization' if not self.current_org.get('is_branch', False) else 'branch'}.\n\nAre you sure you want to kick them? This will remove them from both members and officers lists."
+            message = f"Caution: {member_name} is an officer ({position}).\n\nAre you sure you want to kick them?"
             confirm = QMessageBox.warning(
                 self, "Confirm Kick Officer", message,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
-            
-            if confirm == QMessageBox.StandardButton.Yes:
-                confirm2 = QMessageBox.critical(
-                    self, "Final Confirmation", 
-                    f"Are you absolutely sure you want to remove {member_name} as an officer and member?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                if confirm2 == QMessageBox.StandardButton.Yes:
-                    self.current_org["officers"] = [o for o in officers if o["name"] != member_name]
-                    kick_confirmed = True
-            
         else:
             confirm = QMessageBox.question(
                 self, "Confirm Kick",
                 f"Are you sure you want to kick {member_name}?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
-            if confirm == QMessageBox.StandardButton.Yes:
-                kick_confirmed = True
         
-        if kick_confirmed:
-            del self.current_org["members"][original_index]
-            
-            if "kick_cooldowns" not in self.current_org:
-                self.current_org["kick_cooldowns"] = {}
-            self.current_org["kick_cooldowns"][member_name] = datetime.datetime.now().isoformat()
-            
-            org_name = self.current_org.get('name', 'Unknown Org')
-            details = f"User was an officer: {is_officer}"
-            self._log_action("KICK_MEMBER", org_name, subject_name=member_name, changes=details)
-            
-            self.save_data()
-            
-            # --- ADDED: Set Cooldown ---
-            if is_officer and not bypass_cooldown:
-                self.set_manager_action_cooldown(self.current_org['id'], "KICK_OFFICER", minutes=5)
-            # --- END Set Cooldown ---
-
-            self.load_members(search_text)
-            
-            if is_officer:
-                current_index = self.ui.officer_history_dp.currentIndex()
-                selected_semester = self.ui.officer_history_dp.itemText(current_index)
-                current_officers = (
-                    self.current_org.get("officer_history", {}).get(selected_semester, [])
-                    if selected_semester != "Current Officers"
-                    else self.current_org.get("officers", [])
-                )
-                self.load_officers(current_officers)
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        
+        # Get admin username
+        username = getattr(self, 'name', None)
+        if not username:
+            QMessageBox.critical(
+                self,
+                "Error",
+                "Could not identify admin user. Please log in again."
+            )
+            return
+        
+        # Call API to kick member
+        from services.organization_api_service import OrganizationAPIService
+        api_response = OrganizationAPIService.kick_member(member_id, username)
+        
+        if api_response.get('success'):
+            QMessageBox.information(
+                self,
+                "Success",
+                f"{member_name} has been removed from the organization."
+            )
+            # Refresh members list
+            if hasattr(self, '_fetch_members'):
+                self._fetch_members(self.current_org["id"])
+                self.load_members(self._get_search_text())
+        else:
+            error_msg = api_response.get('message', 'Failed to kick member')
+            QMessageBox.critical(self, "Error", error_msg)
     
     def update_officer_in_org(self, updated_officer: Dict, bypass_cooldown: bool = False) -> None:
             """Update the officer data in the current organization and save.
@@ -879,7 +871,7 @@ class ManagerBase:
             self._process_application_action(application_id, "reject", applicant_name)
 
     def _process_application_action(self, application_id: int, action: str, applicant_name: str):
-        """Process accept or reject action via API"""
+        """Process accept or reject action via API with auto-remove"""
         from services.organization_api_service import OrganizationAPIService
         from PyQt6.QtWidgets import QMessageBox
         
@@ -892,10 +884,22 @@ class ManagerBase:
                 "Success",
                 f"{applicant_name}'s application has been {action_text}."
             )
-            # Refresh the applicants list
-            if self.current_org:
-                self._fetch_applicants(self.current_org["id"])
-                self.load_applicants(self._get_search_text())
+            
+            # Auto-remove: Remove from filtered_applicants and all_applicants immediately
+            if hasattr(self, 'filtered_applicants'):
+                self.filtered_applicants = [
+                    app for app in self.filtered_applicants 
+                    if app.get("id") != application_id
+                ]
+            
+            if hasattr(self, 'all_applicants'):
+                self.all_applicants = [
+                    app for app in self.all_applicants 
+                    if app.get("id") != application_id
+                ]
+            
+            # Refresh the applicants view without API call (already removed from lists)
+            self.load_applicants(self._get_search_text())
         else:
             error_msg = api_response.get("error", f"Failed to {action} application")
             QMessageBox.critical(self, "Error", error_msg)

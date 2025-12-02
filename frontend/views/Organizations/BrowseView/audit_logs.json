@@ -614,5 +614,13 @@
         "organization": "nurse",
         "subject": "Marcus Mercer",
         "details": "Position changed from 'Member' to 'President'."
+    },
+    {
+        "timestamp": "2025-12-02T22:25:21.446113",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'President' to 'Secretary'."
     }
 ]

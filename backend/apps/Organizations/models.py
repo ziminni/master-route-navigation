@@ -62,6 +62,8 @@ class OrganizationMembers(models.Model):
     )
     
     joined_at = models.DateField(auto_now_add=True)
+    is_kick = models.BooleanField(default=False)
+    kicked_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="kicked_members")
 
     class Meta:
         # db_table = "organization_members"
