@@ -1,4 +1,3 @@
-# MainCalendar.py
 # Handles calendar, activities, search, and event persistence (JSON)
 
 import json
@@ -9,12 +8,12 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QStackedWidget, QMessa
 from PyQt6.QtGui import QFont
 
 from .Calendar import Calendar
-from .AdminActivities import AdminActivities
-from .StudentActivities import StudentActivities
-from .Staff_FacultyActivities import StaffFacultyActivities
-from .AddEvent import AddEvent
-from .EditEvent import EditEvent
-from .SearchView import SearchView
+from .role.AdminActivities import AdminActivities
+from .role.StudentActivities import StudentActivities
+from .role.Staff_FacultyActivities import StaffFacultyActivities
+from .CRUD.AddEvent import AddEvent
+from .CRUD.EditEvent import EditEvent
+from .CRUD.SearchView import SearchView
 
 
 class MainCalendar(QWidget):
@@ -53,6 +52,7 @@ class MainCalendar(QWidget):
             self.activities_widget.main_calendar = self
         elif role_lower == "student":
             self.activities_widget = StudentActivities(username, roles, primary_role, token)
+            self.activities_widget.main_calendar = self  # ensure filters work for students
         elif role_lower in ["staff", "faculty"]:
             self.activities_widget = StaffFacultyActivities(username, roles, primary_role, token)
             self.activities_widget.main_calendar = self
@@ -127,11 +127,11 @@ class MainCalendar(QWidget):
 
         # ---------- stacked pages ----------
 
-        self.stacked_widget.addWidget(self.calendar_widget)      # 0 - Calendar
-        self.stacked_widget.addWidget(self.activities_widget)    # 1 - Activities
-        self.stacked_widget.addWidget(self.search_widget)        # 2 - Search
+        self.stacked_widget.addWidget(self.calendar_widget)       # 0 - Calendar
+        self.stacked_widget.addWidget(self.activities_widget)     # 1 - Activities
+        self.stacked_widget.addWidget(self.search_widget)         # 2 - Search
         if self.add_event_widget:
-            self.stacked_widget.addWidget(self.add_event_widget) # 3 - Add Event
+            self.stacked_widget.addWidget(self.add_event_widget)  # 3 - Add Event
         if self.edit_event_widget:
             self.stacked_widget.addWidget(self.edit_event_widget) # 4 - Edit Event
 

@@ -8,8 +8,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
-from .DayEventsHelper import DayEventsHelper
-
+from .helper.DayEventsHelper import DayEventsHelper
+from .CRUD.SearchView import SearchView
 
 class DayView(QWidget):
     def __init__(self, username, roles, primary_role, token):

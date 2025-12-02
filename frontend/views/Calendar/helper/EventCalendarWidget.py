@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from PyQt6.QtWidgets import QCalendarWidget
-from PyQt6.QtGui import QPainter, QColor, QFont
+from PyQt6.QtGui import QPainter, QColor
 from PyQt6.QtCore import Qt, QDate
 
 
@@ -12,6 +12,7 @@ class EventCalendarWidget(QCalendarWidget):
         self.events_by_date = {}
 
     def set_events(self, events):
+        """Store events grouped by QDate."""
         self.events_by_date.clear()
         for ev in events:
             date_str = ev.get("date_time", "")
@@ -25,15 +26,22 @@ class EventCalendarWidget(QCalendarWidget):
                 dt = datetime.strptime(date_part, "%m/%d/%Y").date()
                 qd = QDate(dt.year, dt.month, dt.day)
                 self.events_by_date.setdefault(qd, []).append(
-                    {"title": title, "type": etype}
+                    {"event": title, "type": etype}
                 )
             except Exception:
                 continue
         self.update()
 
     def paintCell(self, painter, rect, date):
+        # DO NOT call super().paintCell(...) or it will overwrite your drawing
+
         events = self.events_by_date.get(date, [])
         has_events = len(events) > 0
+
+        # Debug: make sure events really exist for this date
+        if has_events:
+            print("paintCell", date.toString("MM/dd/yyyy"),
+                [e.get("event") for e in events])
 
         type_color_map = {
             "Academic": QColor("#4CAF50"),
@@ -45,16 +53,14 @@ class EventCalendarWidget(QCalendarWidget):
         # ---------- 1) background ----------
         painter.save()
 
-        # base background
         if date == QDate.currentDate():
             base_color = QColor("#FFF3C0")  # light gold
         else:
             base_color = QColor("#FFFFFF")
 
         if has_events:
-            first_type = events[0]["type"]
+            first_type = events[0].get("type", "")
             etype_color = type_color_map.get(first_type, QColor("#9E9E9E"))
-            # very light tint of event color
             base_color = QColor(
                 (etype_color.red() + 255) // 2,
                 (etype_color.green() + 255) // 2,
@@ -71,7 +77,7 @@ class EventCalendarWidget(QCalendarWidget):
         font = painter.font()
         font.setBold(True)
         painter.setFont(font)
-        painter.setPen(QColor("#084924"))
+        painter.setPen(QColor("#000000"))
         day_rect = rect.adjusted(2, 0, -2, -rect.height() // 2 + 4)
         painter.drawText(
             day_rect,
@@ -84,21 +90,21 @@ class EventCalendarWidget(QCalendarWidget):
         if has_events:
             painter.save()
             font = painter.font()
-            font.setPointSize(max(font.pointSize() - 2, 7))
+            font.setPointSize(max(font.pointSize(), 10))
             painter.setFont(font)
 
-            top_offset = rect.top() + 18
+            top_offset = rect.top() + 20
             line_height = painter.fontMetrics().height()
             max_lines = 2
 
             for i, ev in enumerate(events[:max_lines]):
-                title = ev["title"]
-                etype = ev["type"]
+                title = ev.get("event", "")
                 title = painter.fontMetrics().elidedText(
-                    title, Qt.TextElideMode.ElideRight, rect.width() - 4
+                    title,
+                    Qt.TextElideMode.ElideRight,
+                    rect.width() - 4,
                 )
-                color = type_color_map.get(etype, QColor("#555555"))
-                painter.setPen(color)
+                painter.setPen(QColor("#000000"))
                 text_rect = rect.adjusted(
                     2, top_offset + i * line_height, -2, 0
                 )
@@ -111,7 +117,7 @@ class EventCalendarWidget(QCalendarWidget):
             extra = len(events) - max_lines
             if extra > 0:
                 more_text = f"+{extra} more"
-                painter.setPen(QColor("#666666"))
+                painter.setPen(QColor("#000000"))
                 text_rect = rect.adjusted(
                     2, top_offset + (max_lines - 1) * line_height, -2, 0
                 )
@@ -123,11 +129,11 @@ class EventCalendarWidget(QCalendarWidget):
 
             painter.restore()
 
-        # ---------- 4) gold border for today ----------
+        # ---------- 4) border for today ----------
         if date == QDate.currentDate():
             painter.save()
             pen = painter.pen()
-            pen.setColor(QColor("#red"))
+            pen.setColor(QColor("black"))
             pen.setWidth(2)
             painter.setPen(pen)
             r = rect.adjusted(1, 1, -1, -1)

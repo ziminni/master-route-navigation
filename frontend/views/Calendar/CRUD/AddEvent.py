@@ -1,10 +1,12 @@
+from datetime import datetime  # optional, if you use it elsewhere
+
+from PyQt6.QtCore import Qt, QDate, QTime, QDateTime
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
-    QMessageBox, QComboBox, QLineEdit, QTextEdit, QDateEdit, 
-    QTimeEdit, QCheckBox, QFrame, QGridLayout, QScrollArea, QCalendarWidget
-    
+    QMessageBox, QComboBox, QLineEdit, QTextEdit, QDateEdit,
+    QTimeEdit, QCheckBox, QFrame, QGridLayout, QScrollArea,
+    QCalendarWidget
 )
-from PyQt6.QtCore import Qt, QDate, QTime, QDateTime
 
 
 class AddEvent(QWidget):
@@ -38,17 +40,16 @@ class AddEvent(QWidget):
         # Main content area - the form
         self.setup_form_content(root)
 
+    # ---------- Top controls ----------
+
     def setup_controls(self, root):
-        """Setup navigation controls"""
         controls = QHBoxLayout()
-        
-        # Title
+
         title_label = QLabel("Add New Event")
         title_label.setStyleSheet("font-weight: bold; color: #084924; font-size: 18px;")
         controls.addWidget(title_label)
         controls.addStretch()
-        
-        # Back button
+
         self.btn_back = QPushButton("← Back to Activities")
         self.btn_back.setStyleSheet("""
             QPushButton {
@@ -68,12 +69,12 @@ class AddEvent(QWidget):
         """)
         self.btn_back.clicked.connect(self.back_to_activities)
         controls.addWidget(self.btn_back)
-        
+
         root.addLayout(controls)
 
+    # ---------- Scrollable form ----------
+
     def setup_form_content(self, root):
-        """Setup the main form content area with scroll capability"""
-        # Create scroll area
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
@@ -98,14 +99,12 @@ class AddEvent(QWidget):
                 background-color: #FDC601;
             }
         """)
-        
-        # Create scroll widget container
+
         scroll_widget = QWidget()
         scroll_widget.setStyleSheet("background-color: transparent;")
         scroll_layout = QVBoxLayout(scroll_widget)
         scroll_layout.setContentsMargins(10, 10, 10, 10)
-        
-        # Form container
+
         form_container = QFrame()
         form_container.setStyleSheet("""
             QFrame {
@@ -114,43 +113,29 @@ class AddEvent(QWidget):
                 border-radius: 8px;
             }
         """)
-        
+
         form_layout = QVBoxLayout(form_container)
         form_layout.setContentsMargins(30, 30, 30, 30)
         form_layout.setSpacing(20)
 
-        # Event form fields
         self.setup_event_form(form_layout)
-        
-        # User type selection
         self.setup_user_selection(form_layout)
-        
-        # Action buttons
         self.setup_action_buttons(form_layout)
-        
-        # Add form to scroll layout
+
         scroll_layout.addWidget(form_container)
         scroll_layout.addStretch()
-        
-        # Set scroll widget
+
         scroll_area.setWidget(scroll_widget)
-        
         root.addWidget(scroll_area)
 
-    def customize_calendar(self, calendar):
-        """Customize the calendar widget appearance and behavior"""
-        # Set minimum size for calendar
+    def customize_calendar(self, calendar: QCalendarWidget):
         calendar.setMinimumSize(400, 350)
-        
-        # Style the calendar
         calendar.setStyleSheet("""
             QCalendarWidget {
                 background-color: white;
                 border: 2px solid #084924;
                 border-radius: 8px;
             }
-            
-            /* Navigation bar */
             QCalendarWidget QToolButton {
                 background-color: #084924;
                 color: white;
@@ -167,8 +152,6 @@ class AddEvent(QWidget):
             QCalendarWidget QToolButton::menu-indicator {
                 image: none;
             }
-            
-            /* Month/Year selection */
             QCalendarWidget QMenu {
                 background-color: white;
                 border: 1px solid #084924;
@@ -181,8 +164,6 @@ class AddEvent(QWidget):
                 font-weight: bold;
                 color: #084924;
             }
-            
-            /* Header (days of week) */
             QCalendarWidget QWidget#qt_calendar_navigationbar {
                 background-color: #084924;
             }
@@ -192,31 +173,20 @@ class AddEvent(QWidget):
                 selection-color: #084924;
                 font-size: 13px;
             }
-            
-            /* Day cells */
             QCalendarWidget QAbstractItemView {
                 gridline-color: #e0e0e0;
                 alternate-background-color: #f8f9fa;
-            }
-            
-            /* Selected date */
-            QCalendarWidget QAbstractItemView:enabled {
-                color: #084924;
             }
             QCalendarWidget QAbstractItemView:disabled {
                 color: #cccccc;
             }
         """)
-        
-        # Set grid to be visible
         calendar.setGridVisible(True)
-        
-        # Set first day of week to Sunday (optional)
         calendar.setFirstDayOfWeek(Qt.DayOfWeek.Sunday)
 
+    # ---------- Event form ----------
+
     def setup_event_form(self, form_layout):
-        """Setup the event form fields with 12-hour time format and FIXED calendar"""
-        # Form fields container
         fields_container = QFrame()
         fields_container.setStyleSheet("""
             QFrame {
@@ -226,26 +196,23 @@ class AddEvent(QWidget):
                 padding: 20px;
             }
         """)
-        
+
         grid_layout = QGridLayout(fields_container)
         grid_layout.setSpacing(20)
         grid_layout.setContentsMargins(20, 20, 20, 20)
         grid_layout.setVerticalSpacing(25)
         grid_layout.setHorizontalSpacing(20)
-        
-        # Set column stretch
+
         grid_layout.setColumnStretch(0, 0)
         grid_layout.setColumnStretch(1, 2)
         grid_layout.setColumnStretch(2, 0)
         grid_layout.setColumnStretch(3, 2)
-        
-        # Set minimum column widths
+
         grid_layout.setColumnMinimumWidth(0, 130)
         grid_layout.setColumnMinimumWidth(1, 200)
         grid_layout.setColumnMinimumWidth(2, 130)
         grid_layout.setColumnMinimumWidth(3, 200)
-        
-        # Styling
+
         input_style = """
             QLineEdit, QComboBox, QDateEdit, QTimeEdit, QTextEdit {
                 border: 1px solid #ccc;
@@ -279,32 +246,31 @@ class AddEvent(QWidget):
                 margin-right: 5px;
             }
         """
-        
+
         label_style = """
-            font-weight: bold; 
-            color: #084924; 
-            font-size: 14px; 
+            font-weight: bold;
+            color: #084924;
+            font-size: 14px;
             padding-bottom: 5px;
         """
-        
-        # Row 0: Event Title and Description
+
+        # Row 0: Event Title
         row = 0
         label_title = QLabel("Event Title")
         label_title.setStyleSheet(label_style)
         grid_layout.addWidget(label_title, row, 0, Qt.AlignmentFlag.AlignTop)
-        
+
         self.input_event_title = QLineEdit()
         self.input_event_title.setPlaceholderText("Input Event Title Here")
         self.input_event_title.setStyleSheet(input_style)
         grid_layout.addWidget(self.input_event_title, row, 1)
-        
-        
+
         # Row 1: Event Type and Location
         row = 1
         label_type = QLabel("Event Type")
         label_type.setStyleSheet(label_style)
         grid_layout.addWidget(label_type, row, 0, Qt.AlignmentFlag.AlignTop)
-        
+
         self.combo_event_type = QComboBox()
         self.combo_event_type.addItems([
             "Select Event Type",
@@ -315,54 +281,51 @@ class AddEvent(QWidget):
         ])
         self.combo_event_type.setStyleSheet(input_style)
         grid_layout.addWidget(self.combo_event_type, row, 1)
-        
+
         label_location = QLabel("Location/Venue")
         label_location.setStyleSheet(label_style)
         grid_layout.addWidget(label_location, row, 2, Qt.AlignmentFlag.AlignTop)
-        
+
         self.input_location = QLineEdit()
         self.input_location.setPlaceholderText("(Optional)")
         self.input_location.setStyleSheet(input_style)
         grid_layout.addWidget(self.input_location, row, 3)
-        
+
         # Row 2: Start Date and Start Time
         row = 2
         label_start_date = QLabel("Start Date")
         label_start_date.setStyleSheet(label_style)
         grid_layout.addWidget(label_start_date, row, 0, Qt.AlignmentFlag.AlignTop)
-        
+
         self.date_start = QDateEdit()
         self.date_start.setDate(QDate.currentDate())
         self.date_start.setCalendarPopup(True)
         self.date_start.setDisplayFormat("MM/dd/yyyy")
         self.date_start.setStyleSheet(input_style)
-        
-        # Get and customize the calendar widget
+
         start_calendar = self.date_start.calendarWidget()
         if start_calendar is None:
             start_calendar = QCalendarWidget()
             self.date_start.setCalendarWidget(start_calendar)
         self.customize_calendar(start_calendar)
-        
         grid_layout.addWidget(self.date_start, row, 1)
-        
+
         label_start_time = QLabel("Start Time")
         label_start_time.setStyleSheet(label_style)
         grid_layout.addWidget(label_start_time, row, 2, Qt.AlignmentFlag.AlignTop)
-        
-        # Start time with AM/PM
+
         start_time_widget = QWidget()
         start_time_layout = QHBoxLayout(start_time_widget)
         start_time_layout.setContentsMargins(0, 0, 0, 0)
         start_time_layout.setSpacing(5)
-        
+
         self.time_start = QTimeEdit()
         self.time_start.setTime(QTime(9, 0))
         self.time_start.setDisplayFormat("h:mm")
         self.time_start.setTimeRange(QTime(1, 0), QTime(12, 59))
         self.time_start.setStyleSheet(input_style)
         start_time_layout.addWidget(self.time_start, 1)
-        
+
         ampm_style = """
             QPushButton {
                 border: 1px solid #ccc;
@@ -377,83 +340,81 @@ class AddEvent(QWidget):
                 font-weight: bold;
             }
         """
-        
+
         self.btn_start_am = QPushButton("AM")
         self.btn_start_am.setCheckable(True)
         self.btn_start_am.setChecked(True)
         self.btn_start_am.setFixedSize(40, 35)
         self.btn_start_am.setStyleSheet(ampm_style)
         self.btn_start_am.clicked.connect(lambda: self.set_am_pm(self.btn_start_am, self.btn_start_pm))
-        
+
         self.btn_start_pm = QPushButton("PM")
         self.btn_start_pm.setCheckable(True)
         self.btn_start_pm.setFixedSize(40, 35)
         self.btn_start_pm.setStyleSheet(ampm_style)
         self.btn_start_pm.clicked.connect(lambda: self.set_am_pm(self.btn_start_pm, self.btn_start_am))
-        
+
         start_time_layout.addWidget(self.btn_start_am)
         start_time_layout.addWidget(self.btn_start_pm)
         grid_layout.addWidget(start_time_widget, row, 3)
-        
+
         # Row 3: End Date and End Time
         row = 3
         label_end_date = QLabel("End Date")
         label_end_date.setStyleSheet(label_style)
         grid_layout.addWidget(label_end_date, row, 0, Qt.AlignmentFlag.AlignTop)
-        
+
         self.date_end = QDateEdit()
         self.date_end.setDate(QDate.currentDate())
         self.date_end.setCalendarPopup(True)
         self.date_end.setDisplayFormat("MM/dd/yyyy")
         self.date_end.setStyleSheet(input_style)
-        
-        # Get and customize the end date calendar widget
+
         end_calendar = self.date_end.calendarWidget()
         if end_calendar is None:
             end_calendar = QCalendarWidget()
             self.date_end.setCalendarWidget(end_calendar)
         self.customize_calendar(end_calendar)
-        
         grid_layout.addWidget(self.date_end, row, 1)
-        
+
         label_end_time = QLabel("End Time")
         label_end_time.setStyleSheet(label_style)
         grid_layout.addWidget(label_end_time, row, 2, Qt.AlignmentFlag.AlignTop)
-        
-        # End time with AM/PM
+
         end_time_widget = QWidget()
         end_time_layout = QHBoxLayout(end_time_widget)
         end_time_layout.setContentsMargins(0, 0, 0, 0)
         end_time_layout.setSpacing(5)
-        
+
         self.time_end = QTimeEdit()
-        self.time_end.setTime(QTime(5, 0))
+        self.time_end.setTime(QTime(17, 0))
         self.time_end.setDisplayFormat("h:mm")
         self.time_end.setTimeRange(QTime(1, 0), QTime(12, 59))
         self.time_end.setStyleSheet(input_style)
         end_time_layout.addWidget(self.time_end, 1)
-        
+
         self.btn_end_am = QPushButton("AM")
         self.btn_end_am.setCheckable(True)
         self.btn_end_am.setFixedSize(40, 35)
         self.btn_end_am.setStyleSheet(ampm_style)
         self.btn_end_am.clicked.connect(lambda: self.set_am_pm(self.btn_end_am, self.btn_end_pm))
-        
+
         self.btn_end_pm = QPushButton("PM")
         self.btn_end_pm.setCheckable(True)
         self.btn_end_pm.setChecked(True)
         self.btn_end_pm.setFixedSize(40, 35)
         self.btn_end_pm.setStyleSheet(ampm_style)
         self.btn_end_pm.clicked.connect(lambda: self.set_am_pm(self.btn_end_pm, self.btn_end_am))
-        
+
         end_time_layout.addWidget(self.btn_end_am)
         end_time_layout.addWidget(self.btn_end_pm)
         grid_layout.addWidget(end_time_widget, row, 3)
-        
+
         form_layout.addWidget(fields_container)
 
+    # ---------- User selection ----------
+
     def setup_user_selection(self, form_layout):
-        """Setup user type selection checkboxes"""
         user_container = QFrame()
         user_container.setStyleSheet("""
             QFrame {
@@ -463,17 +424,17 @@ class AddEvent(QWidget):
                 padding: 20px;
             }
         """)
-        
+
         user_layout = QVBoxLayout(user_container)
         user_layout.setSpacing(15)
-        
+
         title = QLabel("Target Audience")
         title.setStyleSheet("font-weight: bold; color: #084924; font-size: 16px; padding-bottom: 10px;")
         user_layout.addWidget(title)
-        
+
         checkboxes_layout = QHBoxLayout()
         checkboxes_layout.setSpacing(25)
-        
+
         checkbox_style = """
             QCheckBox {
                 font-size: 14px;
@@ -496,37 +457,37 @@ class AddEvent(QWidget):
                 background-color: #FDC601;
             }
         """
-        
+
         self.check_students = QCheckBox("Students")
         self.check_students.setStyleSheet(checkbox_style)
         checkboxes_layout.addWidget(self.check_students)
-        
+
         self.check_faculty = QCheckBox("Faculty")
         self.check_faculty.setStyleSheet(checkbox_style)
         checkboxes_layout.addWidget(self.check_faculty)
-        
+
         self.check_org_officer = QCheckBox("Organization Officer")
         self.check_org_officer.setStyleSheet(checkbox_style)
         checkboxes_layout.addWidget(self.check_org_officer)
-        
+
         self.check_all = QCheckBox("All")
         self.check_all.setStyleSheet(checkbox_style)
         self.check_all.stateChanged.connect(self.toggle_all_users)
         checkboxes_layout.addWidget(self.check_all)
-        
+
         checkboxes_layout.addStretch()
         user_layout.addLayout(checkboxes_layout)
-        
+
         form_layout.addWidget(user_container)
 
+    # ---------- Action buttons ----------
+
     def setup_action_buttons(self, form_layout):
-        """Setup save and cancel buttons"""
-        # Add some spacing before buttons
         form_layout.addSpacing(10)
-        
+
         buttons_layout = QHBoxLayout()
         buttons_layout.addStretch()
-        
+
         self.btn_cancel = QPushButton("Cancel")
         self.btn_cancel.setFixedSize(120, 50)
         self.btn_cancel.setStyleSheet("""
@@ -545,10 +506,9 @@ class AddEvent(QWidget):
         """)
         self.btn_cancel.clicked.connect(self.cancel_event)
         buttons_layout.addWidget(self.btn_cancel)
-        
-        # Add spacing between buttons
+
         buttons_layout.addSpacing(15)
-        
+
         self.btn_save = QPushButton("Save Event")
         self.btn_save.setFixedSize(140, 50)
         self.btn_save.setStyleSheet("""
@@ -569,131 +529,108 @@ class AddEvent(QWidget):
         """)
         self.btn_save.clicked.connect(self.save_event)
         buttons_layout.addWidget(self.btn_save)
-        
+
         form_layout.addLayout(buttons_layout)
 
+    # ---------- Validation ----------
+
     def validate_event_datetime(self):
-        """
-        Validate event date and time constraints.
-        Returns tuple: (is_valid: bool, error_message: str)
-        """
-        # Get start date and time
         start_date = self.date_start.date()
         start_time = self.time_start.time()
-        
-        # Convert to 24-hour format based on AM/PM selection
+
         start_hour = start_time.hour()
         if self.btn_start_pm.isChecked() and start_hour != 12:
             start_hour += 12
         elif self.btn_start_am.isChecked() and start_hour == 12:
             start_hour = 0
-        
-        # Get end date and time
+
         end_date = self.date_end.date()
         end_time = self.time_end.time()
-        
-        # Convert to 24-hour format based on AM/PM selection
+
         end_hour = end_time.hour()
         if self.btn_end_pm.isChecked() and end_hour != 12:
             end_hour += 12
         elif self.btn_end_am.isChecked() and end_hour == 12:
             end_hour = 0
-        
-        # Create full datetime objects for comparison
-        start_datetime = QDateTime(start_date, QTime(start_hour, start_time.minute()))
-        end_datetime = QDateTime(end_date, QTime(end_hour, end_time.minute()))
-        
-        # Validation 1: End datetime must be after start datetime
-        if end_datetime <= start_datetime:
+
+        start_dt = QDateTime(start_date, QTime(start_hour, start_time.minute()))
+        end_dt = QDateTime(end_date, QTime(end_hour, end_time.minute()))
+
+        if end_dt <= start_dt:
             return False, "End date and time must be after the start date and time."
-        
-        # Validation 2: Start time must be between 7 AM and 8 PM
+
         if start_hour < 7 or start_hour >= 20:
             return False, "Start time must be between 7:00 AM and 8:00 PM."
-        
-        # Validation 3: End time must be between 7 AM and 8 PM
+
         if end_hour < 7 or end_hour >= 20:
             return False, "End time must be between 7:00 AM and 8:00 PM."
-        
-        # Special case: If end time is exactly 8:00 PM (20:00), allow only if minutes are 0
+
         if end_hour == 20 and end_time.minute() > 0:
             return False, "End time cannot be later than 8:00 PM."
-        
+
         return True, ""
 
-    # Event handlers
+    # ---------- Event handlers ----------
+
     def set_am_pm(self, selected_btn, other_btn):
-        """Handle AM/PM button selection"""
         selected_btn.setChecked(True)
         other_btn.setChecked(False)
 
     def toggle_all_users(self):
-        """Handle the 'All' checkbox"""
         is_checked = self.check_all.isChecked()
         self.check_students.setChecked(is_checked)
         self.check_faculty.setChecked(is_checked)
         self.check_org_officer.setChecked(is_checked)
 
     def back_to_activities(self):
-        """Navigate back to activities"""
         if self.navigate_back_to_activities:
             self.navigate_back_to_activities()
         else:
             self._info("Navigation not configured")
 
     def save_event(self):
-        """Handle save event action - saves to JSON through MainCalendar"""
-        # Validate inputs
         event_title = self.input_event_title.text().strip()
         event_type = self.combo_event_type.currentText()
-        
+
         if not event_title:
             self._error("Please enter an event title.")
             return
-            
+
         if event_type == "Select Event Type":
             self._error("Please select an event type.")
             return
-        
-        # Validate date and time constraints
+
         is_valid, error_message = self.validate_event_datetime()
         if not is_valid:
             self._error(error_message)
             return
-        
-        # Get start date and time
+
         start_date = self.date_start.date()
         start_time = self.time_start.time()
-        
-        # Convert to 24-hour format based on AM/PM selection
+
         start_hour = start_time.hour()
         if self.btn_start_pm.isChecked() and start_hour != 12:
             start_hour += 12
         elif self.btn_start_am.isChecked() and start_hour == 12:
             start_hour = 0
-        
-        # Format start date/time
+
         start_time_str = QTime(start_hour, start_time.minute()).toString("h:mm AP")
         date_time_str = f"{start_date.toString('M/d/yyyy')}\n{start_time_str}"
-        
-        # Get location (optional)
-        location = self.input_location.text().strip() if self.input_location.text().strip() else "N/A"
-        
-        # Create event data matching the JSON format
+
+        location = self.input_location.text().strip() or "N/A"
+
         event_data = {
             "date_time": date_time_str,
             "event": event_title,
             "type": event_type,
             "location": location,
-            "status": "Upcoming"  # Default status for new events
+            "status": "Upcoming"
         }
-        
-        # Save through MainCalendar
+
         if self.main_calendar:
             if self.main_calendar.add_new_event(event_data):
                 QMessageBox.information(self, "Success", f"Event '{event_title}' has been saved successfully!")
                 self.clear_form()
-                # Navigate back to activities
                 if self.navigate_back_to_activities:
                     self.navigate_back_to_activities()
             else:
@@ -702,20 +639,18 @@ class AddEvent(QWidget):
             self._error("Cannot save event: MainCalendar reference not set.")
 
     def cancel_event(self):
-        """Handle cancel action"""
         self.clear_form()
         if self.navigate_back_to_activities:
             self.navigate_back_to_activities()
 
     def clear_form(self):
-        """Clear all form fields"""
         self.input_event_title.clear()
         self.input_location.clear()
         self.combo_event_type.setCurrentIndex(0)
         self.date_start.setDate(QDate.currentDate())
         self.date_end.setDate(QDate.currentDate())
         self.time_start.setTime(QTime(9, 0))
-        self.time_end.setTime(QTime(5, 0))
+        self.time_end.setTime(QTime(17, 0))
         self.btn_start_am.setChecked(True)
         self.btn_start_pm.setChecked(False)
         self.btn_end_am.setChecked(False)
@@ -724,6 +659,8 @@ class AddEvent(QWidget):
         self.check_faculty.setChecked(False)
         self.check_org_officer.setChecked(False)
         self.check_all.setChecked(False)
+
+    # ---------- Helpers ----------
 
     def _info(self, msg):
         QMessageBox.information(self, "Info", str(msg))

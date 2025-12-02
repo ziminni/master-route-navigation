@@ -68,7 +68,7 @@ class SearchView(QWidget):
         """)
         header_layout.addWidget(title)
         
-        subtitle = QLabel(f"Welcome, {self.username}")
+        subtitle = QLabel((""))
         subtitle.setStyleSheet("font-size: 14px; color: #666;")
         header_layout.addWidget(subtitle)
         
