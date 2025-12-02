@@ -89,37 +89,3 @@ class Holiday(models.Model):
 
 
         
-# class CalendarEntry(models.Model):
-#     title = models.CharField(max_length=120)
-#     description = models.TextField(null=True, blank=True)
-#     created_by = models.ForeignKey(user_model.BaseUser, on_delete=models.PROTECT, related_name="created_events")
-#     event_type = models.CharField(
-#         max_length=10,
-#         choices=CalendarEventType.choices,
-#         default=CalendarEventType.ACADEMIC
-#     )
-#     start_datetime = models.DateTimeField()
-#     end_datetime = models.DateTimeField()
-#     location = models.CharField(max_length=150, null=True, blank=True)
-#     is_public = models.BooleanField(default=True)
-#     is_official = models.BooleanField(default=False)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     updated_by = models.ForeignKey(user_model.BaseUser, on_delete=models.PROTECT)
-#     updated_at = models.DateTimeField(auto_now=True)
-
-#     class Meta:
-#         db_table = "calendar_entries"
-#         ordering = ['start_datetime']
-#         indexes = [
-#             models.Index(fields=['event_type']),
-#             models.Index(fields=['start_datetime', 'end_datetime']),
-#         ]
-#         constraints = [
-#             models.CheckConstraint(
-#                 check=models.Q(end_datetime__gt=models.F('start_datetime')),
-#                 name='end_after_start'
-#             ),
-#         ]
-
-#     def __str__(self):
-#         return f"{self.title} ({self.start_datetime.date()})"
