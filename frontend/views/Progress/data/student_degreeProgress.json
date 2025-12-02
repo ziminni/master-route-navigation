@@ -1,0 +1,516 @@
+{
+  "semesters": {
+    "2024-2025 1st Sem": {
+      "subjects": [
+        {
+          "no": 1,
+          "subject_code": "ITCC31",
+          "description": "Computer Programming",
+          "units": 3.00,
+          "year_term": "2024-2025 1st Semester",
+          "grades": 1.50,
+          "pre_requisites": "N/A",
+          "category": "Core Courses"
+        },
+        {
+          "no": 2,
+          "subject_code": "MATH101",
+          "description": "Calculus I",
+          "units": 3.00,
+          "year_term": "2024-2025 1st Semester",
+          "grades": 2.00,
+          "pre_requisites": "N/A",
+          "category": "Core Courses"
+        },
+        {
+          "no": 3,
+          "subject_code": "GE101",
+          "description": "English Communication",
+          "units": 3.00,
+          "year_term": "2024-2025 1st Semester",
+          "grades": 1.50,
+          "pre_requisites": "N/A",
+          "category": "General Education"
+        },
+        {
+          "no": 4,
+          "subject_code": "GE102",
+          "description": "Philippine History",
+          "units": 3.00,
+          "year_term": "2024-2025 1st Semester",
+          "grades": 1.75,
+          "pre_requisites": "N/A",
+          "category": "General Education"
+        },
+        {
+          "no": 5,
+          "subject_code": "PE101",
+          "description": "Physical Education 1",
+          "units": 2.00,
+          "year_term": "2024-2025 1st Semester",
+          "grades": 1.25,
+          "pre_requisites": "N/A",
+          "category": "General Education"
+        },
+        {
+          "no": 6,
+          "subject_code": "NSTP101",
+          "description": "National Service Training Program 1",
+          "units": 3.00,
+          "year_term": "2024-2025 1st Semester",
+          "grades": 1.50,
+          "pre_requisites": "N/A",
+          "category": "General Education"
+        },
+        {
+          "no": 7,
+          "subject_code": "IT101",
+          "description": "Introduction to Information Technology",
+          "units": 3.00,
+          "year_term": "2024-2025 1st Semester",
+          "grades": 1.75,
+          "pre_requisites": "N/A",
+          "category": "Core Courses"
+        },
+        {
+          "no": 8,
+          "subject_code": "PHILO101",
+          "description": "Philosophy of Man",
+          "units": 3.00,
+          "year_term": "2024-2025 1st Semester",
+          "grades": 2.00,
+          "pre_requisites": "N/A",
+          "category": "General Education"
+        }
+      ]
+    },
+    "2024-2025 2nd Sem": {
+      "subjects": [
+        {
+          "no": 1,
+          "subject_code": "CS201",
+          "description": "Data Structures and Algorithms",
+          "units": 3.00,
+          "year_term": "2024-2025 2nd Semester",
+          "grades": 1.75,
+          "pre_requisites": "ITCC31",
+          "category": "Core Courses"
+        },
+        {
+          "no": 2,
+          "subject_code": "MATH102",
+          "description": "Discrete Mathematics",
+          "units": 3.00,
+          "year_term": "2024-2025 2nd Semester",
+          "grades": 2.00,
+          "pre_requisites": "MATH101",
+          "category": "Core Courses"
+        },
+        {
+          "no": 3,
+          "subject_code": "DB101",
+          "description": "Database Management Systems",
+          "units": 3.00,
+          "year_term": "2024-2025 2nd Semester",
+          "grades": 1.50,
+          "pre_requisites": "ITCC31",
+          "category": "Core Courses"
+        },
+        {
+          "no": 4,
+          "subject_code": "GE103",
+          "description": "Rizal's Life and Works",
+          "units": 3.00,
+          "year_term": "2024-2025 2nd Semester",
+          "grades": 1.75,
+          "pre_requisites": "GE102",
+          "category": "General Education"
+        },
+        {
+          "no": 5,
+          "subject_code": "PE102",
+          "description": "Physical Education 2",
+          "units": 2.00,
+          "year_term": "2024-2025 2nd Semester",
+          "grades": 1.25,
+          "pre_requisites": "PE101",
+          "category": "General Education"
+        },
+        {
+          "no": 6,
+          "subject_code": "NSTP102",
+          "description": "National Service Training Program 2",
+          "units": 3.00,
+          "year_term": "2024-2025 2nd Semester",
+          "grades": 1.50,
+          "pre_requisites": "NSTP101",
+          "category": "General Education"
+        },
+        {
+          "no": 7,
+          "subject_code": "WEB101",
+          "description": "Web Development Fundamentals",
+          "units": 3.00,
+          "year_term": "2024-2025 2nd Semester",
+          "grades": 1.50,
+          "pre_requisites": "IT101",
+          "category": "Core Courses"
+        },
+        {
+          "no": 8,
+          "subject_code": "GE104",
+          "description": "Science, Technology and Society",
+          "units": 3.00,
+          "year_term": "2024-2025 2nd Semester",
+          "grades": 2.00,
+          "pre_requisites": "N/A",
+          "category": "General Education"
+        }
+      ]
+    },
+    "2025-2026 1st Sem": {
+      "subjects": [
+        {
+          "no": 1,
+          "subject_code": "OOP201",
+          "description": "Object-Oriented Programming",
+          "units": 3.00,
+          "year_term": "2025-2026 1st Semester",
+          "grades": 1.75,
+          "pre_requisites": "CS201",
+          "category": "Core Courses"
+        },
+        {
+          "no": 2,
+          "subject_code": "NET201",
+          "description": "Computer Networks",
+          "units": 3.00,
+          "year_term": "2025-2026 1st Semester",
+          "grades": 2.00,
+          "pre_requisites": "IT101",
+          "category": "Core Courses"
+        },
+        {
+          "no": 3,
+          "subject_code": "SE201",
+          "description": "Software Engineering",
+          "units": 3.00,
+          "year_term": "2025-2026 1st Semester",
+          "grades": 1.50,
+          "pre_requisites": "CS201, DB101",
+          "category": "Core Courses"
+        },
+        {
+          "no": 4,
+          "subject_code": "ELEC101",
+          "description": "Mobile Application Development",
+          "units": 3.00,
+          "year_term": "2025-2026 1st Semester",
+          "grades": 1.75,
+          "pre_requisites": "WEB101",
+          "category": "Electives"
+        },
+        {
+          "no": 5,
+          "subject_code": "GE105",
+          "description": "Ethics",
+          "units": 3.00,
+          "year_term": "2025-2026 1st Semester",
+          "grades": 1.50,
+          "pre_requisites": "PHILO101",
+          "category": "General Education"
+        },
+        {
+          "no": 6,
+          "subject_code": "STAT201",
+          "description": "Statistics and Probability",
+          "units": 3.00,
+          "year_term": "2025-2026 1st Semester",
+          "grades": 2.00,
+          "pre_requisites": "MATH102",
+          "category": "Core Courses"
+        },
+        {
+          "no": 7,
+          "subject_code": "HCI201",
+          "description": "Human Computer Interaction",
+          "units": 3.00,
+          "year_term": "2025-2026 1st Semester",
+          "grades": 1.75,
+          "pre_requisites": "SE201",
+          "category": "Core Courses"
+        },
+        {
+          "no": 8,
+          "subject_code": "GE106",
+          "description": "Contemporary World",
+          "units": 3.00,
+          "year_term": "2025-2026 1st Semester",
+          "grades": 1.50,
+          "pre_requisites": "N/A",
+          "category": "General Education"
+        }
+      ]
+    },
+    "2025-2026 2nd Sem": {
+      "subjects": [
+        {
+          "no": 1,
+          "subject_code": "AI301",
+          "description": "Artificial Intelligence",
+          "units": 3.00,
+          "year_term": "2025-2026 2nd Semester",
+          "grades": 1.75,
+          "pre_requisites": "OOP201, STAT201",
+          "category": "Core Courses"
+        },
+        {
+          "no": 2,
+          "subject_code": "IS301",
+          "description": "Information Security",
+          "units": 3.00,
+          "year_term": "2025-2026 2nd Semester",
+          "grades": 2.00,
+          "pre_requisites": "NET201",
+          "category": "Core Courses"
+        },
+        {
+          "no": 3,
+          "subject_code": "ELEC102",
+          "description": "Cloud Computing",
+          "units": 3.00,
+          "year_term": "2025-2026 2nd Semester",
+          "grades": 1.50,
+          "pre_requisites": "NET201",
+          "category": "Electives"
+        },
+        {
+          "no": 4,
+          "subject_code": "PROJ301",
+          "description": "IT Project Management",
+          "units": 3.00,
+          "year_term": "2025-2026 2nd Semester",
+          "grades": 1.75,
+          "pre_requisites": "SE201",
+          "category": "Core Courses"
+        },
+        {
+          "no": 5,
+          "subject_code": "GE107",
+          "description": "Art Appreciation",
+          "units": 3.00,
+          "year_term": "2025-2026 2nd Semester",
+          "grades": 1.25,
+          "pre_requisites": "N/A",
+          "category": "General Education"
+        },
+        {
+          "no": 6,
+          "subject_code": "ELEC103",
+          "description": "Game Development",
+          "units": 3.00,
+          "year_term": "2025-2026 2nd Semester",
+          "grades": 1.50,
+          "pre_requisites": "OOP201",
+          "category": "Electives"
+        },
+        {
+          "no": 7,
+          "subject_code": "SYS301",
+          "description": "Systems Analysis and Design",
+          "units": 3.00,
+          "year_term": "2025-2026 2nd Semester",
+          "grades": 1.75,
+          "pre_requisites": "SE201, DB101",
+          "category": "Core Courses"
+        },
+        {
+          "no": 8,
+          "subject_code": "GE108",
+          "description": "Environmental Science",
+          "units": 3.00,
+          "year_term": "2025-2026 2nd Semester",
+          "grades": 2.00,
+          "pre_requisites": "N/A",
+          "category": "General Education"
+        }
+      ]
+    },
+    "2026-2027 1st Sem": {
+      "subjects": [
+        {
+          "no": 1,
+          "subject_code": "CAPS401",
+          "description": "Capstone Project 1",
+          "units": 3.00,
+          "year_term": "2026-2027 1st Semester",
+          "grades": 1.50,
+          "pre_requisites": "SYS301, PROJ301",
+          "category": "Capstone Project"
+        },
+        {
+          "no": 2,
+          "subject_code": "ELEC104",
+          "description": "Data Science and Analytics",
+          "units": 3.00,
+          "year_term": "2026-2027 1st Semester",
+          "grades": 1.75,
+          "pre_requisites": "AI301, STAT201",
+          "category": "Electives"
+        },
+        {
+          "no": 3,
+          "subject_code": "TECH401",
+          "description": "Emerging Technologies",
+          "units": 3.00,
+          "year_term": "2026-2027 1st Semester",
+          "grades": 2.00,
+          "pre_requisites": "AI301",
+          "category": "Core Courses"
+        },
+        {
+          "no": 4,
+          "subject_code": "PROF401",
+          "description": "Professional Ethics in IT",
+          "units": 3.00,
+          "year_term": "2026-2027 1st Semester",
+          "grades": 1.25,
+          "pre_requisites": "GE105",
+          "category": "Core Courses"
+        },
+        {
+          "no": 5,
+          "subject_code": "GE109",
+          "description": "Life and Works of Filipino Heroes",
+          "units": 3.00,
+          "year_term": "2026-2027 1st Semester",
+          "grades": 1.50,
+          "pre_requisites": "GE103",
+          "category": "General Education"
+        },
+        {
+          "no": 6,
+          "subject_code": "ELEC105",
+          "description": "Internet of Things",
+          "units": 3.00,
+          "year_term": "2026-2027 1st Semester",
+          "grades": 1.75,
+          "pre_requisites": "NET201",
+          "category": "Electives"
+        },
+        {
+          "no": 7,
+          "subject_code": "RES401",
+          "description": "Research Methods in IT",
+          "units": 3.00,
+          "year_term": "2026-2027 1st Semester",
+          "grades": 2.00,
+          "pre_requisites": "STAT201",
+          "category": "Core Courses"
+        },
+        {
+          "no": 8,
+          "subject_code": "GE110",
+          "description": "Gender and Society",
+          "units": 3.00,
+          "year_term": "2026-2027 1st Semester",
+          "grades": 1.50,
+          "pre_requisites": "N/A",
+          "category": "General Education"
+        }
+      ]
+    },
+    "2026-2027 2nd Sem": {
+      "subjects": [
+        {
+          "no": 1,
+          "subject_code": "CAPS402",
+          "description": "Capstone Project 2",
+          "units": 3.00,
+          "year_term": "2026-2027 2nd Semester",
+          "grades": 1.50,
+          "pre_requisites": "CAPS401",
+          "category": "Capstone Project"
+        },
+        {
+          "no": 2,
+          "subject_code": "INTERN401",
+          "description": "Internship/Practicum",
+          "units": 6.00,
+          "year_term": "2026-2027 2nd Semester",
+          "grades": 1.25,
+          "pre_requisites": "CAPS401",
+          "category": "Internship"
+        },
+        {
+          "no": 3,
+          "subject_code": "SEMI401",
+          "description": "IT Seminar",
+          "units": 2.00,
+          "year_term": "2026-2027 2nd Semester",
+          "grades": 1.50,
+          "pre_requisites": "N/A",
+          "category": "Core Courses"
+        },
+        {
+          "no": 4,
+          "subject_code": "ELEC106",
+          "description": "Blockchain Technology",
+          "units": 3.00,
+          "year_term": "2026-2027 2nd Semester",
+          "grades": 1.75,
+          "pre_requisites": "IS301",
+          "category": "Electives"
+        },
+        {
+          "no": 5,
+          "subject_code": "ENTRE401",
+          "description": "Technopreneurship",
+          "units": 3.00,
+          "year_term": "2026-2027 2nd Semester",
+          "grades": 1.50,
+          "pre_requisites": "PROF401",
+          "category": "Core Courses"
+        },
+        {
+          "no": 6,
+          "subject_code": "GE111",
+          "description": "Reading in Philippine History",
+          "units": 3.00,
+          "year_term": "2026-2027 2nd Semester",
+          "grades": 1.75,
+          "pre_requisites": "GE109",
+          "category": "General Education"
+        },
+        {
+          "no": 7,
+          "subject_code": "THESIS401",
+          "description": "Thesis Writing",
+          "units": 3.00,
+          "year_term": "2026-2027 2nd Semester",
+          "grades": 1.50,
+          "pre_requisites": "RES401, CAPS402",
+          "category": "Capstone Project"
+        },
+        {
+          "no": 8,
+          "subject_code": "GE112",
+          "description": "Mathematics in the Modern World",
+          "units": 3.00,
+          "year_term": "2026-2027 2nd Semester",
+          "grades": 2.00,
+          "pre_requisites": "MATH102",
+          "category": "General Education"
+        }
+      ]
+    }
+  },
+  "category_totals": {
+    "Core Courses": 34,
+    "Electives": 8,
+    "Capstone Project": 6,
+    "Internship": 1,
+    "General Education": 34
+  },
+  "last_updated": "2025-09-30"
+}

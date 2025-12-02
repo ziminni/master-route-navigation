@@ -1,0 +1,38 @@
+{
+  "year_levels": {
+    "First Year": [
+      {
+        "section_name": "BSIT 1A",
+        "students": 50,
+        "image": "images/section1a.jpg"
+      },
+      {
+        "section_name": "BSIT 1B",
+        "students": 50,
+        "image": "images/section1b.jpg"
+      },
+      {
+        "section_name": "BSIT 1C",
+        "students": 50,
+        "image": "images/section1c.jpg"
+      },
+      {
+        "section_name": "BSIT 1D",
+        "students": 49,
+        "image": "images/section1d.jpg"
+      }
+    ],
+    "Second Year": [
+      {
+        "section_name": "BSIT 2A",
+        "students": 52,
+        "image": "images/section2a.jpg"
+      },
+      {
+        "section_name": "BSIT 2B",
+        "students": 47,
+        "image": "images/section2b.jpg"
+      }
+    ]
+  }
+}

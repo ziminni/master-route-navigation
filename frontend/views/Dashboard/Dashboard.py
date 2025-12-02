@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt6.QtGui import QFont
-from .AdminDashboard import AdminDashboard
+from .Admin.main_dashboard import AdminDashboard
 from .StaffDashboard import StaffDashboard
 from .FacultyDashboard import FacultyDashboard
 from .StudentDashboard import StudentDashboard

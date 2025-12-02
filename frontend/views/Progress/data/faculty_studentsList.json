@@ -1,0 +1,28 @@
+{
+    "BSIT 1A": [
+        {
+            "student_id": "2023000001",
+            "name": "John Doe",
+            "grade": 1.25,
+            "remarks": "PASSED",
+            "gwa": 1.5,
+            "missing_requirement": ""
+        },
+        {
+            "student_id": "2023394722",
+            "name": "Marco Polo",
+            "grade": 1.5,
+            "remarks": "PASSED",
+            "gwa": 1.6,
+            "missing_requirement": "Project"
+        },
+        {
+            "student_id": "212324221",
+            "name": "Michaela Macapagal",
+            "grade": 2.0,
+            "remarks": "PASSED",
+            "gwa": 1.8,
+            "missing_requirement": ""
+        }
+    ]
+}

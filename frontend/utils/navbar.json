@@ -20,14 +20,32 @@
       "mains": [
         {
           "id": 2,
+<<<<<<< HEAD
           "name": "Classes",
           "function": "()",
           "path": "",
           "access": ["student", "admin"],
+=======
+          "name": "Tagging",
+          "function": "TaggingMain()",
+          "path": "views.Academics.TaggingWrapper",
+          "access": ["admin"],
+>>>>>>> origin/master
           "modulars":[]
         },
         {
           "id": 3,
+<<<<<<< HEAD
+=======
+          "name": "Classes",
+          "function": "ClassroomMain()",
+          "path": "views.Academics.ClassroomWrapper",
+          "access": ["student", "faculty", "admin"],
+          "modulars":[]
+        },
+        {
+          "id": 4,
+>>>>>>> origin/master
           "name": "Schedule",
           "function": "Schedule()",
           "path": "views.Academics.Scheduler.Schedule",
@@ -35,6 +53,7 @@
           "modulars":[]
         },
         {
+<<<<<<< HEAD
           "id": 4,
           "name": "Progress",
           "function": "()",
@@ -44,6 +63,17 @@
         },
         {
           "id": 5,
+=======
+          "id": 5,
+          "name": "Progress",
+          "function": "Progress()",
+          "path": "views.Progress.Progress",
+          "access": ["student", "admin", "faculty"],
+          "modulars":[]
+        },
+        {
+          "id": 6,
+>>>>>>> origin/master
           "name": "Appointments",
           "function": "Appointment_main()",
           "path": "views.Appointments.Appointment_main",
@@ -57,7 +87,11 @@
       "name": "Organizations",
       "mains": [
         {
+<<<<<<< HEAD
           "id": 6,
+=======
+          "id": 7,
+>>>>>>> origin/master
           "name": "Browse",
           "function": "Browse()",
           "path": "views.Organizations.browse",
@@ -65,7 +99,11 @@
           "modulars":[]
         },
         {
+<<<<<<< HEAD
           "id": 7,
+=======
+          "id": 8,
+>>>>>>> origin/master
           "name": "Membership",
           "function": "()",
           "path": "",
@@ -73,7 +111,11 @@
           "modulars":[]
         },
         {
+<<<<<<< HEAD
           "id": 8,
+=======
+          "id": 9,
+>>>>>>> origin/master
           "name": "Events",
           "function": "Events()",
           "path": "views.Organizations.Events",
@@ -87,7 +129,11 @@
       "name": "Campus",
       "mains": [
         {
+<<<<<<< HEAD
           "id": 9,
+=======
+          "id": 10,
+>>>>>>> origin/master
           "name": "Calendar",
           "function": "MainCalendar()",
           "path": "views.Calendar.MainCalendar",
@@ -95,7 +141,11 @@
           "modulars":[]
         },
         {
+<<<<<<< HEAD
           "id": 10,
+=======
+          "id": 11,
+>>>>>>> origin/master
           "name": "Announcements",
           "icon": "bullhorn",
           "function": "AnnouncementsRouter()",
@@ -104,7 +154,11 @@
           "modulars": []
         },
         {
+<<<<<<< HEAD
           "id": 11,
+=======
+          "id": 12,
+>>>>>>> origin/master
           "name": "House System",
           "function": "HouseMain()",
           "path": "views.House.HouseMain",
@@ -112,7 +166,11 @@
           "modulars":[]
         },
         {
+<<<<<<< HEAD
           "id": 12,
+=======
+          "id": 13,
+>>>>>>> origin/master
           "name": "Showcase",
           "function": "ShowcaseRouter()",
           "path": "views.Showcase.Showcase",
@@ -126,7 +184,11 @@
       "name": "Tools",
       "mains": [
         {
+<<<<<<< HEAD
           "id": 13,
+=======
+          "id": 14,
+>>>>>>> origin/master
           "name": "Documents",
           "function": "DocumentsView()",
           "path": "views.Documents.Documents",
@@ -134,6 +196,7 @@
           "modulars":[]
         },
         {
+<<<<<<< HEAD
           "id": 14,
           "name": "Messages",
           "function": "()",
@@ -143,6 +206,17 @@
         },
         {
           "id": 15,
+=======
+          "id": 15,
+          "name": "Messages",
+          "function": "LauncherWindow()",
+          "path": "views.Messaging.launcher",
+          "access": ["student","faculty","admin"],
+          "modulars":[]
+        },
+        {
+          "id": 16,
+>>>>>>> origin/master
           "name": "Student Services",
           "function": "()",
           "path": "",
@@ -150,7 +224,11 @@
           "modulars":[]
         },
         {
+<<<<<<< HEAD
           "id": 16,
+=======
+          "id": 17,
+>>>>>>> origin/master
           "name": "Help",
           "function": "()",
           "path": "",

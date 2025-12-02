@@ -1,13 +1,39 @@
 .venv/
+myenv/
+.idea/
+.vscode/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite database (development)
 db.sqlite3
-*.sqlite3
 
-frontend/views/Announcements/db/announcement.db
-frontend/views/Showcase/db/showcase.db
+# Local static and media files (optional)
+staticfiles/
+media/
 
-backend/migrations/0001_initial.py
+# ---------------------------
+# IDE and Editor Settings
+# ---------------------------
+.vscode/
+.idea/
+.history
+.DS_Store
+Thumbs.db
+
+# ---------------------------
+# Miscellaneous
+# ---------------------------
+*.bak
+*.swp
+*.tmp
+
+attachments/
 
 # ==========Module 12 - Document Vault and Form Repository==========
 frontend/views/Documents/FileStorage/**/*

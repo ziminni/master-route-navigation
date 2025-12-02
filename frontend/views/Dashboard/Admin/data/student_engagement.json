@@ -1,0 +1,9 @@
+{
+  "title": "Student Engagement Analytics",
+  "data": [
+    { "module": "Module A", "engagement": 85 },
+    { "module": "Module B", "engagement": 92 },
+    { "module": "Module C", "engagement": 78 },
+    { "module": "Module D", "engagement": 88 }
+  ]
+}
