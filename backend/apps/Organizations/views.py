@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from .models import Organization, MembershipApplication, ApplicationDetails
+from .models import Organization, MembershipApplication, ApplicationDetails, OrganizationMembers
 from .serializers import OrganizationSerializer, MembershipApplicationSerializer, ApplicantSerializer, CurrentUserSerializer
 from django.db.models import Q
 from apps.Users.models import StudentProfile, BaseUser
@@ -37,6 +37,74 @@ class OrganizationListView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
+
+class StudentJoinedOrganizationsView(APIView):
+    """
+    API View for getting organizations that a student has joined.
+    GET: Retrieve all organizations where the student is a member
+    """
+    
+    def get(self, request, student_id):
+        """Retrieve organizations that the student has joined (is a member of)"""
+        try:
+            # Get student profile
+            try:
+                student = StudentProfile.objects.get(id=student_id)
+                print(f"DEBUG: Found student: {student.user.get_full_name()} (ID: {student_id})")
+            except StudentProfile.DoesNotExist:
+                print(f"ERROR: Student with id {student_id} not found")
+                return Response(
+                    {
+                        'success': False,
+                        'message': f'Student with id {student_id} not found'
+                    },
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Get all organizations where this student is an active member
+            memberships = OrganizationMembers.objects.filter(
+                user_id=student
+            ).select_related('organization_id')
+            
+            print(f"DEBUG: Found {memberships.count()} total memberships")
+            for membership in memberships:
+                print(f"DEBUG: Membership - Org: {membership.organization_id.name}, Status: {membership.status}")
+            
+            # Filter for active memberships (database uses 'active' for active status)
+            active_memberships = memberships.filter(status='active')
+            print(f"DEBUG: Found {active_memberships.count()} active memberships with status='active'")
+            
+            # Extract organization IDs
+            org_ids = [membership.organization_id.id for membership in active_memberships]
+            print(f"DEBUG: Organization IDs: {org_ids}")
+            
+            # Get the organization details
+            organizations = Organization.objects.filter(id__in=org_ids).order_by('-created_at')
+            
+            serializer = OrganizationSerializer(organizations, many=True)
+            
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Joined organizations retrieved successfully',
+                    'data': serializer.data,
+                    'count': organizations.count()
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            print(f"ERROR: Failed to get joined organizations - {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {
+                    'success': False,
+                    'message': f'An error occurred: {str(e)}'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class OrganizationDetailView(APIView):
@@ -309,20 +377,20 @@ class ApplicationActionView(APIView):
                     member, created = OrganizationMembers.objects.get_or_create(
                         organization_id=application.organization_id,
                         user_id=application.user_id,
-                        defaults={'status': 'act'}  # Active status
+                        defaults={'status': 'active'}  # Active status
                     )
                     if created:
                         print(f"DEBUG: Created new organization member - org_id: {application.organization_id.id}, user_id: {application.user_id.id}")
                     else:
                         print(f"DEBUG: Member already exists, updating status to active")
-                        member.status = 'act'
+                        member.status = 'active'
                         member.save()
                     
                     # Verify the member was saved
                     verify_count = OrganizationMembers.objects.filter(
                         organization_id=application.organization_id,
                         user_id=application.user_id,
-                        status='act'
+                        status='active'
                     ).count()
                     print(f"DEBUG: Verification - Active member count for this org/user: {verify_count}")
                     
@@ -383,7 +451,7 @@ class OrganizationMembersView(APIView):
             from .models import OrganizationMembers, OfficerTerm
             members = OrganizationMembers.objects.filter(
                 organization_id=organization,
-                status='act'  # Active status
+                status='active'  # Active status
             ).select_related('user_id__user', 'user_id')
             
             print(f"DEBUG: Found {members.count()} active members for org {org_id}")

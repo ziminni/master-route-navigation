@@ -399,7 +399,7 @@ class Admin(ManagerBase, FacultyAdminBase):
         
         self.archived_ui.audit_back_btn.clicked.connect(lambda: self.ui.stacked_widget.setCurrentIndex(0))
         self.archived_ui.audit_search_btn.clicked.connect(self._perform_archived_search)
-        self.archived_ui.audit_line_edit.textChanged.connect(self._perform_archived_search)
+        self.archived_ui.audit_line_edit.returnPressed.connect(self._perform_archived_search)
         
         # Remove table
         self.archived_ui.verticalLayout_17.removeWidget(self.archived_ui.audit_table_view)
@@ -1061,7 +1061,7 @@ class Admin(ManagerBase, FacultyAdminBase):
                 transformed = [
                     member.get('name', 'Unknown'),                                      # Name
                     member.get('position', 'Member'),                                   # Position (from backend)
-                    'Active' if member.get('status') == 'act' else 'Inactive',        # Status
+                    'Active' if member.get('status') == 'active' else 'Inactive',      # Status
                     member.get('joined_at', '')[:10] if member.get('joined_at') else '' # Join Date (YYYY-MM-DD)
                 ]
                 transformed_members.append(transformed)

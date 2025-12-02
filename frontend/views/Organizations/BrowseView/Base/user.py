@@ -381,9 +381,11 @@ class User(QtWidgets.QWidget):
         self.ui.officer_history_dp.clear()
         self.ui.officer_history_dp.addItem("Current Officers")
         
-        # Load officers and events (keeping empty for now, can be added later)
-        self.load_officers([])
-        self.load_events([])
+        # Load officers and events from the org_details data
+        officers = org_details.get('officers', [])
+        events = org_details.get('events', [])
+        self.load_officers(officers)
+        self.load_events(events)
         self.ui.label.setText("A.Y. 2025-2026 - 1st Semester")
         self.ui.stacked_widget.setCurrentIndex(1)
 

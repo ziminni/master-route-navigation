@@ -6,12 +6,13 @@ from views.Dashboard.FacultyDashboard import FacultyDashboard
 from views.Dashboard.StudentDashboard import StudentDashboard
 
 class Dashboard(QWidget):
-    def __init__(self, username, roles, primary_role, token):
+    def __init__(self, username, roles, primary_role, token, profile_id=None):
         super().__init__()
         self.username = username
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
+        self.profile_id = profile_id
 
         # Initialize layout
         layout = QVBoxLayout()

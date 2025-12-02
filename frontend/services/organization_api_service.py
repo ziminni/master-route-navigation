@@ -739,24 +739,34 @@ class OrganizationAPIService:
             }
 
     @staticmethod
-    def update_member_position(member_id: int, position_data: Dict) -> Dict:
+    def update_member_position(member_id: int, position_id=None, position_name=None, 
+                               start_term=None, end_term=None, updated_by_id=None, photo=None) -> Dict:
         """
         Update a member's position
         
         Args:
             member_id: The OrganizationMembers ID
-            position_data: Dict containing:
-                - position_id: The Positions ID (None for regular member)
-                - position_name: The position name (for backwards compatibility)
-                - start_term: Start date in YYYY-MM-DD format (required for officers)
-                - end_term: End date in YYYY-MM-DD format (optional)
-                - updated_by_id: StudentProfile ID of user making the update (optional)
-                - photo: Path to photo file to upload (optional)
+            position_id: The Positions ID (None for regular member)
+            position_name: The position name (for backwards compatibility)
+            start_term: Start date in YYYY-MM-DD format (required for officers)
+            end_term: End date in YYYY-MM-DD format (optional)
+            updated_by_id: BaseUser ID of user making the update (optional)
+            photo: Path to photo file to upload (optional)
             
         Returns:
             Dictionary containing the API response
         """
         url = f"{OrganizationAPIService.BASE_URL}/members/{member_id}/position/"
+        
+        # Build position_data dict from parameters
+        position_data = {
+            'position_id': position_id,
+            'position_name': position_name,
+            'start_term': start_term,
+            'end_term': end_term,
+            'updated_by_id': updated_by_id,
+            'photo': photo
+        }
         
         # Check if we need to send as multipart/form-data (for photo upload)
         photo_path = position_data.get('photo')
@@ -869,6 +879,89 @@ class OrganizationAPIService:
                     'success': False,
                     'error': error_data.get('message', 'Failed to kick member'),
                     'message': error_data.get('message', f'Server returned status {response.status_code}')
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+    
+    @staticmethod
+    def get_student_joined_organizations(student_id: int) -> Dict:
+        """
+        Get all organizations that a student has joined (is a member of)
+        
+        Args:
+            student_id: StudentProfile ID of the student
+            
+        Returns:
+            Dictionary containing the API response with list of joined organizations
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/students/{student_id}/joined/"
+        
+        print(f"DEBUG API Service: Calling {url} with student_id={student_id}")
+        
+        try:
+            response = requests.get(url, timeout=10)
+            
+            print(f"DEBUG API Service: Response status={response.status_code}")
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                print(f"DEBUG API Service: Success response data: {response_data}")
+                return {
+                    'success': True,
+                    'data': response_data.get('data', []),
+                    'message': response_data.get('message', 'Joined organizations retrieved successfully'),
+                    'count': response_data.get('count', 0)
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                print(f"DEBUG API Service: Error response: {error_data}")
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to retrieve joined organizations'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+    
+    @staticmethod
+    def get_organization_members(org_id: int) -> Dict:
+        """
+        Get all members of an organization
+        
+        Args:
+            org_id: Organization ID
+            
+        Returns:
+            Dictionary containing the API response with list of members
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/{org_id}/members/"
+        
+        try:
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', []),
+                    'message': response_data.get('message', 'Members retrieved successfully')
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to retrieve members'),
+                    'status_code': response.status_code
                 }
         except requests.exceptions.RequestException as e:
             return {

@@ -36,32 +36,32 @@ class CurrentUserView(APIView):
                 )
             
             # Get profile ID based on user type
-            profile_id = None
+            student_profile_id = None
             profile_type = None
             
-            if hasattr(user, 'student_profile'):
-                profile_id = user.student_profile.id
+            if hasattr(user, 'student_profile') and user.student_profile:
+                student_profile_id = user.student_profile.id
                 profile_type = 'student'
-            elif hasattr(user, 'faculty_profile'):
-                profile_id = user.faculty_profile.id
+            elif hasattr(user, 'faculty_profile') and user.faculty_profile:
                 profile_type = 'faculty'
-            elif hasattr(user, 'staff_profile'):
-                profile_id = user.staff_profile.id
+            elif hasattr(user, 'staff_profile') and user.staff_profile:
                 profile_type = 'staff'
+            else:
+                profile_type = 'admin'
             
-            # ALWAYS use BaseUser ID - this is what gets stored in updated_by
+            # base_user_id is the BaseUser.id - used for updated_by field
             base_user_id = user.id
             
-            # If no profile exists, profile_id will be None
-            # but base_user_id is always available
-            
             data = CurrentUserSerializer(user).data
-            data['profile_id'] = base_user_id  # Always use BaseUser ID
-            data['profile_type'] = profile_type if profile_type else 'admin'
+            # profile_id is BaseUser.id (for updated_by and general use)
+            data['profile_id'] = base_user_id
+            data['profile_type'] = profile_type
             data['base_user_id'] = base_user_id
-            data['is_base_user'] = (profile_type is None)
+            # student_profile_id is specifically for students to fetch joined orgs
+            data['student_profile_id'] = student_profile_id
+            data['is_base_user'] = (profile_type == 'admin')
             
-            print(f"DEBUG: CurrentUserView - username={user.username}, base_user_id={base_user_id}, profile_type={profile_type}")
+            print(f"DEBUG: CurrentUserView - username={user.username}, base_user_id={base_user_id}, student_profile_id={student_profile_id}, profile_type={profile_type}")
             
             return Response(
                 {

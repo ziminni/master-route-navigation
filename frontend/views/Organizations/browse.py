@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from PyQt6.QtCore import QSettings
 
 from .BrowseView import Student, Officer, Admin, Faculty, Dean
+from services.organization_api_service import OrganizationAPIService
 
 print(f"Browse: Imported Student={Student is not None}, Faculty={Faculty is not None}, Officer={Officer is not None}, Admin={Admin is not None}, Dean={Dean is not None}")
 
@@ -12,8 +13,8 @@ class Browse(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         
-        # Store user profile ID in settings for later use
-        self._fetch_and_store_profile_id(token)
+        # Fetch user profile ID from database using username
+        student_profile_id = self._fetch_and_store_profile_id(username)
 
         if primary_role == "admin":
             print("Browse: Loading Admin view")
@@ -26,11 +27,11 @@ class Browse(QWidget):
             self.view = Faculty(faculty_name=username)
         elif primary_role == "student":
             if "org_officer" in (roles or []):
-                print("Browse: Loading Officer view")
-                self.view = Officer(officer_name=username)
+                print(f"Browse: Loading Officer view with student_profile_id={student_profile_id}")
+                self.view = Officer(officer_name=username, user_id=student_profile_id)
             else:
-                print("Browse: Loading Student view")
-                self.view = Student(student_name=username)
+                print(f"Browse: Loading Student view with student_profile_id={student_profile_id}")
+                self.view = Student(student_name=username, user_id=student_profile_id)
         else:
             print("Browse: Loading default Faculty view")
             self.view = Faculty(faculty_name=username)
@@ -39,31 +40,33 @@ class Browse(QWidget):
         self.layout.addWidget(self.view)
         print("Browse: Widget added to layout")
     
-    def _fetch_and_store_profile_id(self, token):
-        """Fetch user profile from backend and store profile_id"""
+    def _fetch_and_store_profile_id(self, username):
+        """Fetch user profile from backend using username and store profile_id"""
         try:
-            import requests
-            from services.auth_service import AuthService
+            # Use the current-user endpoint to get profile IDs by username
+            response = OrganizationAPIService.get_current_user_by_username(username)
             
-            base_url = AuthService.BASE_URL.replace('/auth', '')
-            url = f"{base_url}/users/me/"
-            
-            headers = {'Authorization': f'Bearer {token}'} if token else {}
-            response = requests.get(url, headers=headers, timeout=5)
-            
-            if response.status_code == 200:
-                user_data = response.json()
-                profile_id = user_data.get('profile_id')
+            if response.get('success'):
+                user_data = response.get('data', {})
+                profile_id = user_data.get('profile_id')  # BaseUser.id
+                student_profile_id = user_data.get('student_profile_id')  # StudentProfile.id (for students)
+                profile_type = user_data.get('profile_type')
                 
+                # Store in QSettings for later use
+                settings = QSettings("CISC", "MasterRoute")
                 if profile_id:
-                    # Store in QSettings
-                    settings = QSettings("CISC", "MasterRoute")
                     settings.setValue("user_profile_id", profile_id)
-                    print(f"DEBUG: Stored profile_id={profile_id} in QSettings")
-                else:
-                    print("WARNING: No profile_id in user data")
+                if student_profile_id:
+                    settings.setValue("student_profile_id", student_profile_id)
+                
+                print(f"DEBUG: Stored profile_id={profile_id}, student_profile_id={student_profile_id}, type={profile_type} in QSettings")
+                
+                # Return student_profile_id for student views
+                return student_profile_id
             else:
-                print(f"WARNING: Failed to fetch user profile: {response.status_code}")
+                print(f"WARNING: Failed to fetch user profile: {response.get('message')}")
+                return None
                 
         except Exception as e:
             print(f"WARNING: Could not fetch user profile: {e}")
+            return None

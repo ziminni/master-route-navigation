@@ -58,8 +58,11 @@ class OrganizationViewBase(User):
         self.ui.view_members_btn.clicked.connect(self._to_members_page)
         self.ui.back_btn_member.clicked.connect(self._return_to_prev_page)
         self.ui.back_btn.clicked.connect(self._return_to_prev_page)
-        self.ui.search_line.textChanged.connect(self._perform_search)
-        self.ui.search_line_3.textChanged.connect(self._perform_member_search)
+        # Search only on button click or Enter key press
+        self.ui.search_btn.clicked.connect(self._perform_search)
+        self.ui.search_line.returnPressed.connect(self._perform_search)
+        self.ui.search_btn_3.clicked.connect(self._perform_member_search)
+        self.ui.search_line_3.returnPressed.connect(self._perform_member_search)
         self.ui.officer_history_dp.currentIndexChanged.connect(self._on_officer_history_changed)
 
     def _setup_no_member_label(self) -> None:

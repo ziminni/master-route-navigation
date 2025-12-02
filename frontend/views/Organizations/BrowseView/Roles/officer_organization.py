@@ -12,8 +12,8 @@ from ..Utils.image_utils import copy_image_to_data
 class Officer(ManagerBase, Student):
     """Officer view — same pending flow as Faculty, full photo preservation"""
 
-    def __init__(self, officer_name: str):
-        Student.__init__(self, student_name=officer_name)
+    def __init__(self, officer_name: str, user_id: int = None):
+        Student.__init__(self, student_name=officer_name, user_id=user_id)
         ManagerBase.__init__(self)
         self._setup_officer_connections()
 
@@ -22,7 +22,9 @@ class Officer(ManagerBase, Student):
         self.ui.view_members_btn.clicked.connect(self._to_members_page)
         self.ui.back_btn_member.clicked.disconnect()
         self.ui.back_btn_member.clicked.connect(self._return_to_prev_page)
-        self.ui.search_line_3.textChanged.connect(self._perform_member_search)
+        # Search only on button click or Enter key press
+        self.ui.search_btn_3.clicked.connect(self._perform_member_search)
+        self.ui.search_line_3.returnPressed.connect(self._perform_member_search)
 
     def edit_member(self, row: int, bypass_cooldown: bool = False) -> None:
         """
