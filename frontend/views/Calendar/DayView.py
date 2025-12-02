@@ -1,11 +1,14 @@
 # DayView.py DAY VIEW LAYOUT
+from datetime import datetime
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QComboBox, QFrame, QListWidget, QLineEdit
+    QScrollArea, QFrame, QListWidget, QLineEdit
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-from datetime import datetime, timedelta
+
+from .DayEventsHelper import DayEventsHelper
 
 
 class DayView(QWidget):
@@ -15,22 +18,27 @@ class DayView(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-        self.current_date = datetime.now()
-        self.navigate_back_to_calendar = None  # Will be set by parent
-        self.navigate_to_activities = None     # Will be set by parent
-        self.navigate_to_search = None         # NEW: Navigation callback for search
-        self.all_events = []                   # Store all events
+
+        # navigation callbacks (set by parent)
+        self.navigate_back_to_calendar = None
+        self.navigate_to_activities = None
+        self.navigate_to_search = None
+
+        # helper for all event/date logic
+        self.helper = DayEventsHelper()
 
         self.init_ui()
 
+    # ---------- UI setup ----------
+
     def init_ui(self):
-        """Initialize the day view UI"""
+        """Initialize the day view UI."""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(15)
 
-        # View selector at the top
-        self.setup_view_selector(main_layout)
+        # Top bar (Back, Activities, Search)
+        self.setup_top_bar(main_layout)
 
         # Content layout - split between upcoming events (left) and day schedule (right)
         content_layout = QHBoxLayout()
@@ -45,39 +53,36 @@ class DayView(QWidget):
 
         main_layout.addLayout(content_layout)
 
-    def setup_view_selector(self, layout):
-        """Setup view selector at the top with search bar and activities button"""
-        view_layout = QHBoxLayout()
-        view_layout.setSpacing(10)
+    def setup_top_bar(self, layout):
+        """Top bar with Back to Month, Activities, and Search."""
+        bar_layout = QHBoxLayout()
+        bar_layout.setSpacing(10)
 
-        view_label = QLabel("View:")
-        view_label.setStyleSheet("font-weight: bold; color: #084924; font-size: 14px;")
-
-        self.combo_view = QComboBox()
-        self.combo_view.setMinimumWidth(100)
-        self.combo_view.addItems(["Day", "Month"])
-        self.combo_view.setCurrentText("Day")
-        self.combo_view.setStyleSheet("""
-            QComboBox {
-                padding: 8px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                background-color: white;
-                font-size: 12px;
-            }
-            QComboBox:hover {
-                border-color: #FDC601;
-            }
-            QComboBox::drop-down {
+        # Back to Month View
+        self.btn_back_month = QPushButton("◀ Back to Month View")
+        self.btn_back_month.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
                 border: none;
-                width: 20px;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 12px;
+                min-width: 150px;
+            }
+            QPushButton:hover {
+                background-color: #FDC601;
+                color: #084924;
+            }
+            QPushButton:pressed {
+                background-color: #d4a000;
             }
         """)
-        self.combo_view.currentTextChanged.connect(self.on_view_changed)
+        self.btn_back_month.clicked.connect(self.on_back_to_month_clicked)
+        bar_layout.addWidget(self.btn_back_month)
 
-        view_layout.addWidget(view_label)
-        view_layout.addWidget(self.combo_view)
-        view_layout.addStretch()
+        bar_layout.addStretch()
 
         # View Activities button
         self.btn_view_activities = QPushButton("View Activities")
@@ -102,7 +107,7 @@ class DayView(QWidget):
         """
         self.btn_view_activities.setStyleSheet(button_style)
         self.btn_view_activities.clicked.connect(self.show_activities)
-        view_layout.addWidget(self.btn_view_activities)
+        bar_layout.addWidget(self.btn_view_activities)
 
         # Search bar
         self.search_bar = QLineEdit()
@@ -121,7 +126,7 @@ class DayView(QWidget):
             }
         """)
         self.search_bar.returnPressed.connect(self.on_search_triggered)
-        view_layout.addWidget(self.search_bar)
+        bar_layout.addWidget(self.search_bar)
 
         # Search button
         self.btn_search = QPushButton("🔍")
@@ -143,12 +148,12 @@ class DayView(QWidget):
             }
         """)
         self.btn_search.clicked.connect(self.on_search_triggered)
-        view_layout.addWidget(self.btn_search)
+        bar_layout.addWidget(self.btn_search)
 
-        layout.addLayout(view_layout)
+        layout.addLayout(bar_layout)
 
     def setup_upcoming_events_panel(self):
-        """Setup the upcoming events panel on the left side"""
+        """Setup the upcoming events panel on the left side."""
         self.upcoming_events_widget = QWidget()
         self.upcoming_events_widget.setMinimumWidth(300)
         self.upcoming_events_widget.setMaximumWidth(400)
@@ -172,9 +177,9 @@ class DayView(QWidget):
         # Title
         title_label = QLabel("Upcoming Events")
         title_label.setStyleSheet("""
-            font-size: 18px; 
-            font-weight: bold; 
-            color: #084924; 
+            font-size: 18px;
+            font-weight: bold;
+            color: #084924;
             padding: 10px;
         """)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -212,6 +217,7 @@ class DayView(QWidget):
         frame_layout.addLayout(legend_layout)
 
         # Filter dropdown
+        from PyQt6.QtWidgets import QComboBox  # local import, only used here
         self.combo_upcoming_filter = QComboBox()
         self.combo_upcoming_filter.setStyleSheet("""
             QComboBox {
@@ -280,7 +286,7 @@ class DayView(QWidget):
         upcoming_layout.addWidget(upcoming_frame)
 
     def setup_day_schedule(self):
-        """Setup the day schedule on the right side"""
+        """Setup the day schedule on the right side."""
         self.day_schedule_widget = QWidget()
         self.day_schedule_widget.setStyleSheet("background-color: white;")
 
@@ -319,7 +325,7 @@ class DayView(QWidget):
         self.setup_time_slots(schedule_layout)
 
     def setup_navigation_buttons(self, layout):
-        """Setup date navigation buttons"""
+        """Setup date navigation buttons."""
         nav_layout = QHBoxLayout()
         nav_layout.setSpacing(10)
 
@@ -373,7 +379,7 @@ class DayView(QWidget):
         layout.addWidget(self.btn_today)
 
     def setup_time_slots(self, layout):
-        """Setup scrollable time slots"""
+        """Setup scrollable time slots."""
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -399,7 +405,7 @@ class DayView(QWidget):
         layout.addWidget(self.scroll_area)
 
     def create_time_slot(self, hour):
-        """Create a single time slot"""
+        """Create a single time slot."""
         slot_container = QFrame()
         slot_container.setFixedHeight(100)
         slot_container.setStyleSheet("""
@@ -456,8 +462,10 @@ class DayView(QWidget):
 
         return slot_container
 
+    # ---------- helpers & logic integration ----------
+
     def format_hour(self, hour):
-        """Format hour to 12-hour format with AM/PM"""
+        """Format hour to 12-hour format with AM/PM."""
         if hour == 0:
             return "12:00 AM"
         elif hour < 12:
@@ -468,110 +476,38 @@ class DayView(QWidget):
             return f"{hour-12}:00 PM"
 
     def update_date_label(self):
-        """Update the date label with current date"""
+        """Update the date label with current date."""
         self.date_label.setText(
-            self.current_date.strftime("%A\n%B %d, %Y")
+            self.helper.current_date.strftime("%A\n%B %d, %Y")
         )
 
     def load_events(self, events):
-        """Load events from MainCalendar - FIXED VERSION"""
-        self.all_events = events
+        """Load events from MainCalendar - uses helper for logic."""
+        self.helper.set_all_events(events)
 
-        upcoming_events = self._filter_upcoming_events(events)
+        upcoming_events = self.helper.filter_upcoming_events()
         self.populate_upcoming_events(upcoming_events)
 
-        current_date_events = self.filter_events_by_current_date(events)
+        current_date_events = self.helper.filter_events_by_current_date()
         self.populate_time_slots_with_events(current_date_events)
 
-    def _filter_upcoming_events(self, events):
-        today = datetime.now().date()
-        upcoming = []
-
-        for event in events:
-            date_str = event.get('date_time', '')
-            try:
-                if '\n' in date_str:
-                    date_part = date_str.split('\n')[0].strip()
-                else:
-                    date_part = date_str.strip()
-                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
-                if event_date >= today:
-                    upcoming.append(event)
-            except (ValueError, IndexError):
-                print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
-                continue
-
-        def get_event_date(ev):
-            ds = ev.get('date_time', '')
-            try:
-                if '\n' in ds:
-                    dp = ds.split('\n')[0].strip()
-                else:
-                    dp = ds.strip()
-                return datetime.strptime(dp, "%m/%d/%Y").date()
-            except Exception:
-                return datetime.max.date()
-
-        upcoming.sort(key=get_event_date)
-        return upcoming
-
-    def filter_events_by_current_date(self, events):
-        """Filter events that match the current displayed date"""
-        current_date_str = self.current_date.strftime("%m/%d/%Y")
-        filtered = []
-
-        for event in events:
-            date_str = event.get('date_time', '')
-            try:
-                if '\n' in date_str:
-                    date_part = date_str.split('\n')[0].strip()
-                else:
-                    date_part = date_str.strip()
-                if date_part == current_date_str:
-                    filtered.append(event)
-            except Exception:
-                continue
-
-        return filtered
-
     def populate_time_slots_with_events(self, events):
-        """Populate time slots with events based on their scheduled time"""
+        """Populate time slots with events based on their scheduled time."""
         self.clear_time_slot_events()
 
         for event in events:
             try:
-                time_str = event['date_time'].split('\n')[1] if '\n' in event['date_time'] else event['date_time']
-                hour = self.parse_hour_from_time(time_str)
+                dt = event.get("date_time", "")
+                time_str = dt.split("\n")[1] if "\n" in dt else dt
+                hour = self.helper.parse_hour_from_time(time_str)
                 if hour is not None and 7 <= hour <= 19:
-                    self.add_event_to_time_slot(hour, event['event'], event['type'])
+                    self.add_event_to_time_slot(hour, event["event"], event["type"])
             except Exception as e:
                 print(f"Error processing event {event.get('event', 'Unknown')}: {e}")
 
-    def parse_hour_from_time(self, time_str):
-        """Parse hour from time string like '9:00 AM' or '2:00 PM'"""
-        try:
-            time_str = time_str.strip()
-            parts = time_str.split()
-            if len(parts) < 2:
-                return None
-
-            time_part = parts[0]
-            period = parts[1].upper()
-
-            hour = int(time_part.split(':')[0])
-
-            if period == 'PM' and hour != 12:
-                hour += 12
-            elif period == 'AM' and hour == 12:
-                hour = 0
-
-            return hour
-        except Exception:
-            return None
-
     def clear_time_slot_events(self):
-        """Clear all events from time slots"""
-        if not hasattr(self, 'slots_layout'):
+        """Clear all events from time slots."""
+        if not hasattr(self, "slots_layout"):
             return
 
         for i in range(self.slots_layout.count()):
@@ -599,8 +535,8 @@ class DayView(QWidget):
                         event_layout.addStretch()
 
     def add_event_to_time_slot(self, hour, title, category):
-        """Add an event to a specific time slot"""
-        if not hasattr(self, 'slots_layout'):
+        """Add an event to a specific time slot."""
+        if not hasattr(self, "slots_layout"):
             return
 
         slot_index = hour - 7
@@ -623,6 +559,7 @@ class DayView(QWidget):
         if not event_layout:
             return
 
+        # remove placeholder
         if event_layout.count() > 0:
             first_widget = event_layout.itemAt(0).widget()
             if first_widget and isinstance(first_widget, QLabel):
@@ -637,7 +574,7 @@ class DayView(QWidget):
             "Academic": "#4CAF50",
             "Organizational": "#2196F3",
             "Deadline": "#FF9800",
-            "Holiday": "#F44336"
+            "Holiday": "#F44336",
         }
         color = color_map.get(category, "#9E9E9E")
 
@@ -680,14 +617,14 @@ class DayView(QWidget):
         event_layout.addWidget(event_widget)
 
     def populate_upcoming_events(self, events):
-        """Populate the upcoming events list - FIXED with date filtering"""
+        """Populate the upcoming events list."""
         self.list_upcoming.clear()
 
         type_icons = {
             "Academic": "🟢",
             "Organizational": "🔵",
             "Deadline": "🟠",
-            "Holiday": "🔴"
+            "Holiday": "🔴",
         }
 
         for event in events:
@@ -695,65 +632,68 @@ class DayView(QWidget):
             event_text = f"{icon} {event['event']}\n    {event['date_time'].replace(chr(10), ' - ')}"
             self.list_upcoming.addItem(event_text)
 
+    # ---------- navigation & filters ----------
+
     def previous_day(self):
-        """Navigate to previous day"""
-        self.current_date -= timedelta(days=1)
+        """Navigate to previous day."""
+        self.helper.go_prev_day()
         self.update_date_label()
-        current_date_events = self.filter_events_by_current_date(self.all_events)
+        current_date_events = self.helper.filter_events_by_current_date()
         self.clear_time_slot_events()
         self.populate_time_slots_with_events(current_date_events)
 
     def next_day(self):
-        """Navigate to next day"""
-        self.current_date += timedelta(days=1)
+        """Navigate to next day."""
+        self.helper.go_next_day()
         self.update_date_label()
-        current_date_events = self.filter_events_by_current_date(self.all_events)
+        current_date_events = self.helper.filter_events_by_current_date()
         self.clear_time_slot_events()
         self.populate_time_slots_with_events(current_date_events)
 
     def go_to_today(self):
-        """Navigate to today"""
-        self.current_date = datetime.now()
+        """Navigate to today."""
+        self.helper.go_today()
         self.update_date_label()
-        current_date_events = self.filter_events_by_current_date(self.all_events)
+        current_date_events = self.helper.filter_events_by_current_date()
         self.clear_time_slot_events()
         self.populate_time_slots_with_events(current_date_events)
 
-    def on_view_changed(self, view):
-        """Handle view change"""
-        if view == "Month" and self.navigate_back_to_calendar:
+    def on_back_to_month_clicked(self):
+        """Back to month view via parent callback."""
+        if self.navigate_back_to_calendar:
             self.navigate_back_to_calendar()
 
     def on_day_filter_changed(self, filter_text):
-        """Handle filter change in day view upcoming events - FIXED with date filtering"""
-        if hasattr(self, 'main_calendar'):
+        """Handle filter change in day view upcoming events."""
+        if hasattr(self, "main_calendar"):
             filtered_events = self.main_calendar.filter_events(filter_text)
-            upcoming_events = self._filter_upcoming_events(filtered_events)
+            self.helper.set_all_events(filtered_events)
+            upcoming_events = self.helper.filter_upcoming_events()
             self.populate_upcoming_events(upcoming_events)
 
     def show_activities(self):
-        """Navigate to activities view"""
+        """Navigate to activities view."""
         if self.navigate_to_activities:
             self.navigate_to_activities()
 
     def on_search_triggered(self, query=None):
-        """Handle search button click or Enter press - transfer query to SearchView"""
+        """Transfer search query to SearchView."""
         if query is None:
             query = self.search_bar.text().strip()
 
         if self.navigate_to_search:
             self.navigate_to_search(query)
 
-    # NEW: used by Calendar.on_calendar_date_clicked
+    # used by Calendar.on_calendar_date_clicked
     def set_current_date(self, date_obj):
         """
         Set the current date from Month view and refresh the schedule
         for that specific day.
         """
-        self.current_date = datetime.combine(date_obj, datetime.min.time())
+        self.helper.set_current_date(date_obj)
         self.update_date_label()
 
-        if self.all_events:
-            current_date_events = self.filter_events_by_current_date(self.all_events)
+        if self.helper.all_events:
+            current_date_events = self.helper.filter_events_by_current_date()
             self.clear_time_slot_events()
             self.populate_time_slots_with_events(current_date_events)
