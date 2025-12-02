@@ -399,6 +399,9 @@ class OrganizationMembersView(APIView):
                 
                 position_name = officer_term.position.name if officer_term else 'Member'
                 position_id = officer_term.position.id if officer_term else None
+                photo_url = officer_term.photo.url if officer_term and officer_term.photo else None
+                start_term = officer_term.start_term.isoformat() if officer_term and officer_term.start_term else None
+                end_term = officer_term.end_term.isoformat() if officer_term and officer_term.end_term else None
                 
                 members_data.append({
                     'id': member.id,
@@ -411,7 +414,10 @@ class OrganizationMembersView(APIView):
                     'joined_at': member.joined_at.isoformat() if member.joined_at else None,
                     'status': member.status,
                     'position': position_name,
-                    'position_id': position_id
+                    'position_id': position_id,
+                    'photo_url': photo_url,
+                    'start_term': start_term,
+                    'end_term': end_term
                 })
             
             return Response(

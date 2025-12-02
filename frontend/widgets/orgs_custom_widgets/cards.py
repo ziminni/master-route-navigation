@@ -292,16 +292,42 @@ class OfficerCard(BaseCard):
         image_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.AlignmentFlag.AlignVCenter)
 
         image_path = officer_data.get("card_image_path", "No Photo")
-        resolved_image_path = get_image_path(image_path)
         
-        if resolved_image_path != "No Photo":
-            pixmap = QPixmap(resolved_image_path).scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
-            if not pixmap.isNull():
-                image_label.setPixmap(pixmap)
-            else:
+        # Check if it's a URL from the backend (starts with /uploads/ or http)
+        if image_path and (image_path.startswith('/uploads/') or image_path.startswith('http')):
+            # It's a backend URL, construct full URL
+            import requests
+            from io import BytesIO
+            base_url = "http://127.0.0.1:8000"  # Django backend URL
+            full_url = base_url + image_path if image_path.startswith('/') else image_path
+            
+            try:
+                response = requests.get(full_url, timeout=5)
+                if response.status_code == 200:
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(response.content)
+                    if not pixmap.isNull():
+                        pixmap = pixmap.scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
+                        image_label.setPixmap(pixmap)
+                    else:
+                        image_label.setText("No Image")
+                else:
+                    image_label.setText("No Image")
+            except Exception as e:
+                print(f"ERROR: Failed to load image from URL: {e}")
                 image_label.setText("No Image")
         else:
-            image_label.setText("No Image")
+            # Local file path
+            resolved_image_path = get_image_path(image_path)
+            
+            if resolved_image_path != "No Photo":
+                pixmap = QPixmap(resolved_image_path).scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
+                if not pixmap.isNull():
+                    image_label.setPixmap(pixmap)
+                else:
+                    image_label.setText("No Image")
+            else:
+                image_label.setText("No Image")
 
         name_label = QtWidgets.QLabel(officer_data.get("name", "Unknown"))
         name_label.setStyleSheet("border: none; font-weight: bold;")

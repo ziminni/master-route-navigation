@@ -159,11 +159,35 @@ class OrganizationViewBase(User):
         if not self.current_org:
             return
         selected_semester = self.ui.officer_history_dp.itemText(index)
-        officers = (
-            self.current_org.get("officer_history", {}).get(selected_semester, [])
-            if selected_semester != "Current Officers"
-            else self.current_org.get("officers", [])
-        )
+        
+        # Filter members to get only officers (from database API)
+        if hasattr(self, 'members_dict') and self.members_dict:
+            # Use the fetched members data and filter for officers only
+            officers = [
+                {
+                    'id': member.get('id'),  # member_id for API calls
+                    'name': member.get('name', 'Unknown'),
+                    'position': member.get('position', 'Member'),
+                    'position_id': member.get('position_id'),
+                    'email': member.get('email', ''),
+                    'program': member.get('program', 'N/A'),
+                    'year_level': member.get('year_level', ''),
+                    'photo_path': member.get('photo_url', 'No Photo'),
+                    'card_image_path': member.get('photo_url', 'No Photo'),  # For OfficerCard display
+                    'start_term': member.get('start_term'),
+                    'end_term': member.get('end_term')
+                }
+                for member in self.members_dict.values()
+                if member.get('position') and member.get('position') != 'Member'
+            ]
+        else:
+            # Fallback to local storage (for backwards compatibility)
+            officers = (
+                self.current_org.get("officer_history", {}).get(selected_semester, [])
+                if selected_semester != "Current Officers"
+                else self.current_org.get("officers", [])
+            )
+        
         self.load_officers(officers)
 
     def _to_members_page(self) -> None:

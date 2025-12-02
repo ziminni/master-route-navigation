@@ -131,6 +131,7 @@ class MemberPositionUpdateView(APIView):
             start_term: Term start date (for officers)
             end_term: Term end date (for officers, optional)
             updated_by_id: StudentProfile ID of the user making the update
+            photo: Optional photo file upload for officer
         """
         try:
             position_id = request.data.get('position_id')
@@ -138,6 +139,7 @@ class MemberPositionUpdateView(APIView):
             start_term_str = request.data.get('start_term')
             end_term_str = request.data.get('end_term')
             updated_by_id = request.data.get('updated_by_id')
+            photo_file = request.FILES.get('photo')  # Get uploaded photo if present
             
             print(f"DEBUG: Updating member {member_id} to position {position_name} (ID: {position_id})")
             print(f"DEBUG: Raw request.data = {dict(request.data)}")
@@ -270,6 +272,17 @@ class MemberPositionUpdateView(APIView):
                             status=status.HTTP_400_BAD_REQUEST
                         )
                     
+                    # Get existing photo BEFORE deactivating terms (to preserve it if no new photo uploaded)
+                    existing_photo = None
+                    if not photo_file:
+                        existing_active_term = OfficerTerm.objects.filter(
+                            member=member,
+                            status='active'
+                        ).first()
+                        if existing_active_term and existing_active_term.photo:
+                            existing_photo = existing_active_term.photo
+                            print(f"DEBUG: Found existing photo to preserve: {existing_active_term.photo.name}")
+                    
                     # Deactivate any existing officer terms for this member
                     # We need to update each term individually to handle CHECK constraint (start_term < end_term)
                     from datetime import timedelta
@@ -300,7 +313,7 @@ class MemberPositionUpdateView(APIView):
                     
                     print(f"DEBUG: Deactivated {deactivated} existing officer terms")
                     
-                    # Create new officer term
+                    # Create new officer term with new photo OR existing photo
                     print(f"DEBUG: Creating new officer term with start_term={start_term}, end_term={end_term} (type: {type(end_term)})")
                     new_term = OfficerTerm.objects.create(
                         org=member.organization_id,
@@ -309,10 +322,15 @@ class MemberPositionUpdateView(APIView):
                         start_term=start_term,
                         end_term=end_term,
                         status='active',
+                        photo=photo_file if photo_file else existing_photo,
                         updated_by=updated_by_user
                     )
                     print(f"DEBUG: Created new officer term (ID: {new_term.id}) for {member.user_id.user.get_full_name()} as {position.name}")
                     print(f"DEBUG: Saved term - start_term={new_term.start_term}, end_term={new_term.end_term}")
+                    if photo_file:
+                        print(f"DEBUG: New photo uploaded: {new_term.photo.name}")
+                    elif existing_photo:
+                        print(f"DEBUG: Existing photo preserved: {new_term.photo.name}")
                 
                 # Get updated member data with current position
                 current_officer = OfficerTerm.objects.filter(
@@ -322,6 +340,7 @@ class MemberPositionUpdateView(APIView):
                 
                 position_display = current_officer.position.name if current_officer else 'Member'
                 position_id_display = current_officer.position.id if current_officer else None
+                photo_url = current_officer.photo.url if current_officer and current_officer.photo else None
                 
                 # Return complete updated member data matching OrganizationMembersView format
                 updated_member_data = {
@@ -335,7 +354,8 @@ class MemberPositionUpdateView(APIView):
                     'joined_at': member.joined_at.isoformat() if member.joined_at else None,
                     'status': member.status,
                     'position': position_display,
-                    'position_id': position_id_display
+                    'position_id': position_id_display,
+                    'photo_url': photo_url
                 }
                 
                 print(f"DEBUG: Returning updated member data: {updated_member_data}")

@@ -403,27 +403,9 @@ class OfficerDialog(BlurredDialog):
         hlayout.addStretch(1)
 
         main_layout.addLayout(hlayout)
-
-        self.cv_btn = QtWidgets.QPushButton("Curriculum Vitae")
-        self.cv_path = officer_data.get("cv_path")
-        
-        if self.cv_path and self.cv_path != "No Photo":
-            self.cv_btn.setEnabled(True)
-            self.cv_btn.setStyleSheet("background-color: #084924; color: white; border-radius: 5px; padding: 10px;")
-            self.cv_btn.clicked.connect(self.show_cv)
-        else:
-            self.cv_btn.setEnabled(False)
-            self.cv_btn.setStyleSheet("background-color: #cccccc; color: #888888; border-radius: 5px; padding: 10px;")
-            self.cv_btn.setToolTip("No CV has been uploaded for this officer.")
-            
-        contact_btn = QtWidgets.QPushButton("Contact Me")
-        contact_btn.setStyleSheet("background-color: white; border: 1px solid #ccc; border-radius: 5px; padding: 10px;")
-        
-        main_layout.addWidget(self.cv_btn)
-        main_layout.addWidget(contact_btn)
         
         self.is_manager = (hasattr(parent, 'is_managing') and parent.is_managing)
-        self.is_self = parent.name == officer_data.get("name")
+        self.is_self = hasattr(parent, 'name') and parent.name == officer_data.get("name")
         can_edit = self.is_manager or self.is_self
         
         if can_edit:
@@ -432,12 +414,6 @@ class OfficerDialog(BlurredDialog):
             edit_btn.clicked.connect(lambda: self.open_edit_officer(officer_data))
             main_layout.addWidget(edit_btn)
 
-    def show_cv(self):
-        """Open the CV viewer dialog."""
-        if self.cv_path:
-            dialog = CVViewerDialog(self.cv_path, self)
-            dialog.exec()
-
     def open_edit_officer(self, officer_data):
         is_self_edit_only = self.is_self and not self.is_manager
         dialog = EditOfficerDialog(officer_data, self, is_self_edit_only=is_self_edit_only)
@@ -445,28 +421,53 @@ class OfficerDialog(BlurredDialog):
         if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             updated_data = dialog.updated_data
             
+            # Refresh members from database first to get updated photo
             main_window = self.parent()
+            if main_window and hasattr(main_window, '_fetch_members') and hasattr(main_window, 'current_org'):
+                main_window._fetch_members(main_window.current_org["id"])
             
-            if self.is_manager:
-                main_window.update_officer_in_org(updated_data)
-            elif self.is_self:
-                main_window.update_own_officer_data(updated_data)
+            # Then refresh officer display
+            if main_window and hasattr(main_window, '_on_officer_history_changed'):
+                main_window._on_officer_history_changed(0)  # Reload current officers from DB
             
+            # Update this dialog with new data
             self.update_dialog(updated_data)
-            
-            if main_window and hasattr(main_window, 'current_org') and main_window.current_org:
-                current_index = main_window.ui.officer_history_dp.currentIndex()
-                selected_semester = main_window.ui.officer_history_dp.itemText(current_index)
-                officers = (
-                    main_window.current_org.get("officer_history", {}).get(selected_semester, [])
-                    if selected_semester != "Current Officers"
-                    else main_window.current_org.get("officers", [])
-                )
-                main_window.load_officers(officers)
 
     def _set_officer_photo(self, officer_data, size=125, border_width=4):
         """Helper function to set the officer photo or 'No Photo' placeholder."""
-        photo_path = get_image_path(officer_data.get("photo_path", "No Photo"))
+        import requests
+        from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
+        from PyQt6.QtCore import Qt
+        import tempfile
+        import os
+        
+        photo_path = officer_data.get("photo_path", "No Photo")
+        
+        # Check if it's a URL from the backend (starts with /uploads/ or http)
+        if photo_path and photo_path != "No Photo" and (photo_path.startswith('/uploads/') or photo_path.startswith('http')):
+            # It's a backend URL, construct full URL and download
+            base_url = "http://127.0.0.1:8000"  # Django backend URL
+            full_url = base_url + photo_path if photo_path.startswith('/') else photo_path
+            
+            try:
+                response = requests.get(full_url, timeout=5)
+                if response.status_code == 200:
+                    # Save to temp file and use set_circular_logo
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
+                        tmp_file.write(response.content)
+                        tmp_path = tmp_file.name
+                    self.parent().set_circular_logo(self.photo_label, tmp_path, size=size, border_width=border_width)
+                    # Clean up temp file after a delay
+                    try:
+                        os.unlink(tmp_path)
+                    except:
+                        pass
+                    return
+            except Exception as e:
+                print(f"ERROR: Failed to load image from URL: {e}")
+        
+        # Local file path or fallback
+        photo_path = get_image_path(photo_path)
         
         if photo_path == "No Photo":
             self.photo_label.setText("No Photo")
@@ -485,25 +486,11 @@ class OfficerDialog(BlurredDialog):
             self.parent().set_circular_logo(self.photo_label, photo_path, size=size, border_width=border_width)
 
     def update_dialog(self, officer_data):
+        """Update the dialog with new officer data"""
         self.officer_data = officer_data
         self._set_officer_photo(officer_data, size=125, border_width=4)
-        
+        self.name_label.setText(officer_data.get("name", "Unknown"))
         self.position_label.setText(officer_data.get("position", "Unknown Position"))
-        
-        self.cv_path = officer_data.get("cv_path")
-        if self.cv_path and self.cv_path != "No Photo":
-            self.cv_btn.setEnabled(True)
-            self.cv_btn.setStyleSheet("background-color: #084924; color: white; border-radius: 5px; padding: 10px;")
-            self.cv_btn.setToolTip("")
-            try:
-                self.cv_btn.clicked.disconnect()
-            except TypeError:
-                pass
-            self.cv_btn.clicked.connect(self.show_cv)
-        else:
-            self.cv_btn.setEnabled(False)
-            self.cv_btn.setStyleSheet("background-color: #cccccc; color: #888888; border-radius: 5px; padding: 10px;")
-            self.cv_btn.setToolTip("No CV has been uploaded for this officer.")
 
 class BaseEditDialog(PhotoBrowseMixin, BlurredDialog):
     def __init__(self, data, title, parent=None, fixed_size=(500, 400), has_photo=True):
@@ -536,10 +523,38 @@ class BaseEditDialog(PhotoBrowseMixin, BlurredDialog):
         self.preview_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         
         photo_filename = self.data.get("photo_path") if isinstance(self.data, dict) else "No Photo"
-        photo_path = get_image_path(photo_filename)
         
-        if self.circular_logo_setter:
-            self.circular_logo_setter(self.preview_label, photo_path, size=150, border_width=4)
+        # Handle backend URLs (/uploads/) or local paths
+        if photo_filename and (photo_filename.startswith('/uploads/') or photo_filename.startswith('http')):
+            # Download and display photo from backend
+            import requests
+            from PyQt6.QtGui import QPixmap
+            import tempfile
+            import os
+            
+            base_url = "http://127.0.0.1:8000"
+            full_url = base_url + photo_filename if photo_filename.startswith('/') else photo_filename
+            
+            try:
+                response = requests.get(full_url, timeout=5)
+                if response.status_code == 200:
+                    # Save to temp file
+                    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
+                    temp_file.write(response.content)
+                    temp_file.close()
+                    
+                    if self.circular_logo_setter:
+                        self.circular_logo_setter(self.preview_label, temp_file.name, size=150, border_width=4)
+                else:
+                    self.preview_label.setText("No Logo")
+            except Exception as e:
+                print(f"ERROR: Failed to load photo from backend: {e}")
+                self.preview_label.setText("No Logo")
+        else:
+            # Local file path
+            photo_path = get_image_path(photo_filename)
+            if self.circular_logo_setter:
+                self.circular_logo_setter(self.preview_label, photo_path, size=150, border_width=4)
             
         photo_layout.addWidget(self.preview_label)
         browse_btn = QtWidgets.QPushButton("Browse Photo")
@@ -556,22 +571,25 @@ class BaseEditDialog(PhotoBrowseMixin, BlurredDialog):
 
 class EditOfficerDialog(BaseEditDialog):
     def __init__(self, officer_data, parent=None, is_self_edit_only=False):
-        self.temp_cv_path = None
-        cv_file = officer_data.get("cv_path", "No Photo")
-        self.cv_filename = os.path.basename(cv_file) if cv_file and cv_file != "No Photo" else "No CV Uploaded"
-        
         self.is_self_edit_only = is_self_edit_only
+        self.positions_list = []  # Will store position data from DB
+        self.original_position_id = officer_data.get("position_id")
         
-        super().__init__(officer_data, "Edit Officer Details", parent, (500, 450), has_photo=True)
-        self.original_position = officer_data.get("position", "")
+        super().__init__(officer_data, "Edit Officer Details", parent, (500, 500), has_photo=True)
+        
+        # Fetch positions from database after initialization
+        self._fetch_positions()
 
     def _add_form_fields(self, layout):
+        from PyQt6.QtWidgets import QDateEdit
+        from PyQt6.QtCore import QDate
+        from datetime import datetime
+        
         layout.addWidget(QtWidgets.QLabel("Position:"))
         self.position_edit = QtWidgets.QComboBox()
         self.position_edit.setStyleSheet(EDIT_STYLE)
-        possible_positions = ["Chairperson", "Vice - Internal Chairperson", "Vice - External Chairperson", "Secretary", "Treasurer", "Member"]
-        self.position_edit.addItems(possible_positions)
-        self.position_edit.setCurrentText(self.data.get("position", ""))
+        # Add Member as first option
+        self.position_edit.addItem("Member", None)  # None for position_id means regular member
         self.position_edit.setEnabled(not self.is_self_edit_only)
         layout.addWidget(self.position_edit)
         
@@ -580,35 +598,112 @@ class EditOfficerDialog(BaseEditDialog):
             helper_label.setStyleSheet("font-size: 10px; color: #888; font-style: italic;")
             layout.addWidget(helper_label)
         
-        layout.addWidget(QtWidgets.QLabel("Curriculum Vitae (CV):"))
-        cv_layout = QtWidgets.QHBoxLayout()
-        self.cv_label = QtWidgets.QLabel(self.cv_filename) 
-        self.cv_label.setStyleSheet("font-style: italic; color: #555; padding: 5px;")
+        # Start Term date picker
+        layout.addWidget(QtWidgets.QLabel("Start Term:"))
+        self.start_term_edit = QDateEdit()
+        self.start_term_edit.setCalendarPopup(True)
+        self.start_term_edit.setDisplayFormat("yyyy-MM-dd")
+        self.start_term_edit.setStyleSheet(EDIT_STYLE)
+        # Set current value if exists, otherwise default to today
+        existing_start = self.data.get('start_term', '')
+        if existing_start:
+            try:
+                start_date = datetime.strptime(existing_start[:10], '%Y-%m-%d')
+                self.start_term_edit.setDate(QDate(start_date.year, start_date.month, start_date.day))
+            except:
+                self.start_term_edit.setDate(QDate.currentDate())
+        else:
+            self.start_term_edit.setDate(QDate.currentDate())
+        layout.addWidget(self.start_term_edit)
         
-        browse_cv_btn = QtWidgets.QPushButton("Browse CV")
-        browse_cv_btn.setStyleSheet(BROWSE_STYLE)
-        browse_cv_btn.clicked.connect(self.browse_cv)
+        # End Term date picker
+        layout.addWidget(QtWidgets.QLabel("End Term:"))
+        self.end_term_edit = QDateEdit()
+        self.end_term_edit.setCalendarPopup(True)
+        self.end_term_edit.setDisplayFormat("yyyy-MM-dd")
+        self.end_term_edit.setStyleSheet(EDIT_STYLE)
+        # Set current value if exists, otherwise default to one year from now
+        existing_end = self.data.get('end_term', '')
+        if existing_end:
+            try:
+                end_date = datetime.strptime(existing_end[:10], '%Y-%m-%d')
+                self.end_term_edit.setDate(QDate(end_date.year, end_date.month, end_date.day))
+            except:
+                self.end_term_edit.setDate(QDate.currentDate().addYears(1))
+        else:
+            self.end_term_edit.setDate(QDate.currentDate().addYears(1))
+        layout.addWidget(self.end_term_edit)
+    
+    def _fetch_positions(self):
+        """Fetch available positions from database"""
+        from services.organization_api_service import OrganizationAPIService
         
-        cv_layout.addWidget(self.cv_label)
-        cv_layout.addStretch()
-        cv_layout.addWidget(browse_cv_btn)
-        layout.addLayout(cv_layout)
+        response = OrganizationAPIService.get_positions()
+        if response.get('success'):
+            self.positions_list = response.get('data', [])
+            # Populate combobox
+            for pos in self.positions_list:
+                self.position_edit.addItem(pos['name'], pos['id'])
+            
+            # Set current position
+            if self.original_position_id:
+                for i in range(self.position_edit.count()):
+                    if self.position_edit.itemData(i) == self.original_position_id:
+                        self.position_edit.setCurrentIndex(i)
+                        break
+        else:
+            QtWidgets.QMessageBox.warning(
+                self, "Error", 
+                f"Failed to fetch positions: {response.get('message', 'Unknown error')}"
+            )
 
-    def browse_cv(self):
-        """Browse for a CV file (Image or PDF)."""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select CV", "", "Files (*.png *.jpg *.jpeg *.pdf)"
-        )
-        if file_path:
-            self.temp_cv_path = file_path
-            self.cv_label.setText(os.path.basename(file_path))
-
-    def confirm(self): # MODIFIED
+    def confirm(self):
+        """Save officer changes to database via API"""
+        from services.organization_api_service import OrganizationAPIService
+        from PyQt6.QtWidgets import QInputDialog
+        from datetime import datetime
+        
+        # Get selected position
         new_position = self.position_edit.currentText()
-        main_window = self.parent().parent()
+        selected_position_id = self.position_edit.currentData()
         
-        if not self.is_self_edit_only:
-            if BlurredDialog._check_position_conflict(main_window, new_position, self.data.get("name"), self.original_position):
+        # Get member_id from officer data
+        member_id = self.data.get('id') or self.data.get('member_id')
+        if not member_id:
+            QtWidgets.QMessageBox.warning(
+                self, "Error", "Cannot update officer: Missing member ID."
+            )
+            return
+        
+        # Get the main window to access username
+        # Navigate up the parent chain to find the main window
+        main_window = self.parent()
+        while main_window and not hasattr(main_window, 'name'):
+            main_window = main_window.parent()
+        
+        # Get BaseUser ID for audit trail
+        updated_by_id = None
+        if main_window and hasattr(main_window, 'name') and main_window.name:
+            try:
+                from services.organization_api_service import OrganizationAPIService
+                api_response = OrganizationAPIService.get_current_user_by_username(main_window.name)
+                if api_response.get('success') and api_response.get('data'):
+                    # This returns BaseUser ID
+                    updated_by_id = api_response['data'].get('id')  # BaseUser.id
+                    print(f"DEBUG: Got BaseUser ID for update: {updated_by_id}")
+                else:
+                    print(f"ERROR: API call failed: {api_response}")
+            except Exception as e:
+                print(f"ERROR: Could not get BaseUser ID: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print(f"ERROR: Could not find main_window with 'name' attribute")
+        
+        # Check for position conflict (if not self-edit and not Member position)
+        if not self.is_self_edit_only and new_position != "Member":
+            original_position = self.data.get("position", "")
+            if BlurredDialog._check_position_conflict(main_window, new_position, self.data.get("name"), original_position):
                 QtWidgets.QMessageBox.warning(
                     self,
                     "Position Already Taken",
@@ -616,34 +711,58 @@ class EditOfficerDialog(BaseEditDialog):
                     QtWidgets.QMessageBox.StandardButton.Ok
                 )
                 return
-
-        org_name = main_window.current_org.get("name", "Unknown")
-
-        old_cv_path = self.data.get("cv_path") 
-        if self.temp_cv_path:
-            new_cv_filename = copy_image_to_data(self.temp_cv_path, org_name)
-            if new_cv_filename is None:
-                return
-            if new_cv_filename != "No Photo":
-                self.data["cv_path"] = new_cv_filename
-                delete_image(old_cv_path)
-
-        old_photo_path = self.data.get("photo_path") 
-        if self.temp_image_path:
-            new_filename = self._save_temp_image(org_name)
-            
-            if new_filename is None:
-                return
-            if new_filename != "No Photo":
-                self.data["photo_path"] = new_filename
-                if "card_image_path" in self.data:
-                    self.data["card_image_path"] = new_filename
-                delete_image(old_photo_path)
-
-        self.data["position"] = new_position
         
-        self.updated_data = self.data
-        self.accept()
+        # Prepare update data
+        update_data = {
+            'position_id': selected_position_id,
+            'position_name': new_position,
+            'updated_by_id': updated_by_id  # BaseUser ID
+        }
+        
+        # If officer position (not Member), get term dates from date pickers
+        if new_position != "Member" and selected_position_id is not None:
+            # Get dates from DateEdit widgets
+            start_date = self.start_term_edit.date()
+            end_date = self.end_term_edit.date()
+            
+            # Convert to string format (YYYY-MM-DD)
+            start_term = start_date.toString("yyyy-MM-dd")
+            end_term = end_date.toString("yyyy-MM-dd")
+            
+            update_data['start_term'] = start_term
+            update_data['end_term'] = end_term
+        
+        # Handle photo upload if new photo selected
+        if self.temp_image_path:
+            update_data['photo'] = self.temp_image_path
+        
+        # Call API to update member position
+        response = OrganizationAPIService.update_member_position(
+            member_id=member_id,
+            position_data=update_data
+        )
+        
+        if response.get('success'):
+            # Update local data with new values from backend response
+            response_data = response.get('data', {})
+            self.data['position'] = response_data.get('position', new_position)
+            self.data['position_id'] = response_data.get('position_id', selected_position_id)
+            self.data['photo_url'] = response_data.get('photo_url')
+            self.data['photo_path'] = response_data.get('photo_url')
+            self.data['card_image_path'] = response_data.get('photo_url')
+            self.data['start_term'] = response_data.get('start_term')
+            self.data['end_term'] = response_data.get('end_term')
+            self.updated_data = self.data
+            
+            QtWidgets.QMessageBox.information(
+                self, "Success", "Officer details updated successfully!"
+            )
+            self.accept()
+        else:
+            QtWidgets.QMessageBox.warning(
+                self, "Error",
+                f"Failed to update officer: {response.get('message', 'Unknown error')}"
+            )
 
 class EditMemberDialog(BlurredDialog):
     def __init__(self, member_data: list, member_id: int, parent=None):

@@ -982,6 +982,9 @@ class Admin(ManagerBase, FacultyAdminBase):
         self._fetch_applicants(org_data["id"])
         self._fetch_members(org_data["id"])
         
+        # Load officers from fetched members data
+        self._on_officer_history_changed(0)  # Load "Current Officers"
+        
         # Load members view by default (this triggers the UI update)
         print("DEBUG show_org_details: Loading members view")
         self.load_members()

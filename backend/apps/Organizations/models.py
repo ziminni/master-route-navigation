@@ -134,6 +134,7 @@ class OfficerTerm(models.Model):
     start_term   = models.DateField()
     end_term     = models.DateField()
     status       = models.CharField(max_length=10, choices=[("active","Active"), ("inactive","Inactive")], default="active")
+    photo        = models.ImageField(upload_to='officer_photos/', null=True, blank=True)
     updated_by   = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     updated_at   = models.DateTimeField(auto_now=True)
 

@@ -739,43 +739,49 @@ class OrganizationAPIService:
             }
 
     @staticmethod
-    def update_member_position(member_id: int, position_id: int = None, position_name: str = "Member", 
-                               start_term: str = None, end_term: str = None, updated_by_id: int = None) -> Dict:
+    def update_member_position(member_id: int, position_data: Dict) -> Dict:
         """
         Update a member's position
         
         Args:
             member_id: The OrganizationMembers ID
-            position_id: The Positions ID (None for regular member)
-            position_name: The position name for display
-            start_term: Start date in YYYY-MM-DD format (required for officers)
-            end_term: End date in YYYY-MM-DD format (optional)
-            updated_by_id: StudentProfile ID of user making the update
+            position_data: Dict containing:
+                - position_id: The Positions ID (None for regular member)
+                - position_name: The position name (for backwards compatibility)
+                - start_term: Start date in YYYY-MM-DD format (required for officers)
+                - end_term: End date in YYYY-MM-DD format (optional)
+                - updated_by_id: StudentProfile ID of user making the update (optional)
+                - photo: Path to photo file to upload (optional)
             
         Returns:
             Dictionary containing the API response
         """
         url = f"{OrganizationAPIService.BASE_URL}/members/{member_id}/position/"
         
-        data = {
-            "position_id": position_id,
-            "position_name": position_name
-        }
-        
-        # Add term dates if provided
-        if start_term:
-            data["start_term"] = start_term
-        if end_term:
-            data["end_term"] = end_term
-        if updated_by_id:
-            data["updated_by_id"] = updated_by_id
+        # Check if we need to send as multipart/form-data (for photo upload)
+        photo_path = position_data.get('photo')
         
         try:
-            response = requests.put(url, json=data, timeout=10)
+            if photo_path:
+                # Send as multipart/form-data
+                files = {}
+                data = {}
+                
+                try:
+                    files['photo'] = open(photo_path, 'rb')
+                    data = {k: v for k, v in position_data.items() if k != 'photo' and v is not None}
+                    
+                    response = requests.put(url, data=data, files=files, timeout=10)
+                finally:
+                    if 'photo' in files:
+                        files['photo'].close()
+            else:
+                # Send as JSON, filter out None values
+                json_data = {k: v for k, v in position_data.items() if v is not None}
+                response = requests.put(url, json=json_data, timeout=10)
             
             print(f"DEBUG: Response status: {response.status_code}")
             print(f"DEBUG: Response content-type: {response.headers.get('content-type', 'unknown')}")
-            
             # Check if response is JSON
             content_type = response.headers.get('content-type', '')
             if 'application/json' not in content_type:
