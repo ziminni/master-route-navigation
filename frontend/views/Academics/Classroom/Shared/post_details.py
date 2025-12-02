@@ -1,5 +1,5 @@
 # post_details.py - Add menu button with Edit and Delete options
-from PyQt6.QtWidgets import QWidget, QLabel, QMenu, QMessageBox
+from PyQt6.QtWidgets import QWidget, QLabel, QMenu, QMessageBox, QPushButton
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QAction, QFont
 from widgets.Academics.Ui_viewContent import Ui_viewContent
@@ -22,8 +22,67 @@ class PostDetails(QWidget):
         self.ui.setupUi(self, content_type=post.get("type", "material"))
         self.load_post(post)
         self.setup_menu_button()
-        self.ui.backButton.clicked.connect(self.back_clicked.emit)
+        
+        # FIX: Ensure back button is properly connected and visible
+        self.setup_back_button()
+    
+    def setup_back_button(self):
+        """Setup and connect the back button"""
+        if hasattr(self.ui, 'backButton') and isinstance(self.ui.backButton, QPushButton):
+            print(f"DEBUG: Back button found, connecting...")
+            # Style the back button if needed
+            self.ui.backButton.setStyleSheet("""
+                QPushButton {
+                    background-color: #084924;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-family: "Poppins", Arial, sans-serif;
+                }
+                QPushButton:hover {
+                    background-color: #1B5E20;
+                }
+            """)
+            
+            # Ensure it's visible
+            self.ui.backButton.setVisible(True)
+            
+            # Connect the click event
+            self.ui.backButton.clicked.connect(self.back_clicked.emit)
+            print(f"DEBUG: Back button connected and visible")
+        else:
+            print(f"DEBUG: No backButton attribute found in UI")
+            
+            # Create a fallback back button if it doesn't exist
+            back_button = QPushButton("← Back")
+            back_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #084924;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-family: "Poppins", Arial, sans-serif;
+                    margin: 10px;
+                }
+                QPushButton:hover {
+                    background-color: #1B5E20;
+                }
+            """)
+            back_button.clicked.connect(self.back_clicked.emit)
+            
+            # Add it to the layout
+            if hasattr(self.ui, 'verticalLayout'):
+                # Insert at the beginning of the layout
+                self.ui.verticalLayout.insertWidget(0, back_button)
+            else:
+                # Fallback: create a simple layout
+                layout = self.layout()
+                if layout:
+                    layout.addWidget(back_button)
 
+    # Rest of the existing methods remain the same...
     def setup_menu_button(self):
         """Setup menu button with Edit and Delete options for faculty/admin"""
         if self.primary_role in ["faculty", "admin"]:
