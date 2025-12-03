@@ -191,6 +191,28 @@
             "is_archived": true,
             "archived_at": "2025-12-03T15:47:52.944574",
             "unarchived_at": "2025-12-03T15:43:29.671640"
+        },
+        {
+            "code": "GEC 11",
+            "title": "Understanding the Self",
+            "units": 3,
+            "section_id": 1,
+            "schedules": [
+                {
+                    "day": "Monday",
+                    "start_time": "09:00 AM",
+                    "end_time": "10:00 AM"
+                }
+            ],
+            "room": "Room 301",
+            "instructor": "Kim Jong Un",
+            "type": "Lecture",
+            "id": 9,
+            "section_name": "BSIT-1Ax",
+            "created_at": "2025-12-03T18:26:18.755508",
+            "updated_at": "2025-12-03T18:26:18.755508",
+            "is_archived": false,
+            "instructor_id": "faculty_1"
         }
     ],
     "topics": [
@@ -368,6 +390,74 @@
             "score": null,
             "date": "Oct 15",
             "author": "Kim"
+        },
+        {
+            "post_id": 1,
+            "class_id": 1,
+            "topic_id": null,
+            "type": "assessment",
+            "title": "New Performance Task ()",
+            "description": "",
+            "instructor": null,
+            "instructor_id": "faculty_001",
+            "date_posted": "Dec 03",
+            "status": "draft",
+            "created_at": "2025-12-03T19:32:52.210082",
+            "updated_at": "2025-12-03T19:32:52.210082",
+            "assessment_id": 2,
+            "rubric_component": "performance task",
+            "academic_period": "midterm",
+            "max_points": 100,
+            "due_date": null
+        },
+        {
+            "post_id": 2,
+            "class_id": 1,
+            "topic_id": null,
+            "type": "assessment",
+            "title": "New Performance Task ()",
+            "description": "",
+            "instructor": null,
+            "instructor_id": "faculty_001",
+            "date_posted": "Dec 03",
+            "status": "draft",
+            "created_at": "2025-12-03T20:29:44.213139",
+            "updated_at": "2025-12-03T20:29:44.213139",
+            "assessment_id": 3,
+            "rubric_component": "performance task",
+            "academic_period": "final",
+            "max_points": 10,
+            "due_date": null
+        },
+        {
+            "id": 9,
+            "class_id": 9,
+            "topic_id": null,
+            "type": "assessment",
+            "title": "ass",
+            "content": "1as",
+            "author": null,
+            "date": "2025-12-03 20:51:44",
+            "score": 100,
+            "attachment": null,
+            "assessment_id": 1,
+            "rubric_component": "performance task",
+            "academic_period": "midterm"
+        },
+        {
+            "id": 10,
+            "class_id": 1,
+            "topic_id": null,
+            "type": "assessment",
+            "title": "Assess1",
+            "content": "Just because",
+            "author": null,
+            "date": "2025-12-03 21:13:25",
+            "score": 50,
+            "attachment": null,
+            "assessment_id": 2,
+            "rubric_component": "performance task",
+            "academic_period": "final"
         }
     ],
     "sections": [

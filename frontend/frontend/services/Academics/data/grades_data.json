@@ -1,0 +1,24 @@
+{
+    "grades": {
+        "class_1": {
+            "456456456": {
+                "newperformancetask()_midterm": {
+                    "value": "1/100",
+                    "is_draft": false,
+                    "updated_at": "2025-12-03T20:29:23.345416"
+                },
+                "ass_midterm": {
+                    "value": "12/100",
+                    "is_draft": false,
+                    "updated_at": "2025-12-03T20:51:56.950414"
+                },
+                "assess1_finalterm": {
+                    "value": "25/50",
+                    "is_draft": false,
+                    "updated_at": "2025-12-03T21:13:59.826350"
+                }
+            }
+        }
+    },
+    "last_updated": "2025-12-03T21:13:59.826350"
+}

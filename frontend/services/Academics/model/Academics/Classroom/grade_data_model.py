@@ -15,11 +15,19 @@ except ImportError:
     print("Warning: Could not import GradeDataManager")
     GradeDataManager = None
 
+# Import backend services for rubric persistence
+try:
+    from frontend.services.Academics.Classroom.grading_rubric_service import GradingRubricService
+except ImportError:
+    print("Warning: Could not import GradingRubricService")
+    GradingRubricService = None
+
 class GradeDataModel(QObject):
     """
     Main data model holding all application data.
     FLEXIBLE: Adapts to any users from Django backend or JSON files
     FUTURE-READY: Prepared for PostgreSQL integration
+    WITH BACKEND INTEGRATION: Loads rubrics from persistent storage
     """
     data_reset = pyqtSignal()
     data_updated = pyqtSignal()
@@ -37,6 +45,9 @@ class GradeDataModel(QObject):
         else:
             self.grade_manager = None
         
+        # Initialize rubric service
+        self.rubric_service = GradingRubricService() if GradingRubricService else None
+        
         # Component types with sub-items
         self.components = {
             'performance_tasks': ['PT1', 'PT2', 'PT3'],
@@ -53,7 +64,7 @@ class GradeDataModel(QObject):
             'exams_final': 100
         }
         
-        # Rubric configuration
+        # Rubric configuration (will be loaded from backend)
         self.rubric_config = {
             'midterm': {
                 'term_percentage': 33,
@@ -89,6 +100,9 @@ class GradeDataModel(QObject):
         
         # Grade storage: {student_id: {component_key: GradeItem}}
         self.grades = {}
+        
+        # Load rubrics from backend
+        self._load_rubric_from_backend()
 
     def _initialize_component_states(self):
         """Initialize column states for all component types"""
@@ -99,6 +113,66 @@ class GradeDataModel(QObject):
                 state_key = f'{comp_key}_{term}_expanded'
                 if state_key not in self.column_states:
                     self.column_states[state_key] = False
+
+    def _load_rubric_from_backend(self):
+        """Load rubric configuration from backend service"""
+        if not self.rubric_service:
+            print("[GradeDataModel] No rubric service available")
+            return
+        
+        try:
+            rubrics = self.rubric_service.get_class_rubrics(self.class_id)
+            if rubrics:
+                self._apply_rubric_from_backend(rubrics)
+                print(f"[GradeDataModel] Loaded rubric for class {self.class_id}")
+            else:
+                print(f"[GradeDataModel] No rubrics found for class {self.class_id}, using defaults")
+        except Exception as e:
+            print(f"[GradeDataModel] Failed to load rubric: {e}")
+
+    def _apply_rubric_from_backend(self, rubrics: dict):
+        """
+        Apply rubric data from backend to internal config.
+        
+        Args:
+            rubrics: Dict with structure:
+                {
+                    "midterm": {"term_percentage": 33, "components": [...]},
+                    "finals": {"term_percentage": 67, "components": [...]}
+                }
+        """
+        for term_key in ["midterm", "finals"]:
+            if term_key not in rubrics:
+                continue
+            
+            rubric = rubrics[term_key]
+            internal_key = "midterm" if term_key == "midterm" else "final"
+            
+            self.rubric_config[internal_key]['term_percentage'] = rubric.get('term_percentage', 50)
+            self.rubric_config[internal_key]['components'] = {}
+            
+            for component in rubric.get('components', []):
+                comp_name = component.get('name', '').lower()
+                comp_percentage = component.get('percentage', 0)
+                self.rubric_config[internal_key]['components'][comp_name] = comp_percentage
+                
+                # Update component type mapping
+                self._update_component_type_mapping(comp_name)
+        
+        self._initialize_component_states()
+        print(f"[GradeDataModel] Applied rubric config: {self.rubric_config}")
+
+    def _update_component_type_mapping(self, comp_name):
+        """Update component type mapping based on component name"""
+        comp_lower = comp_name.lower()
+        if 'task' in comp_lower or 'pt' in comp_lower or 'performance' in comp_lower:
+            self.component_type_mapping[comp_lower] = 'performance_tasks'
+        elif 'quiz' in comp_lower:
+            self.component_type_mapping[comp_lower] = 'quizzes'
+        elif 'exam' in comp_lower:
+            self.component_type_mapping[comp_lower] = 'exams'
+        else:
+            self.component_type_mapping[comp_lower] = 'performance_tasks'
 
     def set_current_user(self, username, user_data=None):
         """Set the current logged-in user"""
@@ -323,39 +397,98 @@ class GradeDataModel(QObject):
         comp_name_lower = component_name.lower()
         return self.rubric_config[term_key]['components'].get(comp_name_lower, 0)
 
-    def get_component_items_with_scores(self, type_key):
-        """Get list of component items with their max scores"""
-        items = self.components.get(type_key, [])
-        max_score = self.component_max_scores.get(type_key, 40)
+    def get_component_items_with_scores(self, type_key, term=None, component_name=None):
+        """
+        Get list of component items (assessments) with their max scores.
+        Now loads from assessment service instead of static mock data.
         
-        return [{'name': item, 'max_score': max_score} for item in items]
+        Args:
+            type_key: The component type key (e.g., 'quizzes', 'performance_tasks')
+            term: The academic term ('midterm' or 'finalterm')
+            component_name: The rubric component name (e.g., 'quiz', 'performance task')
+        
+        Returns:
+            List of dicts with 'name', 'max_score', and optionally 'assessment_id'
+        """
+        # Try to load from assessment service first
+        if not component_name:
+            return []
+            
+        try:
+            from frontend.services.Academics.Classroom.assessment_service import AssessmentService
+            assessment_service = AssessmentService()
+            
+            # Get all assessments for this class
+            all_assessments = assessment_service.get_assessments_by_class(self.class_id)
+            
+            # Determine the academic period for matching
+            period = 'midterm' if term == 'midterm' else 'final'
+            if term == 'finalterm':
+                period = 'final'
+            
+            # EXACT matching - only assessments that match BOTH:
+            # 1. rubric_component_name matches component_name (case-insensitive)
+            # 2. academic_period matches the period
+            items = []
+            comp_name_lower = component_name.lower().strip()
+            
+            for assessment in all_assessments:
+                assessment_component = assessment.get('rubric_component_name', '').lower().strip()
+                assessment_period = assessment.get('academic_period', '').lower().strip()
+                
+                # Handle 'finals' vs 'final' variations
+                if assessment_period == 'finals':
+                    assessment_period = 'final'
+                
+                # EXACT match required
+                if assessment_component == comp_name_lower and assessment_period == period:
+                    items.append({
+                        'name': assessment.get('title', 'Untitled'),
+                        'max_score': assessment.get('max_points', 100),
+                        'assessment_id': assessment.get('id')
+                    })
+            
+            if items:
+                print(f"[GradeDataModel] Found {len(items)} assessments for component='{component_name}', period='{period}'")
+                return items
+            else:
+                print(f"[GradeDataModel] No assessments for component='{component_name}', period='{period}'")
+                
+        except Exception as e:
+            print(f"[GradeDataModel] Failed to get assessments: {e}")
+        
+        # Return empty list - no assessments created yet
+        return []
 
     def update_rubric_config(self, rubric_data):
         """Update rubric configuration from grading system dialog"""
+        # Handle both 'final' and 'finals' keys from different sources
+        midterm_data = rubric_data.get('midterm', {})
+        final_data = rubric_data.get('final', rubric_data.get('finals', {}))
+        
         self.rubric_config = {
             'midterm': {
-                'term_percentage': rubric_data['midterm']['term_percentage'],
+                'term_percentage': midterm_data.get('term_percentage', 33),
                 'components': {}
             },
             'final': {
-                'term_percentage': rubric_data['final']['term_percentage'],
+                'term_percentage': final_data.get('term_percentage', 67),
                 'components': {}
             }
         }
         
-        for comp in rubric_data['midterm']['components']:
-            comp_name = comp['name'].lower()
-            self.rubric_config['midterm']['components'][comp_name] = comp['percentage']
+        for comp in midterm_data.get('components', []):
+            comp_name = comp.get('name', '').lower()
+            self.rubric_config['midterm']['components'][comp_name] = comp.get('percentage', 0)
         
-        for comp in rubric_data['final']['components']:
-            comp_name = comp['name'].lower()
-            self.rubric_config['final']['components'][comp_name] = comp['percentage']
+        for comp in final_data.get('components', []):
+            comp_name = comp.get('name', '').lower()
+            self.rubric_config['final']['components'][comp_name] = comp.get('percentage', 0)
         
         self.component_type_mapping = {}
         all_component_names = set()
         for term_key in ['midterm', 'final']:
-            for comp in rubric_data[term_key]['components']:
-                comp_name = comp['name'].lower()
+            for comp_name in self.rubric_config[term_key]['components'].keys():
                 all_component_names.add(comp_name)
         
         for comp_name in all_component_names:
@@ -370,6 +503,7 @@ class GradeDataModel(QObject):
         
         self._initialize_component_states()
         self.columns_changed.emit()
+        print(f"[GradeDataModel] Updated rubric config: {self.rubric_config}")
 
     def get_student_by_username(self, username):
         """Get student data by username"""

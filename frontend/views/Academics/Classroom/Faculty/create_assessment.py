@@ -1,4 +1,4 @@
-# create_assessment.py - UPDATED WITH RESPONSIVE LAYOUT
+# create_assessment.py - UPDATED WITH BACKEND INTEGRATION
 import os, sys
 import datetime
 
@@ -21,7 +21,8 @@ from PyQt6.QtWidgets import (
     QSpacerItem, 
     QSizePolicy, 
     QGridLayout,
-    QScrollArea  # ADD: Scroll area for responsiveness
+    QScrollArea,  # ADD: Scroll area for responsiveness
+    QMessageBox
 )
 
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
@@ -30,9 +31,19 @@ from frontend.widgets.Academics.labeled_section import LabeledSection
 from frontend.widgets.Academics.dropdown import DropdownMenu
 from frontend.widgets.Academics.upload_class_material_widget import UploadClassMaterialPanel
 
+# Import backend services
+try:
+    from frontend.services.Academics.Classroom.assessment_service import AssessmentService
+    from frontend.services.Academics.Classroom.grading_rubric_service import GradingRubricService
+except ImportError:
+    print("[AssessmentForm] Warning: Could not import backend services")
+    AssessmentService = None
+    GradingRubricService = None
+
 
 class AssessmentForm(QWidget):
     back_clicked = pyqtSignal()
+    assessment_created = pyqtSignal(dict)  # Signal when assessment is created
 
     def __init__(self, cls=None, username=None, roles=None, primary_role=None, token=None, post_controller=None, parent=None):
         super().__init__(parent)
@@ -42,7 +53,29 @@ class AssessmentForm(QWidget):
         self.primary_role = primary_role
         self.token = token
         self.post_controller = post_controller
+        
+        # Initialize backend services
+        self.assessment_service = AssessmentService() if AssessmentService else None
+        self.rubric_service = GradingRubricService() if GradingRubricService else None
+        
+        # Store rubric components for linking
+        self.rubric_components = []
+        self._load_rubric_components()
+        
         self.initUI()
+    
+    def _load_rubric_components(self):
+        """Load rubric components for this class"""
+        if not self.rubric_service or not self.cls:
+            return
+        
+        try:
+            class_id = self.cls.get('id', 1)
+            components = self.rubric_service.get_all_components(class_id)
+            self.rubric_components = components
+            print(f"[AssessmentForm] Loaded {len(components)} rubric components")
+        except Exception as e:
+            print(f"[AssessmentForm] Failed to load rubric components: {e}")
         
     def initUI(self):
         self.setStyleSheet("""
@@ -219,10 +252,11 @@ class AssessmentForm(QWidget):
         left_layout.setContentsMargins(0, 0, 0, 0)
         
         # Use the existing UploadClassMaterialPanel but make it responsive
-        upload_panel = UploadClassMaterialPanel()
-        upload_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        # Store reference to access title and description later
+        self.upload_panel = UploadClassMaterialPanel()
+        self.upload_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
-        left_layout.addWidget(upload_panel)
+        left_layout.addWidget(self.upload_panel)
         return left_widget
     
     def create_right_panel(self):
@@ -254,35 +288,132 @@ class AssessmentForm(QWidget):
         grade_points_layout.setSpacing(10)
         grade_points_layout.setContentsMargins(0,0,0,0)
 
-        grade_dropdown = DropdownMenu(items=["Lab Activity"])
-        grade_dropdown.setMinimumWidth(120)
-        points_input = QLineEdit("0")
-        points_input.setMaximumWidth(100)
-        points_input.setStyleSheet("""
+        # Populate grade category with rubric components
+        grade_items = self._get_grade_category_items()
+        self.grade_dropdown = DropdownMenu(items=grade_items)
+        self.grade_dropdown.setMinimumWidth(120)
+        
+        self.points_input = QLineEdit("100")
+        self.points_input.setMaximumWidth(100)
+        self.points_input.setStyleSheet("""
             QLineEdit {
                 min-height: 20px;                       
             }
         """)
 
-        grade_points_layout.addWidget(LabeledSection("Grade Category", grade_dropdown), 2)
-        grade_points_layout.addWidget(LabeledSection("Points", points_input), 1)
+        grade_points_layout.addWidget(LabeledSection("Grade Category", self.grade_dropdown), 2)
+        grade_points_layout.addWidget(LabeledSection("Points", self.points_input), 1)
         layout.addWidget(grade_points)
 
-        # Other dropdowns
-        due_dropdown = DropdownMenu(items=["No Due Date"])
+        # Term dropdown - for linking to midterm or final
+        self.term_dropdown = DropdownMenu(items=["Midterm", "Finals"])
+        layout.addWidget(LabeledSection("Term", self.term_dropdown))
+
+        # Due date dropdown
+        due_dropdown = DropdownMenu(items=["No Due Date", "Today", "Tomorrow", "Next Week"])
         layout.addWidget(LabeledSection("Due", due_dropdown))
 
-        schedule_dropdown = DropdownMenu(items=["Now"])
+        schedule_dropdown = DropdownMenu(items=["Now", "Schedule for Later"])
         layout.addWidget(LabeledSection("Schedule", schedule_dropdown))
-
-        term_dropdown = DropdownMenu(items=["No Due Date"])
-        layout.addWidget(LabeledSection("Term", term_dropdown))
 
         topic_dropdown = DropdownMenu(items=["Topic 1"])
         layout.addWidget(LabeledSection("Topic", topic_dropdown))
 
+        # Create button
+        create_btn = QPushButton("Create Assessment")
+        create_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
+                font-weight: bold;
+                padding: 10px 20px;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #0a5c2e;
+            }
+            QPushButton:pressed {
+                background-color: #063818;
+            }
+        """)
+        create_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        create_btn.clicked.connect(self._on_create_assessment)
+        layout.addWidget(create_btn)
+
         layout.addStretch()
         return right_frame
+    
+    def _get_grade_category_items(self):
+        """Get grade category items from rubric components"""
+        items = []
+        for comp in self.rubric_components:
+            name = comp.get('name', '')
+            term = comp.get('term', '')
+            items.append(f"{name.title()} ({term.title()})")
+        
+        if not items:
+            # Default items if no rubric loaded
+            items = ["Quiz", "Performance Task", "Exam", "Lab Activity"]
+        
+        return items
+    
+    def _on_create_assessment(self):
+        """Handle create assessment button click"""
+        try:
+            class_id = self.cls.get('id', 1) if self.cls else 1
+            term = self.term_dropdown.currentText().lower()
+            if term == "finals":
+                term = "final"
+            
+            # Get selected grade category
+            grade_category = self.grade_dropdown.currentText()
+            # Extract component name (remove term suffix if present)
+            component_name = grade_category.split(" (")[0].lower()
+            
+            max_score = int(self.points_input.text()) if self.points_input.text().isdigit() else 100
+            
+            # Get title and description from upload panel
+            title = ""
+            description = ""
+            if hasattr(self, 'upload_panel') and self.upload_panel:
+                title = self.upload_panel.title_input.text().strip()
+                description = self.upload_panel.instructions_input.toPlainText().strip()
+            
+            # Validate title
+            if not title:
+                QMessageBox.warning(self, "Validation Error", "Please enter a title for the assessment.")
+                return
+            
+            assessment_data = {
+                'class_id': class_id,
+                'title': title,
+                'description': description,
+                'assessment_type': component_name.replace(' ', '_'),
+                'rubric_component_name': component_name,
+                'rubric_component_type': component_name,
+                'term': term,
+                'max_score': max_score,
+                'is_published': True  # Auto-publish to show in stream
+            }
+            
+            if self.assessment_service:
+                result = self.assessment_service.create_assessment(assessment_data)
+                if result:
+                    QMessageBox.information(self, "Success", "Assessment created successfully!")
+                    self.assessment_created.emit(result)
+                    # Clear the form
+                    if hasattr(self, 'upload_panel') and self.upload_panel:
+                        self.upload_panel.title_input.clear()
+                        self.upload_panel.instructions_input.clear()
+                else:
+                    QMessageBox.warning(self, "Error", "Failed to create assessment")
+            else:
+                print(f"[AssessmentForm] Would create assessment: {assessment_data}")
+                QMessageBox.information(self, "Info", "Assessment service not available (development mode)")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to create assessment: {e}")
     
 def main():
     app = QApplication(sys.argv)

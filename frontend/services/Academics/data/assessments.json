@@ -1,0 +1,38 @@
+{
+    "assessments": [
+        {
+            "id": 1,
+            "class_id": 9,
+            "title": "ass",
+            "description": "1as",
+            "rubric_component_id": 0,
+            "rubric_component_name": "performance task",
+            "academic_period": "midterm",
+            "max_points": 100,
+            "topic_id": null,
+            "due_date": null,
+            "is_published": true,
+            "created_at": "2025-12-03T20:51:44.577325",
+            "created_by": null,
+            "updated_at": "2025-12-03T20:51:44.577325"
+        },
+        {
+            "id": 2,
+            "class_id": 1,
+            "title": "Assess1",
+            "description": "Just because",
+            "rubric_component_id": 0,
+            "rubric_component_name": "performance task",
+            "academic_period": "final",
+            "max_points": 50,
+            "topic_id": null,
+            "due_date": null,
+            "is_published": true,
+            "created_at": "2025-12-03T21:13:25.060459",
+            "created_by": null,
+            "updated_at": "2025-12-03T21:13:25.060459"
+        }
+    ],
+    "last_id": 2,
+    "last_updated": "2025-12-03T21:13:25.060459"
+}

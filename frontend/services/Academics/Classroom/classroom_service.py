@@ -1,8 +1,11 @@
 import json
+import os
 
 class ClassroomService:
     def __init__(self):
-        self.data_file = "frontend/services/Academics/data/classroom_data.json"
+        # Use absolute path based on this file's location
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.data_file = os.path.join(base_dir, "data", "classroom_data.json")
         self.load_data()
 
     def load_data(self):
