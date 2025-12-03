@@ -128,17 +128,48 @@ class StudentProfileWidget(QWidget):
         self.grade_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.grade_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.grade_table.setAlternatingRowColors(True)
+
+        self.grade_table.setMinimumHeight(150)  # Set a decent minimum height
+        self.grade_table.setMaximumHeight(500)  # Set a maximum to prevent excessive growth
+        
         self.grade_table.setStyleSheet("""
             QTableWidget {
-                background-color: white;
                 border: 1px solid #dee2e6;
+                gridline-color: #f1f1f1;
             }
             QTableWidget::item {
-                padding: 5px;
+                padding: 10px;  /* Increased padding for better readability */
+                border-bottom: 1px solid #f1f1f1;
+            }
+            QTableWidget::item:selected {
+            }
+            QHeaderView::section {
+                padding: 12px 8px;  /* Increased header padding */
+                border: none;
+                border-bottom: 2px solid #dee2e6;
+                font-weight: bold;
+                font-family: "Poppins";
+                font-size: 11px;
+            }
+            QHeaderView::section:hover {
             }
         """)
+        
         header = self.grade_table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        header.setDefaultSectionSize(120)  # Default column width
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # No. column fixed
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Subject Code stretches
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)  # Description stretches
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Units fixed
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Midterm fixed
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Finals fixed
+        
+        # Set specific widths for fixed columns
+        self.grade_table.setColumnWidth(0, 50)   # No.
+        self.grade_table.setColumnWidth(3, 70)   # Units
+        self.grade_table.setColumnWidth(4, 100)  # Midterm (slightly wider)
+        self.grade_table.setColumnWidth(5, 100)  # Finals (slightly wider)
+        
         main_layout.addWidget(self.grade_table)
 
         # Progress section
@@ -173,6 +204,7 @@ class StudentProfileWidget(QWidget):
                     border: 1px solid #dee2e6;
                     border-radius: 3px;
                     text-align: center;
+                    height: 24px;  /* Slightly taller progress bars */
                 }
                 QProgressBar::chunk {
                     background-color: #28a745;
@@ -186,7 +218,7 @@ class StudentProfileWidget(QWidget):
         main_layout.addWidget(progress_frame)
 
         # ============================
-        # FACULTY NOTES SECTION - EXACT MATCH TO FACULTYNOTES.PY
+        # FACULTY NOTES SECTION
         # ============================
         notes_label = QLabel("Faculty Notes")
         notes_label.setFont(QFont("Poppins", 13, 75))
@@ -250,6 +282,7 @@ class StudentProfileWidget(QWidget):
         
         # Clear tables and progress bars
         self.grade_table.setRowCount(0)
+        self._adjust_table_height()  # ✅ Call adjust height for empty state
         for bar in self.progress_bars.values():
             bar.setValue(0)
         
@@ -371,7 +404,9 @@ class StudentProfileWidget(QWidget):
             empty_item = QTableWidgetItem("No grade records found")
             empty_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             empty_item.setForeground(QColor("#6c757d"))
+            empty_item.setFont(QFont("Poppins", 11))
             self.grade_table.setItem(0, 0, empty_item)
+            self._adjust_table_height()
             return
 
         for i, g in enumerate(grades, start=1):
@@ -389,6 +424,7 @@ class StudentProfileWidget(QWidget):
             for col, val in enumerate(items):
                 item = QTableWidgetItem(val)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item.setFont(QFont("Poppins", 10))
                 
                 # Highlight failed grades (assuming > 3.0 is failing)
                 if col in [4, 5]:  # Midterm and Finals columns
@@ -407,6 +443,43 @@ class StudentProfileWidget(QWidget):
                 self.grade_table.setItem(i - 1, col, item)
         
         self.grade_table.resizeRowsToContents()
+        self._adjust_table_height()  # ✅ Adjust height after populating
+
+    def _adjust_table_height(self):
+        """Adjust table height based on number of rows - Enhanced Version"""
+        row_count = self.grade_table.rowCount()
+
+        if row_count == 0:
+            # Empty state - show just header
+            self.grade_table.setMinimumHeight(80)
+            return
+            
+        # Calculate header height
+        header_height = self.grade_table.horizontalHeader().height()
+        
+        # Calculate total row height
+        total_row_height = 0
+        for row in range(row_count):
+            total_row_height += self.grade_table.rowHeight(row)
+        
+        # Add some padding and header
+        total_height = header_height + total_row_height + 40  # Extra padding
+        
+        # Limit maximum height to prevent excessive scrolling
+        max_height = 500
+        if total_height > max_height:
+            total_height = max_height
+            # Enable vertical scrolling when content exceeds max height
+            self.grade_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        else:
+            # Disable scrollbar when all content fits
+            self.grade_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
+        self.grade_table.setMinimumHeight(total_height)
+        self.grade_table.setMaximumHeight(max_height)
+        
+        # Ensure the widget updates its layout
+        self.updateGeometry()
 
     def _populate_progress(self, progress):
         if not progress:
