@@ -492,102 +492,102 @@ class AppointmentPage_ui(QWidget):
         
         content_layout.addWidget(info_group)
         
-        # Image View Section
-        image_path = appointment_data[11] if len(appointment_data) > 11 else None  # image_path is at index 11
-        image_group = QtWidgets.QGroupBox("Supporting Documents")
-        image_group.setStyleSheet("""
-            QGroupBox {
-                font: 600 12pt 'Poppins';
-                color: #084924;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                margin-top: 12px;
-                padding-top: 12px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 12px;
-                padding: 0 8px 0 8px;
-            }
-        """)
+        # # Image View Section
+        # image_path = appointment_data[11] if len(appointment_data) > 11 else None  # image_path is at index 11
+        # image_group = QtWidgets.QGroupBox("Supporting Documents")
+        # image_group.setStyleSheet("""
+        #     QGroupBox {
+        #         font: 600 12pt 'Poppins';
+        #         color: #084924;
+        #         border: 1px solid #e0e0e0;
+        #         border-radius: 8px;
+        #         margin-top: 12px;
+        #         padding-top: 12px;
+        #     }
+        #     QGroupBox::title {
+        #         subcontrol-origin: margin;
+        #         left: 12px;
+        #         padding: 0 8px 0 8px;
+        #     }
+        # """)
         
-        image_layout = QtWidgets.QVBoxLayout(image_group)
+        # image_layout = QtWidgets.QVBoxLayout(image_group)
         
-        # Image display area
-        image_display = QtWidgets.QLabel()
-        image_display.setFixedSize(400, 200)
-        image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        # # Image display area
+        # image_display = QtWidgets.QLabel()
+        # image_display.setFixedSize(400, 200)
+        # image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         
-        # Load image if available
-        if image_path and image_path != "None" and image_path.strip() and os.path.exists(image_path):
-            pixmap = QtGui.QPixmap(image_path)
-            if not pixmap.isNull():
-                scaled_pixmap = pixmap.scaled(400, 200, 
-                                            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                                            QtCore.Qt.TransformationMode.SmoothTransformation)
-                image_display.setPixmap(scaled_pixmap)
-                image_display.setStyleSheet("""
-                    QLabel {
-                        background-color: #f8f9fa;
-                        border: 2px solid #dee2e6;
-                        border-radius: 8px;
-                    }
-                """)
+        # # Load image if available
+        # if image_path and image_path != "None" and image_path.strip() and os.path.exists(image_path):
+        #     pixmap = QtGui.QPixmap(image_path)
+        #     if not pixmap.isNull():
+        #         scaled_pixmap = pixmap.scaled(400, 200, 
+        #                                     QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+        #                                     QtCore.Qt.TransformationMode.SmoothTransformation)
+        #         image_display.setPixmap(scaled_pixmap)
+        #         image_display.setStyleSheet("""
+        #             QLabel {
+        #                 background-color: #f8f9fa;
+        #                 border: 2px solid #dee2e6;
+        #                 border-radius: 8px;
+        #             }
+        #         """)
                 
-                # Make image clickable for fullscreen view
-                image_display.mousePressEvent = lambda event, path=image_path: self._viewImageFullscreen(path)
-                image_display.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
-                image_display.setToolTip("Click to view full size")
-            else:
-                image_display.setText("Invalid image")
-                image_display.setStyleSheet("""
-                    QLabel {
-                        background-color: #f8f9fa;
-                        border: 2px dashed #dee2e6;
-                        border-radius: 8px;
-                        color: #6c757d;
-                        font: 10pt 'Poppins';
-                    }
-                """)
-        else:
-            image_display.setText("No image available")
-            image_display.setStyleSheet("""
-                QLabel {
-                    background-color: #f8f9fa;
-                    border: 2px dashed #dee2e6;
-                    border-radius: 8px;
-                    color: #6c757d;
-                    font: 10pt 'Poppins';
-                }
-            """)
+        #         # Make image clickable for fullscreen view
+        #         image_display.mousePressEvent = lambda event, path=image_path: self._viewImageFullscreen(path)
+        #         image_display.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
+        #         image_display.setToolTip("Click to view full size")
+        #     else:
+        #         image_display.setText("Invalid image")
+        #         image_display.setStyleSheet("""
+        #             QLabel {
+        #                 background-color: #f8f9fa;
+        #                 border: 2px dashed #dee2e6;
+        #                 border-radius: 8px;
+        #                 color: #6c757d;
+        #                 font: 10pt 'Poppins';
+        #             }
+        #         """)
+        # else:
+        #     image_display.setText("No image available")
+        #     image_display.setStyleSheet("""
+        #         QLabel {
+        #             background-color: #f8f9fa;
+        #             border: 2px dashed #dee2e6;
+        #             border-radius: 8px;
+        #             color: #6c757d;
+        #             font: 10pt 'Poppins';
+        #         }
+        #     """)
         
-        # Image controls
-        image_controls_layout = QtWidgets.QHBoxLayout()
+        # # Image controls
+        # image_controls_layout = QtWidgets.QHBoxLayout()
         
-        view_btn = QtWidgets.QPushButton("View Full Size")
-        view_btn.setFixedSize(120, 35)
-        view_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2F80ED;
-                color: white;
-                border-radius: 6px;
-                font: 600 10pt 'Poppins';
-            }
-            QPushButton:hover {
-                background-color: #2a75e0;
-            }
-        """)
-        view_btn.setEnabled(bool(image_path and image_path != "None" and image_path.strip() and os.path.exists(image_path)))
-        view_btn.clicked.connect(lambda: self._viewImageFullscreen(image_path))
+        # view_btn = QtWidgets.QPushButton("View Full Size")
+        # view_btn.setFixedSize(120, 35)
+        # view_btn.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #2F80ED;
+        #         color: white;
+        #         border-radius: 6px;
+        #         font: 600 10pt 'Poppins';
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #2a75e0;
+        #     }
+        # """)
+        # view_btn.setEnabled(bool(image_path and image_path != "None" and image_path.strip() and os.path.exists(image_path)))
+        # view_btn.clicked.connect(lambda: self._viewImageFullscreen(image_path))
         
-        image_controls_layout.addStretch(1)
-        image_controls_layout.addWidget(view_btn)
-        image_controls_layout.addStretch(1)
+        # image_controls_layout.addStretch(1)
+        # image_controls_layout.addWidget(view_btn)
+        # image_controls_layout.addStretch(1)
         
-        image_layout.addWidget(image_display)
-        image_layout.addLayout(image_controls_layout)
+        # image_layout.addWidget(image_display)
+        # image_layout.addLayout(image_controls_layout)
         
-        content_layout.addWidget(image_group)
+        # content_layout.addWidget(image_group)
         
         # Purpose section
         purpose_group = QtWidgets.QGroupBox("Purpose Details")

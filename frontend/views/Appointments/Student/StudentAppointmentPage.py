@@ -493,7 +493,7 @@ class StudentAppointmentPage_ui(QWidget):
             ("Faculty:", appointment_data[1]),
             ("Time Slot:", appointment_data[2]),
             ("Status:", appointment_data[4]),
-            ("Address:", appointment_data[8] or "Not specified"),
+            # ("Address:", appointment_data[8] or "Not specified"),
             ("Created At:", appointment_data[10] or "Unknown"),
         ]
         
@@ -508,114 +508,115 @@ class StudentAppointmentPage_ui(QWidget):
         
         content_layout.addWidget(info_group)
         
-        # Image View Section
-        image_group = QtWidgets.QGroupBox("Supporting Documents")
-        image_group.setStyleSheet("""
-            QGroupBox {
-                font: 600 12pt 'Poppins';
-                color: #084924;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                margin-top: 12px;
-                padding-top: 12px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 12px;
-                padding: 0 8px 0 8px;
-            }
-        """)
+        # # Image View Section
+        # image_group = QtWidgets.QGroupBox("Supporting Documents")
+        # image_group.setStyleSheet("""
+        #     QGroupBox {
+        #         font: 600 12pt 'Poppins';
+        #         color: #084924;
+        #         border: 1px solid #e0e0e0;
+        #         border-radius: 8px;
+        #         margin-top: 12px;
+        #         padding-top: 12px;
+        #     }
+        #     QGroupBox::title {
+        #         subcontrol-origin: margin;
+        #         left: 12px;
+        #         padding: 0 8px 0 8px;
+        #     }
+        # """)
         
-        image_layout = QtWidgets.QVBoxLayout(image_group)
+        # image_layout = QtWidgets.QVBoxLayout(image_group)
         
-        # Image display area
-        self.image_display = QtWidgets.QLabel()
-        self.image_display.setFixedSize(400, 200)
-        self.image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        # # Image display area
+        # self.image_display = QtWidgets.QLabel()
+        # self.image_display.setFixedSize(400, 200)
+        # self.image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         
-        # Load image if available
-        image_path = appointment_data[11]
-        if image_path and os.path.exists(image_path):
-            pixmap = QtGui.QPixmap(image_path)
-            if not pixmap.isNull():
-                scaled_pixmap = pixmap.scaled(400, 200, 
-                                            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                                            QtCore.Qt.TransformationMode.SmoothTransformation)
-                self.image_display.setPixmap(scaled_pixmap)
-                self.image_display.setStyleSheet("""
-                    QLabel {
-                        background-color: #f8f9fa;
-                        border: 2px solid #dee2e6;
-                        border-radius: 8px;
-                    }
-                """)
-            else:
-                self.image_display.setText("Invalid image")
-                self.image_display.setStyleSheet("""
-                    QLabel {
-                        background-color: #f8f9fa;
-                        border: 2px dashed #dee2e6;
-                        border-radius: 8px;
-                        color: #6c757d;
-                        font: 10pt 'Poppins';
-                    }
-                """)
-        else:
-            self.image_display.setText("No image available")
-            self.image_display.setStyleSheet("""
-                QLabel {
-                    background-color: #f8f9fa;
-                    border: 2px dashed #dee2e6;
-                    border-radius: 8px;
-                    color: #6c757d;
-                    font: 10pt 'Poppins';
-                }
-            """)
+        # # Load image if available
+        # image_path = appointment_data[11]
+        # if image_path and os.path.exists(image_path):
+        #     pixmap = QtGui.QPixmap(image_path)
+        #     if not pixmap.isNull():
+        #         scaled_pixmap = pixmap.scaled(400, 200, 
+        #                                     QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+        #                                     QtCore.Qt.TransformationMode.SmoothTransformation)
+        #         self.image_display.setPixmap(scaled_pixmap)
+        #         self.image_display.setStyleSheet("""
+        #             QLabel {
+        #                 background-color: #f8f9fa;
+        #                 border: 2px solid #dee2e6;
+        #                 border-radius: 8px;
+        #             }
+        #         """)
+        #     else:
+        #         self.image_display.setText("Invalid image")
+        #         self.image_display.setStyleSheet("""
+        #             QLabel {
+        #                 background-color: #f8f9fa;
+        #                 border: 2px dashed #dee2e6;
+        #                 border-radius: 8px;
+        #                 color: #6c757d;
+        #                 font: 10pt 'Poppins';
+        #             }
+        #         """)
+        # else:
+        #     self.image_display.setText("No image available")
+        #     self.image_display.setStyleSheet("""
+        #         QLabel {
+        #             background-color: #f8f9fa;
+        #             border: 2px dashed #dee2e6;
+        #             border-radius: 8px;
+        #             color: #6c757d;
+        #             font: 10pt 'Poppins';
+        #         }
+        #     """)
         
-        # Image controls
-        image_controls_layout = QtWidgets.QHBoxLayout()
+        # # Image controls
+        # image_controls_layout = QtWidgets.QHBoxLayout()
         
-        upload_btn = QtWidgets.QPushButton("Upload Image")
-        upload_btn.setFixedSize(120, 35)
-        upload_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #084924;
-                color: white;
-                border-radius: 6px;
-                font: 600 10pt 'Poppins';
-            }
-            QPushButton:hover {
-                background-color: #0a5a2f;
-            }
-        """)
-        upload_btn.clicked.connect(lambda: self._uploadImage(appointment_data[5]))
+        # upload_btn = QtWidgets.QPushButton("Upload Image")
+        # upload_btn.setFixedSize(120, 35)
+        # upload_btn.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #084924;
+        #         color: white;
+        #         border-radius: 6px;
+        #         font: 600 10pt 'Poppins';
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #0a5a2f;
+        #     }
+        # """)
+        # upload_btn.clicked.connect(lambda: self._uploadImage(appointment_data[5]))
         
-        view_btn = QtWidgets.QPushButton("View Full Size")
-        view_btn.setFixedSize(120, 35)
-        view_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2F80ED;
-                color: white;
-                border-radius: 6px;
-                font: 600 10pt 'Poppins';
-            }
-            QPushButton:hover {
-                background-color: #2a75e0;
-            }
-        """)
-        view_btn.setEnabled(bool(image_path and os.path.exists(image_path)))
-        view_btn.clicked.connect(lambda: self._viewImageFullscreen(image_path))
+        # view_btn = QtWidgets.QPushButton("View Full Size")
+        # view_btn.setFixedSize(120, 35)
+        # view_btn.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #2F80ED;
+        #         color: white;
+        #         border-radius: 6px;
+        #         font: 600 10pt 'Poppins';
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #2a75e0;
+        #     }
+        # """)
+        # view_btn.setEnabled(bool(image_path and os.path.exists(image_path)))
+        # view_btn.clicked.connect(lambda: self._viewImageFullscreen(image_path))
         
-        image_controls_layout.addWidget(upload_btn)
-        image_controls_layout.addWidget(view_btn)
-        image_controls_layout.addStretch(1)
+        # image_controls_layout.addWidget(upload_btn)
+        # image_controls_layout.addWidget(view_btn)
+        # image_controls_layout.addStretch(1)
         
-        image_layout.addWidget(self.image_display)
-        image_layout.addLayout(image_controls_layout)
+        # image_layout.addWidget(self.image_display)
+        # image_layout.addLayout(image_controls_layout)
         
-        content_layout.addWidget(image_group)
+        # content_layout.addWidget(image_group)
         
         # Purpose section
+        
         purpose_group = QtWidgets.QGroupBox("Purpose Details")
         purpose_group.setStyleSheet("""
             QGroupBox {

@@ -1,14 +1,15 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QWidget, QMessageBox , QVBoxLayout, QLabel, QHBoxLayout, QFormLayout, QCheckBox, QLineEdit, QPushButton
-from .appointment_crud import appointment_crud
+from PyQt6.QtWidgets import QWidget, QMessageBox
 import logging
 from datetime import datetime
+from ..api_client import APIClient
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class FacultyReschedulePage_ui(QWidget):
     back = QtCore.pyqtSignal()
+    reschedule_completed = QtCore.pyqtSignal()  # New signal to notify when reschedule is done
 
     def __init__(self, username, roles, primary_role, token, selected_appointment_id, parent=None):
         super().__init__(parent)
@@ -16,17 +17,32 @@ class FacultyReschedulePage_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-        self.crud = appointment_crud()
+        self.crud = APIClient(token)
         self.faculty_id = self._get_faculty_id()
         self.selected_appointment_id = selected_appointment_id  # To be set externally
         print(f"Test: {self.selected_appointment_id}")
         self.available_days = set()  # Store available days for highlighting
         self.slot_buttons = []  # Initialize slot_buttons here
+        self.selected_slot_entry_id = None
+        self.selected_start_time = None
+        self.selected_end_time = None
+        self.selected_date = None
+        self.original_appointment_data = None  # Store original appointment data
+        
         self._setupFacultyReschedulePage()
         self.retranslateUi()
         self._load_appointment_details()
         self._loadAvailableSlots()  # Load available slots for calendar highlighting
         self.setFixedSize(1000, 550)
+
+    def get_student_name(self, student_id):
+            students = self.crud.get_students()
+            print(f"Students list: {students}")
+            for student in students:
+                print(f"{student}")
+                print("Hello Lord!")
+                if int(student["id"]) == int(student_id):
+                    return student['full_name']
 
     def _is_past_appointment(self, selected_date, start_time):
         """Check if the selected appointment date and time is in the past"""
@@ -52,11 +68,11 @@ class FacultyReschedulePage_ui(QWidget):
             return False
 
     def _get_faculty_id(self):
-        faculty_list = self.crud.list_faculty()
+        faculty_list = self.crud.get_faculties()
         logging.debug(f"Faculty list: {faculty_list}")
         for faculty in faculty_list:
-            if faculty["email"] == self.username:
-                logging.debug(f"Found faculty: {faculty['name']} with ID: {faculty['id']}")
+            if faculty["user"]["first_name"] == self.username:
+                logging.debug(f"Found faculty: {faculty['user']['first_name']} with ID: {faculty['id']}")
                 return faculty["id"]
         logging.warning(f"No faculty found for username: {self.username}, using fallback ID: 1")
         return 1
@@ -66,44 +82,70 @@ class FacultyReschedulePage_ui(QWidget):
         if not self.selected_appointment_id:
             logging.warning("No selected appointment ID")
             return
-        appointments = self.crud.get_faculty_appointments(self.faculty_id)
-        appointment = next((a for a in appointments if a["id"] == self.selected_appointment_id), None)
-        if appointment:
-            logging.debug(f"Loaded appointment: {appointment}")
-            # Update UI with appointment details if needed (e.g., display in a label)
-            self.subtitle.setText(f"Reschedule Appointment - {appointment.get('appointment_date', 'N/A')}")
+        
+        appointments = self.crud.get_faculty_appointments()
+        self.original_appointment_data = next((a for a in appointments if a["id"] == self.selected_appointment_id), None)
+        print(self.original_appointment_data)
+        self.label_29.setText(self.get_student_name(self.original_appointment_data['student']) if self.original_appointment_data else "Student Name")
+        if self.original_appointment_data:
+            logging.debug(f"Loaded appointment: {self.original_appointment_data}")
+            # Update UI with appointment details
+            original_date = self.original_appointment_data.get('appointment_date', 'N/A')
+            original_time = self.original_appointment_data.get('start_time', 'N/A')
+            original_end_time = self.original_appointment_data.get('end_time', 'N/A')
+            
+            # Format the date for display
+            try:
+                date_obj = datetime.strptime(original_date, '%Y-%m-%d')
+                formatted_date = date_obj.strftime('%B %d, %Y')
+            except:
+                formatted_date = original_date
+            
+            self.subtitle.setText(f"Reschedule Appointment - {formatted_date} {original_time} to {original_end_time}")
+            
+            # Set the current appointment date as initially selected in calendar
+            try:
+                date_obj = datetime.strptime(original_date, '%Y-%m-%d')
+                qt_date = QtCore.QDate(date_obj.year, date_obj.month, date_obj.day)
+                self.calendarWidget.setSelectedDate(qt_date)
+                self._updateAvailableSlots()  # Load slots for the original date
+            except:
+                pass
 
     def _loadAvailableSlots(self):
-        """Load available time slots for the faculty and extract available days for calendar highlighting"""
+        """Load availability rules for the faculty to extract available days for calendar highlighting"""
         try:
-            # Get active block and entries
-            active_block = self.crud.get_active_block(self.faculty_id)
+            # Get availability rules for the faculty
+            availability_rules = self.crud.get_availability_rules(faculty_id=self.faculty_id)
             
-            if active_block and "error" not in active_block:
-                self.block_entries = self.crud.get_block_entries(active_block["id"])
-                
-                # Extract available days from block entries for calendar highlighting
+            if availability_rules:
+                self.availability_rules = availability_rules
+                # Extract available days from availability rules for calendar highlighting
                 self._extractAvailableDays()
+            else:
+                logging.warning(f"No availability rules found for faculty ID: {self.faculty_id}")
+                self.availability_rules = []
                 
         except Exception as e:
-            print(f"Error loading available slots: {e}")
-            logging.error(f"Failed to load available slots: {str(e)}")
+            print(f"Error loading availability rules: {e}")
+            logging.error(f"Failed to load availability rules: {str(e)}")
+            self.availability_rules = []
 
     def _extractAvailableDays(self):
-        """Extract available days from block entries for calendar highlighting"""
+        """Extract available days from availability rules for calendar highlighting"""
         self.available_days.clear()
         
-        if not hasattr(self, 'block_entries') or not self.block_entries:
+        if not hasattr(self, 'availability_rules') or not self.availability_rules:
             return
             
-        # Map day names to numbers (Monday=1, Sunday=7)
+        # Map day names from your availability rules to numbers (Monday=1, Sunday=7)
         day_mapping = {
-            "Monday": 1, "Tuesday": 2, "Wednesday": 3, 
-            "Thursday": 4, "Friday": 5, "Saturday": 6, "Sunday": 7
+            "MON": 1, "TUE": 2, "WED": 3, 
+            "THU": 4, "FRI": 5, "SAT": 6, "SUN": 7
         }
         
-        for entry in self.block_entries:
-            day_name = entry.get('day_of_week', '')
+        for rule in self.availability_rules:
+            day_name = rule.get('day_of_week', '')
             if day_name in day_mapping:
                 self.available_days.add(day_mapping[day_name])
         
@@ -192,7 +234,8 @@ class FacultyReschedulePage_ui(QWidget):
         self.label_32 = QtWidgets.QLabel()
         self.label_32.setFixedSize(50, 50)
         self.label_32.setStyleSheet("QLabel { background: #4285F4; border-radius: 25px; border: 2px solid white; }")
-        self.label_29 = QtWidgets.QLabel("Shapi Dot Com")
+        print(f"Original appointment data: {self.original_appointment_data}")
+        self.label_29 = QtWidgets.QLabel()
         font = QtGui.QFont("Poppins", 18, QtGui.QFont.Weight.Bold)
         self.label_29.setFont(font)
         self.label_29.setStyleSheet("color: #084924;")
@@ -411,6 +454,7 @@ class FacultyReschedulePage_ui(QWidget):
         """Update available slots when date is selected"""
         date = self.calendarWidget.selectedDate()
         selected_date_str = date.toString('yyyy-MM-dd')
+        self.selected_date = selected_date_str
         
         # Clear existing slot buttons
         for btn in self.slot_buttons:
@@ -427,10 +471,11 @@ class FacultyReschedulePage_ui(QWidget):
         # Hide initial message
         self.initial_message.hide()
         
-        # Get active block and entries
-        block = self.crud.get_active_block(self.faculty_id)
-        if "error" in block:
-            logging.warning("No active block found")
+        # Get available schedule for the selected date using the API endpoint
+        available_schedule = self.crud.get_faculty_available_schedule(self.faculty_id, selected_date_str)
+        
+        if not available_schedule:
+            logging.warning(f"No available schedule found for faculty {self.faculty_id} on {selected_date_str}")
             no_slots_label = QtWidgets.QLabel("No available time slots")
             no_slots_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             no_slots_label.setStyleSheet("""
@@ -446,12 +491,8 @@ class FacultyReschedulePage_ui(QWidget):
             self.button_4.setEnabled(False)
             return
         
-        entries = self.crud.get_block_entries(block["id"])
-        day_name = date.toString("dddd")
-        slots = [e for e in entries if e["day_of_week"] == day_name]
-        
-        if not slots:
-            no_slots_label = QtWidgets.QLabel(f"No available slots for {day_name}")
+        if len(available_schedule) == 0:
+            no_slots_label = QtWidgets.QLabel(f"No available slots for {date.toString('dddd')}")
             no_slots_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             no_slots_label.setStyleSheet("""
                 QLabel {
@@ -494,16 +535,18 @@ class FacultyReschedulePage_ui(QWidget):
         slots_layout.setContentsMargins(5, 5, 5, 5)
         slots_layout.setSpacing(8)
         
-        for slot in slots:
-            time_text = f"{slot['start_time']} - {slot['end_time']}"
+        # Create buttons for each available time slot
+        for i, slot in enumerate(available_schedule):
+            start_time = slot.get('start', '').split('T')[1][:5] if 'T' in str(slot.get('start', '')) else str(slot.get('start', ''))[:5]
+            end_time = slot.get('end', '').split('T')[1][:5] if 'T' in str(slot.get('end', '')) else str(slot.get('end', ''))[:5]
+            time_text = f"{start_time} - {end_time}"
+            
             btn = QtWidgets.QPushButton(time_text)
             btn.setFixedHeight(45)
             btn.setCheckable(True)
-            btn.setProperty("schedule_entry_id", slot["id"])
-            btn.setProperty("start_time", slot["start_time"])
             
             # Check if this slot is in the past
-            is_past = self._is_past_appointment(selected_date_str, slot["start_time"])
+            is_past = self._is_past_appointment(selected_date_str, start_time)
             
             if is_past:
                 # Slot is in the past - disable it
@@ -522,8 +565,13 @@ class FacultyReschedulePage_ui(QWidget):
             else:
                 # Slot is available
                 btn.setStyleSheet(self.slot_style(default=True))
-                btn.clicked.connect(lambda checked, b=btn: self.select_slot(b))
+                btn.clicked.connect(lambda checked, b=btn, s=start_time, e=end_time: self.select_slot(b, start_time=s, end_time=e))
                 btn.setToolTip("Click to select this time slot")
+            
+            # Store time information
+            btn.setProperty("start_time", start_time)
+            btn.setProperty("end_time", end_time)
+            btn.setProperty("slot_index", i)
             
             slots_layout.addWidget(btn)
             self.slot_buttons.append(btn)
@@ -537,9 +585,17 @@ class FacultyReschedulePage_ui(QWidget):
         if available_buttons:
             available_buttons[0].setChecked(True)
             available_buttons[0].setStyleSheet(self.slot_style(selected=True))
+            self.selected_start_time = available_buttons[0].property("start_time")
+            self.selected_end_time = available_buttons[0].property("end_time")
             self.button_4.setEnabled(True)
+            
+            # Find the corresponding schedule entry for the selected time
+            self._find_schedule_entry_for_time(selected_date_str, self.selected_start_time)
         else:
             self.button_4.setEnabled(False)
+            self.selected_slot_entry_id = None
+            self.selected_start_time = None
+            self.selected_end_time = None
             if self.slot_buttons:  # If there are slots but all are in the past
                 past_slots_label = QtWidgets.QLabel("All time slots for this date have passed")
                 past_slots_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -553,6 +609,34 @@ class FacultyReschedulePage_ui(QWidget):
                     }
                 """)
                 layout.insertWidget(0, past_slots_label)
+
+    def _find_schedule_entry_for_time(self, date_str, start_time):
+        """Find the schedule entry ID for the selected time"""
+        # Since we don't have direct schedule entry IDs from available_schedule,
+        # we need to find it based on the time and date
+        # This is a simplified approach - you may need to adjust based on your actual data structure
+        
+        # Get availability rules for the day of week
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        day_of_week_num = date_obj.weekday()
+        day_mapping_num_to_str = {0: 'MON', 1: 'TUE', 2: 'WED', 3: 'THU', 4: 'FRI', 5: 'SAT', 6: 'SUN'}
+        day_of_week = day_mapping_num_to_str.get(day_of_week_num, '')
+        
+        if hasattr(self, 'availability_rules') and self.availability_rules:
+            for rule in self.availability_rules:
+                if rule.get('day_of_week') == day_of_week:
+                    # For now, we'll use the rule ID as schedule_entry_id
+                    # You may need to adjust this based on your actual data model
+                    self.selected_slot_entry_id = rule.get('id')
+                    logging.debug(f"Found schedule entry ID {self.selected_slot_entry_id} for {day_of_week} at {start_time}")
+                    break
+        
+        if not self.selected_slot_entry_id:
+            logging.warning(f"Could not find schedule entry for {date_str} at {start_time}")
+            # Try to get it from the appointment data if it exists
+            if self.original_appointment_data:
+                self.selected_slot_entry_id = self.original_appointment_data.get('appointment_schedule_entry_id')
+                logging.debug(f"Using original appointment schedule entry ID: {self.selected_slot_entry_id}")
 
     def slot_style(self, default=False, selected=False):
         """Style for slot buttons."""
@@ -598,7 +682,7 @@ class FacultyReschedulePage_ui(QWidget):
             }
             """
 
-    def select_slot(self, button):
+    def select_slot(self, button, start_time=None, end_time=None):
         """Handle slot button selection."""
         # Only allow selection of enabled buttons
         if not button.isEnabled():
@@ -610,7 +694,13 @@ class FacultyReschedulePage_ui(QWidget):
                 btn.setStyleSheet(self.slot_style(default=True))
         button.setChecked(True)
         button.setStyleSheet(self.slot_style(selected=True))
+        self.selected_start_time = button.property("start_time")
+        self.selected_end_time = button.property("end_time")
         self.button_4.setEnabled(True)
+        
+        # Find the schedule entry for the selected time
+        date_str = self.calendarWidget.selectedDate().toString('yyyy-MM-dd')
+        self._find_schedule_entry_for_time(date_str, self.selected_start_time)
 
     def _openRescheduleDialog(self):
         """Open dialog to confirm rescheduling."""
@@ -619,17 +709,13 @@ class FacultyReschedulePage_ui(QWidget):
             QMessageBox.warning(self, "Warning", "No appointment selected for rescheduling.")
             return
         
-        selected_slot_btn = next((btn for btn in self.slot_buttons if btn.isChecked()), None)
-        if not selected_slot_btn:
-            logging.warning("No slot selected for rescheduling")
-            QMessageBox.warning(self, "Warning", "Please select a time slot.")
+        if not self.selected_slot_entry_id or not self.selected_date or not self.selected_start_time or not self.selected_end_time:
+            logging.warning("No slot or date selected for rescheduling")
+            QMessageBox.warning(self, "Warning", "Please select a date and time slot.")
             return
         
         # Check if the selected slot is in the past
-        selected_date = self.calendarWidget.selectedDate().toString('yyyy-MM-dd')
-        start_time = selected_slot_btn.property("start_time")
-        
-        if self._is_past_appointment(selected_date, start_time):
+        if self._is_past_appointment(self.selected_date, self.selected_start_time):
             QMessageBox.warning(
                 self, 
                 "Invalid Time Slot", 
@@ -638,23 +724,70 @@ class FacultyReschedulePage_ui(QWidget):
             )
             return
         
+        # Find the selected button for display
+        selected_slot_btn = next((btn for btn in self.slot_buttons if btn.isChecked()), None)
+        if not selected_slot_btn:
+            QMessageBox.warning(self, "Warning", "Please select a time slot.")
+            return
+        
         selected_slot = selected_slot_btn.text()
         
         dlg = QtWidgets.QDialog(self)
         dlg.setWindowTitle("Reschedule Appointment")
         dlg.setModal(True)
-        dlg.setFixedSize(450, 220)
+        dlg.setFixedSize(500, 280)
         dlg.setStyleSheet("QDialog { background-color: white; border-radius: 12px; }")
         
         root = QtWidgets.QVBoxLayout(dlg)
         root.setContentsMargins(24, 24, 24, 24)
         root.setSpacing(20)
 
-        title = QtWidgets.QLabel(f"Reschedule to {selected_slot} on {selected_date}?")
+        # Original appointment details
+        original_date = self.original_appointment_data.get('appointment_date', 'N/A')
+        original_time = f"{self.original_appointment_data.get('start_time', 'N/A')} to {self.original_appointment_data.get('end_time', 'N/A')}"
+        
+        # Format the dates
+        try:
+            date_obj = datetime.strptime(original_date, '%Y-%m-%d')
+            formatted_original_date = date_obj.strftime('%B %d, %Y')
+        except:
+            formatted_original_date = original_date
+            
+        try:
+            new_date_obj = datetime.strptime(self.selected_date, '%Y-%m-%d')
+            formatted_new_date = new_date_obj.strftime('%B %d, %Y')
+        except:
+            formatted_new_date = self.selected_date
+
+        # Create a more detailed confirmation message
+        title = QtWidgets.QLabel("Reschedule Appointment")
         title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("QLabel { color: #2b2b2b; font: 600 14pt 'Poppins'; }")
-        title.setWordWrap(True)
+        title.setStyleSheet("QLabel { color: #084924; font: bold 16pt 'Poppins'; }")
         root.addWidget(title)
+
+        # Original appointment info
+        original_info = QtWidgets.QLabel(f"Original: {formatted_original_date} {original_time}")
+        original_info.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        original_info.setStyleSheet("QLabel { color: #666666; font: 11pt 'Poppins'; }")
+        root.addWidget(original_info)
+
+        # Arrow icon
+        arrow_label = QtWidgets.QLabel("↓")
+        arrow_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        arrow_label.setStyleSheet("QLabel { color: #084924; font: bold 20pt 'Poppins'; }")
+        root.addWidget(arrow_label)
+
+        # New appointment info
+        new_info = QtWidgets.QLabel(f"New: {formatted_new_date} {selected_slot}")
+        new_info.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        new_info.setStyleSheet("QLabel { color: #084924; font: 11pt 'Poppins'; }")
+        root.addWidget(new_info)
+
+        warning_label = QtWidgets.QLabel("Note: Rescheduling will set the appointment status to 'Pending' for faculty approval.")
+        warning_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        warning_label.setWordWrap(True)
+        warning_label.setStyleSheet("QLabel { color: #d32f2f; font: 10pt 'Poppins'; }")
+        root.addWidget(warning_label)
 
         root.addStretch(1)
 
@@ -692,14 +825,8 @@ class FacultyReschedulePage_ui(QWidget):
         
         def _confirm_clicked():
             try:
-                schedule_entry_id = selected_slot_btn.property("schedule_entry_id")
-                if not schedule_entry_id:
-                    logging.error("No schedule entry ID found for selected slot")
-                    QMessageBox.warning(dlg, "Error", "Invalid time slot selected.")
-                    return
-                
                 # Final check to ensure the selected appointment isn't in the past
-                if self._is_past_appointment(selected_date, start_time):
+                if self._is_past_appointment(self.selected_date, self.selected_start_time):
                     QMessageBox.warning(
                         dlg,
                         "Invalid Time Slot",
@@ -707,24 +834,35 @@ class FacultyReschedulePage_ui(QWidget):
                     )
                     return
                 
-                appointments = self.crud.get_faculty_appointments(self.faculty_id)
-                current_appointment = next((a for a in appointments if a["id"] == self.selected_appointment_id), None)
+                # Prepare reschedule data for API
+                # Format: YYYY-MM-DDTHH:MM:SS
+                start_datetime_str = f"{self.selected_date}T{self.selected_start_time}:00"
+                end_datetime_str = f"{self.selected_date}T{self.selected_end_time}:00"
                 
-                if current_appointment and current_appointment.get("status") in ["pending", "approved"]:
-                    result = self.crud.update_appointment(self.selected_appointment_id, {
-                        "appointment_schedule_entry_id": schedule_entry_id,
-                        "appointment_date": selected_date,
-                        "status": "approved"
-                    })
-                    
-                    if result:
-                        self._showSuccessDialog("Appointment rescheduled successfully!")
-                        dlg.accept()
-                        self.back.emit()  # Go back to previous page
-                    else:
-                        QMessageBox.warning(dlg, "Error", "Failed to reschedule appointment.")
+                # CRITICAL FIX: Do NOT include 'status' field in the update_data
+                # The Django view will automatically set it to 'pending' when rescheduling
+                update_data = {
+                    "start_at": start_datetime_str,
+                    "end_at": end_datetime_str,
+                    # Include appointment_schedule_entry_id if your serializer needs it
+                    "appointment_schedule_entry_id": self.selected_slot_entry_id,
+                    # Do NOT include "status" field here - let Django handle it
+                }
+                
+                # Make the API call to reschedule
+                logging.debug(f"Attempting to reschedule appointment {self.selected_appointment_id} with data: {update_data}")
+                result = self.crud.update_appointment(self.selected_appointment_id, update_data)
+                
+                if result:
+                    logging.info(f"Appointment {self.selected_appointment_id} rescheduled successfully")
+                    self._showSuccessDialog("Appointment rescheduled successfully!\nStatus set to Pending for faculty approval.")
+                    dlg.accept()
+                    # Emit signal to notify parent that reschedule is complete
+                    self.reschedule_completed.emit()
+                    self.back.emit()  # Go back to previous page
                 else:
-                    QMessageBox.warning(dlg, "Error", "Cannot reschedule this appointment. Invalid status.")
+                    logging.error(f"Failed to reschedule appointment {self.selected_appointment_id}")
+                    QMessageBox.warning(dlg, "Error", "Failed to reschedule appointment. Please try again.")
                     
             except Exception as e:
                 logging.error(f"Error rescheduling appointment: {str(e)}")

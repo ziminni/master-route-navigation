@@ -337,11 +337,12 @@ class StudentBrowseFaculty_ui(QWidget):
         if not search_text:
             self.filtered_faculties = self.faculties.copy()
         else:
+            print(f"Searching faculty: {self.faculties}")
             self.filtered_faculties = [
                 faculty for faculty in self.faculties
                 if (search_text in faculty["name"].lower() or
                     search_text in faculty["email"].lower() or
-                    search_text in faculty["faculty_department_name"].lower())
+                    search_text in faculty["department"].lower())
             ]
         
         # Reset to first page after search

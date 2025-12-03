@@ -1146,102 +1146,102 @@ class StudentRequestPage_ui(QWidget):
         location_layout.addWidget(self.location_combo)
         layout.addWidget(location_group)
         
-        # Document Upload Section
-        documents_group = QtWidgets.QGroupBox("Supporting Documents (Optional)")
-        documents_group.setStyleSheet("""
-            QGroupBox {
-                font: 600 12pt 'Poppins';
-                color: #084924;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                margin-top: 12px;
-                padding-top: 12px;
-            }
-        """)
+        # # Document Upload Section
+        # documents_group = QtWidgets.QGroupBox("Supporting Documents (Optional)")
+        # documents_group.setStyleSheet("""
+        #     QGroupBox {
+        #         font: 600 12pt 'Poppins';
+        #         color: #084924;
+        #         border: 1px solid #e0e0e0;
+        #         border-radius: 8px;
+        #         margin-top: 12px;
+        #         padding-top: 12px;
+        #     }
+        # """)
         
-        documents_layout = QtWidgets.QVBoxLayout(documents_group)
+        # documents_layout = QtWidgets.QVBoxLayout(documents_group)
         
-        # Upload instructions
-        instructions_label = QtWidgets.QLabel(
-            "You can upload supporting documents such as:\n"
-            "• Project proposals\n• Research papers\n• Assignment files"
-        )
-        instructions_label.setStyleSheet("""
-            QLabel {
-                font: 10pt 'Poppins';
-                color: #666666;
-                background-color: #f8f9fa;
-                padding: 10px;
-                border-radius: 6px;
-                line-height: 1.4;
-            }
-        """)
-        instructions_label.setWordWrap(True)
-        documents_layout.addWidget(instructions_label)
+        # # Upload instructions
+        # instructions_label = QtWidgets.QLabel(
+        #     "You can upload supporting documents such as:\n"
+        #     "• Project proposals\n• Research papers\n• Assignment files"
+        # )
+        # instructions_label.setStyleSheet("""
+        #     QLabel {
+        #         font: 10pt 'Poppins';
+        #         color: #666666;
+        #         background-color: #f8f9fa;
+        #         padding: 10px;
+        #         border-radius: 6px;
+        #         line-height: 1.4;
+        #     }
+        # """)
+        # instructions_label.setWordWrap(True)
+        # documents_layout.addWidget(instructions_label)
         
-        # File format info
-        format_label = QtWidgets.QLabel("Supported formats: Images (PNG, JPG, JPEG), PDF, Documents (DOC, DOCX)")
-        format_label.setStyleSheet("QLabel { font: 9pt 'Poppins'; color: #888888; margin-top: 5px; }")
-        documents_layout.addWidget(format_label)
+        # # File format info
+        # format_label = QtWidgets.QLabel("Supported formats: Images (PNG, JPG, JPEG), PDF, Documents (DOC, DOCX)")
+        # format_label.setStyleSheet("QLabel { font: 9pt 'Poppins'; color: #888888; margin-top: 5px; }")
+        # documents_layout.addWidget(format_label)
         
-        # Upload button
-        upload_button_layout = QtWidgets.QHBoxLayout()
+        # # Upload button
+        # upload_button_layout = QtWidgets.QHBoxLayout()
         
-        self.upload_button = QtWidgets.QPushButton("Choose Files")
-        self.upload_button.setFixedSize(120, 40)
-        self.upload_button.setStyleSheet("""
-            QPushButton {
-                background-color: #2F80ED;
-                color: white;
-                border-radius: 8px;
-                font: 600 11pt 'Poppins';
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #2a75e0;
-            }
-            QPushButton:pressed {
-                background-color: #1e6ac8;
-            }
-        """)
-        self.upload_button.clicked.connect(lambda: self._handleFileUpload(dialog))
+        # self.upload_button = QtWidgets.QPushButton("Choose Files")
+        # self.upload_button.setFixedSize(120, 40)
+        # self.upload_button.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #2F80ED;
+        #         color: white;
+        #         border-radius: 8px;
+        #         font: 600 11pt 'Poppins';
+        #         border: none;
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #2a75e0;
+        #     }
+        #     QPushButton:pressed {
+        #         background-color: #1e6ac8;
+        #     }
+        # """)
+        # self.upload_button.clicked.connect(lambda: self._handleFileUpload(dialog))
         
-        self.clear_files_button = QtWidgets.QPushButton("Clear All")
-        self.clear_files_button.setFixedSize(100, 40)
-        self.clear_files_button.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d;
-                color: white;
-                border-radius: 8px;
-                font: 600 11pt 'Poppins';
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-        """)
-        self.clear_files_button.clicked.connect(lambda: self._clearUploadedFiles(dialog))
-        self.clear_files_button.setEnabled(False)
+        # self.clear_files_button = QtWidgets.QPushButton("Clear All")
+        # self.clear_files_button.setFixedSize(100, 40)
+        # self.clear_files_button.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #6c757d;
+        #         color: white;
+        #         border-radius: 8px;
+        #         font: 600 11pt 'Poppins';
+        #         border: none;
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #5a6268;
+        #     }
+        # """)
+        # self.clear_files_button.clicked.connect(lambda: self._clearUploadedFiles(dialog))
+        # self.clear_files_button.setEnabled(False)
         
-        upload_button_layout.addWidget(self.upload_button)
-        upload_button_layout.addWidget(self.clear_files_button)
-        upload_button_layout.addStretch(1)
+        # upload_button_layout.addWidget(self.upload_button)
+        # upload_button_layout.addWidget(self.clear_files_button)
+        # upload_button_layout.addStretch(1)
         
-        documents_layout.addLayout(upload_button_layout)
+        # documents_layout.addLayout(upload_button_layout)
         
-        # Uploaded files list
-        self.uploaded_files_widget = QtWidgets.QWidget()
-        self.uploaded_files_layout = QtWidgets.QVBoxLayout(self.uploaded_files_widget)
-        self.uploaded_files_layout.setContentsMargins(0, 10, 0, 0)
-        self.uploaded_files_layout.setSpacing(5)
+        # # Uploaded files list
+        # self.uploaded_files_widget = QtWidgets.QWidget()
+        # self.uploaded_files_layout = QtWidgets.QVBoxLayout(self.uploaded_files_widget)
+        # self.uploaded_files_layout.setContentsMargins(0, 10, 0, 0)
+        # self.uploaded_files_layout.setSpacing(5)
         
-        documents_layout.addWidget(self.uploaded_files_widget)
+        # documents_layout.addWidget(self.uploaded_files_widget)
         
-        # Store uploaded files for this dialog
-        self.uploaded_files = []
+        # # Store uploaded files for this dialog
+        # self.uploaded_files = []
         
-        layout.addWidget(documents_group)
-        layout.addStretch(1)
+        # layout.addWidget(documents_group)
+        # layout.addStretch(1)
         
         # Buttons
         button_layout = QtWidgets.QHBoxLayout()
