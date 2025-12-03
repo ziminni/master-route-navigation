@@ -1,20 +1,45 @@
 # material_service.py
 """
 Service for managing class materials (learning resources, documents, etc.)
+
+Now integrated with Django backend API with JSON fallback for offline mode.
 """
 import json
 import os
 from datetime import datetime
 from typing import Dict, List, Optional
 
+# Try to import the new API service
+try:
+    from frontend.services.Academics.Classroom.material_api_service import MaterialAPIService
+    API_SERVICE_AVAILABLE = True
+except ImportError:
+    API_SERVICE_AVAILABLE = False
+    MaterialAPIService = None
+
 
 class MaterialService:
     """
     Service for managing class materials.
     Materials are non-graded content like documents, links, and resources.
+    
+    Now uses Django backend API as primary storage with JSON fallback.
     """
     
-    def __init__(self, data_file: str = None):
+    def __init__(self, data_file: str = None, class_id: int = None):
+        # Initialize API service if available
+        self.api_service = None
+        self.use_api = False
+        
+        if API_SERVICE_AVAILABLE:
+            try:
+                self.api_service = MaterialAPIService(class_id)
+                self.use_api = True
+                print("[MATERIAL SERVICE] Using Django backend API")
+            except Exception as e:
+                print(f"[MATERIAL SERVICE] API service initialization failed: {e}")
+        
+        # JSON fallback
         if data_file is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             self.data_file = os.path.join(base_dir, "data", "materials.json")
@@ -49,6 +74,14 @@ class MaterialService:
     
     def get_materials_by_class(self, class_id: int) -> List[Dict]:
         """Get all materials for a class"""
+        # Try API first
+        if self.use_api and self.api_service:
+            try:
+                return self.api_service.get_all_materials(class_id)
+            except Exception as e:
+                print(f"[MATERIAL SERVICE] API call failed, using JSON fallback: {e}")
+        
+        # JSON fallback
         data = self._load_data()
         return [m for m in data.get("materials", []) 
                 if m.get("class_id") == class_id]
@@ -62,6 +95,14 @@ class MaterialService:
     
     def get_material_by_id(self, material_id: int) -> Optional[Dict]:
         """Get a specific material by ID"""
+        # Try API first
+        if self.use_api and self.api_service:
+            try:
+                return self.api_service.get_material(material_id)
+            except Exception as e:
+                print(f"[MATERIAL SERVICE] API call failed, using JSON fallback: {e}")
+        
+        # JSON fallback
         data = self._load_data()
         for material in data.get("materials", []):
             if material.get("id") == material_id:
@@ -89,6 +130,26 @@ class MaterialService:
             The created material dict or None on error
         """
         try:
+            material_data = {
+                'title': title,
+                'description': description,
+                'topic_id': topic_id,
+                'attachments': [attachment] if attachment else [],
+                'created_by': created_by,
+                'is_published': is_published
+            }
+            
+            # Try API first
+            if self.use_api and self.api_service:
+                try:
+                    result = self.api_service.create_material(material_data, class_id)
+                    if result:
+                        print(f"[MATERIAL SERVICE] Created material via API: {title}")
+                        return result
+                except Exception as e:
+                    print(f"[MATERIAL SERVICE] API create failed, using JSON fallback: {e}")
+            
+            # JSON fallback
             data = self._load_data()
             
             new_id = data.get("last_id", 0) + 1

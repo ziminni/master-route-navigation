@@ -423,10 +423,8 @@ class AssessmentForm(QWidget):
                 if result:
                     QMessageBox.information(self, "Success", "Assessment created successfully!")
                     self.assessment_created.emit(result)
-                    # Clear the form
-                    if hasattr(self, 'upload_panel') and self.upload_panel:
-                        self.upload_panel.title_input.clear()
-                        self.upload_panel.instructions_input.clear()
+                    # Close the form by emitting back_clicked signal
+                    self.back_clicked.emit()
                 else:
                     QMessageBox.warning(self, "Error", "Failed to create assessment")
             else:

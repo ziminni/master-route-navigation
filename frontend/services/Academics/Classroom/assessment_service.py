@@ -2,20 +2,45 @@
 """
 Service for managing assessments (quizzes, exams, performance tasks).
 Each assessment is linked to a rubric component for grade calculation.
+
+Now integrated with Django backend API with JSON fallback for offline mode.
 """
 import json
 import os
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
+# Try to import the new API service
+try:
+    from frontend.services.Academics.Classroom.assessment_api_service import AssessmentAPIService
+    API_SERVICE_AVAILABLE = True
+except ImportError:
+    API_SERVICE_AVAILABLE = False
+    AssessmentAPIService = None
+
 
 class AssessmentService:
     """
     Service for managing class assessments.
     Assessments are linked to rubric components for weighted grade calculation.
+    
+    Now uses Django backend API as primary storage with JSON fallback.
     """
     
-    def __init__(self, data_file: str = None):
+    def __init__(self, data_file: str = None, class_id: int = None):
+        # Initialize API service if available
+        self.api_service = None
+        self.use_api = False
+        
+        if API_SERVICE_AVAILABLE:
+            try:
+                self.api_service = AssessmentAPIService(class_id)
+                self.use_api = True
+                print("[ASSESSMENT SERVICE] Using Django backend API")
+            except Exception as e:
+                print(f"[ASSESSMENT SERVICE] API service initialization failed: {e}")
+        
+        # JSON fallback
         if data_file is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             self.data_file = os.path.join(base_dir, "data", "assessments.json")
@@ -113,9 +138,23 @@ class AssessmentService:
     
     def get_assessments_by_class(self, class_id: int) -> List[Dict]:
         """Get all assessments for a class"""
+        # Try API first
+        if self.use_api and self.api_service:
+            try:
+                result = self.api_service.get_all_assessments(class_id)
+                print(f"[ASSESSMENT SERVICE] API returned {len(result)} assessments for class {class_id}")
+                return result
+            except Exception as e:
+                print(f"[ASSESSMENT SERVICE] API call failed, using JSON fallback: {e}")
+        
+        # JSON fallback
         data = self._load_data()
-        return [a for a in data.get("assessments", []) 
+        assessments = [a for a in data.get("assessments", []) 
                 if a.get("class_id") == class_id]
+        print(f"[ASSESSMENT SERVICE] JSON fallback returned {len(assessments)} assessments for class {class_id}")
+        for a in assessments:
+            print(f"  - {a.get('title')}: component={a.get('rubric_component_name')}, period={a.get('academic_period')}")
+        return assessments
     
     def get_assessments_by_component(self, class_id: int, 
                                       rubric_component_id: int) -> List[Dict]:
@@ -128,6 +167,14 @@ class AssessmentService:
     def get_assessments_by_period(self, class_id: int, 
                                    academic_period: str) -> List[Dict]:
         """Get all assessments for a specific academic period (midterm/finals)"""
+        # Try API first
+        if self.use_api and self.api_service:
+            try:
+                return self.api_service.get_assessments_by_period(academic_period, class_id)
+            except Exception as e:
+                print(f"[ASSESSMENT SERVICE] API call failed, using JSON fallback: {e}")
+        
+        # JSON fallback
         data = self._load_data()
         return [a for a in data.get("assessments", []) 
                 if a.get("class_id") == class_id 
@@ -135,6 +182,14 @@ class AssessmentService:
     
     def get_assessment_by_id(self, assessment_id: int) -> Optional[Dict]:
         """Get a specific assessment by ID"""
+        # Try API first
+        if self.use_api and self.api_service:
+            try:
+                return self.api_service.get_assessment(assessment_id)
+            except Exception as e:
+                print(f"[ASSESSMENT SERVICE] API call failed, using JSON fallback: {e}")
+        
+        # JSON fallback
         data = self._load_data()
         for assessment in data.get("assessments", []):
             if assessment.get("id") == assessment_id:
@@ -183,15 +238,8 @@ class AssessmentService:
             created_by = params.get('created_by')
             is_published = params.get('is_published', False)
             
-            data = self._load_data()
-            
-            new_id = data.get("last_id", 0) + 1
-            data["last_id"] = new_id
-            
-            now = datetime.now().isoformat()
-            
-            assessment = {
-                "id": new_id,
+            # Prepare assessment data
+            assessment_data_prepared = {
                 "class_id": class_id,
                 "title": title,
                 "description": description,
@@ -202,8 +250,33 @@ class AssessmentService:
                 "topic_id": topic_id,
                 "due_date": due_date,
                 "is_published": is_published,
+                "created_by": created_by
+            }
+            
+            # Try API first
+            if self.use_api and self.api_service:
+                try:
+                    result = self.api_service.create_assessment(assessment_data_prepared, class_id)
+                    if result:
+                        # Also create post for stream
+                        self._create_assessment_post(result)
+                        print(f"[ASSESSMENT SERVICE] Created assessment via API: {title}")
+                        return result
+                except Exception as e:
+                    print(f"[ASSESSMENT SERVICE] API create failed, using JSON fallback: {e}")
+            
+            # JSON fallback
+            data = self._load_data()
+            
+            new_id = data.get("last_id", 0) + 1
+            data["last_id"] = new_id
+            
+            now = datetime.now().isoformat()
+            
+            assessment = {
+                "id": new_id,
+                **assessment_data_prepared,
                 "created_at": now,
-                "created_by": created_by,
                 "updated_at": now
             }
             
@@ -214,6 +287,10 @@ class AssessmentService:
             self._create_assessment_post(assessment)
             
             print(f"[ASSESSMENT SERVICE] Created assessment: {title} (ID: {new_id})")
+            print(f"  - class_id: {class_id}")
+            print(f"  - rubric_component_name: {rubric_component_name}")
+            print(f"  - academic_period: {academic_period.lower() if academic_period else 'midterm'}")
+            print(f"  - max_points: {max_points}")
             return assessment
             
         except Exception as e:
@@ -223,15 +300,25 @@ class AssessmentService:
     def update_assessment(self, assessment_id: int, updates: Dict) -> bool:
         """Update an existing assessment"""
         try:
+            # Don't allow changing certain fields
+            protected_fields = ["id", "class_id", "created_at", "created_by"]
+            for field in protected_fields:
+                updates.pop(field, None)
+            
+            # Try API first
+            if self.use_api and self.api_service:
+                try:
+                    if self.api_service.update_assessment(assessment_id, updates):
+                        print(f"[ASSESSMENT SERVICE] Updated assessment via API ID: {assessment_id}")
+                        return True
+                except Exception as e:
+                    print(f"[ASSESSMENT SERVICE] API update failed, using JSON fallback: {e}")
+            
+            # JSON fallback
             data = self._load_data()
             
             for assessment in data.get("assessments", []):
                 if assessment.get("id") == assessment_id:
-                    # Don't allow changing certain fields
-                    protected_fields = ["id", "class_id", "created_at", "created_by"]
-                    for field in protected_fields:
-                        updates.pop(field, None)
-                    
                     assessment.update(updates)
                     assessment["updated_at"] = datetime.now().isoformat()
                     self._save_data(data)
@@ -248,6 +335,16 @@ class AssessmentService:
     def delete_assessment(self, assessment_id: int) -> bool:
         """Delete an assessment"""
         try:
+            # Try API first
+            if self.use_api and self.api_service:
+                try:
+                    if self.api_service.delete_assessment(assessment_id):
+                        print(f"[ASSESSMENT SERVICE] Deleted assessment via API ID: {assessment_id}")
+                        return True
+                except Exception as e:
+                    print(f"[ASSESSMENT SERVICE] API delete failed, using JSON fallback: {e}")
+            
+            # JSON fallback
             data = self._load_data()
             assessments = data.get("assessments", [])
             

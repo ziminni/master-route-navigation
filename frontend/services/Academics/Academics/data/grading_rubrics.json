@@ -1,0 +1,73 @@
+{
+    "rubrics": [
+        {
+            "id": 1,
+            "class_id": 1,
+            "academic_period": "midterm",
+            "term_percentage": 33.0,
+            "created_at": "2025-12-03T23:50:38.418809",
+            "updated_at": "2025-12-04T00:20:35.817320"
+        },
+        {
+            "id": 2,
+            "class_id": 1,
+            "academic_period": "finals",
+            "term_percentage": 67.0,
+            "created_at": "2025-12-03T23:50:38.466634",
+            "updated_at": "2025-12-04T00:20:35.902650"
+        }
+    ],
+    "components": [
+        {
+            "id": 6,
+            "rubric_id": 1,
+            "name": "Quizzes",
+            "percentage": 20.0,
+            "created_at": "2025-12-04T00:20:35.866721",
+            "updated_at": "2025-12-04T00:20:35.866721"
+        },
+        {
+            "id": 7,
+            "rubric_id": 1,
+            "name": "Performance Task",
+            "percentage": 30.0,
+            "created_at": "2025-12-04T00:20:35.876145",
+            "updated_at": "2025-12-04T00:20:35.876145"
+        },
+        {
+            "id": 8,
+            "rubric_id": 1,
+            "name": "Exam",
+            "percentage": 50.0,
+            "created_at": "2025-12-04T00:20:35.880805",
+            "updated_at": "2025-12-04T00:20:35.880805"
+        },
+        {
+            "id": 9,
+            "rubric_id": 1,
+            "name": "New Component",
+            "percentage": 0,
+            "created_at": "2025-12-04T00:20:35.894893",
+            "updated_at": "2025-12-04T00:20:35.894893"
+        },
+        {
+            "id": 10,
+            "rubric_id": 2,
+            "name": "Quizzes",
+            "percentage": 50.0,
+            "created_at": "2025-12-04T00:20:35.932726",
+            "updated_at": "2025-12-04T00:20:35.932726"
+        },
+        {
+            "id": 11,
+            "rubric_id": 2,
+            "name": "Activities",
+            "percentage": 50.0,
+            "created_at": "2025-12-04T00:20:35.942439",
+            "updated_at": "2025-12-04T00:20:35.942439"
+        }
+    ],
+    "last_id": 0,
+    "last_rubric_id": 2,
+    "last_component_id": 11
+}

@@ -211,6 +211,14 @@ class FacultyGradesView(QWidget):
         
         return header_layout
     
+    def refresh_data(self):
+        """Refresh the grades table data - reload assessments and rebuild columns"""
+        print("[FACULTY GRADES] Refreshing data - reloading assessments...")
+        # Force the grade model to reload data from services
+        # The get_component_items_with_scores will re-fetch from assessment service
+        self.rebuild_table()
+        print("[FACULTY GRADES] Data refresh complete")
+    
     def rebuild_table(self):
         """Rebuild table structure"""
         columns_info = self._build_columns_info()

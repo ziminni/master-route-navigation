@@ -2,11 +2,21 @@
 """
 Service for managing grading rubrics - integrates with backend models
 Handles CRUD operations for GradingRubric and RubricComponent
+
+Now integrated with Django backend API with JSON fallback for offline mode.
 """
 import json
 import os
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+
+# Try to import the new API service
+try:
+    from frontend.services.Academics.Classroom.grading_rubric_api_service import GradingRubricService as GradingRubricAPIService
+    API_SERVICE_AVAILABLE = True
+except ImportError:
+    API_SERVICE_AVAILABLE = False
+    GradingRubricAPIService = None
 
 
 class GradingRubricService:
@@ -14,9 +24,24 @@ class GradingRubricService:
     Service for managing grading rubrics for a class.
     Each class has two rubrics: midterm and finals.
     Each rubric has components (Performance Task, Quiz, Exam, etc.)
+    
+    Now uses Django backend API as primary storage with JSON fallback.
     """
     
-    def __init__(self, data_file: str = None):
+    def __init__(self, data_file: str = None, class_id: int = None):
+        # Initialize API service if available
+        self.api_service = None
+        self.use_api = False
+        
+        if API_SERVICE_AVAILABLE:
+            try:
+                self.api_service = GradingRubricAPIService(class_id)
+                self.use_api = True
+                print("[RUBRIC SERVICE] Using Django backend API")
+            except Exception as e:
+                print(f"[RUBRIC SERVICE] API service initialization failed: {e}")
+        
+        # JSON fallback
         if data_file is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             self.data_file = os.path.join(base_dir, "data", "grading_rubrics.json")
@@ -56,6 +81,14 @@ class GradingRubricService:
             "finals": {"term_percentage": 67, "components": [...]}
         }
         """
+        # Try API first
+        if self.use_api and self.api_service:
+            try:
+                return self.api_service.get_full_rubric_config(class_id)
+            except Exception as e:
+                print(f"[RUBRIC SERVICE] API call failed, using JSON fallback: {e}")
+        
+        # JSON fallback
         data = self._load_data()
         class_key = str(class_id)
         return data.get("rubrics", {}).get(class_key)
@@ -98,12 +131,6 @@ class GradingRubricService:
             True if successful
         """
         try:
-            data = self._load_data()
-            class_key = str(class_id)
-            
-            if "rubrics" not in data:
-                data["rubrics"] = {}
-            
             # Validate components sum to 100 for each term
             for term in ["midterm", "finals"]:
                 if term in rubrics_data:
@@ -111,6 +138,22 @@ class GradingRubricService:
                     total = sum(c.get("percentage", 0) for c in components)
                     if abs(total - 100) > 0.01:
                         print(f"[RUBRIC SERVICE] Warning: {term} components sum to {total}%, should be 100%")
+            
+            # Try API first
+            if self.use_api and self.api_service:
+                try:
+                    if self.api_service.save_full_rubric_config(class_id, rubrics_data):
+                        print(f"[RUBRIC SERVICE] Saved rubrics via API for class {class_id}")
+                        return True
+                except Exception as e:
+                    print(f"[RUBRIC SERVICE] API save failed, using JSON fallback: {e}")
+            
+            # JSON fallback
+            data = self._load_data()
+            class_key = str(class_id)
+            
+            if "rubrics" not in data:
+                data["rubrics"] = {}
             
             # Add timestamps and IDs
             now = datetime.now().isoformat()
