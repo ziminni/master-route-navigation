@@ -1,6 +1,7 @@
 import sys
 import json
 import os
+import requests
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QPushButton,
     QVBoxLayout, QHBoxLayout, QGridLayout, 
@@ -77,7 +78,8 @@ class EventCard(QWidget):
 
         # Load image relative to [projectname]/frontend/assets/images/pics
         project_root = get_project_root()
-        img_path = os.path.join(project_root, "frontend", "assets", "images", "pics", self.event_data.get("img", ""))
+        img_filename = self.event_data.get("img", "") or "default.png"
+        img_path = os.path.join(project_root, "frontend", "assets", "images", "pics", img_filename)
         print(f"Attempting to load image: {img_path}")  # Debug log
         pixmap = QPixmap(img_path)
         if not pixmap.isNull():
@@ -92,7 +94,9 @@ class EventCard(QWidget):
             pixmap = pixmap.copy(x, y, 288, 288)
             img_label.setPixmap(pixmap)
         else:
-            QMessageBox.warning(self, "Image Not Found", f"Image {img_path} not found.")
+            # Set placeholder background instead of showing warning
+            img_label.setStyleSheet("background-color: #e0e0e0; border-radius: 12px;")
+            print(f"Image not found, using placeholder: {img_path}")
 
         main_layout.addWidget(img_label)
 
@@ -934,14 +938,52 @@ class EventCard(QWidget):
         dialog.show()
 
 class EventsPage(QWidget):
-    def __init__(self, username, role, primary_role, token, house_name):
+    def __init__(self, username, role, primary_role, token, house_name, house_id=None, api_base="http://127.0.0.1:8000"):
         super().__init__()
         self.username = username
         self.role = role
         self.primary_role = primary_role
         self.token = token
         self.house_name = house_name
+        self.house_id = house_id
+        self.api_base = api_base
 
+        self.setup_ui()
+
+    def load_events_from_api(self):
+        """Load events from backend API."""
+        events = []
+        try:
+            headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+            url = f"{self.api_base}/api/house/events/"
+            if self.house_id:
+                url += f"?house={self.house_id}"
+            
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                api_events = response.json()
+                if isinstance(api_events, dict) and "results" in api_events:
+                    api_events = api_events["results"]
+                
+                # Transform API data to expected format
+                for event in api_events:
+                    events.append({
+                        "id": event.get("id"),
+                        "title": event.get("title", "Untitled Event"),
+                        "desc": event.get("description", ""),
+                        "img": event.get("img", "") or "",
+                        "start_date": event.get("start_date", ""),
+                        "end_date": event.get("end_date", ""),
+                        "is_competition": event.get("is_competition", False),
+                    })
+            else:
+                print(f"Failed to load events: {response.status_code}")
+        except Exception as e:
+            print(f"Error loading events from API: {e}")
+        
+        return events
+
+    def setup_ui(self):
         main_layout = QVBoxLayout(self)
 
         # --- Scrollable Event Cards ---
@@ -985,16 +1027,9 @@ class EventsPage(QWidget):
         """)
 
 
-        # Load events.json
+        # Load events from API
         project_root = get_project_root()
-        events_path = os.path.join(project_root, "frontend", "Mock", "events.json")
-        print(f"Attempting to load events.json: {events_path}")  # Debug log
-        try:
-            with open(events_path, "r", encoding="utf-8") as f:
-                events = json.load(f)
-        except FileNotFoundError:
-            QMessageBox.critical(self, "Error", f"events.json file not found at {events_path}.")
-            events = []
+        events = self.load_events_from_api()
 
         # Normalize event image paths to 'pics/<basename>'
         for e in events:

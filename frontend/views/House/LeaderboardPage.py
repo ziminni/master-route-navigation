@@ -1,5 +1,6 @@
 import json
 import os
+import requests
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame, QGridLayout
 )
@@ -10,28 +11,61 @@ from PyQt6.QtCore import Qt
 from .leaderboard_card import LowerLeaderboardCard
 
 class LeaderboardPage(QWidget):
-    def __init__(self, username, roles, primary_role, token, house_name):
+    def __init__(self, username, roles, primary_role, token, house_name, house_id=None, api_base="http://127.0.0.1:8000"):
         super().__init__()
         self.setWindowTitle("Leaderboards")
+        self.token = token
+        self.house_id = house_id
+        self.api_base = api_base
         self.setup_ui()
+
+    def load_leaderboard_from_api(self):
+        """Load leaderboard data from backend API."""
+        leaderboard_data = []
+        try:
+            headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+            # Fetch memberships for this house, sorted by points
+            url = f"{self.api_base}/api/house/memberships/"
+            if self.house_id:
+                url += f"?house={self.house_id}"
+            
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                memberships = response.json()
+                if isinstance(memberships, dict) and "results" in memberships:
+                    memberships = memberships["results"]
+                
+                # Sort by points descending
+                memberships = sorted(memberships, key=lambda x: x.get("points", 0), reverse=True)
+                
+                # Transform to leaderboard format
+                for idx, membership in enumerate(memberships, start=1):
+                    user_display = membership.get("user_display", "Unknown")
+                    # Try to extract username from user_display or use user ID
+                    username = user_display.split("@")[0] if "@" in str(user_display) else str(membership.get("user", ""))
+                    
+                    leaderboard_data.append({
+                        "rank": idx,
+                        "name": user_display,
+                        "username": username,
+                        "score": membership.get("points", 0),
+                        "avatar": membership.get("avatar", "man1.png") or "man1.png",
+                    })
+            else:
+                print(f"Failed to load leaderboard: {response.status_code}")
+        except Exception as e:
+            print(f"Error loading leaderboard from API: {e}")
+        
+        return leaderboard_data
 
     def setup_ui(self):
         # === PATHS ===
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        data_path = os.path.join(base_dir , "Mock", "leaderboards.json")
         bg_path = os.path.join(base_dir, "assets", "images" , "bg.png")
         avatars_path = os.path.join(base_dir, "assets", "images" , "avatars")
 
-        # === LOAD DATA ===
-        try:
-            with open(data_path, "r", encoding="utf-8") as f:
-                leaderboard_data = json.load(f)
-        except FileNotFoundError:
-            print(f"Error: leaderboards.json not found at {data_path}. Using empty leaderboard.")
-            leaderboard_data = []
-        except Exception as e:
-            print(f"Could not load leaderboard data: {e}")
-            leaderboard_data = []
+        # === LOAD DATA FROM API ===
+        leaderboard_data = self.load_leaderboard_from_api()
 
         # Split data
         top5 = leaderboard_data[:5]

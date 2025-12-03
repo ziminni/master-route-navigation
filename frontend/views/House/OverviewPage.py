@@ -2,12 +2,77 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QDialog, QSizePolicy, QSpacerItem, QPushButton, QScrollArea,
     QGraphicsDropShadowEffect
 )
-from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtGui import QPixmap, QIcon, QPainter, QColor
 from PyQt6.QtCore import Qt, QSize, QEvent, QTimer
 import os
 import threading
 import requests
 import hashlib
+
+from .HouseServices import HouseService
+
+
+class RulesDialog(QDialog):
+    """Dialog to display house rules."""
+    def __init__(self, assets_path, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("House Rules")
+        self.setFixedSize(500, 400)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #1a1a2e;
+                border-radius: 10px;
+            }
+            QLabel {
+                color: white;
+                font-family: 'Inter', sans-serif;
+            }
+        """)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        title = QLabel("House Rules")
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #4CAF50;")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+        
+        rules_text = QLabel("""
+1. Respect all house members and their opinions.
+
+2. Participate actively in house events and activities.
+
+3. Maintain good academic standing.
+
+4. Support fellow house members in their endeavors.
+
+5. Represent the house with pride and integrity.
+
+6. Attend house meetings regularly.
+
+7. Contribute positively to the house community.
+        """)
+        rules_text.setWordWrap(True)
+        rules_text.setStyleSheet("font-size: 14px; line-height: 1.6;")
+        layout.addWidget(rules_text)
+        
+        close_btn = QPushButton("Close")
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 30px;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        close_btn.clicked.connect(self.accept)
+        layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
 
 class OverviewPage(QWidget):
     def __init__(self, username, roles, primary_role, token, house_name="House of Java"):
@@ -17,7 +82,10 @@ class OverviewPage(QWidget):
         self.primary_role = primary_role
         self.token = token
         self.house_name = house_name
-        
+
+        # HouseService instance (re-usable)
+        self.house_service = HouseService()
+
         # Store backend data
         self.house_data = None
         self.members_data = []
@@ -27,16 +95,35 @@ class OverviewPage(QWidget):
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.assets_path = os.path.join(base_dir, "assets", "images") + os.sep
         self.avatars_path = os.path.join(self.assets_path, "avatars") + os.sep
-        
+
         # Build the UI on construction so the page is visible when navigated to
         self.init_ui()
-        
+
         # Fetch data in background
         threading.Thread(target=self._fetch_all_data, daemon=True).start()
-        
+
     def show_rules_dialog(self, event):
         self.rules_dialog = RulesDialog(self.assets_path)
         self.rules_dialog.exec()
+
+    def _set_logo_image(self, image_bytes: bytes):
+        """Set logo image from bytes data (adapted from HouseCard.set_image)"""
+        try:
+            if not hasattr(self, 'logo_label'):
+                return
+                
+            pix = QPixmap()
+            if pix.loadFromData(image_bytes):
+                # Scale to appropriate size for the logo area
+                # Change this value to make logo bigger/smaller (e.g., 180, 220, 250, 300)
+                logo_size = 350
+                pix = pix.scaled(logo_size, logo_size, Qt.AspectRatioMode.KeepAspectRatio, 
+                               Qt.TransformationMode.SmoothTransformation)
+                self.logo_label.setPixmap(pix)
+                self.logo_label.setText("")  # Clear the placeholder text
+                print(f"[OverviewPage] Logo loaded successfully, size: {pix.width()}x{pix.height()}")
+        except Exception as e:
+            print(f"[ERROR] Failed to set logo image: {e}")
 
     def _fetch_all_data(self):
         """Background thread: fetch all data from backend."""
@@ -46,8 +133,26 @@ class OverviewPage(QWidget):
                 house_id = self.house_data["id"]
                 self._fetch_members(house_id)
                 self._fetch_events(house_id)
+
+                # Load logo if available - USE THE HOUSE SERVICE'S load_image_async
+                logo_field = self.house_data.get("logo") or self.house_data.get("banner") or ""
+                if logo_field:
+                    print(f"[OverviewPage] Found logo field: {logo_field}")
+                    
+                    # Create a simple adapter object that has a set_image method
+                    class LogoAdapter:
+                        def __init__(self, page):
+                            self.page = page
+                        
+                        def set_image(self, image_bytes: bytes):
+                            # Call the page's _set_logo_image method
+                            self.page._set_logo_image(image_bytes)
+                    
+                    # Create adapter and use the service's load_image_async
+                    adapter = LogoAdapter(self)
+                    self.house_service.load_image_async(logo_field, adapter)
+
         except Exception as e:
-            # keep a lightweight log so we can diagnose why UI stayed with placeholders
             print(f"[ERROR] Failed to fetch all data: {e}")
         finally:
             # Ensure UI is refreshed even if some fetches failed or house not found
@@ -123,44 +228,48 @@ class OverviewPage(QWidget):
     def _update_ui_from_data(self):
         """Update UI labels with real data from backend."""
         try:
+            # Debug: Print what data we have
+            print(f"[OverviewPage] Updating UI with house_data: {self.house_data}")
+            print(f"[OverviewPage] Members count: {len(self.members_data) if self.members_data else 0}")
+            
             # Update member count
-            if hasattr(self, "count_label_members"):
-                member_count = len(self.members_data) if self.members_data else self.house_data.get("members_count", 0) if self.house_data else 0
-                QTimer.singleShot(0, lambda: self.count_label_members.setText(str(member_count)))
-            
+            if hasattr(self, "count_label_members") and self.count_label_members:
+                member_count = len(self.members_data) if self.members_data else (self.house_data.get("members_count", 0) if self.house_data else 0)
+                print(f"[OverviewPage] Setting members count to: {member_count}")
+                QTimer.singleShot(0, lambda mc=member_count: self.count_label_members.setText(str(mc)))
+
             # Update event count
-            if hasattr(self, "count_label_events"):
+            if hasattr(self, "count_label_events") and self.count_label_events:
                 event_count = len(self.events_data) if self.events_data else 0
-                QTimer.singleShot(0, lambda: self.count_label_events.setText(str(event_count)))
+                QTimer.singleShot(0, lambda ec=event_count: self.count_label_events.setText(str(ec)))
+            
             # Update awards count (derived from events marked as competition)
-            if hasattr(self, "count_label_awards"):
-                awards = getattr(self, "_awards_count", None)
-                if awards is None:
-                    # fallback: 0 if not computed
-                    awards = 0
+            if hasattr(self, "count_label_awards") and self.count_label_awards:
+                awards = getattr(self, "_awards_count", 0) or 0
                 QTimer.singleShot(0, lambda a=awards: self.count_label_awards.setText(str(a)))
-            
+
             # Update member online text
-            if hasattr(self, "members_text"):
+            if hasattr(self, "members_text") and self.members_text:
                 members_online = len([m for m in self.members_data if m.get("is_active")]) if self.members_data else 0
-                QTimer.singleShot(0, lambda: self.members_text.setText(f"Members online: {members_online}"))
-            
+                QTimer.singleShot(0, lambda mo=members_online: self.members_text.setText(f"Members online: {mo}"))
+
             # Update points breakdown
             if self.house_data:
                 points_total = self.house_data.get("points_total", 0)
-                if hasattr(self, "points_labels"):
-                    QTimer.singleShot(0, lambda: self._update_points_display(points_total))
-            
+                behavioral = self.house_data.get("behavioral_points", 0)
+                competitive = self.house_data.get("competitive_points", 0)
+                print(f"[OverviewPage] Points - Total: {points_total}, Behavioral: {behavioral}, Competitive: {competitive}")
+                if hasattr(self, "points_labels") and self.points_labels:
+                    QTimer.singleShot(0, lambda pt=points_total: self._update_points_display(pt))
+
             # Update top members avatars
-            if self.members_data and hasattr(self, "top_member_labels"):
+            if self.members_data and hasattr(self, "top_member_labels") and self.top_member_labels:
                 QTimer.singleShot(0, self._update_top_members)
-            
-            # Update congrats message
-            if hasattr(self, "congrats_label"):
-                congrats_msg = f"Congratulations, {self.house_name}! You are building a great house!"
-                QTimer.singleShot(0, lambda: self.congrats_label.setText(congrats_msg))
+
         except Exception as e:
             print(f"[ERROR] Failed to update UI: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _update_points_display(self, total_points):
         """Update the points breakdown display."""
@@ -181,7 +290,7 @@ class OverviewPage(QWidget):
             else:
                 year = max(0, total_points - behavioral - competitive)
             accumulated = total_points
-            
+
             values = [behavioral, competitive, year, accumulated]
             for i, label in enumerate(self.points_labels):
                 if i < len(values):
@@ -196,7 +305,7 @@ class OverviewPage(QWidget):
                 return
             # Sort by points (descending) and take top 3
             sorted_members = sorted(self.members_data, key=lambda m: m.get("points", 0), reverse=True)[:3]
-            
+
             for i, label in enumerate(self.top_member_labels):
                 if i < len(sorted_members):
                     member = sorted_members[i]
@@ -206,12 +315,12 @@ class OverviewPage(QWidget):
                         avatar_path = self.avatars_path + avatar_file
                     else:
                         avatar_path = avatar_file
-                    
+
                     pix = QPixmap(avatar_path)
                     if pix.isNull() or len(sorted_members) == 0:
                         # Generate color-based placeholder
                         pix = self._generate_avatar_placeholder(member.get("user_display", "?"))
-                    
+
                     label.setPixmap(pix.scaled(72, 72, Qt.AspectRatioMode.KeepAspectRatio,
                                                 Qt.TransformationMode.SmoothTransformation))
         except Exception as e:
@@ -228,7 +337,6 @@ class OverviewPage(QWidget):
         pix.fill(Qt.GlobalColor.white)
         # For now just fill with white; could add letter in center
         return pix
-
 
     def init_ui(self):
         def _set_scaled_pixmap(label, pixmap, base_size, scale=1.0):
@@ -268,14 +376,13 @@ class OverviewPage(QWidget):
         main_layout.setSpacing(10)
 
         # ----------------------------------------------------------
-        # LEFT SECTION: HOUSE NAME + BANNER + ICON STATS
+        # LEFT SECTION: HOUSE NAME + LOGO + ICON STATS
         # ----------------------------------------------------------
         left_layout = QVBoxLayout()
         left_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         left_layout.setContentsMargins(0, -10, 0, 80)
 
-
-        #Title
+        # Title
         title_label = QLabel(self.house_name.upper())
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet("""
@@ -286,7 +393,7 @@ class OverviewPage(QWidget):
             color: #004C25;
             background: transparent;
         """)
-        
+
         # Add subtle shadow to title
         title_shadow = QGraphicsDropShadowEffect()
         title_shadow.setBlurRadius(5)
@@ -294,98 +401,36 @@ class OverviewPage(QWidget):
         title_shadow.setYOffset(2)
         title_shadow.setColor(Qt.GlobalColor.darkGreen)
         title_label.setGraphicsEffect(title_shadow)
-        
+
         left_layout.addWidget(title_label)
 
-        banner_label = QLabel()
-        banner_label.setStyleSheet("background: transparent;")
-        self.banner_label = banner_label
-        banner_pixmap = QPixmap(self.assets_path + "banner.png")
-        if banner_pixmap.isNull():
-            banner_label.setText("[ Banner ]")
-            banner_label.setStyleSheet("""
-                background-color: #e5e7eb;
-                color: #6b7280;
-                border-radius: 8px;
-                padding: 100px 80px;
-                font-size: 24px;
-                font-family: 'Inter', sans-serif;
-            """)
-        else:
-            banner_label.setPixmap(
-                banner_pixmap.scaled(150, 430, Qt.AspectRatioMode.KeepAspectRatio,
-                                     Qt.TransformationMode.SmoothTransformation)
-            )
-        banner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Add shadow effect to banner
-        banner_shadow = QGraphicsDropShadowEffect()
-        banner_shadow.setBlurRadius(15)
-        banner_shadow.setXOffset(5)
-        banner_shadow.setYOffset(5)
-        banner_shadow.setColor(Qt.GlobalColor.black)
-        banner_label.setGraphicsEffect(banner_shadow)
-        
-        left_layout.addWidget(banner_label)
+        # === LOGO (REPLACING BANNER) ===
+        logo_label = QLabel()
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_label.setStyleSheet("background: transparent;")
+        self.logo_label = logo_label  # Store reference for logo updates
+
+        # Placeholder text (will be replaced when logo loads)
+        logo_label.setText("[ Logo ]")
+
+        # Drop shadow (same style as before)
+        logo_shadow = QGraphicsDropShadowEffect()
+        logo_shadow.setBlurRadius(15)
+        logo_shadow.setXOffset(5)
+        logo_shadow.setYOffset(5)
+        logo_shadow.setColor(Qt.GlobalColor.black)
+        logo_label.setGraphicsEffect(logo_shadow)
+
+        left_layout.addWidget(logo_label)
         left_layout.addSpacing(5)
-
-        # Try to fetch the banner image for this house from backend in background
-        def _fetch_banner():
-            try:
-                url = "http://127.0.0.1:8000/api/house/houses/"
-                headers = {}
-                if getattr(self, "token", None):
-                    headers["Authorization"] = f"Bearer {self.token}"
-                r = requests.get(url, headers=headers, timeout=6)
-                if r.status_code == 200:
-                    data = r.json()
-                    if isinstance(data, dict) and "results" in data:
-                        items = data["results"]
-                    else:
-                        items = data
-                    target = None
-                    for h in items:
-                        # match by name or slug (case-insensitive)
-                        if str(h.get("name", "")).lower() == str(self.house_name).lower() or str(h.get("slug", "")).lower() == str(self.house_name).lower():
-                            target = h
-                            break
-                    if target:
-                        img_url = target.get("banner") or target.get("logo")
-                        if img_url:
-                            if img_url.startswith("/"):
-                                img_url = f"http://127.0.0.1:8000{img_url}"
-                            try:
-                                r2 = requests.get(img_url, headers=headers, timeout=6)
-                                if r2.status_code == 200:
-                                    data_bytes = r2.content
-                                    pix = QPixmap()
-                                    if pix.loadFromData(data_bytes):
-                                        pix = pix.scaled(150, 430, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                                        # update UI in main thread via Qt event
-                                        def _apply():
-                                            try:
-                                                self.banner_label.setPixmap(pix)
-                                            except Exception:
-                                                pass
-
-                                        # Use Qt: invoke via single-shot timer to run on main thread
-                                        from PyQt6.QtCore import QTimer
-                                        QTimer.singleShot(0, _apply)
-                            except Exception:
-                                pass
-            except Exception:
-                pass
-
-        threading.Thread(target=_fetch_banner, daemon=True).start()
-
 
         # Stats Icons Row
         stats_layout = QHBoxLayout()
 
         stats = [
-            ("members.png", "257", "Members"),
-            ("events.png", "20", "Events"),
-            ("awards.png", "5", "Awards"),
+            ("members.png", "0", "Members"),
+            ("events.png", "0", "Events"),
+            ("awards.png", "0", "Awards"),
         ]
 
         # Store references to count labels for later updates
@@ -397,13 +442,13 @@ class OverviewPage(QWidget):
             # Create container widget for shadow effect
             stat_container = QWidget()
             stat_container.setStyleSheet("background: transparent;")
-            
+
             icon_label = QLabel()
             icon_label.setStyleSheet("background: transparent;")
             pixmap = QPixmap(self.assets_path + icon_name)
             if not pixmap.isNull():
                 icon_label.setPixmap(pixmap.scaled(45, 45, Qt.AspectRatioMode.KeepAspectRatio,
-                                                   Qt.TransformationMode.SmoothTransformation))
+                                                Qt.TransformationMode.SmoothTransformation))
             icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             count_label = QLabel(count)
@@ -415,7 +460,7 @@ class OverviewPage(QWidget):
                 background: transparent;
                 font-weight: 800;
             """)
-            
+
             # Store references to specific count labels
             if label_text == "Members":
                 self.count_label_members = count_label
@@ -423,7 +468,7 @@ class OverviewPage(QWidget):
                 self.count_label_events = count_label
             elif label_text == "Awards":
                 self.count_label_awards = count_label
-            
+
             # Add text label below count
             text_label = QLabel(label_text)
             text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -441,7 +486,7 @@ class OverviewPage(QWidget):
             box.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
             box.addWidget(count_label, alignment=Qt.AlignmentFlag.AlignCenter)
             box.addWidget(text_label, alignment=Qt.AlignmentFlag.AlignCenter)
-            
+
             # Add shadow effect to stat container
             stat_shadow = QGraphicsDropShadowEffect()
             stat_shadow.setBlurRadius(8)
@@ -449,42 +494,23 @@ class OverviewPage(QWidget):
             stat_shadow.setYOffset(2)
             stat_shadow.setColor(Qt.GlobalColor.black)
             stat_container.setGraphicsEffect(stat_shadow)
-            
+
             stats_layout.addWidget(stat_container)
 
         left_layout.addLayout(stats_layout)
-
-
+        
         # ----------------------------------------------------------
-        # CENTER SECTION: ARROW ON TOP + AVATARS AT BOTTOM
+        # CENTER SECTION: TOP MEMBERS (at bottom)
         # ----------------------------------------------------------
         center_layout = QVBoxLayout()
-        center_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Arrow (top border)
-        arrow_label = QLabel()
-        arrow_label.setStyleSheet("background: transparent;")
-        arrow_pixmap = QPixmap(self.assets_path + "expander_arrow.png")
-        arrow_base_size = (32, 32)
-        if arrow_pixmap.isNull():
-            arrow_label.setText("▼")
-            arrow_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            arrow_label.setStyleSheet("""
-                font-size: 28px;
-                color: #004C25;
-                font-family: 'Inter', sans-serif;
-                background: transparent;
-            """)
-        else:
-            _set_scaled_pixmap(arrow_label, arrow_pixmap, arrow_base_size)
-            _add_hover_scale(arrow_label, arrow_pixmap, arrow_base_size, hover_scale=1.2)
-        arrow_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
-        center_layout.addWidget(arrow_label, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
-
-
-        #push avatars to bottom
+        center_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        # Bottom margin (4th value) pushes content UP - adjust this value to move Top Members up/down
+        # Increase = move up, Decrease = move down
+        center_layout.setContentsMargins(0, 0, 0, 10)
+        
+        # Add spacer to push content to bottom
         center_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
+        
         # Top Members Title
         top_members_label = QLabel("Top Members")
         top_members_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -514,10 +540,10 @@ class OverviewPage(QWidget):
             if not avatar_pix.isNull():
                 avatar.setPixmap(
                     avatar_pix.scaled(72, 72, Qt.AspectRatioMode.KeepAspectRatio,
-                                      Qt.TransformationMode.SmoothTransformation)
+                                    Qt.TransformationMode.SmoothTransformation)
                 )
             avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            
+
             # Add shadow effect to avatars
             shadow = QGraphicsDropShadowEffect()
             shadow.setBlurRadius(8)
@@ -525,7 +551,7 @@ class OverviewPage(QWidget):
             shadow.setYOffset(2)
             shadow.setColor(Qt.GlobalColor.black)
             avatar.setGraphicsEffect(shadow)
-            
+
             # Store reference for later updates
             self.top_member_labels.append(avatar)
             avatar_layout.addWidget(avatar)
@@ -539,7 +565,6 @@ class OverviewPage(QWidget):
         underline.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         underline.setFixedWidth(260)
         center_layout.addWidget(underline)
-    
 
         # ----------------------------------------------------------
         # RIGHT SECTION: TOP MESSAGE + BOTTOM POINTS BOX
@@ -547,51 +572,10 @@ class OverviewPage(QWidget):
         right_layout = QVBoxLayout()
         right_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Create a frame container for the congratulatory message
-        congrats_frame = QFrame()
-        congrats_frame.setStyleSheet("""
-            QFrame {
-                border: 2px solid #084924;
-                border-radius: 6px;
-                background: transparent;
-            }
-        """)
-        
-        congrats_layout = QVBoxLayout(congrats_frame)
-        congrats_layout.setContentsMargins(8, 8, 8, 8)
-        
-        congrats_label = QLabel("Congratulations, House of Java! You are currently 1st Place among all houses!")
-        congrats_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        congrats_label.setWordWrap(True)
-        congrats_label.setStyleSheet("""
-            border: none;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: 'Inter', sans-serif;
-            color: #084924;
-            background: transparent;
-        """)
-        
-        # Store reference for updates
-        self.congrats_label = congrats_label
-        
-        congrats_layout.addWidget(congrats_label)
-        
-        # Add subtle shadow effect that appears only on the border
-        # Using small blur and minimal offset to create border-only shadow effect
-        congrats_shadow = QGraphicsDropShadowEffect()
-        congrats_shadow.setBlurRadius(2)
-        congrats_shadow.setXOffset(1)
-        congrats_shadow.setYOffset(1)
-        congrats_shadow.setColor(Qt.GlobalColor.black)
-        congrats_frame.setGraphicsEffect(congrats_shadow)
-        
-        right_layout.addWidget(congrats_frame, alignment=Qt.AlignmentFlag.AlignRight)
 
         right_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        
 
-                # === Right Icons (Members Online + Rules) ===
+        # === Right Icons (Members Online + Rules) ===
         right_icons_layout = QVBoxLayout()
         right_icons_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         right_icons_layout.setSpacing(25)
@@ -641,7 +625,6 @@ class OverviewPage(QWidget):
         _add_hover_scale(rules_icon, rules_pixmap, rules_base_size, hover_scale=1.15)
         rules_icon.mousePressEvent = self.show_rules_dialog
 
-
         # Add both icons
         right_icons_layout.addWidget(members_container, alignment=Qt.AlignmentFlag.AlignRight)
         right_icons_layout.addWidget(rules_icon, alignment=Qt.AlignmentFlag.AlignRight)
@@ -679,7 +662,7 @@ class OverviewPage(QWidget):
                 background: transparent;
             }
         """)
-        
+
         # Add shadow effect to points frame
         points_shadow = QGraphicsDropShadowEffect()
         points_shadow.setBlurRadius(12)
@@ -691,14 +674,14 @@ class OverviewPage(QWidget):
         # Layout
         layout = QVBoxLayout()
         layout.setSpacing(6)
-        
+
         # Store points labels for updates
         self.points_labels = []
 
         # Top row
         top_row = QHBoxLayout()
-        label1 = QLabel("<div align='center'><b>3,500</b><br><i>Behavioral</i></div>")
-        label2 = QLabel("<div align='center'><b>3,500</b><br><i>Competitive</i></div>")
+        label1 = QLabel("<div align='center'><b>0</b><br><i>Behavioral</i></div>")
+        label2 = QLabel("<div align='center'><b>0</b><br><i>Competitive</i></div>")
         self.points_labels.extend([label1, label2])
         top_row.addWidget(label1)
         top_row.addWidget(label2)
@@ -712,8 +695,8 @@ class OverviewPage(QWidget):
 
         # Bottom row
         bottom_row = QHBoxLayout()
-        label3 = QLabel("<div align='center'><b>3,500</b><br><i>Year Points</i></div>")
-        label4 = QLabel("<div align='center'><b>7,438</b><br><i>Total Accumulated</i></div>")
+        label3 = QLabel("<div align='center'><b>0</b><br><i>Year Points</i></div>")
+        label4 = QLabel("<div align='center'><b>0</b><br><i>Total Accumulated</i></div>")
         self.points_labels.extend([label3, label4])
         bottom_row.addWidget(label3)
         bottom_row.addWidget(label4)
@@ -722,7 +705,6 @@ class OverviewPage(QWidget):
         points_frame.setLayout(layout)
 
         right_layout.addWidget(points_frame, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
-
 
         # ----------------------------------------------------------
         # COMBINE ALL SECTIONS
@@ -738,148 +720,3 @@ class OverviewPage(QWidget):
                 font-family: 'Inter', sans-serif;
             }
         """)
-
-class RulesDialog(QDialog):
-    def __init__(self, assets_path):
-        super().__init__()
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
-        self.setModal(True)
-        self.resize(850, 600)
-
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #ffffff;
-                border: 2px solid #004C25;
-                border-radius: 10px;
-            }
-
-            QLabel#titleLabel {
-                font-size: 26px;
-                font-style: italic;
-                font-weight: 800;
-                color: #004C25;
-                font-family: 'Inter';
-                padding-bottom: 4px;
-                border: none;
-            }
-
-            QFrame#line {
-                background-color: #004C25;
-                height: 3px;
-                border: none;
-                border-radius: 2px;
-            }
-
-            QLabel#contentText {
-                color: #004C25;
-                background: transparent;
-                font-family: 'Inter';
-                font-size: 20px;
-                line-height: 1.5em;
-                border: none;
-                padding: 10px;
-            }
-
-            QPushButton {
-                background: transparent;
-                border: none;
-            }
-            QPushButton:hover {
-                opacity: 0.7;
-            }
-        """)
-
-        # === MAIN CONTAINER ===
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(25, 25, 25, 25)
-        main_layout.setSpacing(15)
-
-        # === TITLE ROW (Label + Close Button) ===
-        title_layout = QHBoxLayout()
-        title_layout.setContentsMargins(0, 0, 0, 0)
-
-        title_label = QLabel("RULES & REGULATIONS")
-        title_label.setObjectName("titleLabel")
-
-        close_button = QPushButton()
-        close_button.setIcon(QIcon(assets_path + "xbutton.png"))
-        close_button.setIconSize(QSize(35, 35))
-        close_button.setFixedSize(40, 40)
-        close_button.clicked.connect(self.close)
-
-        title_layout.addWidget(title_label)
-        title_layout.addStretch()
-        title_layout.addWidget(close_button)
-        main_layout.addLayout(title_layout)
-
-        # === UNDERLINE (green bar under title) ===
-        underline = QFrame()
-        underline.setObjectName("line")
-        underline.setFixedHeight(8)
-        underline.setFixedWidth(320)
-        underline.setStyleSheet("background-color: #004C25; border-radius: 2px;")
-        main_layout.addWidget(underline)
-
-        # === SCROLLABLE CONTENT ===
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("border: none; background: transparent;")
-
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-
-        # === Bordered box container ===
-        rules_box = QFrame()
-        rules_box.setStyleSheet("""
-            QFrame {
-                border: 2px solid #004C25;
-                border-radius: 8px;
-                background: transparent;
-            }
-        """)
-
-        # Text inside the box
-        rules_label = QLabel()
-        rules_label.setObjectName("contentText")
-        rules_label.setWordWrap(True)
-        rules_label.setText(
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
-            "Aenean commodo ligula eget dolor. Aenean massa. "
-            "Cum sociis natoque penatibus et magnis dis parturient montes, "
-            "nascetur ridiculus mus. Donec quam felis, ultricies nec, "
-            "pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim."
-            "Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu."
-            "In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium."
-            "Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus."
-            "Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus."
-            "Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue."
-            "Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus."
-        )
-        rules_label.setStyleSheet("""
-            QLabel#contentText {
-                color: #004C25;
-                background: transparent;
-                font-family: 'Inter';
-                font-size: 20px;
-                line-height: 1.5em;
-                padding: 10px;
-                border: none;
-            }
-        """)
-
-        box_layout = QVBoxLayout(rules_box)
-        box_layout.setContentsMargins(10, 10, 10, 10)
-        box_layout.addWidget(rules_label)
-
-        content_layout.addWidget(rules_box)
-        scroll_area.setWidget(content_widget)
-        main_layout.addWidget(scroll_area)
-        
-        # Add shadow effect to RulesDialog
-        dialog_shadow = QGraphicsDropShadowEffect()
-        dialog_shadow.setBlurRadius(20)
-        dialog_shadow.setXOffset(0)
-        dialog_shadow.setYOffset(0)
-        dialog_shadow.setColor(Qt.GlobalColor.black)
-        self.setGraphicsEffect(dialog_shadow)

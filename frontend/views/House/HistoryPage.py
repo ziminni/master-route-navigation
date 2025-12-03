@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import requests
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
     QGridLayout, QScrollArea, QFrame, QDialog, QSizePolicy
@@ -494,10 +495,13 @@ class HistoryCard(QWidget):
 
 
 class HistoryPage(QWidget):
-    def __init__(self, username, roles, primary_role, token, house_name):
+    def __init__(self, username, roles, primary_role, token, house_name, house_id=None, api_base="http://127.0.0.1:8000"):
         super().__init__()
         self.setWindowTitle("History - House System")
         self.resize(1100, 650)
+        self.token = token
+        self.house_id = house_id
+        self.api_base = api_base
 
         main_layout = QVBoxLayout(self)
 
@@ -548,13 +552,8 @@ class HistoryPage(QWidget):
         hbox.setSpacing(20)
         hbox.setContentsMargins(10, 10, 10, 10)
 
-        # --- Load JSON ---
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        history_path = os.path.join(base_dir, "..", "..", "..", "frontend", "Mock", "history.json")
-        with open(history_path, "r", encoding="utf-8") as f:
-            history_data = json.load(f)
-        with open(os.path.join(base_dir, "..", "..", "..", "frontend", "Mock", "history_details.json"), "r", encoding="utf-8") as f:
-            self.details_data = json.load(f)
+        # --- Load from API ---
+        history_data, self.details_data = self.load_history_from_api()
 
         # --- Add cards ---
         for record in history_data:
@@ -567,6 +566,57 @@ class HistoryPage(QWidget):
 
         scroll.setWidget(content)
         main_layout.addWidget(scroll)
+
+    def load_history_from_api(self):
+        """Load history data from backend API."""
+        history_data = []
+        details_data = []
+        
+        try:
+            headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+            url = f"{self.api_base}/api/house/events/"
+            if self.house_id:
+                url += f"?house={self.house_id}"
+            
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                events = response.json()
+                if isinstance(events, dict) and "results" in events:
+                    events = events["results"]
+                
+                # Transform events to history format
+                for idx, event in enumerate(events):
+                    history_item = {
+                        "id": event.get("id", idx + 1),
+                        "title": event.get("title", "Untitled Event"),
+                        "img": event.get("img", "") or "default.png",
+                        "placement": 1,
+                        "points": "100",
+                        "membersO": "House Members",
+                        "date": event.get("start_date", "N/A")[:10] if event.get("start_date") else "N/A",
+                        "type": "Competition" if event.get("is_competition") else "Event",
+                        "desc": event.get("description", "")[:50] + "..." if event.get("description") else "No description",
+                    }
+                    history_data.append(history_item)
+                    
+                    details_item = {
+                        "id": event.get("id", idx + 1),
+                        "title": event.get("title", "Untitled Event"),
+                        "date": event.get("start_date", "N/A")[:10] if event.get("start_date") else "N/A",
+                        "time": event.get("start_date", "N/A")[11:16] if event.get("start_date") and len(event.get("start_date", "")) > 11 else "N/A",
+                        "location": "TBD",
+                        "adviser": "N/A",
+                        "category": "Competition" if event.get("is_competition") else "Event",
+                        "details": [event.get("description", "No description available.")],
+                        "participants": [],
+                    }
+                    details_data.append(details_item)
+            else:
+                print(f"Failed to load history: {response.status_code}")
+        except Exception as e:
+            print(f"Error loading history from API: {e}")
+        
+        return history_data, details_data
 
     def show_details(self, data):
         match = next((d for d in self.details_data if d["id"] == data["id"]), None)

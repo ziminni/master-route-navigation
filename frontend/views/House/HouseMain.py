@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import requests
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
 if project_root not in sys.path:
     sys.path.append(project_root)
@@ -319,8 +320,27 @@ class HouseMain(QWidget):
         # Connect signals
         self.houses_page.house_clicked.connect(self.handle_house_click)
 
+    def get_house_id_by_name(self, house_name):
+        """Fetch house ID from API by house name."""
+        try:
+            headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+            response = requests.get("http://127.0.0.1:8000/api/house/houses/", headers=headers)
+            if response.status_code == 200:
+                houses = response.json()
+                if isinstance(houses, dict) and "results" in houses:
+                    houses = houses["results"]
+                for house in houses:
+                    if house.get("name") == house_name:
+                        return house.get("id")
+        except Exception as e:
+            print(f"Error fetching house ID: {e}")
+        return None
+
     def handle_house_click(self, house_name):
         self.current_house = house_name
+        self.current_house_id = self.get_house_id_by_name(house_name)
+        self.api_base = "http://127.0.0.1:8000"
+        
         self.nav_bar.setVisible(True)
         # Force layout update before navigating
         self.nav_bar.update()
@@ -332,13 +352,13 @@ class HouseMain(QWidget):
             self.stack.removeWidget(widget)
             widget.deleteLater()
 
-        # Initialize pages
+        # Initialize pages with house_id and api_base
         self.pages = {
             "Overview": OverviewPage(self.username, self.roles, self.primary_role, self.token, house_name),
-            "Events": EventsPage(self.username, self.roles, self.primary_role, self.token, house_name),
-            "Members": MembersPage(self.username, self.roles, self.primary_role, self.token, house_name),
-            "History": HistoryPage(self.username, self.roles, self.primary_role, self.token, house_name),
-            "Leaderboards": LeaderboardPage(self.username, self.roles, self.primary_role, self.token, house_name),
+            "Events": EventsPage(self.username, self.roles, self.primary_role, self.token, house_name, house_id=self.current_house_id, api_base=self.api_base),
+            "Members": MembersPage(self.username, self.roles, self.primary_role, self.token, house_name, house_id=self.current_house_id, api_base=self.api_base),
+            "History": HistoryPage(self.username, self.roles, self.primary_role, self.token, house_name, house_id=self.current_house_id, api_base=self.api_base),
+            "Leaderboards": LeaderboardPage(self.username, self.roles, self.primary_role, self.token, house_name, house_id=self.current_house_id, api_base=self.api_base),
         }
 
         # Add pages to stack
