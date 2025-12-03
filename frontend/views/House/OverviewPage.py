@@ -310,11 +310,11 @@ class OverviewPage(QWidget):
                 if i < len(sorted_members):
                     member = sorted_members[i]
                     # Try to load avatar from backend or use placeholder
-                    avatar_file = member.get("avatar", "man1.png")
-                    if not avatar_file.startswith("/") and not avatar_file.startswith("http"):
+                    avatar_file = member.get("avatar") or "man1.png"
+                    if avatar_file and not avatar_file.startswith("/") and not avatar_file.startswith("http"):
                         avatar_path = self.avatars_path + avatar_file
                     else:
-                        avatar_path = avatar_file
+                        avatar_path = avatar_file if avatar_file else self.avatars_path + "man1.png"
 
                     pix = QPixmap(avatar_path)
                     if pix.isNull() or len(sorted_members) == 0:

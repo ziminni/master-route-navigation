@@ -251,7 +251,11 @@ class EventDetailsPopup(QDialog):
             desc_title.setStyleSheet("color: #084924; margin-bottom: 6px;")
             desc_layout.addWidget(desc_title)
             
-            desc_label = QLabel(details["details"])
+            # Handle details as either string or list
+            details_text = details["details"]
+            if isinstance(details_text, list):
+                details_text = "\n".join(str(item) for item in details_text)
+            desc_label = QLabel(str(details_text) if details_text else "No details available")
             desc_label.setWordWrap(True)
             desc_label.setStyleSheet("color: #495057; font-family: 'Inter'; font-size: 12px; line-height: 1.4;")
             desc_layout.addWidget(desc_label)
