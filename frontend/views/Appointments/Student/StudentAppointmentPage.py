@@ -103,7 +103,7 @@ class StudentAppointmentPage_ui(QWidget):
                 status = appointment.get('status', 'pending').upper()
                 
                 # Get purpose/details
-                purpose = appointment.get('additional_details', 'No details provided')
+                purpose = appointment.get('reason', 'No details provided')
                 
                 # Get address/location
                 address = appointment.get('address', 'Not specified')
@@ -373,6 +373,8 @@ class StudentAppointmentPage_ui(QWidget):
         return container
 
     def _showPurposeDetailsDialog(self, purpose_text, appointment_data):
+        print(f"DEBUG: Showing purpose details dialog for appointment: {appointment_data}")
+        print(f"DEBUG: Purpose text: {purpose_text}")
         """Show an enhanced dialog with purpose details and appointment info"""
         dialog = QtWidgets.QDialog()
         dialog.setWindowTitle("Appointment Details")
@@ -493,7 +495,7 @@ class StudentAppointmentPage_ui(QWidget):
             ("Faculty:", appointment_data[1]),
             ("Time Slot:", appointment_data[2]),
             ("Status:", appointment_data[4]),
-            # ("Address:", appointment_data[8] or "Not specified"),
+            ("Address:", appointment_data[8] or "Not specified"),
             ("Created At:", appointment_data[10] or "Unknown"),
         ]
         

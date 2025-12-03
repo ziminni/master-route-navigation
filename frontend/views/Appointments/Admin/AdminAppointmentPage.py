@@ -605,7 +605,7 @@ class AdminAppointmentPage_ui(QWidget):
                         created_at = created_at.split('T')[0]
                     
                     # Get purpose/description
-                    purpose = appt.get('additional_details', 'No details provided')
+                    purpose = appt.get('reason', 'No details provided')
                     if not purpose or purpose.strip() == "":
                         purpose = "No details provided"
                     

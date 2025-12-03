@@ -1274,7 +1274,7 @@ class AppointmentPage_ui(QWidget):
                     status = appointment.get("status", "pending")
                     
                     # Get additional details
-                    purpose = appointment.get('additional_details', 'No details')
+                    purpose = appointment.get('reason', 'No details')
                     if not purpose or purpose.strip() == "":
                         purpose = "No details provided"
                     
