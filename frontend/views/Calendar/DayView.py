@@ -1,15 +1,15 @@
-# DayView.py DAY VIEW LAYOUT
 from datetime import datetime
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QListWidget, QLineEdit
+    QScrollArea, QFrame, QListWidget, QLineEdit, QComboBox
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from .helper.DayEventsHelper import DayEventsHelper
 from .CRUD.SearchView import SearchView
+
 
 class DayView(QWidget):
     def __init__(self, username, roles, primary_role, token):
@@ -217,7 +217,6 @@ class DayView(QWidget):
         frame_layout.addLayout(legend_layout)
 
         # Filter dropdown
-        from PyQt6.QtWidgets import QComboBox  # local import, only used here
         self.combo_upcoming_filter = QComboBox()
         self.combo_upcoming_filter.setStyleSheet("""
             QComboBox {
@@ -233,24 +232,13 @@ class DayView(QWidget):
             QComboBox:hover {
                 border-color: #FDC601;
             }
-            QComboBox::drop-down {
-                border: 0px;
-                width: 20px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: white;
-                border: 1px solid #ccc;
-                selection-background-color: #FDC601;
-                selection-color: white;
-                color: #084924;
-            }
         """)
         self.combo_upcoming_filter.addItems([
             "All Events",
             "Academic Activities",
             "Organizational Activities",
             "Deadlines",
-            "Holidays"
+            "Holidays",
         ])
         self.combo_upcoming_filter.currentTextChanged.connect(self.on_day_filter_changed)
         frame_layout.addWidget(self.combo_upcoming_filter)
@@ -481,6 +469,28 @@ class DayView(QWidget):
             self.helper.current_date.strftime("%A\n%B %d, %Y")
         )
 
+    def _parse_event_time(self, date_time_str: str) -> str:
+        """
+        Extract a time string suitable for DayEventsHelper.parse_hour_from_time.
+        Supports legacy 'MM/DD/YYYY\\nHH:MM AM' and ISO datetime strings.
+        Returns e.g. '9:00 AM'.
+        """
+        if not date_time_str:
+            return ""
+
+        # Legacy with newline
+        if "\n" in date_time_str:
+            return date_time_str.split("\n")[1].strip()
+
+        # ISO from backend
+        try:
+            normalized = date_time_str.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(normalized)
+            return dt.strftime("%I:%M %p").lstrip("0")
+        except ValueError:
+            # last resort: just return the whole string
+            return date_time_str
+
     def load_events(self, events):
         """Load events from MainCalendar - uses helper for logic."""
         self.helper.set_all_events(events)
@@ -498,7 +508,7 @@ class DayView(QWidget):
         for event in events:
             try:
                 dt = event.get("date_time", "")
-                time_str = dt.split("\n")[1] if "\n" in dt else dt
+                time_str = self._parse_event_time(dt)
                 hour = self.helper.parse_hour_from_time(time_str)
                 if hour is not None and 7 <= hour <= 19:
                     self.add_event_to_time_slot(hour, event["event"], event["type"])
@@ -589,6 +599,19 @@ class DayView(QWidget):
             }}
         """)
 
+        # store metadata so we can know start time later
+        event_widget.event_title = title
+        event_widget.event_category = category
+        event_widget.event_hour = hour
+
+        # optional: simple click handler that prints the start time
+        def mousePressEvent(ev, w=event_widget, h=hour):
+            start_time = self.format_hour(h)  # reuse your existing helper
+            print(f"Event '{w.event_title}' starts at {start_time}")
+            # here you could also show a QMessageBox or update a details label
+
+        event_widget.mousePressEvent = mousePressEvent
+
         event_layout_inner = QVBoxLayout(event_widget)
         event_layout_inner.setContentsMargins(6, 4, 6, 4)
         event_layout_inner.setSpacing(1)
@@ -616,6 +639,7 @@ class DayView(QWidget):
 
         event_layout.addWidget(event_widget)
 
+
     def populate_upcoming_events(self, events):
         """Populate the upcoming events list."""
         self.list_upcoming.clear()
@@ -629,7 +653,10 @@ class DayView(QWidget):
 
         for event in events:
             icon = type_icons.get(event["type"], "⚪")
-            event_text = f"{icon} {event['event']}\n    {event['date_time'].replace(chr(10), ' - ')}"
+            dt_str = event["date_time"]
+            # display nicely for both legacy and ISO
+            display_time = dt_str.replace(chr(10), " - ") if "\n" in dt_str else dt_str
+            event_text = f"{icon} {event['event']}\n    {display_time}"
             self.list_upcoming.addItem(event_text)
 
     # ---------- navigation & filters ----------

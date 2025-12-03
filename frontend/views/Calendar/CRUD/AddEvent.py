@@ -277,7 +277,7 @@ class AddEvent(QWidget):
             "Academic",
             "Organizational",
             "Deadline",
-            "Holiday"
+            "Holiday",
         ])
         self.combo_event_type.setStyleSheet(input_style)
         grid_layout.addWidget(self.combo_event_type, row, 1)
@@ -346,13 +346,17 @@ class AddEvent(QWidget):
         self.btn_start_am.setChecked(True)
         self.btn_start_am.setFixedSize(40, 35)
         self.btn_start_am.setStyleSheet(ampm_style)
-        self.btn_start_am.clicked.connect(lambda: self.set_am_pm(self.btn_start_am, self.btn_start_pm))
+        self.btn_start_am.clicked.connect(
+            lambda: self.set_am_pm(self.btn_start_am, self.btn_start_pm)
+        )
 
         self.btn_start_pm = QPushButton("PM")
         self.btn_start_pm.setCheckable(True)
         self.btn_start_pm.setFixedSize(40, 35)
         self.btn_start_pm.setStyleSheet(ampm_style)
-        self.btn_start_pm.clicked.connect(lambda: self.set_am_pm(self.btn_start_pm, self.btn_start_am))
+        self.btn_start_pm.clicked.connect(
+            lambda: self.set_am_pm(self.btn_start_pm, self.btn_start_am)
+        )
 
         start_time_layout.addWidget(self.btn_start_am)
         start_time_layout.addWidget(self.btn_start_pm)
@@ -397,14 +401,18 @@ class AddEvent(QWidget):
         self.btn_end_am.setCheckable(True)
         self.btn_end_am.setFixedSize(40, 35)
         self.btn_end_am.setStyleSheet(ampm_style)
-        self.btn_end_am.clicked.connect(lambda: self.set_am_pm(self.btn_end_am, self.btn_end_pm))
+        self.btn_end_am.clicked.connect(
+            lambda: self.set_am_pm(self.btn_end_am, self.btn_end_pm)
+        )
 
         self.btn_end_pm = QPushButton("PM")
         self.btn_end_pm.setCheckable(True)
         self.btn_end_pm.setChecked(True)
         self.btn_end_pm.setFixedSize(40, 35)
         self.btn_end_pm.setStyleSheet(ampm_style)
-        self.btn_end_pm.clicked.connect(lambda: self.set_am_pm(self.btn_end_pm, self.btn_end_am))
+        self.btn_end_pm.clicked.connect(
+            lambda: self.set_am_pm(self.btn_end_pm, self.btn_end_am)
+        )
 
         end_time_layout.addWidget(self.btn_end_am)
         end_time_layout.addWidget(self.btn_end_pm)
@@ -429,7 +437,9 @@ class AddEvent(QWidget):
         user_layout.setSpacing(15)
 
         title = QLabel("Target Audience")
-        title.setStyleSheet("font-weight: bold; color: #084924; font-size: 16px; padding-bottom: 10px;")
+        title.setStyleSheet(
+            "font-weight: bold; color: #084924; font-size: 16px; padding-bottom: 10px;"
+        )
         user_layout.addWidget(title)
 
         checkboxes_layout = QHBoxLayout()
@@ -605,6 +615,7 @@ class AddEvent(QWidget):
             self._error(error_message)
             return
 
+        # Build start datetime in 24h from controls
         start_date = self.date_start.date()
         start_time = self.time_start.time()
 
@@ -614,8 +625,11 @@ class AddEvent(QWidget):
         elif self.btn_start_am.isChecked() and start_hour == 12:
             start_hour = 0
 
-        start_time_str = QTime(start_hour, start_time.minute()).toString("h:mm AP")
-        date_time_str = f"{start_date.toString('M/d/yyyy')}\n{start_time_str}"
+        start_qtime = QTime(start_hour, start_time.minute())
+        start_qdatetime = QDateTime(start_date, start_qtime)
+
+        # ISO 8601 string, e.g. 2025-06-02T09:00:00
+        date_time_str = start_qdatetime.toString(Qt.ISODate)
 
         location = self.input_location.text().strip() or "N/A"
 
@@ -624,12 +638,16 @@ class AddEvent(QWidget):
             "event": event_title,
             "type": event_type,
             "location": location,
-            "status": "Upcoming"
+            "status": "Upcoming",
         }
 
         if self.main_calendar:
             if self.main_calendar.add_new_event(event_data):
-                QMessageBox.information(self, "Success", f"Event '{event_title}' has been saved successfully!")
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    f"Event '{event_title}' has been saved successfully!",
+                )
                 self.clear_form()
                 if self.navigate_back_to_activities:
                     self.navigate_back_to_activities()

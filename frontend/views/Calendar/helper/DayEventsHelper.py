@@ -29,6 +29,34 @@ class DayEventsHelper:
     def go_today(self):
         self.current_date = datetime.now()
 
+    # -------- internal date parsing --------
+
+    @staticmethod
+    def _parse_event_date(date_time_str: str):
+        """
+        Parse just the date part from various formats:
+        - 'MM/DD/YYYY\\nHH:MM AM'
+        - 'MM/DD/YYYY'
+        - ISO 'YYYY-MM-DDTHH:MM:SS[.fff][Z or +offset]'
+        Returns datetime.date or raises.
+        """
+        if not date_time_str:
+            raise ValueError("Empty date string")
+
+        # Legacy format with newline, first line is date
+        if "\n" in date_time_str:
+            date_part = date_time_str.split("\n")[0].strip()
+            return datetime.strptime(date_part, "%m/%d/%Y").date()
+
+        # Try ISO 8601 from backend
+        try:
+            # Python 3.11+ can handle 'Z' directly; if not, you can replace Z with +00:00
+            dt = datetime.fromisoformat(date_time_str.replace("Z", "+00:00"))
+            return dt.date()
+        except ValueError:
+            # Fallback: assume plain MM/DD/YYYY
+            return datetime.strptime(date_time_str.strip(), "%m/%d/%Y").date()
+
     # -------- filtering helpers --------
 
     def filter_upcoming_events(self):
@@ -37,26 +65,18 @@ class DayEventsHelper:
         upcoming = []
 
         for event in self.all_events:
-            date_str = event.get('date_time', '')
+            date_str = event.get("date_time", "")
             try:
-                if '\n' in date_str:
-                    date_part = date_str.split('\n')[0].strip()
-                else:
-                    date_part = date_str.strip()
-                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
+                event_date = self._parse_event_date(date_str)
                 if event_date >= today:
                     upcoming.append(event)
-            except (ValueError, IndexError):
+            except Exception:
                 continue
 
         def get_event_date(ev):
-            ds = ev.get('date_time', '')
+            ds = ev.get("date_time", "")
             try:
-                if '\n' in ds:
-                    dp = ds.split('\n')[0].strip()
-                else:
-                    dp = ds.strip()
-                return datetime.strptime(dp, "%m/%d/%Y").date()
+                return self._parse_event_date(ds)
             except Exception:
                 return datetime.max.date()
 
@@ -65,17 +85,14 @@ class DayEventsHelper:
 
     def filter_events_by_current_date(self):
         """Return events that match helper.current_date."""
-        current_date_str = self.current_date.strftime("%m/%d/%Y")
+        current_date = self.current_date.date()
         filtered = []
 
         for event in self.all_events:
-            date_str = event.get('date_time', '')
+            date_str = event.get("date_time", "")
             try:
-                if '\n' in date_str:
-                    date_part = date_str.split('\n')[0].strip()
-                else:
-                    date_part = date_str.strip()
-                if date_part == current_date_str:
+                event_date = self._parse_event_date(date_str)
+                if event_date == current_date:
                     filtered.append(event)
             except Exception:
                 continue
@@ -96,11 +113,11 @@ class DayEventsHelper:
             time_part = parts[0]
             period = parts[1].upper()
 
-            hour = int(time_part.split(':')[0])
+            hour = int(time_part.split(":")[0])
 
-            if period == 'PM' and hour != 12:
+            if period == "PM" and hour != 12:
                 hour += 12
-            elif period == 'AM' and hour == 12:
+            elif period == "AM" and hour == 12:
                 hour = 0
 
             return hour
