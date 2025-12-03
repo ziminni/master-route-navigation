@@ -270,7 +270,7 @@ class LauncherWindow(QtWidgets.QWidget):
                     current_username=self.username,
                     current_token=self.token,
                     data_manager=self.data_manager,
-                    layout_manager = m.get_layout() #pass shared DataManager
+                    layout_manager = None #pass shared DataManager
                 )
                 self.main_layout.addWidget(self.student_widget)
                 logger.info("StudentMainUI created and added to layout.")
@@ -313,7 +313,7 @@ class LauncherWindow(QtWidgets.QWidget):
                     token=self.token,
                     data_manager=self.data_manager,
                     parent=self,
-                    layout_manager=m.get_layout()
+                    layout_manager=None
                 )
                 self.main_layout.addWidget(self.faculty_widget)
                 logger.info("FacultyMainUI created and added to layout.")
@@ -356,7 +356,7 @@ class LauncherWindow(QtWidgets.QWidget):
                     token=self.token,
                     data_manager=self.data_manager,
                     parent=self,
-                    layout_manager = m
+
                 )
                 self.main_layout.addWidget(self.admin_widget)
                 logger.info("AdminMainUI created and added to layout.")
