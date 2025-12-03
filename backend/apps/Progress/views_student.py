@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from apps.Users.models import StudentProfile
-from apps.Progress.models import FinalGrade, FacultyFeedbackMessage
+from apps.Progress.models import FinalGrade, FacultyFeedbackMessage, ClassScheduleInfo
 from apps.Academics.models import Enrollment, Semester
 
 
@@ -361,7 +361,7 @@ class StudentSubjectsAPIView(APIView):
             "enrolled_class__semester",
             "enrolled_class__faculty",
             "enrolled_class__faculty__user"
-        )
+        ).prefetch_related('enrolled_class__schedule_info')
 
         for e in enrollments:
             clazz = e.enrolled_class
@@ -372,6 +372,25 @@ class StudentSubjectsAPIView(APIView):
             sem_label = _canonical_semester_label(sem_obj)
 
             fg = FinalGrade.objects.filter(student=user, course=course, semester=sem_obj).first()
+            
+            # Get schedule info from ClassScheduleInfo model or fallback to Class model
+            schedule = ""
+            room = ""
+            
+            # Try to get from ClassScheduleInfo first
+            try:
+                schedule_info = getattr(clazz, 'schedule_info', None)
+                if schedule_info:
+                    schedule = schedule_info.schedule
+                    room = schedule_info.room
+            except:
+                pass
+            
+            # Fallback to Class model fields if schedule_info not available
+            if not schedule and hasattr(clazz, 'schedule'):
+                schedule = getattr(clazz, 'schedule', '')
+            if not room and hasattr(clazz, 'room'):
+                room = getattr(clazz, 'room', '')
 
             if sem_label not in subjects_grouped:
                 subjects_grouped[sem_label] = {"subjects": []}
@@ -380,8 +399,8 @@ class StudentSubjectsAPIView(APIView):
                 "subject_code": getattr(course, "code", "") if course else "",
                 "description": getattr(course, "title", "") if course else "",
                 "units": getattr(course, "units", 0) if course else 0,
-                "schedule": getattr(clazz, "schedule", "") if hasattr(clazz, "schedule") else "",
-                "room": getattr(clazz, "room", "") if hasattr(clazz, "room") else "",
+                "schedule": schedule,
+                "room": room,
                 "instructor": (clazz.faculty.user.get_full_name() if getattr(clazz, "faculty", None) and hasattr(clazz.faculty, "user") else "") if getattr(clazz, "faculty", None) else "",
                 "re_exam": (fg.re_exam if fg and getattr(fg, "re_exam", None) else (fg.re_exam_grade if fg and getattr(fg, "re_exam_grade", None) else "")) if fg else "",
             })

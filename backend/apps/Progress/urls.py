@@ -16,11 +16,16 @@ from .views_admin import (
 )
 
 from .views_faculty import (
+    FacultyIndividualClassScheduleAPIView,
+    FacultySectionScheduleAPIView,
     FacultySectionsAPIView,
     FacultySectionStudentsAPIView,
     FacultyStudentProfileAPIView,
     FacultySendFeedbackAPIView,
     FacultyNotesListAPIView,
+    FacultyClassSchedulesAPIView,
+    FacultyUpdateScheduleAPIView,
+    FacultyStudentScheduleAPIView,
 )
 
 from . import views_student
@@ -44,8 +49,12 @@ urlpatterns = [
     path("student/post-note/", FacultySendSingleNoteAPIView.as_view(), name="student-post-note"),
 
     # ---- Faculty Feedback / Grade Updates ----
-    # Use the faculty-specific view (from views_faculty.py)
     path("faculty/feedback/send/", FacultySendFeedbackAPIView.as_view(), name="faculty-feedback-send"),
+
+    # ---- Faculty Schedule Management ----
+    path("faculty/schedules/", FacultyClassSchedulesAPIView.as_view(), name="faculty-schedules"),
+    path("faculty/schedule/<int:class_id>/update/", FacultyUpdateScheduleAPIView.as_view(), name="faculty-update-schedule"),
+    path("faculty/student/<str:student_id>/schedule/", FacultyStudentScheduleAPIView.as_view(), name="faculty-student-schedule"),
 
     # ---- Faculty Endpoints ----
     path("faculty/sections/", FacultySectionsAPIView.as_view(), name="faculty-sections"),
@@ -57,6 +66,10 @@ urlpatterns = [
     path("admin/sections/", AdminSectionsAPIView.as_view(), name="admin-sections"),
     path("admin/section/<str:section_name>/students/", AdminSectionStudentsAPIView.as_view()),
     path("admin/student/<str:student_id>/profile/", AdminStudentProfileAPIView.as_view()),
+
+     # ---- Faculty Schedule Management ----
+    path("faculty/section/<str:section_name>/schedule/", FacultySectionScheduleAPIView.as_view(), name="faculty-section-schedule"),
+    path("faculty/class/<int:class_id>/schedule/update/", FacultyIndividualClassScheduleAPIView.as_view(), name="faculty-class-schedule-update"),
 
     path('', include(router.urls)),
 ]

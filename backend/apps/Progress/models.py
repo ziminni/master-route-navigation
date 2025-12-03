@@ -1,3 +1,4 @@
+# backend/apps/Progress/models.py
 from django.db import models
 from django.conf import settings
 
@@ -114,3 +115,30 @@ class FacultyFeedbackMessage(models.Model):
 
     def __str__(self):
         return f"Note to {self.student.username} from {self.faculty.username}"
+    
+
+class ClassScheduleInfo(models.Model):
+    """
+    Tracks schedule and room information for a class, with edit history.
+    Faculty can edit schedule/room for their classes.
+    """
+    id = models.AutoField(primary_key=True)
+    class_instance = models.OneToOneField(
+        'Academics.Class', 
+        on_delete=models.CASCADE, 
+        related_name="schedule_info"
+    )
+    
+    schedule = models.CharField(max_length=200, blank=True, default="")
+    room = models.CharField(max_length=100, blank=True, default="")
+    
+    last_updated = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name="schedule_updates"
+    )
+    
+    def __str__(self):
+        return f"{self.class_instance.course.code} - {self.schedule} ({self.room})"

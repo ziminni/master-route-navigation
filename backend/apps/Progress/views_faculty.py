@@ -12,8 +12,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from apps.Academics.models import Class, Enrollment, Section, Course, Semester
 from apps.Users.models import FacultyProfile, StudentProfile
-from .models import FinalGrade, FacultyFeedbackMessage
-from .serializers import FacultyFeedbackMessageSerializer
+from .models import FinalGrade, FacultyFeedbackMessage, ClassScheduleInfo
+from .serializers import FacultyFeedbackMessageSerializer, ClassScheduleUpdateSerializer
 
 
 class FacultySectionsAPIView(APIView):
@@ -525,3 +525,433 @@ class FacultyNotesListAPIView(APIView):
             })
         
         return Response(notes_data, status=200)
+    
+    
+class FacultyClassSchedulesAPIView(APIView):
+    """
+    GET /api/progress/faculty/schedules/
+    Returns all classes taught by faculty with their schedule info.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        
+        if getattr(user, "role_type", "") != "faculty":
+            return Response({"detail": "Forbidden. Faculty access only."}, status=403)
+        
+        try:
+            faculty_profile = FacultyProfile.objects.get(user=user)
+            
+            # Get all classes taught by this faculty
+            faculty_classes = Class.objects.filter(
+                faculty=faculty_profile
+            ).select_related('course', 'section', 'semester').prefetch_related('schedule_info')
+            
+            # Group by semester
+            semesters = {}
+            
+            for cls in faculty_classes:
+                sem = cls.semester
+                sem_key = f"{sem.academic_year} - {sem.term}"
+                
+                if sem_key not in semesters:
+                    semesters[sem_key] = []
+                
+                # Get or create schedule info
+                schedule_info, created = ClassScheduleInfo.objects.get_or_create(
+                    class_instance=cls,
+                    defaults={
+                        "schedule": getattr(cls, 'schedule', '') or "TBD",
+                        "room": getattr(cls, 'room', '') or "TBD",
+                        "updated_by": user
+                    }
+                )
+                
+                class_data = {
+                    "class_id": cls.id,
+                    "course_code": cls.course.code if cls.course else "",
+                    "course_title": cls.course.title if cls.course else "",
+                    "section": cls.section.name if cls.section else "",
+                    "schedule": schedule_info.schedule,
+                    "room": schedule_info.room,
+                    "last_updated": schedule_info.last_updated.strftime("%b %d, %Y %I:%M %p") if schedule_info.last_updated else "",
+                    "schedule_info_id": schedule_info.id
+                }
+                
+                semesters[sem_key].append(class_data)
+            
+            return Response({"semesters": semesters}, status=200)
+            
+        except FacultyProfile.DoesNotExist:
+            return Response({"detail": "Faculty profile not found."}, status=404)
+        except Exception as e:
+            print(f"ERROR in FacultyClassSchedulesAPIView: {str(e)}")
+            return Response({"detail": f"Error: {str(e)}"}, status=500)
+
+
+class FacultyUpdateScheduleAPIView(APIView):
+    """
+    POST /api/progress/faculty/schedule/<int:class_id>/update/
+    Allows faculty to update schedule and room for their class.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, class_id):
+        user = request.user
+        
+        if getattr(user, "role_type", "") != "faculty":
+            return Response({"detail": "Forbidden. Faculty access only."}, status=403)
+        
+        try:
+            # Verify faculty teaches this class
+            faculty_profile = FacultyProfile.objects.get(user=user)
+            
+            try:
+                class_instance = Class.objects.get(
+                    id=class_id,
+                    faculty=faculty_profile
+                )
+            except Class.DoesNotExist:
+                return Response({"detail": "Class not found or you don't teach this class."}, status=404)
+            
+            # Validate input
+            serializer = ClassScheduleUpdateSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=400)
+            
+            # Get or create schedule info
+            schedule_info, created = ClassScheduleInfo.objects.get_or_create(
+                class_instance=class_instance,
+                defaults={
+                    "updated_by": user
+                }
+            )
+            
+            # Update schedule and room
+            schedule_info.schedule = serializer.validated_data['schedule']
+            schedule_info.room = serializer.validated_data['room']
+            schedule_info.updated_by = user
+            schedule_info.save()
+            
+            # Also update the Class model if it has schedule/room fields
+            try:
+                if hasattr(class_instance, 'schedule'):
+                    class_instance.schedule = serializer.validated_data['schedule']
+                if hasattr(class_instance, 'room'):
+                    class_instance.room = serializer.validated_data['room']
+                class_instance.save()
+            except Exception as e:
+                print(f"Note: Could not update Class model fields: {e}")
+            
+            # Return updated info
+            response_data = {
+                "success": True,
+                "message": "Schedule and room updated successfully",
+                "schedule": schedule_info.schedule,
+                "room": schedule_info.room,
+                "last_updated": schedule_info.last_updated.strftime("%b %d, %Y %I:%M %p"),
+                "updated_by": user.get_full_name()
+            }
+            
+            return Response(response_data, status=200)
+            
+        except FacultyProfile.DoesNotExist:
+            return Response({"detail": "Faculty profile not found."}, status=404)
+        except Exception as e:
+            print(f"ERROR in FacultyUpdateScheduleAPIView: {str(e)}")
+            return Response({"detail": f"Error: {str(e)}"}, status=500)
+
+
+class FacultyStudentScheduleAPIView(APIView):
+    """
+    GET /api/progress/faculty/student/<str:student_id>/schedule/
+    Returns the schedule of a specific student (for faculty view).
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, student_id):
+        user = request.user
+        
+        if getattr(user, "role_type", "") != "faculty":
+            return Response({"detail": "Forbidden. Faculty access only."}, status=403)
+        
+        try:
+            faculty_profile = FacultyProfile.objects.get(user=user)
+            
+            # Find the student
+            student_profile = StudentProfile.objects.select_related("program", "user").get(
+                Q(user__username=student_id) | 
+                Q(user__institutional_id=student_id)
+            )
+            
+            # Check if faculty teaches this student
+            teaches_student = Class.objects.filter(
+                faculty=faculty_profile,
+                enrollments__student=student_profile
+            ).exists()
+            
+            if not teaches_student:
+                return Response({
+                    "detail": "You don't teach this student."
+                }, status=403)
+            
+            # Get all classes for this student in current active semester
+            current_semester = Semester.objects.filter(is_active=True).first()
+            
+            if not current_semester:
+                return Response({"schedule": [], "message": "No active semester"}, status=200)
+            
+            enrollments = Enrollment.objects.filter(
+                student=student_profile,
+                enrolled_class__semester=current_semester
+            ).select_related(
+                'enrolled_class__course',
+                'enrolled_class__schedule_info'
+            )
+            
+            schedule_data = []
+            for enrollment in enrollments:
+                cls = enrollment.enrolled_class
+                schedule_info = getattr(cls, 'schedule_info', None)
+                
+                course_data = {
+                    "subject_code": cls.course.code if cls.course else "",
+                    "description": cls.course.title if cls.course else "",
+                    "units": cls.course.units if cls.course else 0,
+                    "schedule": schedule_info.schedule if schedule_info else (getattr(cls, 'schedule', '') or "TBD"),
+                    "room": schedule_info.room if schedule_info else (getattr(cls, 'room', '') or "TBD"),
+                    "instructor": faculty_profile.user.get_full_name() if cls.faculty == faculty_profile else cls.faculty.user.get_full_name() if cls.faculty else ""
+                }
+                
+                schedule_data.append(course_data)
+            
+            return Response({
+                "student_name": student_profile.user.get_full_name(),
+                "student_id": student_profile.user.institutional_id or student_profile.user.username,
+                "semester": f"{current_semester.academic_year} - {current_semester.term}",
+                "schedule": schedule_data
+            }, status=200)
+            
+        except StudentProfile.DoesNotExist:
+            return Response({"detail": "Student not found."}, status=404)
+        except FacultyProfile.DoesNotExist:
+            return Response({"detail": "Faculty profile not found."}, status=404)
+        except Exception as e:
+            print(f"ERROR in FacultyStudentScheduleAPIView: {str(e)}")
+            return Response({"detail": f"Error: {str(e)}"}, status=500)
+
+
+class FacultySectionScheduleAPIView(APIView):
+    """
+    GET /api/progress/faculty/section/<str:section_name>/schedule/
+    Returns current schedule for a section.
+    POST /api/progress/faculty/section/<str:section_name>/schedule/
+    Updates schedule and room for all classes in a section.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, section_name):
+        user = request.user
+        
+        if getattr(user, "role_type", "") != "faculty":
+            return Response({"detail": "Forbidden. Faculty access only."}, status=403)
+        
+        try:
+            faculty_profile = FacultyProfile.objects.get(user=user)
+            
+            # Find sections with this name that the faculty teaches
+            faculty_sections = Section.objects.filter(
+                name=section_name,
+                classes__faculty=faculty_profile
+            ).distinct()
+            
+            if not faculty_sections.exists():
+                return Response({
+                    "detail": "You don't have access to this section or it doesn't exist."
+                }, status=403)
+            
+            # Get all classes in this section taught by this faculty
+            classes = Class.objects.filter(
+                faculty=faculty_profile,
+                section__in=faculty_sections
+            ).select_related('course').prefetch_related('schedule_info')
+            
+            classes_data = []
+            for cls in classes:
+                schedule_info = getattr(cls, 'schedule_info', None)
+                
+                classes_data.append({
+                    "course_code": cls.course.code if cls.course else "",
+                    "course_title": cls.course.title if cls.course else "",
+                    "current_schedule": schedule_info.schedule if schedule_info else (getattr(cls, 'schedule', '') or "Not set"),
+                    "current_room": schedule_info.room if schedule_info else (getattr(cls, 'room', '') or "Not set"),
+                })
+            
+            return Response({
+                "section_name": section_name,
+                "classes": classes_data,
+                "class_count": len(classes_data)
+            }, status=200)
+            
+        except FacultyProfile.DoesNotExist:
+            return Response({"detail": "Faculty profile not found."}, status=404)
+        except Exception as e:
+            print(f"ERROR in FacultySectionScheduleAPIView GET: {str(e)}")
+            return Response({"detail": f"Error: {str(e)}"}, status=500)
+
+    def post(self, request, section_name):
+        user = request.user
+        
+        if getattr(user, "role_type", "") != "faculty":
+            return Response({"detail": "Forbidden. Faculty access only."}, status=403)
+        
+        try:
+            faculty_profile = FacultyProfile.objects.get(user=user)
+            
+            # Find sections with this name that the faculty teaches
+            faculty_sections = Section.objects.filter(
+                name=section_name,
+                classes__faculty=faculty_profile
+            ).distinct()
+            
+            if not faculty_sections.exists():
+                return Response({
+                    "detail": "You don't have access to this section or it doesn't exist."
+                }, status=403)
+            
+            # Validate input
+            serializer = ClassScheduleUpdateSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=400)
+            
+            schedule = serializer.validated_data['schedule']
+            room = serializer.validated_data['room']
+            
+            # Get all classes in this section taught by this faculty
+            classes = Class.objects.filter(
+                faculty=faculty_profile,
+                section__in=faculty_sections
+            )
+            
+            updated_count = 0
+            for cls in classes:
+                # Get or create schedule info
+                schedule_info, created = ClassScheduleInfo.objects.get_or_create(
+                    class_instance=cls,
+                    defaults={
+                        "updated_by": user
+                    }
+                )
+                
+                # Update schedule and room
+                schedule_info.schedule = schedule
+                schedule_info.room = room
+                schedule_info.updated_by = user
+                schedule_info.save()
+                
+                # Also update the Class model if it has schedule/room fields
+                try:
+                    if hasattr(cls, 'schedule'):
+                        cls.schedule = schedule
+                    if hasattr(cls, 'room'):
+                        cls.room = room
+                    cls.save()
+                except Exception as e:
+                    print(f"Note: Could not update Class model fields: {e}")
+                
+                updated_count += 1
+            
+            return Response({
+                "success": True,
+                "message": f"Schedule and room updated for {updated_count} classes in section {section_name}",
+                "updated_by": user.get_full_name(),
+                "updated_count": updated_count
+            }, status=200)
+            
+        except FacultyProfile.DoesNotExist:
+            return Response({"detail": "Faculty profile not found."}, status=404)
+        except Exception as e:
+            print(f"ERROR in FacultySectionScheduleAPIView: {str(e)}")
+            return Response({"detail": f"Error: {str(e)}"}, status=500)
+
+
+class FacultyIndividualClassScheduleAPIView(APIView):
+    """
+    POST /api/progress/faculty/class/<int:class_id>/schedule/update/
+    Updates schedule and room for a specific class.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, class_id):
+        user = request.user
+        
+        if getattr(user, "role_type", "") != "faculty":
+            return Response({"detail": "Forbidden. Faculty access only."}, status=403)
+        
+        try:
+            faculty_profile = FacultyProfile.objects.get(user=user)
+            
+            # Verify faculty teaches this class
+            try:
+                class_instance = Class.objects.get(
+                    id=class_id,
+                    faculty=faculty_profile
+                )
+            except Class.DoesNotExist:
+                return Response({"detail": "Class not found or you don't teach this class."}, status=404)
+            
+            # Validate input
+            serializer = ClassScheduleUpdateSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=400)
+            
+            schedule = serializer.validated_data['schedule']
+            room = serializer.validated_data['room']
+            
+            # Get or create schedule info
+            schedule_info, created = ClassScheduleInfo.objects.get_or_create(
+                class_instance=class_instance,
+                defaults={
+                    "updated_by": user
+                }
+            )
+            
+            # Update schedule and room
+            schedule_info.schedule = schedule
+            schedule_info.room = room
+            schedule_info.updated_by = user
+            schedule_info.save()
+            
+            # Also update the Class model if it has schedule/room fields
+            try:
+                if hasattr(class_instance, 'schedule'):
+                    class_instance.schedule = schedule
+                if hasattr(class_instance, 'room'):
+                    class_instance.room = room
+                class_instance.save()
+            except Exception as e:
+                print(f"Note: Could not update Class model fields: {e}")
+            
+            return Response({
+                "success": True,
+                "message": f"Schedule and room updated for {class_instance.course.code}",
+                "course_code": class_instance.course.code if class_instance.course else "",
+                "course_title": class_instance.course.title if class_instance.course else "",
+                "section": class_instance.section.name if class_instance.section else "",
+                "schedule": schedule,
+                "room": room,
+                "updated_by": user.get_full_name(),
+                "updated_at": schedule_info.last_updated.strftime("%b %d, %Y %I:%M %p")
+            }, status=200)
+            
+        except FacultyProfile.DoesNotExist:
+            return Response({"detail": "Faculty profile not found."}, status=404)
+        except Exception as e:
+            print(f"ERROR in FacultyIndividualClassScheduleAPIView: {str(e)}")
+            return Response({"detail": f"Error: {str(e)}"}, status=500)
