@@ -52,6 +52,15 @@ except ImportError:
 from .LeaderboardPage import LeaderboardPage
 
 try:
+    from .HouseManager import HouseManager
+except ImportError:
+    class HouseManager(QWidget):
+        def __init__(self, token=None, api_base=None, parent=None):
+            super().__init__(parent)
+            layout = QVBoxLayout(self)
+            layout.addWidget(QLabel("House Manager (missing module)"))
+
+try:
     from .AdminCreateHousePage import AdminCreateHousePage
 except Exception:
     class AdminCreateHousePage(QWidget):
@@ -286,7 +295,7 @@ class HouseMain(QWidget):
         self.houses_page = HousesPage(username, roles, primary_role, token)
         self.stack.addWidget(self.houses_page)
 
-        # Check if user is admin and show AdminCreateHousePage instead
+        # Check if user is admin and show HouseManager instead
         is_admin = False
         if isinstance(self.roles, (list, tuple)):
             is_admin = any((str(r).lower() == "admin") for r in self.roles)
@@ -295,12 +304,13 @@ class HouseMain(QWidget):
 
         if is_admin:
             try:
-                self.admin_page = AdminCreateHousePage(token=self.token, api_base="http://127.0.0.1:8000")
-                self.stack.addWidget(self.admin_page)
-                self.stack.setCurrentWidget(self.admin_page)
+                self.house_manager = HouseManager(token=self.token, api_base="http://127.0.0.1:8000", parent=self)
+                self.house_manager.stacked_widget = self.stack  # Pass the stacked widget reference
+                self.stack.addWidget(self.house_manager)
+                self.stack.setCurrentWidget(self.house_manager)
                 self.nav_bar.setVisible(False)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Failed to load HouseManager: {e}")
 
         # Add widgets to layout
         self.layout.addWidget(self.nav_bar)
@@ -312,6 +322,9 @@ class HouseMain(QWidget):
     def handle_house_click(self, house_name):
         self.current_house = house_name
         self.nav_bar.setVisible(True)
+        # Force layout update before navigating
+        self.nav_bar.update()
+        QWidget.repaint(self.nav_bar)
 
         # Clear previous pages
         while self.stack.count() > 1:

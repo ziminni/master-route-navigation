@@ -15,9 +15,10 @@ from controller.HouseController import HouseController
 class AdminCreateHousePage(QWidget):
     """Simple admin UI to create a House and upload banner/logo to backend."""
 
-    def __init__(self, token=None, api_base=None, parent=None):
+    def __init__(self, token=None, api_base=None, parent=None, parent_manager=None):
         super().__init__(parent)
         self.token = token
+        self.parent_manager = parent_manager
         # default API base if not provided
         self.api_base = api_base or "http://127.0.0.1:8000"
 
@@ -34,6 +35,14 @@ class AdminCreateHousePage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
+
+        # Back button and title row
+        top_row = QHBoxLayout()
+        back_btn = QPushButton("← Back")
+        back_btn.clicked.connect(self.go_back)
+        top_row.addWidget(back_btn)
+        top_row.addStretch()
+        layout.addLayout(top_row)
 
         title = QLabel("Create New House")
         title.setStyleSheet("font-size:20px; font-weight:800; color:#084924;")
@@ -149,24 +158,11 @@ class AdminCreateHousePage(QWidget):
 
             if resp.status_code in (200, 201):
                 QMessageBox.information(self, "Success", "House created successfully.")
-                # optionally clear form
-                self.name_input.clear()
-                self.desc_input.clear()
-                # clear slug input and previews
-                try:
-                    self.slug_input.clear()
-                except Exception:
-                    pass
-                try:
-                    self.banner_preview.clear()
-                except Exception:
-                    pass
-                try:
-                    self.logo_preview.clear()
-                except Exception:
-                    pass
-                self.banner_path = None
-                self.logo_path = None
+                # Reload parent manager's house list
+                if self.parent_manager and hasattr(self.parent_manager, 'load_houses'):
+                    self.parent_manager.load_houses()
+                # Navigate back
+                self.go_back()
             else:
                 try:
                     err = resp.json()
@@ -183,3 +179,12 @@ class AdminCreateHousePage(QWidget):
         slug = re.sub(r"[^a-z0-9\-]+", "-", slug)
         slug = re.sub(r"-+", "-", slug).strip("-")
         self.slug_input.setPlaceholderText(f"e.g. {slug}")
+
+    def go_back(self):
+        """Navigate back to the house manager page"""
+        if self.parent_manager and hasattr(self.parent_manager, 'stacked_widget'):
+            # Remove this create page from the stack
+            self.parent_manager.stacked_widget.removeWidget(self)
+            # Go back to the house manager page
+            self.parent_manager.stacked_widget.setCurrentWidget(self.parent_manager)
+            self.deleteLater()

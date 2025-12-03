@@ -22,7 +22,6 @@ class OverviewPage(QWidget):
         self.house_data = None
         self.members_data = []
         self.events_data = []
-        self.announcements_data = []
 
         # Path for assets (base_dir resolves to the 'frontend' folder)
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -38,10 +37,6 @@ class OverviewPage(QWidget):
     def show_rules_dialog(self, event):
         self.rules_dialog = RulesDialog(self.assets_path)
         self.rules_dialog.exec()
-        
-    def show_announcements_dialog(self, event):
-        self.announcements_dialog = AnnouncementsDialog(self.assets_path, self.announcements_data)
-        self.announcements_dialog.exec()
 
     def _fetch_all_data(self):
         """Background thread: fetch all data from backend."""
@@ -51,7 +46,6 @@ class OverviewPage(QWidget):
                 house_id = self.house_data["id"]
                 self._fetch_members(house_id)
                 self._fetch_events(house_id)
-                self._fetch_announcements(house_id)
         except Exception as e:
             # keep a lightweight log so we can diagnose why UI stayed with placeholders
             print(f"[ERROR] Failed to fetch all data: {e}")
@@ -125,24 +119,6 @@ class OverviewPage(QWidget):
                 print(f"[DEBUG] Fetched {len(self.events_data)} events (awards={self._awards_count})")
         except Exception as e:
             print(f"[ERROR] Failed to fetch events: {e}")
-
-    def _fetch_announcements(self, house_id):
-        """Fetch house announcements."""
-        try:
-            url = f"http://127.0.0.1:8000/api/house/announcements/?house={house_id}"
-            headers = {}
-            if getattr(self, "token", None):
-                headers["Authorization"] = f"Bearer {self.token}"
-            r = requests.get(url, headers=headers, timeout=6)
-            if r.status_code == 200:
-                data = r.json()
-                if isinstance(data, dict) and "results" in data:
-                    self.announcements_data = data["results"]
-                else:
-                    self.announcements_data = data
-                print(f"[DEBUG] Fetched {len(self.announcements_data)} announcements")
-        except Exception as e:
-            print(f"[ERROR] Failed to fetch announcements: {e}")
 
     def _update_ui_from_data(self):
         """Update UI labels with real data from backend."""
@@ -320,20 +296,6 @@ class OverviewPage(QWidget):
         title_label.setGraphicsEffect(title_shadow)
         
         left_layout.addWidget(title_label)
-        
-        # Tagline
-        tagline_label = QLabel("Code.Create.Conquer.")
-        tagline_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        tagline_label.setStyleSheet("""
-            font-family: 'Inter', sans-serif;
-            font-size: 18px;
-            font-weight: 400;
-            font-style: italic;
-            color: #004C25;
-            background: transparent;
-            margin-top: -5px;
-        """)
-        left_layout.addWidget(tagline_label)
 
         banner_label = QLabel()
         banner_label.setStyleSheet("background: transparent;")
@@ -518,7 +480,7 @@ class OverviewPage(QWidget):
             _add_hover_scale(arrow_label, arrow_pixmap, arrow_base_size, hover_scale=1.2)
         arrow_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
         center_layout.addWidget(arrow_label, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
-        arrow_label.mousePressEvent = self.show_announcements_dialog
+
 
         #push avatars to bottom
         center_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
@@ -915,163 +877,6 @@ class RulesDialog(QDialog):
         main_layout.addWidget(scroll_area)
         
         # Add shadow effect to RulesDialog
-        dialog_shadow = QGraphicsDropShadowEffect()
-        dialog_shadow.setBlurRadius(20)
-        dialog_shadow.setXOffset(0)
-        dialog_shadow.setYOffset(0)
-        dialog_shadow.setColor(Qt.GlobalColor.black)
-        self.setGraphicsEffect(dialog_shadow)
-        
-class AnnouncementsDialog(QDialog):
-    def __init__(self, assets_path, announcements_data=None):
-        super().__init__()
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
-        self.setModal(True)
-        self.resize(850, 600)
-        self.announcements_data = announcements_data or []
-
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #ffffff;
-                border: 2px solid #004C25;
-                border-radius: 10px;
-            }
-
-            QLabel#titleLabel {
-                font-size: 26px;
-                font-style: italic;
-                font-weight: 800;
-                color: #004C25;
-                font-family: 'Inter';
-                padding-bottom: 4px;
-                border: none;
-            }
-
-            QFrame#line {
-                background-color: #004C25;
-                height: 3px;
-                border: none;
-                border-radius: 2px;
-            }
-
-            QLabel#contentText {
-                color: #004C25;
-                background: transparent;
-                font-family: 'Inter';
-                font-size: 18px;
-                line-height: 1.5em;
-                padding: 10px;
-                border: none;
-            }
-
-            QPushButton {
-                background: transparent;
-                border: none;
-            }
-
-            QPushButton:hover {
-                opacity: 0.7;
-            }
-        """)
-
-        # === MAIN CONTAINER ===
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(25, 25, 25, 25)
-        main_layout.setSpacing(6)
-
-        # === TITLE + CLOSE BUTTON ===
-        title_layout = QHBoxLayout()
-        title_label = QLabel("ANNOUNCEMENTS")
-        title_label.setObjectName("titleLabel")
-        main_layout.addSpacing(2)
-        
-
-        close_button = QPushButton()
-        close_button.setIcon(QIcon(assets_path + "xbutton.png"))
-        close_button.setIconSize(QSize(35, 35))
-        close_button.setFixedSize(40, 40)
-        close_button.clicked.connect(self.close)
-
-        title_layout.addWidget(title_label)
-        title_layout.addStretch()
-        title_layout.addWidget(close_button)
-        main_layout.addLayout(title_layout)
-
-        underline = QFrame()
-        underline.setObjectName("line")
-        underline.setFixedHeight(8)
-        underline.setFixedWidth(250)
-        underline.setStyleSheet("background-color: #004C25; border-radius: 2px;")
-        main_layout.addSpacing(20)
-        main_layout.addWidget(underline)
-
-        major_title = QLabel("MAJOR ANNOUNCEMENT")
-        major_title.setStyleSheet("""
-            font-family: 'Inter';
-            font-size: 18px;
-            font-weight: 700;
-            color: #004C25;
-        """)
-        major_title.setContentsMargins(0, 2, 0, 6)  # small top and bottom margin
-        main_layout.addSpacing(20)
-        main_layout.addWidget(major_title)
-
-        # === SCROLL AREA ===
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background: transparent;
-            }
-            QWidget {
-                background: transparent;
-            }
-        """)
-
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(12)
-
-        # === Dynamic Announcement Boxes ===
-        if self.announcements_data:
-            for ann in self.announcements_data:
-                box = QFrame()
-                box.setStyleSheet("""
-                    QFrame {
-                        border: 2px solid #004C25;
-                        border-radius: 8px;
-                        background: transparent;
-                    }
-                """)
-                box_layout = QVBoxLayout(box)
-                box_layout.setContentsMargins(8, 8, 8, 8)
-                
-                # Title if available
-                if ann.get("title"):
-                    title = QLabel(f"<b>{ann.get('title')}</b>")
-                    title.setStyleSheet("color: #004C25; font-family: 'Inter'; font-size: 14px; font-weight: bold; border: none;")
-                    box_layout.addWidget(title)
-                
-                # Content
-                content = QLabel(ann.get("content", "No content"))
-                content.setObjectName("contentText")
-                content.setWordWrap(True)
-                content.setStyleSheet("border: none;")
-                box_layout.addWidget(content)
-                
-                content_layout.addWidget(box)
-        else:
-            # Fallback if no data
-            no_data_label = QLabel("No announcements available")
-            no_data_label.setStyleSheet("color: #004C25; font-family: 'Inter'; font-size: 14px;")
-            content_layout.addWidget(no_data_label)
-
-        scroll_area.setWidget(content_widget)
-        main_layout.addWidget(scroll_area)
-        
-        # Add shadow effect to AnnouncementsDialog
         dialog_shadow = QGraphicsDropShadowEffect()
         dialog_shadow.setBlurRadius(20)
         dialog_shadow.setXOffset(0)
