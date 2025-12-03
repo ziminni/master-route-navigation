@@ -11,6 +11,7 @@ from .serializers import FacultyProfileListSerializer, AvailabilityRuleSerialize
 from rest_framework.permissions import IsAuthenticated
 from django.utils.dateparse import parse_datetime
 from apps.Users.models import FacultyProfile
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 
 class AvailabilityRuleCreateView(generics.CreateAPIView):
@@ -27,15 +28,17 @@ class AvailabilityRuleCreateView(generics.CreateAPIView):
         else:
             raise PermissionDenied("Only faculty can create availability rules.")
 
+from rest_framework.permissions import IsAuthenticated, AllowAny
+
 class FacultyAvailableScheduleView(generics.ListAPIView):
     """
     Returns FINAL AVAILABLE SLOTS based on:
     - AvailabilityRule (base schedule)
     - BusyBlock (overrides)
     - Appointments (if applicable)
-    
     """
     serializer_class = AvailableSlotSerializer
+    permission_classes = [IsAuthenticated]  # ADD THIS LINE
 
     def get_queryset(self):
         faculty_id = self.kwargs.get("faculty_id")
@@ -79,14 +82,14 @@ class FacultyAvailableScheduleView(generics.ListAPIView):
         # ===== 2. Remove Busy Blocks =====
         busy_blocks = BusyBlock.objects.filter(
             faculty_id=faculty_id,
-            start_at__date=date_obj  # Fixed field name
+            start_at__date=date_obj
         )
 
         filtered_slots = []
         for slot in slot_list:
             overlapped = False
             for block in busy_blocks:
-                if not (slot["end"] <= block.start_at or slot["start"] >= block.end_at):  # Fixed field names
+                if not (slot["end"] <= block.start_at or slot["start"] >= block.end_at):
                     overlapped = True
                     break
             if not overlapped:
@@ -95,14 +98,14 @@ class FacultyAvailableScheduleView(generics.ListAPIView):
         # ===== 3. Remove appointment bookings =====
         appointments = Appointment.objects.filter(
             faculty_id=faculty_id,
-            start_at__date=date_obj  # Fixed field name
-        ).exclude(status__in=[Appointment.CANCELED, Appointment.DENIED])  # Only consider active appointments
+            start_at__date=date_obj
+        ).exclude(status__in=[Appointment.CANCELED, Appointment.DENIED])
 
         final_slots = []
         for slot in filtered_slots:
             booked = False
             for app in appointments:
-                if not (slot["end"] <= app.start_at or slot["start"] >= app.end_at):  # Fixed field names
+                if not (slot["end"] <= app.start_at or slot["start"] >= app.end_at):
                     booked = True
                     break
             if not booked:

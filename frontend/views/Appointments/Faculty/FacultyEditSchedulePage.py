@@ -1,6 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QDialog, QTimeEdit, QMessageBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QDialog, QTimeEdit, QMessageBox, QPushButton, QComboBox
 from PyQt6.QtCore import QDate, QTime
+from ..api_client import APIClient
 import requests
 import json
 from datetime import datetime, timedelta
@@ -9,57 +10,7 @@ import logging
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-class APIClient:
-    def __init__(self, base_url="http://localhost:8000/api", token=None):
-        self.base_url = base_url
-        self.token = token
-        self.headers = {"Authorization": f"Bearer {token}"} if token else {}
 
-    def create_availability_rule(self, data):
-        """Create availability rule"""
-        try:
-            response = requests.post(
-                f"{self.base_url}/appointment/create_availability_rule/", 
-                json=data, 
-                headers={**self.headers, "Content-Type": "application/json"}
-            )
-            if response.status_code == 201:
-                return response.json()
-            else:
-                logging.error(f"Error creating availability rule: {response.text}")
-                return None
-        except Exception as e:
-            logging.error(f"Error creating availability rule: {e}")
-            return None
-
-    def get_availability_rules(self, faculty_id=None, semester_id=None):
-        """Get availability rules for faculty"""
-        try:
-            params = {}
-            if faculty_id:
-                params['faculty_id'] = faculty_id
-            if semester_id:
-                params['semester_id'] = semester_id
-                
-            response = requests.get(f"{self.base_url}/appointment/get_availability_rule/", 
-                                  params=params, headers=self.headers)
-            if response.status_code == 200:
-                return response.json()
-            return []
-        except Exception as e:
-            logging.error(f"Error fetching availability rules: {e}")
-            return []
-
-    def get_faculty_profiles(self):
-        """Get all faculty profiles"""
-        try:
-            response = requests.get(f"{self.base_url}/appointment/faculty_profiles/", headers=self.headers)
-            if response.status_code == 200:
-                return response.json()
-            return []
-        except Exception as e:
-            logging.error(f"Error fetching faculty profiles: {e}")
-            return []
 
 class FacultyEditSchedulePage_ui(QWidget):
     back = QtCore.pyqtSignal()
@@ -73,16 +24,16 @@ class FacultyEditSchedulePage_ui(QWidget):
         self.crud = APIClient(token=token)
         self.faculty_id = self._get_faculty_id()
         self.current_date = QDate.currentDate()
-        self.time_frames = {}  # Track time frames: {(day, start_row, end_row): True}
+        self.time_frames = {}  # Track time frames: {(day, start_row, end_row, slot_duration, rule_id): True}
         self._setupEditSchedulePage()
         self.retranslateUi()
         self._populateEditWeeklyGrid()
         self.setFixedSize(1100, 600)
 
     def _get_faculty_id(self):
-        faculty_profiles = self.crud.get_faculty_profiles()
+        faculty_profiles = self.crud.get_faculties()
         for faculty in faculty_profiles:
-            if faculty['user']['username'] == self.username:
+            if faculty['user']['first_name'] == self.username:
                 return faculty['id']
         return None
 
@@ -145,41 +96,21 @@ class FacultyEditSchedulePage_ui(QWidget):
         self.label_93.setFont(font)
         controls_layout.addWidget(self.label_93)
 
-        self.prevWeekButton = QtWidgets.QPushButton("←")
-        self.prevWeekButton.setFixedSize(40, 35)
-        self.prevWeekButton.setStyleSheet("""
-            QPushButton { background-color: #084924; color: white; border-radius: 6px; font: 600 12pt 'Poppins'; }
-            QPushButton:hover { background-color: #0a5a2f; }
-        """)
-        self.prevWeekButton.clicked.connect(self._prevWeek)
-        controls_layout.addWidget(self.prevWeekButton)
-
-        self.dateEdit = QtWidgets.QDateEdit()
-        self.dateEdit.setDate(self.current_date)
-        self.dateEdit.setCalendarPopup(True)
-        self.dateEdit.setStyleSheet("""
-            QDateEdit { border: 2px solid #064420; border-radius: 6px; padding: 4px 8px; font: 10pt 'Poppins'; color: #064420; background: white; }
-        """)
-        self.dateEdit.dateChanged.connect(self._updateWeek)
-        controls_layout.addWidget(self.dateEdit)
-
-        self.nextWeekButton = QtWidgets.QPushButton("→")
-        self.nextWeekButton.setFixedSize(40, 35)
-        self.nextWeekButton.setStyleSheet("""
-            QPushButton { background-color: #084924; color: white; border-radius: 6px; font: 600 12pt 'Poppins'; }
-            QPushButton:hover { background-color: #0a5a2f; }
-        """)
-        self.nextWeekButton.clicked.connect(self._nextWeek)
-        controls_layout.addWidget(self.nextWeekButton)
-
         controls_layout.addStretch(1)
 
         self.comboBox_3 = QtWidgets.QComboBox()
         self.comboBox_3.setFixedSize(200, 35)
         self.comboBox_3.setStyleSheet("""
-            QComboBox { border: 2px solid #064420; border-radius: 6px; padding: 4px 8px; font: 10pt 'Poppins'; color: #064420; background: white; }
+            QComboBox { 
+                border: 2px solid #064420; 
+                border-radius: 6px; 
+                padding: 4px 8px; 
+                font: 10pt 'Poppins'; 
+                color: #064420; 
+                background: white; 
+            }
         """)
-        self.comboBox_3.addItems(["1st Semester 2025 - 2026", "2nd Semester 2025 - 2026", "Summer 2026"])
+        self.comboBox_3.addItems(["All Semesters", "1st Semester 2025 - 2026", "2nd Semester 2025 - 2026", "Summer 2026"])
         controls_layout.addWidget(self.comboBox_3)
 
         # Add Time Frame Button
@@ -462,13 +393,13 @@ class FacultyEditSchedulePage_ui(QWidget):
             QMessageBox.warning(self, "Invalid Time", "Please check the start and end times.")
             return
 
-        # Store the time frame
-        time_frame_key = (day, start_row, end_row, slot_duration)
+        # Store the time frame (rule_id will be None for new time frames)
+        time_frame_key = (day, start_row, end_row, slot_duration, None)
         self.time_frames[time_frame_key] = True
 
         # Visualize the time frame on the grid
         for row in range(start_row, end_row):
-            self._colorTimeSlot(row, col, day, start_time_str, end_time_str, slot_duration)
+            self._colorTimeSlot(row, col, day, start_time_str, end_time_str, slot_duration, None)
 
         # Update button states
         self._updateButtonStates()
@@ -495,7 +426,7 @@ class FacultyEditSchedulePage_ui(QWidget):
         except:
             return None
 
-    def _colorTimeSlot(self, row, col, day, start_time, end_time, slot_duration):
+    def _colorTimeSlot(self, row, col, day, start_time, end_time, slot_duration, rule_id):
         """Color a time slot in the grid"""
         container = QtWidgets.QWidget()
         container.setStyleSheet("""
@@ -551,7 +482,7 @@ class FacultyEditSchedulePage_ui(QWidget):
                 background-color: #c82333; 
             }
         """)
-        delete_btn.clicked.connect(lambda: self._removeTimeFrame(day, row, col))
+        delete_btn.clicked.connect(lambda: self._removeTimeFrame(day, row, col, rule_id))
         layout.addWidget(delete_btn, 0, QtCore.Qt.AlignmentFlag.AlignRight)
         
         self.weeklyGridEdit.setCellWidget(row, col, container)
@@ -567,12 +498,12 @@ class FacultyEditSchedulePage_ui(QWidget):
         hour_12 = hour % 12 if hour != 12 else 12
         return f"{hour_12}:{minute:02d} {period}"
 
-    def _removeTimeFrame(self, day, row, col):
+    def _removeTimeFrame(self, day, row, col, rule_id):
         """Remove a specific time frame"""
         # Find and remove the time frame that includes this row
         for time_frame_key in list(self.time_frames.keys()):
-            frame_day, start_row, end_row, slot_duration = time_frame_key
-            if frame_day == day and start_row <= row < end_row:
+            frame_day, start_row, end_row, slot_duration, frame_rule_id = time_frame_key
+            if frame_day == day and start_row <= row < end_row and frame_rule_id == rule_id:
                 # Remove all slots in this time frame
                 for r in range(start_row, end_row):
                     self._addEmptyCell(r, col)
@@ -590,7 +521,7 @@ class FacultyEditSchedulePage_ui(QWidget):
         reply = QMessageBox.question(
             self,
             "Clear All Time Frames",
-            "Are you sure you want to clear all time frames?",
+            "Are you sure you want to clear all time frames?\nThis will remove all scheduled availability.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -623,14 +554,15 @@ class FacultyEditSchedulePage_ui(QWidget):
 
         success_count = 0
         error_count = 0
+        error_messages = []
 
         for time_frame_key in self.time_frames:
-            day, start_row, end_row, slot_duration = time_frame_key
+            day, start_row, end_row, slot_duration, rule_id = time_frame_key
             
             # Convert rows back to time
             start_time = self._rowToTime(start_row)
             end_time = self._rowToTime(end_row)
-            
+            currentsemester = self.comboBox_3.currentIndex()
             if start_time and end_time and day in day_map:
                 # Create availability rule data
                 rule_data = {
@@ -638,8 +570,10 @@ class FacultyEditSchedulePage_ui(QWidget):
                     "day_of_week": day_map[day],
                     "start_time": start_time,
                     "end_time": end_time,
+                    "semester": currentsemester,
                     "slot_minutes": slot_duration
                 }
+                print(f"test rule: {rule_data}")
                 
                 # Send to API
                 result = self.crud.create_availability_rule(rule_data)
@@ -647,18 +581,25 @@ class FacultyEditSchedulePage_ui(QWidget):
                     success_count += 1
                 else:
                     error_count += 1
+                    error_messages.append(f"Failed to create rule for {day} {start_time}-{end_time}")
 
         # Show result message
         if success_count > 0:
             message = f"Successfully created {success_count} availability rule(s)."
             if error_count > 0:
-                message += f" {error_count} rule(s) failed to create."
-            QMessageBox.information(self, "Success", message)
+                message += f"\n{error_count} rule(s) failed to create."
+                message += "\n\nErrors:\n" + "\n".join(error_messages)
+                QMessageBox.information(self, "Partial Success", message)
+            else:
+                QMessageBox.information(self, "Success", message)
             
-            # Clear the grid after successful save
-            self._clearAllTimeFrames()
+            # Refresh the grid to show saved rules
+            self._populateEditWeeklyGrid()
         else:
-            QMessageBox.critical(self, "Error", "Failed to create any availability rules.")
+            error_msg = "Failed to create any availability rules."
+            if error_messages:
+                error_msg += "\n\nErrors:\n" + "\n".join(error_messages)
+            QMessageBox.critical(self, "Error", error_msg)
 
     def _rowToTime(self, row):
         """Convert row number to time string (HH:MM:SS)"""
@@ -704,19 +645,20 @@ class FacultyEditSchedulePage_ui(QWidget):
             start_time = rule['start_time']
             end_time = rule['end_time']
             slot_duration = rule.get('slot_minutes', 30)
+            rule_id = rule['id']
 
             start_row = self._timeStringToRow(start_time)
             end_row = self._timeStringToRow(end_time)
 
             if start_row is not None and end_row is not None:
                 # Add to time frames
-                time_frame_key = (day_full, start_row, end_row, slot_duration)
+                time_frame_key = (day_full, start_row, end_row, slot_duration, rule_id)
                 self.time_frames[time_frame_key] = True
 
                 # Visualize on grid
                 col = list(day_map.values()).index(day_full) + 1
                 for row in range(start_row, end_row):
-                    self._colorTimeSlot(row, col, day_full, start_time, end_time, slot_duration)
+                    self._colorTimeSlot(row, col, day_full, start_time, end_time, slot_duration, rule_id)
 
         self._updateButtonStates()
 
@@ -736,19 +678,6 @@ class FacultyEditSchedulePage_ui(QWidget):
             return max(0, min(row, self.weeklyGridEdit.rowCount() - 1))
         except:
             return None
-
-    def _updateWeek(self):
-        self.current_date = self.dateEdit.date()
-        # Note: For availability rules, week navigation might not be needed
-        # as rules are day-based rather than date-based
-
-    def _prevWeek(self):
-        self.current_date = self.current_date.addDays(-7)
-        self.dateEdit.setDate(self.current_date)
-
-    def _nextWeek(self):
-        self.current_date = self.current_date.addDays(7)
-        self.dateEdit.setDate(self.current_date)
 
     def retranslateUi(self):
         self.RequestPage.setText("Edit Schedule")

@@ -23,6 +23,7 @@ class StudentRequestPage_ui(QWidget):
         self.appointment_crud = APIClient(token=token)
         self.selected_faculty = None
         self.selected_date = None
+        self.selected_slot = None
         self.slot_buttons = []
         self.slots_container = None
         self.available_days = set()
@@ -33,22 +34,43 @@ class StudentRequestPage_ui(QWidget):
     def _is_past_appointment(self, selected_date, start_time_str):
         """Check if the selected appointment date and time is in the past"""
         try:
-            # Parse start time string (HH:MM or HH:MM:SS)
-            if ':' in start_time_str:
+            # Parse start time string (can be HH:MM or HH:MM:SS or full datetime with Z)
+            if 'T' in start_time_str:
+                # It's a full datetime string like '2025-12-08T09:30:00Z'
+                try:
+                    # Try parsing with Z timezone
+                    if start_time_str.endswith('Z'):
+                        dt_str = start_time_str.replace('Z', '')
+                        appointment_datetime = datetime.fromisoformat(dt_str)
+                    else:
+                        appointment_datetime = datetime.fromisoformat(start_time_str)
+                except ValueError:
+                    # Fallback: try parsing as string without timezone
+                    date_part = start_time_str.split('T')[0]
+                    time_part = start_time_str.split('T')[1].split('.')[0]  # Remove milliseconds if present
+                    time_parts = time_part.split(':')
+                    hour = int(time_parts[0])
+                    minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+                    
+                    date_parts = date_part.split('-')
+                    year = int(date_parts[0])
+                    month = int(date_parts[1])
+                    day = int(date_parts[2])
+                    
+                    appointment_datetime = datetime(year, month, day, hour, minute)
+            else:
+                # It's just a time string like '09:30'
                 time_parts = start_time_str.split(':')
                 hour = int(time_parts[0])
-                minute = int(time_parts[1])
-            else:
-                hour = 0
-                minute = 0
+                minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+                
+                date_parts = selected_date.split('-')
+                year = int(date_parts[0])
+                month = int(date_parts[1])
+                day = int(date_parts[2])
+                
+                appointment_datetime = datetime(year, month, day, hour, minute)
             
-            # Create datetime object
-            date_parts = selected_date.split('-')
-            year = int(date_parts[0])
-            month = int(date_parts[1])
-            day = int(date_parts[2])
-            
-            appointment_datetime = datetime(year, month, day, hour, minute)
             current_datetime = datetime.now()
             
             return appointment_datetime < current_datetime
@@ -59,43 +81,80 @@ class StudentRequestPage_ui(QWidget):
 
     def set_faculty_data(self, faculty_data):
         """Set the faculty data when navigating from browse page"""
+        print(f"DEBUG: set_faculty_data called with: {faculty_data}")
         self.selected_faculty = faculty_data
         self._updateFacultyInfo()
         self._updateCalendarForToday()
-        self._onDateSelected()
 
     def _updateFacultyInfo(self):
         """Update the UI with faculty information"""
         if self.selected_faculty:
+            print(f"DEBUG: Updating faculty info with: {self.selected_faculty}")
+            
+            # Extract user info from faculty data
             user_info = self.selected_faculty.get('user', {})
-            faculty_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-            if not faculty_name:
-                faculty_name = user_info.get('username', 'Unknown Faculty')
+            
+            # Handle different possible faculty data structures
+            if isinstance(user_info, dict):
+                faculty_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+                if not faculty_name:
+                    faculty_name = user_info.get('username', 'Unknown Faculty')
+            else:
+                # If user_info is not a dict, try to get name directly
+                faculty_name = self.selected_faculty.get('name', 'Unknown Faculty')
+            
+            print(f"DEBUG: Faculty name: {faculty_name}")
             
             self.label_29.setText(faculty_name)
             self.label_30.setText(f"Select Date & Time with {faculty_name}")
+            
+            # Update month header
             current_date = datetime.now()
             self.month_header.setText(current_date.strftime("%B %Y"))
+        else:
+            print("DEBUG: No faculty data available")
+            self.label_29.setText("Select a Faculty")
+            self.label_30.setText("Select Date & Time")
 
     def _updateCalendarForToday(self):
         """Set calendar to today's date and load available slots"""
+        if not self.selected_faculty:
+            print("DEBUG: Cannot update calendar - no faculty selected")
+            return
+            
         today = QDate.currentDate()
         self.calendarWidget.setSelectedDate(today)
         self.selected_date = today.toString('yyyy-MM-dd')
+        print(f"DEBUG: Setting initial date to: {self.selected_date}")
         self._loadAvailableSlotsForDate(self.selected_date)
 
     def _loadAvailableSlotsForDate(self, date_str):
         """Load available slots for the selected date"""
+        print(f"DEBUG: _loadAvailableSlotsForDate called with date: {date_str}")
+        
         if not self.selected_faculty:
+            print("DEBUG: No faculty selected, cannot load slots")
+            self._showNoFacultySelectedMessage()
             return
         
         try:
-            faculty_id = self.selected_faculty['id']
+            faculty_id = self.selected_faculty.get('id')
+            if not faculty_id:
+                print("ERROR: Faculty data has no 'id' field")
+                print(f"DEBUG: Faculty data: {self.selected_faculty}")
+                self._showErrorMessage("Invalid faculty data: missing ID")
+                return
+            
+            print(f"DEBUG: Fetching slots for faculty ID: {faculty_id}, date: {date_str}")
+            
+            # Call API to get available slots
             available_slots = self.appointment_crud.get_faculty_available_schedule(faculty_id, date_str)
+            print(f"DEBUG: API returned slots: {available_slots}")
             
             # Clear existing slot buttons
             for btn in self.slot_buttons:
-                btn.deleteLater()
+                if btn:
+                    btn.deleteLater()
             self.slot_buttons.clear()
             
             # Clear slots container
@@ -103,119 +162,237 @@ class StudentRequestPage_ui(QWidget):
                 self.slots_container.deleteLater()
                 self.slots_container = None
             
-            if available_slots:
-                # Create new slots container
-                self.slots_container = QtWidgets.QWidget()
-                self.slots_layout = QtWidgets.QVBoxLayout(self.slots_container)
-                self.slots_layout.setContentsMargins(5, 5, 5, 5)
-                self.slots_layout.setSpacing(8)
-                
-                # Create scroll area
-                slots_scroll = QtWidgets.QScrollArea()
-                slots_scroll.setWidgetResizable(True)
-                slots_scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                slots_scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-                slots_scroll.setStyleSheet("""
-                    QScrollArea {
-                        border: none;
-                        background: transparent;
-                    }
-                    QScrollBar:vertical {
-                        background: #f0f0f0;
-                        width: 8px;
-                        margin: 0px;
-                        border-radius: 4px;
-                    }
-                    QScrollBar::handle:vertical {
-                        background: #c0c0c0;
-                        border-radius: 4px;
-                        min-height: 20px;
-                    }
-                """)
-                slots_scroll.setWidget(self.slots_container)
-                
-                # Replace old content
-                old_widget = self.availableSlot.layout().itemAt(0)
-                if old_widget and old_widget.widget():
-                    old_widget.widget().deleteLater()
-                self.availableSlot.layout().insertWidget(0, slots_scroll)
-                
-                # Create slot buttons for each available time
-                for slot in available_slots:
-                    start_time = slot['start']
-                    end_time = slot['end']
-                    
-                    # Parse datetime strings
-                    if 'T' in start_time:
-                        start_dt = QDateTime.fromString(start_time, "yyyy-MM-ddTHH:mm:ss")
-                        end_dt = QDateTime.fromString(end_time, "yyyy-MM-ddTHH:mm:ss")
-                        time_text = f"{start_dt.toString('hh:mm AP')} - {end_dt.toString('hh:mm AP')}"
-                        slot_start_time = start_dt.toString("HH:mm")
-                    else:
-                        time_text = f"{start_time} - {end_time}"
-                        slot_start_time = start_time
-                    
-                    # Create button
-                    btn = QtWidgets.QPushButton(time_text)
-                    btn.setFixedHeight(45)
-                    btn.setCheckable(True)
-                    btn.setProperty("start_time", slot_start_time)
-                    
-                    # Check if slot is in the past
-                    is_past = self._is_past_appointment(self.selected_date, slot_start_time)
-                    
-                    if is_past:
-                        btn.setEnabled(False)
-                        btn.setStyleSheet("""
-                            QPushButton {
-                                background-color: #ffcdd2;
-                                color: #b71c1c;
-                                border: 2px solid #f44336;
-                                border-radius: 8px;
-                                padding: 10px 20px;
-                                font: 600 11pt 'Poppins';
-                            }
-                        """)
-                        btn.setToolTip("This time slot has already passed")
-                    else:
-                        btn.setStyleSheet(self.slot_style(default=True))
-                        btn.clicked.connect(lambda checked, b=btn, s=slot: self.select_slot(b, s))
-                    
-                    self.slots_layout.addWidget(btn)
-                    self.slot_buttons.append(btn)
-                
-                self.slots_layout.addStretch(1)
-                
-                # Enable first available slot by default
-                available_buttons = [btn for btn in self.slot_buttons if btn.isEnabled()]
-                if available_buttons:
-                    available_buttons[0].setChecked(True)
-                    available_buttons[0].setStyleSheet(self.slot_style(selected=True))
-                    self.selected_slot = available_slots[0]
-                    self.button_4.setEnabled(True)
-                else:
-                    self.selected_slot = None
-                    self.button_4.setEnabled(False)
-                    
-                    # Show no available slots message
-                    no_available_label = QtWidgets.QLabel("No available time slots for this date")
-                    no_available_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-                    no_available_label.setStyleSheet("""
-                        QLabel {
-                            font: 12pt 'Poppins';
-                            color: #666666;
-                            background: #f8f9fa;
-                            border-radius: 8px;
-                            padding: 20px;
-                        }
-                    """)
-                    self.slots_layout.insertWidget(0, no_available_label)
+            # Clear the availableSlot widget
+            self._clearAvailableSlotWidget()
+            
+            if available_slots and isinstance(available_slots, list) and len(available_slots) > 0:
+                print(f"DEBUG: Found {len(available_slots)} available slots")
+                self._displayAvailableSlots(available_slots, date_str)
             else:
+                print("DEBUG: No available slots found")
                 self._showNoSlotsMessage()
                 
         except Exception as e:
             logging.error(f"Error loading available slots: {e}")
-            self._showNoSlotsMessage()
+            print(f"ERROR: Exception in _loadAvailableSlotsForDate: {str(e)}")
+            self._showErrorMessage(f"Error loading available slots: {str(e)}")
+
+    def _clearAvailableSlotWidget(self):
+        """Clear the available slot widget"""
+        # Get the layout of availableSlot
+        available_layout = self.availableSlot.layout()
+        if available_layout:
+            # Remove all widgets except the last one (which is the button_4)
+            while available_layout.count() > 1:
+                item = available_layout.takeAt(0)
+                if item and item.widget():
+                    item.widget().deleteLater()
+
+    def _displayAvailableSlots(self, available_slots, date_str):
+        """Display available slots in the UI"""
+        try:
+            # Create new slots container
+            self.slots_container = QtWidgets.QWidget()
+            self.slots_layout = QtWidgets.QVBoxLayout(self.slots_container)
+            self.slots_layout.setContentsMargins(5, 5, 5, 5)
+            self.slots_layout.setSpacing(8)
+            
+            # Create scroll area
+            slots_scroll = QtWidgets.QScrollArea()
+            slots_scroll.setWidgetResizable(True)
+            slots_scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            slots_scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            slots_scroll.setStyleSheet("""
+                QScrollArea {
+                    border: none;
+                    background: transparent;
+                }
+                QScrollBar:vertical {
+                    background: #f0f0f0;
+                    width: 8px;
+                    margin: 0px;
+                    border-radius: 4px;
+                }
+                QScrollBar::handle:vertical {
+                    background: #c0c0c0;
+                    border-radius: 4px;
+                    min-height: 20px;
+                }
+            """)
+            slots_scroll.setWidget(self.slots_container)
+            
+            # Clear existing content in availableSlot and add scroll area
+            available_layout = self.availableSlot.layout()
+            if available_layout:
+                # Remove existing content (except button_4)
+                while available_layout.count() > 0:
+                    item = available_layout.takeAt(0)
+                    if item and item.widget():
+                        if item.widget() != self.button_4:
+                            item.widget().deleteLater()
+                
+                # Add scroll area at the beginning
+                available_layout.insertWidget(0, slots_scroll)
+            
+            # Create slot buttons for each available time
+            for slot in available_slots:
+                if not isinstance(slot, dict):
+                    print(f"WARNING: Slot is not a dictionary: {slot}")
+                    continue
+                    
+                start_time = slot.get('start')
+                end_time = slot.get('end')
+                
+                if not start_time or not end_time:
+                    print(f"WARNING: Slot missing start or end time: {slot}")
+                    continue
+                
+                print(f"DEBUG: Processing slot: {start_time} - {end_time}")
+                
+                # Parse datetime strings
+                time_text = ""
+                slot_start_time = ""
+                
+                try:
+                    # Handle different time formats
+                    if 'T' in start_time:
+                        # Try parsing ISO format (with or without Z)
+                        start_time_clean = start_time.replace('Z', '')
+                        end_time_clean = end_time.replace('Z', '')
+                        
+                        # Parse using Python datetime
+                        try:
+                            start_dt = datetime.fromisoformat(start_time_clean)
+                            end_dt = datetime.fromisoformat(end_time_clean)
+                            
+                            # Format for display
+                            start_formatted = start_dt.strftime('%I:%M %p')
+                            end_formatted = end_dt.strftime('%I:%M %p')
+                            time_text = f"{start_formatted} - {end_formatted}"
+                            slot_start_time = start_dt.strftime("%H:%M")
+                        except ValueError:
+                            # Fallback: try QDateTime parsing
+                            try:
+                                start_dt = QDateTime.fromString(start_time, "yyyy-MM-ddTHH:mm:ss")
+                                end_dt = QDateTime.fromString(end_time, "yyyy-MM-ddTHH:mm:ss")
+                                if start_dt.isValid() and end_dt.isValid():
+                                    time_text = f"{start_dt.toString('hh:mm AP')} - {end_dt.toString('hh:mm AP')}"
+                                    slot_start_time = start_dt.toString("HH:mm")
+                                else:
+                                    # If QDateTime fails, use string splitting
+                                    start_time_only = start_time.split('T')[1].split('.')[0]
+                                    end_time_only = end_time.split('T')[1].split('.')[0]
+                                    time_text = f"{start_time_only} - {end_time_only}"
+                                    slot_start_time = start_time_only
+                            except:
+                                start_time_only = start_time.split('T')[1].split('.')[0]
+                                end_time_only = end_time.split('T')[1].split('.')[0]
+                                time_text = f"{start_time_only} - {end_time_only}"
+                                slot_start_time = start_time_only
+                    else:
+                        # Simple time format
+                        time_text = f"{start_time} - {end_time}"
+                        slot_start_time = start_time
+                        
+                except Exception as e:
+                    print(f"ERROR parsing time format: {e}")
+                    # Fallback to raw strings
+                    if 'T' in start_time:
+                        start_time_only = start_time.split('T')[1].split('.')[0] if 'T' in start_time else start_time
+                        end_time_only = end_time.split('T')[1].split('.')[0] if 'T' in end_time else end_time
+                        time_text = f"{start_time_only} - {end_time_only}"
+                        slot_start_time = start_time_only
+                    else:
+                        time_text = f"{start_time} - {end_time}"
+                        slot_start_time = start_time
+                
+                # Create button
+                btn = QtWidgets.QPushButton(time_text)
+                btn.setFixedHeight(45)
+                btn.setCheckable(True)
+                btn.setProperty("start_time", slot_start_time)
+                
+                # Check if slot is in the past
+                is_past = self._is_past_appointment(date_str, start_time)
+                
+                if is_past:
+                    btn.setEnabled(False)
+                    btn.setStyleSheet("""
+                        QPushButton {
+                            background-color: #ffcdd2;
+                            color: #b71c1c;
+                            border: 2px solid #f44336;
+                            border-radius: 8px;
+                            padding: 10px 20px;
+                            font: 600 11pt 'Poppins';
+                        }
+                    """)
+                    btn.setToolTip("This time slot has already passed")
+                else:
+                    btn.setStyleSheet(self.slot_style(default=True))
+                    # Use lambda with default arguments to capture current values
+                    btn.clicked.connect(lambda checked, b=btn, s=slot.copy(): self.select_slot(b, s))
+                
+                self.slots_layout.addWidget(btn)
+                self.slot_buttons.append(btn)
+            
+            self.slots_layout.addStretch(1)
+            
+            # Enable first available slot by default
+            available_buttons = [btn for btn in self.slot_buttons if btn.isEnabled()]
+            if available_buttons:
+                available_buttons[0].setChecked(True)
+                available_buttons[0].setStyleSheet(self.slot_style(selected=True))
+                self.selected_slot = available_slots[0]
+                if hasattr(self, 'button_4'):
+                    self.button_4.setEnabled(True)
+                print(f"DEBUG: Selected first slot: {self.selected_slot}")
+            else:
+                self.selected_slot = None
+                if hasattr(self, 'button_4'):
+                    self.button_4.setEnabled(False)
+                
+                # Show no available slots message
+                no_available_label = QtWidgets.QLabel("No available time slots for this date")
+                no_available_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                no_available_label.setStyleSheet("""
+                    QLabel {
+                        font: 12pt 'Poppins';
+                        color: #666666;
+                        background: #f8f9fa;
+                        border-radius: 8px;
+                        padding: 20px;
+                    }
+                """)
+                self.slots_layout.insertWidget(0, no_available_label)
+                
+        except Exception as e:
+            logging.error(f"Error displaying available slots: {e}")
+            print(f"ERROR: Exception in _displayAvailableSlots: {str(e)}")
+            self._showErrorMessage(f"Error displaying slots: {str(e)}")
+
+    def _showNoFacultySelectedMessage(self):
+        """Show message when no faculty is selected"""
+        no_faculty_label = QtWidgets.QLabel("No faculty selected.\nPlease go back and select a faculty.")
+        no_faculty_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        no_faculty_label.setStyleSheet("""
+            QLabel {
+                font: 12pt 'Poppins';
+                color: #666666;
+                background: #f8f9fa;
+                border-radius: 8px;
+                padding: 20px;
+            }
+        """)
+        no_faculty_label.setWordWrap(True)
+        
+        self._clearAvailableSlotWidget()
+        available_layout = self.availableSlot.layout()
+        if available_layout:
+            available_layout.insertWidget(0, no_faculty_label)
+        
+        if hasattr(self, 'button_4'):
+            self.button_4.setEnabled(False)
 
     def _showNoSlotsMessage(self):
         """Show message when no slots are available"""
@@ -232,14 +409,37 @@ class StudentRequestPage_ui(QWidget):
         """)
         no_slots_label.setWordWrap(True)
         
-        # Clear existing scroll area
-        old_widget = self.availableSlot.layout().itemAt(0)
-        if old_widget and old_widget.widget():
-            old_widget.widget().deleteLater()
+        self._clearAvailableSlotWidget()
+        available_layout = self.availableSlot.layout()
+        if available_layout:
+            available_layout.insertWidget(0, no_slots_label)
         
-        self.availableSlot.layout().insertWidget(0, no_slots_label)
         self.selected_slot = None
-        if hasattr(self, 'button_4') and self.button_4:
+        if hasattr(self, 'button_4'):
+            self.button_4.setEnabled(False)
+
+    def _showErrorMessage(self, message):
+        """Show error message"""
+        error_label = QtWidgets.QLabel(f"Error: {message}")
+        error_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        error_label.setStyleSheet("""
+            QLabel {
+                font: 12pt 'Poppins';
+                color: #d32f2f;
+                background: #ffebee;
+                border-radius: 8px;
+                padding: 20px;
+            }
+        """)
+        error_label.setWordWrap(True)
+        
+        self._clearAvailableSlotWidget()
+        available_layout = self.availableSlot.layout()
+        if available_layout:
+            available_layout.insertWidget(0, error_label)
+        
+        self.selected_slot = None
+        if hasattr(self, 'button_4'):
             self.button_4.setEnabled(False)
 
     def _check_existing_appointments(self, start_time_str):
@@ -251,18 +451,32 @@ class StudentRequestPage_ui(QWidget):
             
             # Parse selected appointment time
             if 'T' in start_time_str:
-                selected_dt = QDateTime.fromString(start_time_str, "yyyy-MM-ddTHH:mm:ss")
+                # Clean the time string
+                clean_time_str = start_time_str.replace('Z', '')
+                try:
+                    selected_dt = datetime.fromisoformat(clean_time_str)
+                except ValueError:
+                    # Fallback to string parsing
+                    date_part = start_time_str.split('T')[0]
+                    time_part = start_time_str.split('T')[1].split('.')[0]
+                    selected_dt = datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M:%S")
             else:
-                selected_dt = QDateTime.fromString(f"{self.selected_date} {start_time_str}", "yyyy-MM-dd HH:mm")
+                selected_dt = datetime.strptime(f"{self.selected_date} {start_time_str}", "%Y-%m-%d %H:%M")
             
             for appointment in appointments:
                 if appointment.get('status') in ['PENDING', 'APPROVED']:
                     appt_start = appointment.get('start_at')
                     if appt_start:
                         if 'T' in appt_start:
-                            appt_dt = QDateTime.fromString(appt_start, "yyyy-MM-ddTHH:mm:ss")
+                            clean_appt_start = appt_start.replace('Z', '')
+                            try:
+                                appt_dt = datetime.fromisoformat(clean_appt_start)
+                            except ValueError:
+                                date_part = appt_start.split('T')[0]
+                                time_part = appt_start.split('T')[1].split('.')[0]
+                                appt_dt = datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M:%S")
                         else:
-                            appt_dt = QDateTime.fromString(appt_start, "yyyy-MM-dd HH:mm:ss")
+                            appt_dt = datetime.strptime(appt_start, "%Y-%m-%d %H:%M:%S")
                         
                         # Check if this is the same time
                         if appt_dt == selected_dt:
@@ -272,6 +486,7 @@ class StudentRequestPage_ui(QWidget):
             
         except Exception as e:
             logging.error(f"Error checking existing appointments: {e}")
+            print(f"ERROR in _check_existing_appointments: {e}")
             return False
 
     def _setupStudentRequestPage(self):
@@ -537,9 +752,9 @@ class StudentRequestPage_ui(QWidget):
         available_layout.setSpacing(10)
 
         # Initial message
-        initial_message = QtWidgets.QLabel("Please select a faculty first")
-        initial_message.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        initial_message.setStyleSheet("""
+        self.initial_message = QtWidgets.QLabel("Please select a faculty first")
+        self.initial_message.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.initial_message.setStyleSheet("""
             QLabel {
                 font: 12pt 'Poppins';
                 color: #666666;
@@ -548,7 +763,7 @@ class StudentRequestPage_ui(QWidget):
                 padding: 20px;
             }
         """)
-        available_layout.addWidget(initial_message)
+        available_layout.addWidget(self.initial_message)
 
         # Request button
         self.button_4 = QtWidgets.QPushButton("Request Appointment")
@@ -588,7 +803,19 @@ class StudentRequestPage_ui(QWidget):
 
     def _onDateSelected(self):
         """Handle date selection from calendar"""
+        print("DEBUG: _onDateSelected called")
+        
+        # # Remove initial message if it exists
+        # if hasattr(self, 'initial_message') and self.initial_message:
+        #     self.initial_message.hide()
+        
         self.selected_date = self.calendarWidget.selectedDate().toString('yyyy-MM-dd')
+        print(f"DEBUG: Selected date: {self.selected_date}")
+        
+        # Update month header
+        selected_qdate = self.calendarWidget.selectedDate()
+        self.month_header.setText(selected_qdate.toString("MMMM yyyy"))
+        
         self._loadAvailableSlotsForDate(self.selected_date)
 
     def slot_style(self, default=False, selected=False):
@@ -636,6 +863,8 @@ class StudentRequestPage_ui(QWidget):
 
     def select_slot(self, button, slot_data):
         """Handle slot selection"""
+        print(f"DEBUG: select_slot called with slot_data: {slot_data}")
+        
         if not button.isEnabled():
             return
             
@@ -650,9 +879,16 @@ class StudentRequestPage_ui(QWidget):
         
         if hasattr(self, 'button_4') and self.button_4:
             self.button_4.setEnabled(True)
+            print(f"DEBUG: Button enabled, selected_slot: {self.selected_slot}")
+            self._showRequestDialog()
 
     def _showRequestDialog(self):
         """Show request dialog to collect appointment details"""
+        print(f"DEBUG: _showRequestDialog called")
+        print(f"DEBUG: selected_faculty: {self.selected_faculty}")
+        print(f"DEBUG: selected_slot: {self.selected_slot}")
+        print(f"DEBUG: selected_date: {self.selected_date}")
+        
         if not self.selected_faculty:
             QMessageBox.warning(self, "Warning", "Please select a faculty first.")
             return
@@ -667,12 +903,8 @@ class StudentRequestPage_ui(QWidget):
 
         # Check if slot is in the past
         start_time = self.selected_slot.get('start', '')
-        if 'T' in start_time:
-            start_time_str = QDateTime.fromString(start_time, "yyyy-MM-ddTHH:mm:ss").toString("HH:mm")
-        else:
-            start_time_str = start_time
         
-        if self._is_past_appointment(self.selected_date, start_time_str):
+        if self._is_past_appointment(self.selected_date, start_time):
             QMessageBox.warning(
                 self, 
                 "Invalid Time Slot", 
@@ -682,8 +914,7 @@ class StudentRequestPage_ui(QWidget):
             return
 
         # Check for existing appointments
-        appointment_datetime_str = f"{self.selected_date}T{start_time_str}:00"
-        if self._check_existing_appointments(appointment_datetime_str):
+        if self._check_existing_appointments(start_time):
             QMessageBox.warning(
                 self, 
                 "Already Booked", 
@@ -778,13 +1009,53 @@ class StudentRequestPage_ui(QWidget):
         # Format time
         start_time = self.selected_slot.get('start', '')
         end_time = self.selected_slot.get('end', '')
-        
+
+        print(f"DEBUG: Raw start_time = '{start_time}'")
+        print(f"DEBUG: Raw end_time = '{end_time}'")
+
+        time_display = ""
         if 'T' in start_time:
-            start_dt = QDateTime.fromString(start_time, "yyyy-MM-ddTHH:mm:ss")
-            end_dt = QDateTime.fromString(end_time, "yyyy-MM-ddTHH:mm:ss")
-            time_display = f"{start_dt.toString('hh:mm AP')} - {end_dt.toString('hh:mm AP')}"
+            try:
+                # Clean the time strings
+                start_time_clean = start_time.replace('Z', '')
+                end_time_clean = end_time.replace('Z', '')
+                
+                # Parse using Python datetime
+                start_dt = datetime.fromisoformat(start_time_clean)
+                end_dt = datetime.fromisoformat(end_time_clean)
+                
+                # Format for display
+                start_formatted = start_dt.strftime('%I:%M %p')
+                end_formatted = end_dt.strftime('%I:%M %p')
+                time_display = f"{start_formatted} - {end_formatted}"
+                
+                print(f"DEBUG: Parsed successfully: {time_display}")
+            except ValueError as e:
+                print(f"DEBUG: Error parsing with fromisoformat: {e}")
+                # Fallback: extract time part directly
+                try:
+                    start_time_only = start_time.split('T')[1].split('.')[0]
+                    end_time_only = end_time.split('T')[1].split('.')[0]
+                    
+                    # Convert to AM/PM format
+                    start_hour = int(start_time_only.split(':')[0])
+                    start_minute = int(start_time_only.split(':')[1])
+                    end_hour = int(end_time_only.split(':')[0])
+                    end_minute = int(end_time_only.split(':')[1])
+                    
+                    start_period = "AM" if start_hour < 12 else "PM"
+                    end_period = "AM" if end_hour < 12 else "PM"
+                    
+                    start_hour_12 = start_hour if start_hour <= 12 else start_hour - 12
+                    end_hour_12 = end_hour if end_hour <= 12 else end_hour - 12
+                    
+                    time_display = f"{start_hour_12}:{start_minute:02d} {start_period} - {end_hour_12}:{end_minute:02d} {end_period}"
+                except:
+                    time_display = f"{start_time} - {end_time}"
         else:
             time_display = f"{start_time} - {end_time}"
+
+        print(f"DEBUG: Result time_display = '{time_display}'")
         
         summary_data = [
             ("Faculty:", faculty_name),
@@ -1192,11 +1463,12 @@ class StudentRequestPage_ui(QWidget):
         try:
             # Prepare appointment data
             appointment_data = {
+                
                 "faculty": self.selected_faculty['id'],
                 "start_at": self.selected_slot['start'],
                 "end_at": self.selected_slot['end'],
-                "additional_details": reason_text,
-                "address": location
+                "reason": reason_text,
+                
             }
             
             # Create appointment

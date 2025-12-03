@@ -522,8 +522,27 @@ class StudentBrowseFaculty_ui(QWidget):
         return card
 
     def _onRequestClicked(self, faculty):
+        """Handle request button click - emit faculty data with all required fields"""
+        print(f"DEBUG: Request clicked for faculty: {faculty}")
         
-        self.go_to_RequestPage.emit(faculty)
+        # Ensure faculty data has all required fields
+        faculty_data = {
+            "id": faculty.get("id"),
+            "name": faculty.get("name", "Unknown"),
+            "email": faculty.get("email", ""),
+            "department": faculty.get("department", ""),
+            # Add any other required fields here
+            "user": {
+                "first_name": faculty.get("name", "").split()[0] if "name" in faculty else "",
+                "last_name": faculty.get("name", "").split()[-1] if "name" in faculty else "",
+                "email": faculty.get("email", ""),
+                "username": faculty.get("email", "").split("@")[0] if "email" in faculty else ""
+            }
+        }
+        print(f"DEBUG: Emitting faculty_data: {faculty_data}")
+        self.go_to_RequestPage.emit(faculty_data)
+    
+   
          
 
     def _previousPage(self):

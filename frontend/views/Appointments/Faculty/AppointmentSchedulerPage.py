@@ -42,14 +42,16 @@ class AppointmentSchedulerPage_ui(QWidget):
         """Initialize user data based on role"""
         if self.primary_role == "faculty":
             # For faculty, get their own profile
-            faculty_profiles = self.crud.get_faculty_profiles()
-            user_profile = next((fp for fp in faculty_profiles if fp['user']['username'] == self.username), None)
+            faculty_profiles = self.crud.get_faculties()
+            print(f"faculty test: {faculty_profiles}")
+            print(self.username)
+            user_profile = next((fp for fp in faculty_profiles if fp['user']['first_name'] == self.username), None)
             if user_profile:
                 self.faculty_id = user_profile['id']
                 self.current_faculty_id = self.faculty_id
         else:
             # For students, show all faculty
-            faculty_profiles = self.crud.get_faculty_profiles()
+            faculty_profiles = self.crud.get_faculties()
             if faculty_profiles:
                 self.current_faculty_id = faculty_profiles[0]['id']
         
@@ -58,7 +60,7 @@ class AppointmentSchedulerPage_ui(QWidget):
 
     def _populateFacultyComboBox(self):
         """Populate faculty selection combo box"""
-        faculty_profiles = self.crud.get_faculty_profiles()
+        faculty_profiles = self.crud.get_faculties()
         self.facultyComboBox.clear()
         
         for faculty in faculty_profiles:

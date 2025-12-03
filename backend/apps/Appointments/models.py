@@ -22,7 +22,8 @@ class AvailabilityRule(models.Model):
     day_of_week = models.CharField(max_length=3, choices=DoW.choices)
     start_time = models.TimeField()
     end_time = models.TimeField()
-    semester = models.ForeignKey(academic_models.Semester, on_delete=models.PROTECT, related_name="valid_time_span")
+    # semester = models.ForeignKey(academic_models.Semester, on_delete=models.PROTECT, related_name="valid_time_span")
+    semester = models.IntegerField()
     slot_minutes = models.PositiveSmallIntegerField(default=30)
 
     class Meta:

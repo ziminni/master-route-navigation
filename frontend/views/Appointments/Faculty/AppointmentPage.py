@@ -32,11 +32,22 @@ class AppointmentPage_ui(QWidget):
         self._setupAppointmentsPage()
         self.retranslateUi()
 
+
+    def get_faculty_id(self):
+        """Fetch faculty ID based on the username."""
+        profiles = self.crud.get_faculties()
+        print(f"Debug: Faculty profiles fetched: {profiles}")
+        for profile in profiles:
+            if profile["user"]["first_name"] == self.username:
+                print(f"Debug: Found faculty ID: {profile.get('id')} for user {self.username}")
+                return profile.get('id')
+        return None
     
 
     def _ensure_sample_data(self):
         """Ensure there is sample data for testing."""
         appointments = self.crud.get_faculty_appointments()
+        print(f"Debug: Current appointments: {appointments}")
         if not appointments:
             logging.info("No appointments found, creating sample data")
             
