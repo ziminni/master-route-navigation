@@ -101,6 +101,21 @@ class CollegeOrgCard(BaseOrgCard):
         layout = QtWidgets.QVBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignBottom | QtCore.Qt.AlignmentFlag.AlignHCenter)
 
+        # Show "Inactive" label if organization is not active
+        if not org_data.get("is_active", True):
+            inactive_label = QtWidgets.QLabel("INACTIVE")
+            inactive_label.setStyleSheet("""
+                border: none; 
+                background-color: #ff6b6b; 
+                color: white; 
+                font-weight: bold; 
+                font-size: 10px;
+                padding: 2px 8px;
+                border-radius: 3px;
+            """)
+            inactive_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(inactive_label, alignment=QtCore.Qt.AlignmentFlag.AlignHCenter)
+
         logo_label = self._create_logo_label(logo_path, size=200, radius=10)
 
         # Organization name label
@@ -250,31 +265,16 @@ class CollegeOrgCard(BaseOrgCard):
             QMessageBox.warning(self, "Application Failed", error_msg)
 
 class ArchivedOrgCard(CollegeOrgCard):
-    # FIX: Explicitly pass and store the admin_window instance
+    """Card for displaying archived organizations. Archived orgs cannot be restored."""
     def __init__(self, logo_path, name, org_data, admin_window):
         # The CollegeOrgCard constructor expects 'main_window', which is the admin_window here.
         super().__init__(logo_path, name, org_data, admin_window)
         
-        # Store the Admin instance for method calls (Bug 1 Fix)
+        # Store the Admin instance for method calls
         self.admin_window = admin_window
         
-        self.btn_apply.setText("Restore")
-        self.btn_apply.setStyleSheet(STYLE_GREEN_BTN)  # Green for restore
-        try:
-            self.btn_apply.clicked.disconnect()  # Disconnect original
-        except TypeError:
-            pass
-        self.btn_apply.clicked.connect(self._restore)
-
-    def _restore(self):
-        # FIX: Use self.admin_window instead of self.parent()
-        confirm = QMessageBox.question(self.admin_window, "Restore", f"Restore {self.org_data['name']}?")
-        if confirm == QMessageBox.StandardButton.Yes:
-            is_branch = self.org_data.get("is_branch", False)
-            # Use self.admin_window for Admin methods
-            self.admin_window.restore_org(self.org_data["id"], is_branch)
-            QMessageBox.information(self.admin_window, "Success", "Restored successfully.")
-            self.admin_window._load_archived_page(is_branch)  # Refresh
+        # Hide the apply/restore button since archived orgs cannot be restored
+        self.btn_apply.hide()
 
 class OfficerCard(BaseCard):
 # ... (rest of OfficerCard is unchanged)

@@ -5,27 +5,49 @@ from .models import Organization, MembershipApplication, ApplicationDetails, Org
 from .serializers import OrganizationSerializer, MembershipApplicationSerializer, ApplicantSerializer, CurrentUserSerializer
 from django.db.models import Q
 from apps.Users.models import StudentProfile, BaseUser
+from .log_service import log_created, log_edited, log_kicked, log_accepted, log_rejected, log_applied, log_archived, log_activated, log_deactivated
 
 
 class OrganizationListView(APIView):
     """
     API View for listing organizations.
     GET: Retrieve all organizations or search by query parameter
+    Query params:
+        - search: search term
+        - role: 'admin' to see all orgs, otherwise only active & non-archived orgs are returned
+        - include_archived: 'true' to include archived orgs (for archived view)
     """
     
     def get(self, request):
-        """Retrieve organizations from database, optionally filtered by search query"""
+        """Retrieve organizations from database, optionally filtered by search query and role"""
         search_query = request.query_params.get('search', None)
+        role = request.query_params.get('role', None)
+        include_archived = request.query_params.get('include_archived', 'false').lower() == 'true'
         
+        # Start with base queryset
+        organizations = Organization.objects.all()
+        
+        # Apply role-based filtering
+        if role == 'admin':
+            if include_archived:
+                # Admin viewing archived - only show archived
+                organizations = organizations.filter(is_archived=True)
+            else:
+                # Admin viewing main list - show all non-archived
+                organizations = organizations.filter(is_archived=False)
+        else:
+            # Non-admin users only see active and non-archived organizations
+            organizations = organizations.filter(is_archived=False, is_active=True)
+        
+        # Apply search filter if provided
         if search_query:
-            # Search in name, description, and objectives
-            organizations = Organization.objects.filter(
+            organizations = organizations.filter(
                 Q(name__icontains=search_query) |
                 Q(description__icontains=search_query) |
                 Q(objectives__icontains=search_query)
-            ).order_by('-created_at')
-        else:
-            organizations = Organization.objects.all().order_by('-created_at')
+            )
+        
+        organizations = organizations.order_by('-created_at')
         
         serializer = OrganizationSerializer(organizations, many=True)
         
@@ -43,6 +65,7 @@ class StudentJoinedOrganizationsView(APIView):
     """
     API View for getting organizations that a student has joined.
     GET: Retrieve all organizations where the student is a member
+    Only returns active and non-archived organizations
     """
     
     def get(self, request, student_id):
@@ -79,8 +102,12 @@ class StudentJoinedOrganizationsView(APIView):
             org_ids = [membership.organization_id.id for membership in active_memberships]
             print(f"DEBUG: Organization IDs: {org_ids}")
             
-            # Get the organization details
-            organizations = Organization.objects.filter(id__in=org_ids).order_by('-created_at')
+            # Get the organization details - only active and non-archived orgs
+            organizations = Organization.objects.filter(
+                id__in=org_ids,
+                is_active=True,
+                is_archived=False
+            ).order_by('-created_at')
             
             serializer = OrganizationSerializer(organizations, many=True)
             
@@ -162,6 +189,11 @@ class OrganizationDetailView(APIView):
         if serializer.is_valid():
             updated_org = serializer.save()
             
+            # Log the edit action
+            updated_by_id = request.data.get('updated_by_id')
+            if updated_by_id:
+                log_edited(user_id=updated_by_id, target=updated_org)
+            
             return Response(
                 {
                     'message': 'Organization updated successfully',
@@ -191,6 +223,11 @@ class OrganizationCreateView(APIView):
         
         if serializer.is_valid():
             organization = serializer.save()
+            
+            # Log the creation action
+            created_by_id = request.data.get('created_by_id')
+            if created_by_id:
+                log_created(user_id=created_by_id, target=organization)
             
             return Response(
                 {
@@ -247,6 +284,14 @@ class MembershipApplicationCreateView(APIView):
             
             if serializer.is_valid():
                 application = serializer.save()
+                
+                # Log the application action - get the BaseUser ID from StudentProfile
+                try:
+                    student = StudentProfile.objects.get(id=user_id)
+                    log_applied(user_id=student.user.id, target=application)
+                except StudentProfile.DoesNotExist:
+                    pass  # Still allow application to proceed
+                
                 return Response(
                     {
                         'message': 'Application submitted successfully',
@@ -371,6 +416,11 @@ class ApplicationActionView(APIView):
                 application.save()
                 print(f"DEBUG: Updated application status to accepted")
                 
+                # Log the accept action
+                admin_user_id = request.data.get('admin_user_id')
+                if admin_user_id:
+                    log_accepted(user_id=admin_user_id, target=application)
+                
                 # Create OrganizationMembers entry (only use existing fields)
                 from .models import OrganizationMembers
                 try:
@@ -417,6 +467,11 @@ class ApplicationActionView(APIView):
                 application.application_status = 'rej'
                 application.save()
                 print(f"DEBUG: Updated application status to rejected")
+                
+                # Log the reject action
+                admin_user_id = request.data.get('admin_user_id')
+                if admin_user_id:
+                    log_rejected(user_id=admin_user_id, target=application)
                 
                 return Response(
                     {'message': 'Application rejected successfully'},
@@ -537,6 +592,9 @@ class KickMemberView(APIView):
             member.kicked_by = admin_user
             member.save()
             
+            # Log the kick action
+            log_kicked(user_id=admin_user.id, target=member)
+            
             print(f"DEBUG: Member {member_id} kicked by admin {admin_user.username}")
             
             # Deactivate any active officer terms for this member
@@ -577,6 +635,98 @@ class KickMemberView(APIView):
             traceback.print_exc()
             return Response(
                 {'success': False, 'message': f'Failed to kick member: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class ArchiveOrganizationView(APIView):
+    """API View for archiving an organization"""
+    
+    def post(self, request, org_id):
+        """Archive an organization - it will be hidden and cannot be retrieved"""
+        try:
+            organization = Organization.objects.get(id=org_id)
+            
+            # Archive the organization
+            organization.is_archived = True
+            organization.is_active = False  # Archived orgs are automatically inactive
+            organization.save()
+            
+            # Log the archive action
+            admin_user_id = request.data.get('admin_user_id')
+            if admin_user_id:
+                log_archived(user_id=admin_user_id, target=organization)
+            
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Organization archived successfully',
+                    'data': OrganizationSerializer(organization).data
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Organization.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'Organization not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            print(f"ERROR: Failed to archive organization - {str(e)}")
+            return Response(
+                {'success': False, 'message': f'Failed to archive organization: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class ToggleOrganizationActiveView(APIView):
+    """API View for activating/deactivating an organization"""
+    
+    def post(self, request, org_id):
+        """Toggle organization active status"""
+        try:
+            organization = Organization.objects.get(id=org_id)
+            
+            # Cannot activate an archived organization
+            if organization.is_archived:
+                return Response(
+                    {'success': False, 'message': 'Cannot activate an archived organization'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Toggle the active status
+            organization.is_active = not organization.is_active
+            organization.save()
+            
+            # Log the action
+            admin_user_id = request.data.get('admin_user_id')
+            if admin_user_id:
+                if organization.is_active:
+                    log_activated(user_id=admin_user_id, target=organization)
+                else:
+                    log_deactivated(user_id=admin_user_id, target=organization)
+            
+            action = 'activated' if organization.is_active else 'deactivated'
+            
+            return Response(
+                {
+                    'success': True,
+                    'message': f'Organization {action} successfully',
+                    'data': OrganizationSerializer(organization).data,
+                    'is_active': organization.is_active
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Organization.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'Organization not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            print(f"ERROR: Failed to toggle organization active status - {str(e)}")
+            return Response(
+                {'success': False, 'message': f'Failed to toggle organization status: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

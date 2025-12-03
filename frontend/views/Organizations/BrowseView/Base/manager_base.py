@@ -874,8 +874,19 @@ class ManagerBase:
         """Process accept or reject action via API with auto-remove"""
         from services.organization_api_service import OrganizationAPIService
         from PyQt6.QtWidgets import QMessageBox
+        from PyQt6.QtCore import QSettings
         
-        api_response = OrganizationAPIService.process_application(application_id, action)
+        # Get the current user's profile_id for logging
+        admin_user_id = None
+        try:
+            settings = QSettings("CISC", "MasterRoute")
+            admin_user_id = settings.value("user_profile_id")
+            if admin_user_id:
+                admin_user_id = int(admin_user_id)
+        except Exception as e:
+            print(f"DEBUG: Could not get user_profile_id from QSettings: {e}")
+        
+        api_response = OrganizationAPIService.process_application(application_id, action, admin_user_id)
         
         if api_response.get("success"):
             action_text = "accepted" if action == "accept" else "rejected"

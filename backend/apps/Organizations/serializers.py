@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Organization, ApplicationDetails, MembershipApplication
+from .models import Organization, ApplicationDetails, MembershipApplication, Log
 from apps.Users.models import StudentProfile, BaseUser
 
 
@@ -27,7 +27,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Organization
-        fields = ['id', 'name', 'description', 'objectives', 'status', 'logo_path', 'created_at', 'org_level', 'main_org']
+        fields = ['id', 'name', 'description', 'objectives', 'status', 'logo_path', 'created_at', 'org_level', 'main_org', 'is_archived', 'is_active']
         read_only_fields = ['id', 'created_at']
     
     def create(self, validated_data):
@@ -127,3 +127,13 @@ class ApplicantSerializer(serializers.ModelSerializer):
         fields = ['id', 'student_id', 'student_name', 'student_username', 'student_email', 
                   'program', 'year_level', 'organization_name', 'application_status']
         read_only_fields = ['id']
+
+
+class LogSerializer(serializers.ModelSerializer):
+    """Serializer for Log model"""
+    action_display = serializers.CharField(source='get_action_display', read_only=True)
+    
+    class Meta:
+        model = Log
+        fields = ['id', 'user_id', 'action', 'action_display', 'target_id', 'target_type', 'date_created']
+        read_only_fields = ['id', 'date_created']

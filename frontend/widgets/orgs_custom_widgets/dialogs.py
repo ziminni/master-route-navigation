@@ -2,7 +2,7 @@ from PyQt6 import QtWidgets, QtCore, QtGui
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QScrollArea, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from PyQt6.QtWidgets import QDialog
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTableView, QHeaderView, QPushButton, QLabel, QHBoxLayout
-from PyQt6.QtCore import Qt, QAbstractTableModel, QUrl, QTimer
+from PyQt6.QtCore import Qt, QAbstractTableModel, QUrl, QTimer, QSettings
 from PyQt6.QtGui import QDesktopServices
 import json
 import os
@@ -739,7 +739,12 @@ class EditOfficerDialog(BaseEditDialog):
         # Call API to update member position
         response = OrganizationAPIService.update_member_position(
             member_id=member_id,
-            position_data=update_data
+            position_id=update_data.get('position_id'),
+            position_name=update_data.get('position_name'),
+            start_term=update_data.get('start_term'),
+            end_term=update_data.get('end_term'),
+            updated_by_id=update_data.get('updated_by_id'),
+            photo=update_data.get('photo')
         )
         
         if response.get('success'):
@@ -1209,6 +1214,16 @@ class EditOrgDialog(BaseOrgDialog):
                 item_org_id = item.data(QtCore.Qt.ItemDataRole.UserRole)
                 selected_main_orgs.append(item_org_id)
         
+        # Get the current user's profile_id for logging
+        updated_by_id = None
+        try:
+            settings = QSettings("CISC", "MasterRoute")
+            updated_by_id = settings.value("user_profile_id")
+            if updated_by_id:
+                updated_by_id = int(updated_by_id)
+        except Exception as e:
+            print(f"DEBUG: Could not get user_profile_id from QSettings: {e}")
+        
         # Call API to update organization
         api_response = OrganizationAPIService.update_organization(
             org_id=org_id,
@@ -1218,7 +1233,8 @@ class EditOrgDialog(BaseOrgDialog):
             org_level=new_org_level,
             logo_path=logo_full_path,
             status="active",
-            main_org_ids=selected_main_orgs if selected_main_orgs else None
+            main_org_ids=selected_main_orgs if selected_main_orgs else None,
+            updated_by_id=updated_by_id
         )
         
         # Handle API response
@@ -1282,6 +1298,16 @@ class CreateOrgDialog(BaseOrgDialog):
         if logo_filename != "No Photo":
             logo_full_path = get_image_path(logo_filename)
         
+        # Get the current user's profile_id for logging
+        created_by_id = None
+        try:
+            settings = QSettings("CISC", "MasterRoute")
+            created_by_id = settings.value("user_profile_id")
+            if created_by_id:
+                created_by_id = int(created_by_id)
+        except Exception as e:
+            print(f"DEBUG: Could not get user_profile_id from QSettings: {e}")
+        
         # Call the API to create the organization
         api_response = OrganizationAPIService.create_organization(
             name=name,
@@ -1290,7 +1316,8 @@ class CreateOrgDialog(BaseOrgDialog):
             org_level=org_level,
             logo_path=logo_full_path,
             status="active",
-            main_org_ids=selected_main_orgs if selected_main_orgs else None
+            main_org_ids=selected_main_orgs if selected_main_orgs else None,
+            created_by_id=created_by_id
         )
         
         # Handle API response

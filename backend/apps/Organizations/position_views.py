@@ -9,6 +9,7 @@ from datetime import date
 
 from .models import Positions, OrganizationMembers, OfficerTerm, Organization
 from apps.Users.models import BaseUser
+from .log_service import log_edited
 
 
 class PositionsListView(APIView):
@@ -191,6 +192,10 @@ class MemberPositionUpdateView(APIView):
                     )
                     print(f"DEBUG: Deactivated {updated_count} officer terms for member {member_id}")
                     
+                    # Log the edit action (demoted to member)
+                    if updated_by_user and updated_count > 0:
+                        log_edited(user_id=updated_by_user.id, target=member)
+                    
                 else:
                     # Validate start_term and end_term are provided for officer positions
                     if not start_term_str:
@@ -331,6 +336,10 @@ class MemberPositionUpdateView(APIView):
                         print(f"DEBUG: New photo uploaded: {new_term.photo.name}")
                     elif existing_photo:
                         print(f"DEBUG: Existing photo preserved: {new_term.photo.name}")
+                    
+                    # Log the position edit action
+                    if updated_by_user:
+                        log_edited(user_id=updated_by_user.id, target=member)
                 
                 # Get updated member data with current position
                 current_officer = OfficerTerm.objects.filter(

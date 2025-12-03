@@ -5,9 +5,6 @@ from apps.Users.models import StudentProfile, FacultyProfile
 
 # Create your models here.
 
-class Semester(models.Model):
-    sem = models.SmallIntegerField()
-
 class Status(models.TextChoices):
     ACTIVE = "active", "Active"
     INACTIVE = "inactive", "Inactive"
@@ -47,9 +44,40 @@ class Organization(models.Model):
     symmetrical=False,
     blank=True
     )
+    
+    is_archived = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     # class Meta:
     #     db_table = "organization"
+
+
+class Log(models.Model):
+    user_id = models.SmallIntegerField()
+    class Action(models.TextChoices):
+        KICKED = "kicked", "Kicked"
+        ACCEPTED = "accepted", "Accepted"
+        REJECTED = "rejected", "Rejected"
+        APPLIED = "applied", "Applied"
+        ARCHIVED = "archived", "Archived"
+        EDITED = "edited", "Edited"
+        CREATED = "created", "Created"
+        ACTIVATE = "activated", "Activated"
+        DEACTIVATE = "deactivate", 'Deactivate'
+    
+    action = models.CharField(
+        max_length= 20,
+        choices=Action.choices,
+
+    )
+    
+    target_id = models.SmallIntegerField()
+    
+    target_type = models.CharField(max_length=100)
+    
+    date_created = models.DateTimeField(auto_now_add=True)
+        
+         
 
 
 class OrganizationMembers(models.Model):
@@ -106,25 +134,23 @@ class OrgAdviserTerm(models.Model):
     org = models.ForeignKey(Organization, on_delete=models.CASCADE)
     adviser = models.ForeignKey(FacultyProfile, on_delete=models.PROTECT, related_name="org_advisory")
     role = models.CharField(max_length=12, choices=AdviserRoles.choices)
-    semester = models.IntegerField()
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     
     class Meta:
         constraints = [
-            # only one PRIMARY adviser per org per semester
+            # only one PRIMARY adviser per org per 
             models.UniqueConstraint(
-                fields=["org", "semester", "role"],
-                name="one_primary_adviser_per_semester",
+                fields=["org", "role"],
+                name="one_primary_adviser",
                 condition=models.Q(role="pri"),
             ),
             # prevent duplicate same adviser/role/period rows
             models.UniqueConstraint(
-                fields=["org","adviser","semester","role"], 
+                fields=["org","adviser","role"], 
                 name="uniq_adviser_role_period"
             ),
         ]
-
 
 
 class OfficerTerm(models.Model):
@@ -152,19 +178,3 @@ class OfficerTerm(models.Model):
         ]
 
 
-class OrgActivation(models.Model):
-    org       = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="activations")
-    semester  = models.ForeignKey(Semester, on_delete=models.PROTECT, related_name="org_activations")
-    status    = models.CharField(max_length=10, choices=[("active","Active"), ("inactive","Inactive")], default="active")
-    registered_at = models.DateTimeField(auto_now_add=True)
-    notes     = models.TextField(blank=True)
-
-    class Meta:
-        constraints = [
-            # at most one activation row per (org, semester)
-            models.UniqueConstraint(fields=["org", "semester"], name="uniq_org_semester_activation"),
-            # optional: only one *active* row per (org, semester)
-            models.UniqueConstraint(fields=["org", "semester", "status"],
-                                    name="one_active_activation_per_period",
-                                    condition=models.Q(status="active")),
-        ]

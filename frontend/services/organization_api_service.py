@@ -13,22 +13,28 @@ class OrganizationAPIService:
     BASE_URL = "http://localhost:8000/api/organizations"
     
     @staticmethod
-    def fetch_organizations(search_query: Optional[str] = None) -> Dict:
+    def fetch_organizations(search_query: Optional[str] = None, role: Optional[str] = None, include_archived: bool = False) -> Dict:
         """
         Fetch all organizations from the database or search by query
         
         Args:
             search_query: Optional search term to filter organizations
+            role: User role ('admin' to see all, otherwise only active & non-archived)
+            include_archived: If True and role is admin, only fetch archived orgs
         
         Returns:
             Dictionary containing the API response with list of organizations
         """
         url = f"{OrganizationAPIService.BASE_URL}/"
         
-        # Add search query parameter if provided
+        # Add query parameters
         params = {}
         if search_query:
             params['search'] = search_query
+        if role:
+            params['role'] = role
+        if include_archived:
+            params['include_archived'] = 'true'
         
         try:
             response = requests.get(url, params=params, timeout=10)
@@ -126,7 +132,8 @@ class OrganizationAPIService:
         objectives: Optional[str] = None,
         logo_path: Optional[str] = None,
         status: str = "active",
-        main_org_ids: Optional[list] = None
+        main_org_ids: Optional[list] = None,
+        created_by_id: Optional[int] = None
     ) -> Dict:
         """
         Create a new organization via API
@@ -139,6 +146,7 @@ class OrganizationAPIService:
             logo_path: Path to logo file (optional)
             status: Organization status (default: 'active')
             main_org_ids: List of parent organization IDs (optional)
+            created_by_id: BaseUser ID of user creating the org (optional, for logging)
             
         Returns:
             Dictionary containing the API response
@@ -160,6 +168,10 @@ class OrganizationAPIService:
         # Add main_org if provided
         if main_org_ids:
             data["main_org"] = main_org_ids
+        
+        # Add created_by_id for logging
+        if created_by_id:
+            data["created_by_id"] = created_by_id
         
         # Handle file upload if logo_path is provided
         files = None
@@ -225,7 +237,8 @@ class OrganizationAPIService:
         org_level: Optional[str] = None,
         logo_path: Optional[str] = None,
         status: Optional[str] = None,
-        main_org_ids: Optional[list] = None
+        main_org_ids: Optional[list] = None,
+        updated_by_id: Optional[int] = None
     ) -> Dict:
         """
         Update an existing organization via API
@@ -239,6 +252,7 @@ class OrganizationAPIService:
             logo_path: Path to logo file (optional)
             status: Organization status (optional)
             main_org_ids: List of parent organization IDs (optional)
+            updated_by_id: BaseUser ID of user updating the org (optional, for logging)
             
         Returns:
             Dictionary containing the API response
@@ -259,6 +273,8 @@ class OrganizationAPIService:
             data["status"] = status
         if main_org_ids is not None:
             data["main_org"] = main_org_ids
+        if updated_by_id is not None:
+            data["updated_by_id"] = updated_by_id
         
         # Handle file upload if logo_path is provided
         files = None
@@ -417,13 +433,14 @@ class OrganizationAPIService:
             }
     
     @staticmethod
-    def process_application(application_id: int, action: str) -> Dict:
+    def process_application(application_id: int, action: str, admin_user_id: Optional[int] = None) -> Dict:
         """
         Accept or reject a membership application
         
         Args:
             application_id: The application ID
             action: 'accept' or 'reject'
+            admin_user_id: BaseUser ID of admin performing the action (optional, for logging)
             
         Returns:
             Dictionary containing the API response
@@ -433,6 +450,10 @@ class OrganizationAPIService:
         data = {
             "action": action
         }
+        
+        # Add admin_user_id for logging
+        if admin_user_id:
+            data["admin_user_id"] = admin_user_id
         
         try:
             response = requests.put(url, json=data, timeout=10)
@@ -961,6 +982,184 @@ class OrganizationAPIService:
                     'success': False,
                     'error': error_data.get('message', 'Unknown error'),
                     'message': error_data.get('message', 'Failed to retrieve members'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+
+    @staticmethod
+    def get_logs(action: Optional[str] = None, target_type: Optional[str] = None, 
+                 user_id: Optional[int] = None, limit: int = 100) -> Dict:
+        """
+        Get organization action logs with optional filters
+        
+        Args:
+            action: Filter by action type (created, edited, kicked, accepted, rejected, applied, archived)
+            target_type: Filter by target type (Organization, OrganizationMembers, MembershipApplication, etc.)
+            user_id: Filter by user who performed the action
+            limit: Maximum number of logs to return (default: 100)
+            
+        Returns:
+            Dictionary containing the API response with list of logs
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/logs/"
+        
+        params = {'limit': limit}
+        if action:
+            params['action'] = action
+        if target_type:
+            params['target_type'] = target_type
+        if user_id:
+            params['user_id'] = user_id
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', []),
+                    'message': response_data.get('message', 'Logs retrieved successfully'),
+                    'count': response_data.get('count', 0)
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to retrieve logs'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+
+    @staticmethod
+    def get_logs_for_target(target_type: str, target_id: int) -> Dict:
+        """
+        Get all logs for a specific target (e.g., all logs for Organization #5)
+        
+        Args:
+            target_type: The type of target (e.g., 'Organization', 'OrganizationMembers')
+            target_id: The ID of the target
+            
+        Returns:
+            Dictionary containing the API response with list of logs
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/logs/{target_type}/{target_id}/"
+        
+        try:
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', []),
+                    'message': response_data.get('message', 'Logs retrieved successfully'),
+                    'count': response_data.get('count', 0)
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to retrieve logs'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+
+    @staticmethod
+    def archive_organization(org_id: int, admin_user_id: Optional[int] = None) -> Dict:
+        """
+        Archive an organization (cannot be retrieved after archiving)
+        
+        Args:
+            org_id: The organization ID to archive
+            admin_user_id: BaseUser ID of admin performing the action (for logging)
+            
+        Returns:
+            Dictionary containing the API response
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/{org_id}/archive/"
+        
+        data = {}
+        if admin_user_id:
+            data['admin_user_id'] = admin_user_id
+        
+        try:
+            response = requests.post(url, json=data, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', {}),
+                    'message': response_data.get('message', 'Organization archived successfully')
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to archive organization'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+
+    @staticmethod
+    def toggle_organization_active(org_id: int, admin_user_id: Optional[int] = None) -> Dict:
+        """
+        Toggle an organization's active status (activate/deactivate)
+        
+        Args:
+            org_id: The organization ID
+            admin_user_id: BaseUser ID of admin performing the action (for logging)
+            
+        Returns:
+            Dictionary containing the API response with new is_active status
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/{org_id}/toggle-active/"
+        
+        data = {}
+        if admin_user_id:
+            data['admin_user_id'] = admin_user_id
+        
+        try:
+            response = requests.post(url, json=data, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', {}),
+                    'message': response_data.get('message', 'Organization status updated successfully'),
+                    'is_active': response_data.get('is_active', False)
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to update organization status'),
                     'status_code': response.status_code
                 }
         except requests.exceptions.RequestException as e:

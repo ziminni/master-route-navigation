@@ -165,8 +165,9 @@ class Faculty(ManagerBase, FacultyAdminBase):
                     "logo_path": org.get('logo_path', 'No Photo'),
                     "org_level": org.get('org_level', 'col'),
                     "created_at": org.get('created_at'),
-                    "is_branch": False,  # TODO: Add is_branch field to backend model
-                    "is_archived": False,  # TODO: Check status field
+                    "is_branch": False,
+                    "is_archived": org.get('is_archived', False),
+                    "is_active": org.get('is_active', True),
                     "brief": "College Level" if org.get('org_level') == 'col' else "Program Level",
                     "branches": [],
                     "events": [],

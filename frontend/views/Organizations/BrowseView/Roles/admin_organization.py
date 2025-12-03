@@ -78,6 +78,9 @@ class Admin(ManagerBase, FacultyAdminBase):
         FacultyAdminBase.__init__(self, name=admin_name)
         ManagerBase.__init__(self)
         
+        # Set admin role for API calls
+        self.user_role = "admin"
+        
         # Initialize members_dict for storing full member data
         self.members_dict = {}
         
@@ -203,9 +206,6 @@ class Admin(ManagerBase, FacultyAdminBase):
             }
         """)
 
-        generate_reports_action = self.admin_menu.addAction("Generate Reports")
-        generate_reports_action.triggered.connect(self._generate_reports)
-        
         audit_logs_action = self.admin_menu.addAction("Audit Logs")
         audit_logs_action.triggered.connect(self._open_audit_logs)
         
@@ -342,20 +342,25 @@ class Admin(ManagerBase, FacultyAdminBase):
         
     def _generate_reports(self) -> None:
         """Navigate to generate reports page."""
-        self._populate_reports_orgs() 
-        self.reports_ui.report_preview_text.clear()
-        self.report_start_date = None
-        self.report_end_date = None
-        self.reports_ui.pushButton.setText("Start Date")
-        self.reports_ui.pushButton_2.setText("End Date")
-        
-        self.last_report_logs = []
-        self.last_report_data = []
-        self.last_report_org = ""
-        self.last_report_type = ""
-        self.last_report_header_text = ""
-        
-        self.ui.stacked_widget.setCurrentIndex(4)
+        try:
+            self._populate_reports_orgs() 
+            self.reports_ui.report_preview_text.clear()
+            self.report_start_date = None
+            self.report_end_date = None
+            self.reports_ui.pushButton.setText("Start Date")
+            self.reports_ui.pushButton_2.setText("End Date")
+            
+            self.last_report_logs = []
+            self.last_report_data = []
+            self.last_report_org = ""
+            self.last_report_type = ""
+            self.last_report_header_text = ""
+            
+            self.ui.stacked_widget.setCurrentIndex(4)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(self, "Error", f"Error opening Generate Reports: {str(e)}")
 
     def _open_audit_logs(self) -> None:
         """Navigate to audit logs page and initialize data."""
@@ -367,19 +372,33 @@ class Admin(ManagerBase, FacultyAdminBase):
         self.ui.stacked_widget.setCurrentIndex(3)
         
     def _load_all_audit_logs_into_cache(self) -> None:
-        """Loads all audit logs into a list, reversed by timestamp, and caches them."""
+        """Loads all audit logs from database API and caches them."""
         logs = []
         try:
-            if os.path.exists(self.audit_log_file):
-                with open(self.audit_log_file, 'r') as f:
-                    logs = json.load(f)
-                    if not isinstance(logs, list):
-                        logs = []
+            # Fetch logs from database API
+            from services.organization_api_service import OrganizationAPIService
+            response = OrganizationAPIService.get_logs(limit=1000)
+            
+            if response.get('success'):
+                api_logs = response.get('data', [])
+                # Transform API log format to match expected format for display
+                for log in api_logs:
+                    logs.append({
+                        'timestamp': log.get('date_created', ''),
+                        'actor': log.get('user_name', f"User #{log.get('user_id', 'Unknown')}"),
+                        'action': log.get('action_display', log.get('action', '')),
+                        'organization': log.get('target_type', ''),
+                        'subject': log.get('target_name', f"{log.get('target_type', '')} #{log.get('target_id', '')}"),
+                        'details': f"{log.get('action_display', log.get('action', ''))} on {log.get('target_name', log.get('target_type', ''))}"
+                    })
+            else:
+                print(f"Error fetching logs from API: {response.get('message', 'Unknown error')}")
         except Exception as e:
-            print(f"Error loading audit log file: {str(e)}")
+            print(f"Error loading audit logs from API: {str(e)}")
+            import traceback
+            traceback.print_exc()
             logs = []
             
-        logs.reverse()
         self.cached_audit_logs = logs
 
     def _show_archived_view(self) -> None:
@@ -526,10 +545,36 @@ class Admin(ManagerBase, FacultyAdminBase):
         page_label.setText(f"Page {self.current_archived_page + 1} of {max(1, total_pages)}")
     
     def get_archived(self, is_branch: bool = None, search_text: str = "") -> List[Dict]:
-        archived = super().get_archived(is_branch=is_branch)
-        if search_text:
-            search_lower = search_text.lower()
-            archived = [item for item in archived if search_lower in item["name"].lower()]
+        """Fetch archived organizations from the API."""
+        from services.organization_api_service import OrganizationAPIService
+        
+        api_response = OrganizationAPIService.fetch_organizations(
+            search_query=search_text if search_text else None,
+            role='admin',
+            include_archived=True
+        )
+        
+        archived = []
+        if api_response.get('success'):
+            organizations_data = api_response.get('data', [])
+            for org in organizations_data:
+                org_dict = {
+                    "id": org.get('id'),
+                    "name": org.get('name'),
+                    "description": org.get('description', ''),
+                    "objectives": org.get('objectives', ''),
+                    "status": org.get('status', 'active'),
+                    "logo_path": org.get('logo_path', 'No Photo'),
+                    "org_level": org.get('org_level', 'col'),
+                    "created_at": org.get('created_at'),
+                    "is_branch": False,  # TODO: Check main_org field
+                    "is_archived": org.get('is_archived', False),
+                    "is_active": org.get('is_active', True),
+                }
+                # Filter by is_branch if specified
+                if is_branch is None or org_dict["is_branch"] == is_branch:
+                    archived.append(org_dict)
+        
         return archived
 
     def _create_organization(self) -> None:
@@ -629,10 +674,10 @@ class Admin(ManagerBase, FacultyAdminBase):
         orgs = self._load_data()
         self.reports_ui.select_org_dd.clear()
         for org in orgs:
-            if not org["is_branch"]:
-                self.reports_ui.select_org_dd.addItem(org["name"])
+            if not org.get("is_branch", False):
+                self.reports_ui.select_org_dd.addItem(org.get("name", "Unknown"))
                 for branch in org.get("branches", []):
-                    self.reports_ui.select_org_dd.addItem(f"  - {branch['name']}")
+                    self.reports_ui.select_org_dd.addItem(f"  - {branch.get('name', 'Unknown')}")
 
     def _create_calendar_dialog(self, current_date=None) -> tuple[QDialog, QCalendarWidget]:
         """Helper to create a modal calendar dialog."""
@@ -769,16 +814,29 @@ class Admin(ManagerBase, FacultyAdminBase):
         
         logs = []
         try:
-            if os.path.exists(self.audit_log_file):
-                with open(self.audit_log_file, 'r') as f:
-                    logs = json.load(f)
-                    if not isinstance(logs, list):
-                        logs = []
+            # Fetch logs from database API
+            from services.organization_api_service import OrganizationAPIService
+            response = OrganizationAPIService.get_logs(limit=1000)
+            
+            if response.get('success'):
+                api_logs = response.get('data', [])
+                # Transform API log format to match expected format for display
+                for log in api_logs:
+                    logs.append({
+                        'timestamp': log.get('date_created', ''),
+                        'actor': log.get('user_name', f"User #{log.get('user_id', 'Unknown')}"),
+                        'action': log.get('action_display', log.get('action', '')),
+                        'organization': log.get('target_name', log.get('target_type', '')),
+                        'subject': log.get('target_name', f"{log.get('target_type', '')} #{log.get('target_id', '')}"),
+                        'details': f"{log.get('action_display', log.get('action', ''))} on {log.get('target_name', log.get('target_type', ''))}"
+                    })
         except Exception as e:
             self.reports_ui.report_preview_text.setPlainText(f"Error loading audit logs: {e}")
             return
 
-        org_logs = [log for log in logs if log.get("organization") == org_name]
+        # For now, show all logs since we don't have org-specific filtering yet
+        # org_logs = [log for log in logs if log.get("organization") == org_name]
+        org_logs = logs  # Show all logs
         
         date_filtered_logs = []
         for log in org_logs:
@@ -989,40 +1047,114 @@ class Admin(ManagerBase, FacultyAdminBase):
         print("DEBUG show_org_details: Loading members view")
         self.load_members()
         
-        # Existing edit_btn code...
-        
-        # Add archive_btn below edit_btn
+        # Clean up existing admin buttons
         if self.archive_btn:
             self.ui.verticalLayout_10.removeWidget(self.archive_btn)
             self.archive_btn.deleteLater()
+            self.archive_btn = None
         
+        if hasattr(self, 'toggle_active_btn') and self.toggle_active_btn:
+            self.ui.verticalLayout_10.removeWidget(self.toggle_active_btn)
+            self.toggle_active_btn.deleteLater()
+            self.toggle_active_btn = None
+        
+        # Only add admin buttons if org is not archived
         if not org_data.get("is_archived", False):
+            edit_index = self.ui.verticalLayout_10.indexOf(self.edit_btn)
+            insert_pos = edit_index + 1 if edit_index != -1 else -1
+            
+            # Add Toggle Active/Inactive button
+            is_active = org_data.get("is_active", True)
+            self.toggle_active_btn = QtWidgets.QPushButton("Deactivate" if is_active else "Activate")
+            self.toggle_active_btn.setObjectName("toggle_active_btn")
+            self.toggle_active_btn.clicked.connect(self._toggle_org_active)
+            if is_active:
+                self.toggle_active_btn.setStyleSheet("border-radius: 10px; background-color: #f0ad4e; color: white; border: 2px solid #f0ad4e")
+            else:
+                self.toggle_active_btn.setStyleSheet("border-radius: 10px; background-color: #5cb85c; color: white; border: 2px solid #5cb85c")
+            
+            if insert_pos != -1:
+                spacer1 = QtWidgets.QSpacerItem(20, 10, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+                self.ui.verticalLayout_10.insertItem(insert_pos, spacer1)
+                self.ui.verticalLayout_10.insertWidget(insert_pos + 1, self.toggle_active_btn)
+                insert_pos += 2
+            else:
+                self.ui.verticalLayout_10.addWidget(self.toggle_active_btn)
+            
+            # Add Archive button
             self.archive_btn = QtWidgets.QPushButton("Archive")
             self.archive_btn.setObjectName("archive_btn")
             self.archive_btn.clicked.connect(self._confirm_archive)
             self.archive_btn.setStyleSheet("border-radius: 10px; background-color: #EB5757; color: white; border: 2px solid #EB5757")
             
-            edit_index = self.ui.verticalLayout_10.indexOf(self.edit_btn)
-            if edit_index != -1:
-                spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
-                self.ui.verticalLayout_10.insertItem(edit_index + 1, spacer)
-                self.ui.verticalLayout_10.insertWidget(edit_index + 2, self.archive_btn)
+            if insert_pos != -1:
+                spacer2 = QtWidgets.QSpacerItem(20, 10, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+                self.ui.verticalLayout_10.insertItem(insert_pos, spacer2)
+                self.ui.verticalLayout_10.insertWidget(insert_pos + 1, self.archive_btn)
             else:
-                # Fallback
                 self.ui.verticalLayout_10.addWidget(self.archive_btn)
-        else:
-            self.archive_btn = None
+    
+    def _toggle_org_active(self):
+        """Toggle the organization's active/inactive status."""
+        if not self.current_org:
+            return
+        
+        org_id = self.current_org.get("id")
+        is_active = self.current_org.get("is_active", True)
+        action = "deactivate" if is_active else "activate"
+        
+        reply = QMessageBox.question(
+            self,
+            f"Confirm {action.capitalize()}",
+            f"Are you sure you want to {action} '{self.current_org.get('name')}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            from PyQt6.QtCore import QSettings
+            from services.organization_api_service import OrganizationAPIService
+            
+            # Get admin user ID for logging
+            settings = QSettings("CISC", "VirtualHub")
+            admin_user_id = settings.value("profile_id")
+            
+            response = OrganizationAPIService.toggle_organization_active(org_id, admin_user_id)
+            
+            if response.get('success'):
+                new_status = "activated" if response.get('is_active') else "deactivated"
+                QMessageBox.information(self, "Success", f"Organization {new_status} successfully.")
+                
+                # Update current_org and refresh the view
+                self.current_org['is_active'] = response.get('is_active')
+                self.show_org_details(self.current_org)
+                self.load_orgs()  # Refresh the org list
+            else:
+                QMessageBox.critical(self, "Error", f"Failed to {action} organization: {response.get('message')}")
             
     def _confirm_archive(self):
+        """Show confirmation dialog and archive the organization via API."""
         if not self.current_org:
             return
         dialog = ArchiveConfirmDialog(self.current_org["name"], self)
         if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-            is_branch = self.current_org.get("is_branch", False)
-            self.archive_org(self.current_org["id"], is_branch)
-            QMessageBox.information(self, "Success", f"{'Branch' if is_branch else 'Organization'} archived.")
-            self._return_to_prev_page()  # Refresh list
-            self.load_orgs()
+            from PyQt6.QtCore import QSettings
+            from services.organization_api_service import OrganizationAPIService
+            
+            org_id = self.current_org.get("id")
+            
+            # Get admin user ID for logging
+            settings = QSettings("CISC", "VirtualHub")
+            admin_user_id = settings.value("profile_id")
+            
+            response = OrganizationAPIService.archive_organization(org_id, admin_user_id)
+            
+            if response.get('success'):
+                QMessageBox.information(self, "Success", "Organization archived successfully.")
+                self._return_to_prev_page()
+                self.load_orgs()
+            else:
+                QMessageBox.critical(self, "Error", f"Failed to archive organization: {response.get('message')}")
 
     def _fetch_applicants(self, org_id: int) -> None:
         """Fetch pending applicants for the organization from the API."""
@@ -1116,9 +1248,20 @@ class Admin(ManagerBase, FacultyAdminBase):
         """Process accept or reject action via API - override to refresh members on accept"""
         from services.organization_api_service import OrganizationAPIService
         from PyQt6.QtWidgets import QMessageBox
+        from PyQt6.QtCore import QSettings
+        
+        # Get the current user's profile_id for logging
+        admin_user_id = None
+        try:
+            settings = QSettings("CISC", "MasterRoute")
+            admin_user_id = settings.value("user_profile_id")
+            if admin_user_id:
+                admin_user_id = int(admin_user_id)
+        except Exception as e:
+            print(f"DEBUG: Could not get user_profile_id from QSettings: {e}")
         
         print(f"DEBUG: Processing application {application_id} with action: {action}")
-        api_response = OrganizationAPIService.process_application(application_id, action)
+        api_response = OrganizationAPIService.process_application(application_id, action, admin_user_id)
         
         if api_response.get("success"):
             action_text = "accepted" if action == "accept" else "rejected"

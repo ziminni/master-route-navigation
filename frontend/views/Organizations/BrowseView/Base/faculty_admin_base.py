@@ -14,10 +14,15 @@ class FacultyAdminBase(OrganizationViewBase):
     def __init__(self, name: str):
         super().__init__(name=name)
         self.ui.joined_container.setVisible(False)
+        self.user_role = "user"  # Default role, Admin subclass will override
 
     def load_orgs(self, search_text: str = "") -> None:
         # Fetch organizations from API with optional search query
-        api_response = OrganizationAPIService.fetch_organizations(search_query=search_text if search_text else None)
+        # Pass role parameter so admin can see all orgs (including inactive)
+        api_response = OrganizationAPIService.fetch_organizations(
+            search_query=search_text if search_text else None,
+            role=self.user_role
+        )
         
         if api_response.get('success'):
             organizations_data = api_response.get('data', [])
@@ -34,8 +39,9 @@ class FacultyAdminBase(OrganizationViewBase):
                     "logo_path": org.get('logo_path', 'No Photo'),
                     "org_level": org.get('org_level', 'col'),
                     "created_at": org.get('created_at'),
-                    "is_branch": False,  # TODO: Add is_branch field to backend model
-                    "is_archived": False,  # TODO: Check status field
+                    "is_branch": False,  # Organizations with main_org are branches
+                    "is_archived": org.get('is_archived', False),
+                    "is_active": org.get('is_active', True),
                     "brief": "College Level" if org.get('org_level') == 'col' else "Program Level",
                     "branches": [],
                     "events": [],
