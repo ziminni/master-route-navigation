@@ -1,156 +1,98 @@
-# CISC Virtual Hub - Integrated Messaging System
+# Messaging Module Integration and Project Update Summary
 
-## 🎉 Integration Complete!
+## 1. Project Version Summary
 
-Your CISC Virtual Hub messaging system has been successfully integrated with real data management capabilities!
+This document provides a summary of the recent updates to the project, with a focus on the new features and the necessary steps to integrate and run the latest version. The most significant changes include the addition of a new Admin Dashboard and a complete refactoring of the Appointments module.
 
-## 📁 New Files Created
+### New Features
+
+*   **Admin Dashboard**: A new, data-rich dashboard has been added for administrators, providing insights into system usage, student engagement, and more. The dashboard is composed of several reusable components, including chart cards and metric cards.
+*   **Revamped Appointments**: The appointments module has been completely redesigned to improve its structure and scalability. The underlying data models and UI components have been updated to provide a more robust and maintainable feature.
+*   **Real-time Messaging**: The messaging module now supports real-time updates via WebSockets, allowing for instant message delivery and a more dynamic user experience.
+
+## 2. Requirements
+
+To run this version of the project, you will need to ensure that your environment is set up correctly. The following are the key requirements for the backend and frontend.
+
+### Backend Requirements
+
+*   **Python**: Ensure you have Python 3.11 or a compatible version installed.
+*   **Dependencies**: All the required Python packages are listed in the `requirements.txt` file. You can install them using the following command:
+    ```sh
+    pip install -r requirements.txt
+    ```
+*   **Database Setup**: The project now includes a setup script that will automatically create the database and the default users. To run the script, navigate to the `backend` directory and run the following command:
+    ```sh
+    python script.py
+    ```
+*   **Running the Server with Daphne**: To support WebSockets for real-time messaging, the development server must be run with Daphne, the ASGI server for Django. The project is already configured to use Daphne. You can start the server with the following command:
+    ```sh
+    python manage.py runserver
+    ```
+
+### Frontend Requirements
+
+*   **PyQt6**: The frontend is built with PyQt6. Ensure you have it installed in your environment.
+
+## 3. Messaging Module Integration
+
+The `Messaging` module is designed to be a self-contained component that can be easily integrated into the main application. The following steps outline how to integrate and use the module.
+
+### Launching the Messaging Module
+
+The entry point for the messaging module is the `LauncherWindow` class in `frontend/views/Messaging/launcher.py`. This window is responsible for loading the appropriate UI based on the user's role (student or faculty).
+
+To integrate the `LauncherWindow`, you will need to import it into your main router and add it to the page map, as shown in the following example:
+
+```python
+# In your main router file
+from frontend.views.Messaging.launcher import LauncherWindow
+
+# Add the LauncherWindow to your page map
+self.page_map[15] = {
+    "widget": LauncherWindow,
+    "path": "views.Messaging.launcher",
+    "access": ["student", "faculty"],
+}
+```
 
 ### Data Management
-- **`dummy_data.json`** - Complete database with users, messages, inquiries, and more
-- **`data_manager.py`** - Full CRUD operations module with comprehensive documentation
 
-### Applications
-- **`faculty_app.py`** - Faculty messaging interface with real data
-- **`launcher.py`** - Main launcher to choose between student and faculty portals
+The `DataManager` class (`frontend/views/Messaging/data_manager.py`) is responsible for all communication with the backend API. It handles fetching and sending messages, as well as managing user data. The `LauncherWindow` initializes the `DataManager` and passes it to the appropriate UI (student or faculty).
 
-## 🚀 How to Run the Integrated System
+### Real-time Updates with WebSockets
 
-### Option 1: Use the Launcher (Recommended)
-```bash
-python launcher.py
-```
-This will show a welcome screen where you can choose between:
-- 👨‍🎓 **Student Portal** - For students to create inquiries and chat
-- 👨‍🏫 **Faculty Portal** - For faculty to manage messages and inquiries
+The `faculty_app.py` and the student-facing UI are designed to connect to a WebSocket endpoint to receive real-time updates. The WebSocket connection is established in the `_init_ws` method, which connects to the `/ws/broadcasts/` endpoint.
 
-### Option 2: Run Individual Applications
-```bash
-# Student messaging app
-python msg_main.py
+When a new message is received, the `_on_ws_message` method is called, which then triggers the `_handle_incoming_message` method to update the UI in real-time.
 
-# Faculty messaging app  
-python faculty_app.py
-```
+## 4. Backend Configuration for Messaging
 
-## 🔧 What's New and Improved
+The backend has been configured to support the real-time features of the messaging module. The following are the key configuration details.
 
-### Student Portal (`msg_main.py`)
-- ✅ **Real Data Integration** - Now loads actual conversations from database
-- ✅ **Dynamic Chat List** - Shows real conversations with other users
-- ✅ **Smart Filtering** - Filter by All, Unread, Comm, Group
-- ✅ **Search Functionality** - Search conversations by participant names
-- ✅ **Contact Information** - Shows real user details when selecting chats
-- ✅ **Inquiry Creation** - Creates real inquiries in the database
+### `settings.py`
 
-### Faculty Portal (`faculty_app.py`)
-- ✅ **Message Management** - View all messages and inquiries assigned to faculty
-- ✅ **Advanced Filtering** - Filter by priority, status, and message type
-- ✅ **Search Messages** - Search through message content and titles
-- ✅ **Visual Message Cards** - Beautiful cards showing message details
-- ✅ **Real-time Updates** - Data updates immediately when changes are made
+In `backend/config/settings.py`, the `INSTALLED_APPS` have been updated to include `daphne` and `channels`:
 
-### Data Manager (`data_manager.py`)
-- ✅ **Complete CRUD Operations** - Create, Read, Update, Delete for all data types
-- ✅ **User Management** - Handle students and faculty accounts
-- ✅ **Message System** - Full messaging functionality
-- ✅ **Inquiry System** - Academic inquiry management
-- ✅ **Search & Filter** - Advanced search capabilities
-- ✅ **Statistics** - System analytics and user metrics
-- ✅ **Layman Documentation** - Every function explained in simple terms
-
-## 📊 Sample Data Included
-
-The system comes with realistic sample data:
-
-### Users
-- **Carlos Fidel Castro** (Student, Computer Science)
-- **Dr. Maria Santos** (Faculty, Information Technology)
-- **Prof. John Rodriguez** (Faculty, Computer Science)
-- **Andre Louie** (Student, Information Technology)
-- **Sarah Johnson** (Student, Computer Science)
-
-### Sample Conversations
-- Academic discussions about database assignments
-- Technical support inquiries
-- Grade appeals and administrative matters
-- Study group communications
-
-### Sample Inquiries
-- Database normalization help requests
-- IDE configuration issues
-- Grade appeal processes
-
-## 🎯 Key Features
-
-### For Students
-- Create inquiries to faculty members
-- View and manage conversations
-- Search through message history
-- Filter messages by type and status
-- Real-time contact information
-
-### For Faculty
-- Manage all assigned messages and inquiries
-- Filter by priority (Urgent, High, Normal)
-- Filter by status (Pending, Sent, Resolved)
-- Search through message content
-- Visual message cards with detailed information
-
-### Data Management
-- Persistent data storage in JSON format
-- Automatic data validation
-- Error handling and recovery
-- Comprehensive logging and debugging
-
-## 🔄 Data Flow
-
-1. **Launcher** → Choose role (Student/Faculty)
-2. **Application** → Loads user-specific data from database
-3. **User Actions** → Create, read, update, delete operations
-4. **Data Manager** → Handles all database operations
-5. **UI Updates** → Real-time interface updates
-
-## 🛠️ Technical Details
-
-### Architecture
-- **PyQt6** - Modern GUI framework
-- **JSON Database** - Simple, file-based data storage
-- **MVC Pattern** - Clean separation of concerns
-- **Event-driven** - Responsive user interface
-
-### File Structure
-```
-CISC_VHUB_MODULE_9/
-├── 📊 Data & Management
-│   ├── dummy_data.json          # Complete sample database
-│   └── data_manager.py          # CRUD operations module
-├── 🎓 Student Interface
-│   ├── msg_main.py              # Main student app (integrated)
-│   ├── inquiry.py               # Inquiry creation (integrated)
-│   └── recipient_dialog.py      # User selection
-├── 👨‍🏫 Faculty Interface
-│   ├── faculty_app.py           # Faculty messaging app
-│   └── faculty/                 # Faculty UI components
-├── 🚀 Launcher
-│   └── launcher.py              # Main application launcher
-└── 🎨 UI Components
-    ├── header.py                # Top navigation
-    ├── sidebar.py               # Collapsible navigation
-    └── ui/                      # Qt Designer files
+```python
+INSTALLED_APPS = [
+    "daphne",
+    # ... other apps
+    "channels",
+    "apps.Messaging",
+]
 ```
 
-## 🎉 Ready to Use!
+The `ASGI_APPLICATION` setting has also been configured to point to the routing configuration:
 
-Your messaging system is now fully functional with:
-- ✅ Real data management
-- ✅ User authentication simulation
-- ✅ Complete messaging functionality
-- ✅ Inquiry system
-- ✅ Search and filtering
-- ✅ Beautiful, responsive UI
-- ✅ Comprehensive documentation
+```python
+ASGI_APPLICATION = "config.asgi.application"
+```
 
-**Start the system with: `python launcher.py`**
+### `asgi.py`
 
-Enjoy your fully integrated CISC Virtual Hub messaging system! 🎊
+The `backend/config/asgi.py` file is the entry point for the ASGI server. It sets up the `ProtocolTypeRouter` to handle both HTTP and WebSocket connections.
+
+### URL Routing
+
+The WebSocket URL is defined in `backend/apps/Messaging/routing.py` and included in the main `asgi.py` file. This ensures that WebSocket connections to `/ws/broadcasts/` are handled by the appropriate consumer.
