@@ -1,9 +1,9 @@
-# Handles calendar, activities, search, and event persistence (JSON)
+# Handles calendar, activities, search, and event persistence (via API)
 
-import json
 import os
 from datetime import datetime
 
+import requests
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QStackedWidget, QMessageBox
 from PyQt6.QtGui import QFont
 
@@ -27,14 +27,13 @@ class MainCalendar(QWidget):
         self.primary_role = primary_role
         self.token = token
 
-        # ---------- JSON storage ----------
+        # ---------- API storage ----------
 
-        # events.json lives in the same directory as this file
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.events_file = os.path.join(current_dir, "events.json")
+        self.api_base = "http://127.0.0.1:8000/api/calendar/calendar-entries/"
+        self.headers = {"Authorization": f"Bearer {self.token}"}
 
-        # Load events from JSON file (creates empty file if missing)
-        self.sample_events = self.load_events_from_json()
+        # Load events from backend API
+        self.sample_events = self.load_events_from_api()
 
         # ---------- stacked UI ----------
 
@@ -52,7 +51,7 @@ class MainCalendar(QWidget):
             self.activities_widget.main_calendar = self
         elif role_lower == "student":
             self.activities_widget = StudentActivities(username, roles, primary_role, token)
-            self.activities_widget.main_calendar = self  # ensure filters work for students
+            self.activities_widget.main_calendar = self
         elif role_lower in ["staff", "faculty"]:
             self.activities_widget = StaffFacultyActivities(username, roles, primary_role, token)
             self.activities_widget.main_calendar = self
@@ -141,46 +140,57 @@ class MainCalendar(QWidget):
         layout.addWidget(self.stacked_widget)
 
     # -------------------------------------------------------------------------
-    # JSON load/save
+    # API load
     # -------------------------------------------------------------------------
 
-    def load_events_from_json(self):
-        """Load events list from events.json, creating an empty file if needed."""
+    def load_events_from_api(self):
+        """Load calendar entries from Django API and map them to UI event dicts."""
         try:
-            if os.path.exists(self.events_file):
-                with open(self.events_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    events = data.get("events", [])
-                    print(f"MainCalendar: Loaded {len(events)} events from JSON")
-                    return events
+            r = requests.get(self.api_base, headers=self.headers, timeout=10)
+            r.raise_for_status()
+            data = r.json()
 
-            # File does not exist: create empty
-            print("MainCalendar: events.json not found, creating empty file")
-            self.save_events_to_json([])
-            return []
+            if isinstance(data, dict):
+                items = data.get("results", [])
+            elif isinstance(data, list):
+                items = data
+            else:
+                items = []
+
+            events = []
+            for item in items:
+                start_iso = item.get("start_at")
+                # Keep ISO string; your widgets can format if needed
+                date_time_str = start_iso or ""
+
+                events.append({
+                    "id": item["id"],
+                    "date_time": date_time_str,
+                    "event": item["title"],
+                    "type": self._map_tags_to_type(item.get("tags", [])),
+                    "location": item.get("location") or "N/A",
+                    "status": "Upcoming",
+                })
+
+            print(f"MainCalendar: Loaded {len(events)} events from API")
+            return events
 
         except Exception as e:
-            print(f"MainCalendar: Error loading events: {e}")
+            print(f"MainCalendar: Error loading events from API: {e}")
             QMessageBox.warning(self, "Error", f"Failed to load events: {e}")
             return []
 
-    def save_events_to_json(self, events=None):
-        """Save the given events (or current sample_events) to events.json."""
-        try:
-            if events is None:
-                events = self.sample_events
-
-            data = {"events": events}
-            with open(self.events_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4)
-
-            print(f"MainCalendar: Saved {len(events)} events to JSON")
-            return True
-
-        except Exception as e:
-            print(f"MainCalendar: Error saving events: {e}")
-            QMessageBox.critical(self, "Error", f"Failed to save events: {e}")
-            return False
+    def _map_tags_to_type(self, tags):
+        """Convert CalendarEntry.tags to existing UI type labels."""
+        if "class" in tags or "Academic" in tags:
+            return "Academic"
+        if "org_event" in tags or "Organizational" in tags:
+            return "Organizational"
+        if "deadline" in tags or "Deadline" in tags:
+            return "Deadline"
+        if "holiday" in tags or "Holiday" in tags:
+            return "Holiday"
+        return "Academic"
 
     # -------------------------------------------------------------------------
     # View switching
@@ -221,38 +231,113 @@ class MainCalendar(QWidget):
             self.stacked_widget.setCurrentIndex(4)
 
     # -------------------------------------------------------------------------
-    # Event CRUD
+    # Event CRUD (via API)
     # -------------------------------------------------------------------------
 
-    def add_new_event(self, event_data):
-        """Append a new event and propagate to JSON and all views."""
-        self.sample_events.append(event_data)
+    def _event_to_payload(self, event_data):
+        """
+        Map UI event dict -> CalendarEntry POST/PUT payload.
+        Adjust parsing if you use formatted date_time strings.
+        """
+        date_time_str = event_data.get("date_time", "")
+        start_iso = None
+        if date_time_str:
+            # If your UI stores ISO strings, just pass them through
+            try:
+                # validate and normalize
+                dt = datetime.fromisoformat(date_time_str.replace("Z", "+00:00"))
+                start_iso = dt.isoformat()
+            except ValueError:
+                start_iso = None
 
-        if self.save_events_to_json():
+        t = event_data.get("type")
+        tags = []
+        if t == "Academic":
+            tags.append("class")
+        elif t == "Organizational":
+            tags.append("org_event")
+        elif t == "Deadline":
+            tags.append("deadline")
+        elif t == "Holiday":
+            tags.append("holiday")
+
+        return {
+            "source_ct_id": 1,   # temporary; set up properly in backend later
+            "source_id": 0,
+            "title": event_data.get("event"),
+            "start_at": start_iso,
+            "end_at": None,
+            "all_day": False,
+            "location": event_data.get("location") or "",
+            "is_public": True,
+            "tags": tags,
+            "org_status": "",
+            "org_id": None,
+            "section_id": None,
+            "semester_id": None,
+        }
+
+    def add_new_event(self, event_data):
+        """Create a CalendarEntry via API and refresh all views."""
+        try:
+            payload = self._event_to_payload(event_data)
+            r = requests.post(self.api_base, json=payload, headers=self.headers, timeout=10)
+            r.raise_for_status()
+            self.sample_events = self.load_events_from_api()
             self._reload_all_views()
             return True
-        return False
+        except Exception as e:
+            print(f"MainCalendar: Error creating event via API: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to create event: {e}")
+            return False
 
     def update_event(self, old_event_name, new_event_data):
-        """Replace an existing event by name and refresh all views."""
-        for i, event in enumerate(self.sample_events):
-            if event.get("event") == old_event_name:
-                self.sample_events[i] = new_event_data
+        """Update corresponding CalendarEntry via API and refresh."""
+        event_id = None
+        for e in self.sample_events:
+            if e.get("event") == old_event_name:
+                event_id = e.get("id")
                 break
+        if event_id is None:
+            QMessageBox.warning(self, "Error", "Event not found.")
+            return False
 
-        if self.save_events_to_json():
+        try:
+            payload = self._event_to_payload(new_event_data)
+            url = f"{self.api_base}{event_id}/"
+            r = requests.put(url, json=payload, headers=self.headers, timeout=10)
+            r.raise_for_status()
+            self.sample_events = self.load_events_from_api()
             self._reload_all_views()
             return True
-        return False
+        except Exception as e:
+            print(f"MainCalendar: Error updating event via API: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to update event: {e}")
+            return False
 
     def delete_event(self, event_name):
-        """Remove an event by name and refresh all views."""
-        self.sample_events = [e for e in self.sample_events if e.get("event") != event_name]
+        """Delete CalendarEntry via API and refresh."""
+        event_id = None
+        for e in self.sample_events:
+            if e.get("event") == event_name:
+                event_id = e.get("id")
+                break
+        if event_id is None:
+            QMessageBox.warning(self, "Error", "Event not found.")
+            return False
 
-        if self.save_events_to_json():
+        try:
+            url = f"{self.api_base}{event_id}/"
+            r = requests.delete(url, headers=self.headers, timeout=10)
+            if r.status_code not in (200, 204):
+                raise Exception(f"HTTP {r.status_code} {r.text[:200]}")
+            self.sample_events = self.load_events_from_api()
             self._reload_all_views()
             return True
-        return False
+        except Exception as e:
+            print(f"MainCalendar: Error deleting event via API: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to delete event: {e}")
+            return False
 
     def _reload_all_views(self):
         """Reload events into activities, calendar, and search views."""
@@ -270,13 +355,6 @@ class MainCalendar(QWidget):
     def filter_events(self, filter_type):
         """
         Return events filtered by logical type string.
-
-        filter_type options:
-            - "All Events"
-            - "Academic" / "Academic Activities"
-            - "Organizational" / "Organizational Activities"
-            - "Deadline" / "Deadlines"
-            - "Holiday" / "Holidays"
         """
         filter_map = {
             "All Events": None,

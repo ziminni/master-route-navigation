@@ -32,7 +32,8 @@ class Calendar(QWidget):
         # These will be set from MainCalendar
         self.navigate_to_activities = None
         self.navigate_to_search = None
-        self.main_calendar = None  # set this externally so on_month_filter_changed can call filter_events()
+        # set this externally so on_month_filter_changed can call filter_events()
+        self.main_calendar = None
 
         self.month_events_list = None
         self.upcoming_events_visible = True
@@ -116,7 +117,9 @@ class Calendar(QWidget):
         self.calendar = EventCalendarWidget()
         self.calendar.setNavigationBarVisible(True)
         self.calendar.setGridVisible(True)
-        self.calendar.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
+        self.calendar.setVerticalHeaderFormat(
+            QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader
+        )
 
         self.calendar.clicked.connect(self.on_calendar_date_clicked)
 
@@ -337,7 +340,9 @@ class Calendar(QWidget):
     # ---------- Day view ----------
 
     def setup_day_view(self):
-        self.day_view_container = DayView(self.username, self.roles, self.primary_role, self.token)
+        self.day_view_container = DayView(
+            self.username, self.roles, self.primary_role, self.token
+        )
         self.day_view_container.navigate_back_to_calendar = self.show_month_view
         self.day_view_container.navigate_to_activities = self.show_activities
         self.day_view_container.navigate_to_search = self.on_search_triggered
@@ -428,7 +433,7 @@ class Calendar(QWidget):
             "Academic Activities",
             "Organizational Activities",
             "Deadlines",
-            "Holidays"
+            "Holidays",
         ])
         self.month_filter_combo.currentTextChanged.connect(self.on_month_filter_changed)
         frame_layout.addWidget(self.month_filter_combo)
@@ -558,18 +563,63 @@ class Calendar(QWidget):
                 "Academic": "🟢",
                 "Organizational": "🔵",
                 "Deadline": "🟠",
-                "Holiday": "🔴"
+                "Holiday": "🔴",
             }
 
             upcoming_events = self._filter_upcoming_events(events)
             for event in upcoming_events:
                 icon = type_icons.get(event.get("type"), "⚪")
-                date_text = event.get("date_time", "").replace(chr(10), " - ")
-                event_text = f"{icon} {event.get('event', '')}\n    {date_text}"
+                date_display = self._format_date_time_for_list(
+                    event.get("date_time", "")
+                )
+                event_text = f"{icon} {event.get('event', '')}\n    {date_display}"
                 self.month_events_list.addItem(event_text)
 
         if hasattr(self, "day_view_container") and hasattr(self.day_view_container, "load_events"):
             self.day_view_container.load_events(events)
+
+    def _parse_event_date(self, date_time_str):
+        """
+        Parse event date from either:
+        - legacy 'MM/DD/YYYY\\nHH:MM AM' format, or
+        - ISO datetime 'YYYY-MM-DDTHH:MM:SS[+offset]'.
+        """
+        if not date_time_str:
+            raise ValueError("Empty date string")
+
+        # Legacy format with newline
+        if "\n" in date_time_str:
+            date_part = date_time_str.split("\n")[0].strip()
+            return datetime.strptime(date_part, "%m/%d/%Y").date()
+
+        # Try ISO 8601
+        try:
+            normalized = date_time_str.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(normalized)
+            return dt.date()
+        except ValueError:
+            # Fallback: plain MM/DD/YYYY
+            return datetime.strptime(date_time_str.strip(), "%m/%d/%Y").date()
+
+    def _format_date_time_for_list(self, date_time_str):
+        """
+        Return a nice 'MM/DD/YYYY - HH:MM AM' string for the upcoming list.
+        Handles both legacy and ISO strings.
+        """
+        if not date_time_str:
+            return "Unknown date"
+
+        # Legacy "MM/DD/YYYY\\n9:00 AM"
+        if "\n" in date_time_str:
+            return date_time_str.replace("\n", " - ").strip()
+
+        # ISO string
+        try:
+            normalized = date_time_str.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(normalized)
+            return dt.strftime("%m/%d/%Y - %I:%M %p")
+        except ValueError:
+            return date_time_str
 
     def _filter_upcoming_events(self, events):
         """Filter to events from today onward, sorted by date."""
@@ -579,25 +629,20 @@ class Calendar(QWidget):
         for event in events:
             date_str = event.get("date_time", "")
             try:
-                if "\n" in date_str:
-                    date_part = date_str.split("\n")[0].strip()
-                else:
-                    date_part = date_str.strip()
-                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
+                event_date = self._parse_event_date(date_str)
                 if event_date >= today:
                     upcoming.append(event)
-            except (ValueError, IndexError):
-                print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
+            except Exception:
+                print(
+                    f"Warning: Could not parse date for event "
+                    f"'{event.get('event', 'Unknown')}': {date_str}"
+                )
                 continue
 
         def get_event_date(ev):
             ds = ev.get("date_time", "")
             try:
-                if "\n" in ds:
-                    dp = ds.split("\n")[0].strip()
-                else:
-                    dp = ds.strip()
-                return datetime.strptime(dp, "%m/%d/%Y").date()
+                return self._parse_event_date(ds)
             except Exception:
                 return datetime.max.date()
 
@@ -618,12 +663,14 @@ class Calendar(QWidget):
                 "Academic": "🟢",
                 "Organizational": "🔵",
                 "Deadline": "🟠",
-                "Holiday": "🔴"
+                "Holiday": "🔴",
             }
             for event in upcoming_events:
                 icon = type_icons.get(event.get("type"), "⚪")
-                date_text = event.get("date_time", "").replace(chr(10), " - ")
-                event_text = f"{icon} {event.get('event', '')}\n    {date_text}"
+                date_display = self._format_date_time_for_list(
+                    event.get("date_time", "")
+                )
+                event_text = f"{icon} {event.get('event', '')}\n    {date_display}"
                 self.month_events_list.addItem(event_text)
 
     # ---------- Fallback widget ----------

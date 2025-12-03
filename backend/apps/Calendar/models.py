@@ -2,8 +2,8 @@ from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
-from backend.apps.Users import models as user_model
-from backend.apps.Announcements import models as announcement_model  # if used elsewhere
+from apps.Users import models as user_model
+from apps.Announcements import models as announcement_model  # if you really use it
 
 
 class CalendarEventType(models.TextChoices):

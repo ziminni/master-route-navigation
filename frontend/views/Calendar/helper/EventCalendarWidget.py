@@ -8,8 +8,33 @@ from PyQt6.QtCore import Qt, QDate
 class EventCalendarWidget(QCalendarWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        # map: QDate -> list of {"title": str, "type": str}
+        # map: QDate -> list of {"event": str, "type": str}
         self.events_by_date = {}
+
+    def _parse_event_date(self, date_time_str: str):
+        """
+        Parse a date from either:
+        - legacy 'MM/DD/YYYY\\nHH:MM AM'
+        - ISO datetime 'YYYY-MM-DDTHH:MM:SS[+offset]'
+        - plain 'MM/DD/YYYY'
+        Returns a datetime.date or raises.
+        """
+        if not date_time_str:
+            raise ValueError("Empty date string")
+
+        # Legacy format with newline
+        if "\n" in date_time_str:
+            date_part = date_time_str.split("\n")[0].strip()
+            return datetime.strptime(date_part, "%m/%d/%Y").date()
+
+        # Try ISO 8601 from API
+        try:
+            normalized = date_time_str.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(normalized)
+            return dt.date()
+        except ValueError:
+            # Fallback: plain MM/DD/YYYY
+            return datetime.strptime(date_time_str.strip(), "%m/%d/%Y").date()
 
     def set_events(self, events):
         """Store events grouped by QDate."""
@@ -19,11 +44,7 @@ class EventCalendarWidget(QCalendarWidget):
             title = ev.get("event", "")
             etype = ev.get("type", "")
             try:
-                if "\n" in date_str:
-                    date_part = date_str.split("\n")[0].strip()
-                else:
-                    date_part = date_str.strip()
-                dt = datetime.strptime(date_part, "%m/%d/%Y").date()
+                dt = self._parse_event_date(date_str)
                 qd = QDate(dt.year, dt.month, dt.day)
                 self.events_by_date.setdefault(qd, []).append(
                     {"event": title, "type": etype}
@@ -34,51 +55,49 @@ class EventCalendarWidget(QCalendarWidget):
                 print(f"Error parsing date '{date_str}': {e}")
                 continue
         print(f"Total dates with events: {len(self.events_by_date)}")
-        self.updateCells()  # Use updateCells() instead of update()
+        self.updateCells()
 
     def paintCell(self, painter, rect, date):
         # Get events for this date
         events = self.events_by_date.get(date, [])
         has_events = len(events) > 0
-        
+
         # Debug: print when painting cells with events
         if has_events:
             print(f"Painting cell for {date.toString('MM/dd/yyyy')} with {len(events)} events")
 
-        # Define type colors
+        # Type colors
         type_color_map = {
-            "Academic": QColor("#90EE90"),      # Light green
+            "Academic": QColor("#90EE90"),       # Light green
             "Organizational": QColor("#ADD8E6"), # Light blue
             "Deadline": QColor("#FFD700"),       # Gold
             "Holiday": QColor("#FFB6C1"),        # Light pink
         }
 
-        # ---------- 1) Draw background ----------
+        # 1) Background
         painter.save()
-        
+
         if has_events:
-            # Color background based on event type
             first_type = events[0].get("type", "")
             bg_color = type_color_map.get(first_type, QColor("#FFFFFF"))
         elif date == QDate.currentDate():
             bg_color = QColor("#FFF3C0")  # Light gold for today
         else:
-            bg_color = QColor("#FFFFFF")  # White for other days
+            bg_color = QColor("#FFFFFF")
 
         painter.setBrush(bg_color)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRect(rect)
         painter.restore()
 
-        # ---------- 2) Draw day number ----------
+        # 2) Day number
         painter.save()
         font = QFont()
         font.setBold(True)
         font.setPointSize(10)
         painter.setFont(font)
         painter.setPen(QColor("#000000"))
-        
-        # Day number in top-left
+
         day_rect = rect.adjusted(2, 2, -2, -rect.height() + 16)
         painter.drawText(
             day_rect,
@@ -87,35 +106,33 @@ class EventCalendarWidget(QCalendarWidget):
         )
         painter.restore()
 
-        # ---------- 3) Draw event title (if exists) ----------
+        # 3) Event title (first event)
         if has_events:
             painter.save()
             font = QFont()
-            font.setPointSize(7)  # Small font size
+            font.setPointSize(7)
             font.setBold(False)
             painter.setFont(font)
             painter.setPen(QColor("#000000"))
-            
-            # Get first event title
+
             title = events[0].get("event", "")
-            
-            # Truncate if too long
             title = painter.fontMetrics().elidedText(
                 title,
                 Qt.TextElideMode.ElideRight,
                 rect.width() - 6
             )
-            
-            # Draw title below day number with word wrap
+
             title_rect = rect.adjusted(2, 18, -2, -2)
             painter.drawText(
                 title_rect,
-                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap,
-                title
+                Qt.AlignmentFlag.AlignLeft
+                | Qt.AlignmentFlag.AlignTop
+                | Qt.TextFlag.TextWordWrap,
+                title,
             )
             painter.restore()
 
-        # ---------- 4) Border for today ----------
+        # 4) Border for today
         if date == QDate.currentDate():
             painter.save()
             pen = painter.pen()
