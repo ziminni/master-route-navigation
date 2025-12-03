@@ -18,50 +18,6 @@ from ..api_client import APIClient
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-class APIClient:
-    def __init__(self, base_url="http://localhost:8000/api", token=None):
-        self.base_url = base_url
-        self.token = token
-        self.headers = {"Authorization": f"Bearer {token}"} if token else {}
-
-    def get_all_appointments(self):
-        """Get all appointments for admin view"""
-        try:
-            response = requests.get(f"{self.base_url}/appointment/all_appointment_list/", headers=self.headers)
-            if response.status_code == 200:
-                return response.json()
-            return []
-        except Exception as e:
-            logging.error(f"Error fetching all appointments: {e}")
-            return []
-
-    def get_faculty_profiles(self):
-        """Get all faculty profiles"""
-        try:
-            response = requests.get(f"{self.base_url}/appointment/faculty_profiles/", headers=self.headers)
-            if response.status_code == 200:
-                return response.json()
-            return []
-        except Exception as e:
-            logging.error(f"Error fetching faculty profiles: {e}")
-            return []
-
-    def update_appointment(self, appointment_id, data):
-        """Update appointment status"""
-        try:
-            response = requests.patch(
-                f"{self.base_url}/appointment/update_appointment/{appointment_id}/", 
-                json=data, 
-                headers={**self.headers, "Content-Type": "application/json"}
-            )
-            if response.status_code == 200:
-                return response.json()
-            else:
-                logging.error(f"Error updating appointment: {response.text}")
-                return None
-        except Exception as e:
-            logging.error(f"Error updating appointment: {e}")
-            return None
 
 class AdminAppointmentPage_ui(QWidget):
     def __init__(self, username, roles, primary_role, token, parent=None):
@@ -70,7 +26,16 @@ class AdminAppointmentPage_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
+        
+        # Initialize API client with debug output
+        print(f"DEBUG: Initializing AdminAppointmentPage for user: {username}")
+        print(f"DEBUG: Token: {token[:20]}...")
+        
         self.appointment_crud = APIClient(token=token)
+        
+        # Test API connection
+        self.test_api_connection()
+        
         self.rows = []  # Store appointment data
         self.all_appointments = []  # Store all appointments for filtering
         self._setupAppointmentsPage()
@@ -81,6 +46,43 @@ class AdminAppointmentPage_ui(QWidget):
             QtWidgets.QSizePolicy.Policy.Expanding, 
             QtWidgets.QSizePolicy.Policy.Expanding
         )
+
+    def test_api_connection(self):
+        """Test API connection and authentication"""
+        try:
+            print(f"DEBUG: Testing API connection for admin...")
+            print(f"DEBUG: Base URL: {self.appointment_crud.base_url if hasattr(self.appointment_crud, 'base_url') else 'Not set'}")
+            
+            # Test getting all appointments
+            print(f"DEBUG: Testing get_all_appointments()...")
+            appointments = self.appointment_crud.get_all_appointments()
+            print(f"DEBUG: get_all_appointments() response type: {type(appointments)}")
+            print(f"DEBUG: get_all_appointments() response sample: {appointments[:2] if appointments and isinstance(appointments, list) and len(appointments) > 0 else appointments}")
+            
+            # Test getting faculties
+            print(f"DEBUG: Testing get_faculties()...")
+            faculties = self.appointment_crud.get_faculties()
+            print(f"DEBUG: get_faculties() response type: {type(faculties)}")
+            print(f"DEBUG: get_faculties() response sample: {faculties[:2] if faculties and isinstance(faculties, list) and len(faculties) > 0 else faculties}")
+            
+            if appointments is None:
+                print("ERROR: get_all_appointments() returned None - likely authentication or connection issue")
+            elif isinstance(appointments, list):
+                print(f"DEBUG: Successfully retrieved {len(appointments)} appointments")
+            else:
+                print(f"DEBUG: Unexpected response type for appointments: {type(appointments)}")
+                
+            if faculties is None:
+                print("ERROR: get_faculties() returned None - likely authentication or connection issue")
+            elif isinstance(faculties, list):
+                print(f"DEBUG: Successfully retrieved {len(faculties)} faculty profiles")
+            else:
+                print(f"DEBUG: Unexpected response type for faculties: {type(faculties)}")
+                
+        except Exception as e:
+            print(f"ERROR: Failed to test API connection: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _setupAppointmentsPage(self):
         self.setObjectName("Appointments_2")
@@ -435,7 +437,7 @@ class AdminAppointmentPage_ui(QWidget):
         
         if filter_info:
             status_message += f" | {filter_info}"
-        print(status_message)
+        print(f"DEBUG: {status_message}")
 
     def _updateTableWithData(self, appointments_data):
         """Update table with provided appointments data"""
@@ -484,65 +486,149 @@ class AdminAppointmentPage_ui(QWidget):
     def _populateAppointmentsTable(self):
         """Populate the table with appointment data from API"""
         try:
+            print("DEBUG: Starting to populate admin appointments table...")
+            
+            # Get appointments - using the correct method name
             appointments = self.appointment_crud.get_all_appointments()
-            faculty_profiles = self.appointment_crud.get_faculty_profiles()
+            print(f"DEBUG: Appointments response type: {type(appointments)}")
+            print(f"DEBUG: Appointments response: {appointments}")
+            
+            if appointments is None:
+                print("ERROR: get_all_appointments() returned None")
+                QtWidgets.QMessageBox.warning(self, "Connection Error", 
+                                          "Could not connect to the server. Please check your connection.")
+                self.all_appointments = []
+                self.rows = []
+                return
+                
+            if not isinstance(appointments, list):
+                print(f"ERROR: get_all_appointments() returned non-list: {type(appointments)}")
+                QtWidgets.QMessageBox.warning(self, "Data Error", 
+                                          "Invalid data received from server.")
+                self.all_appointments = []
+                self.rows = []
+                return
+            
+            # Get faculty profiles - using the correct method name
+            faculty_profiles = self.appointment_crud.get_faculties()
+            print(f"DEBUG: Faculty profiles response type: {type(faculty_profiles)}")
+            print(f"DEBUG: Faculty profiles response: {faculty_profiles}")
+            
+            if faculty_profiles is None:
+                print("WARNING: get_faculties() returned None")
+                faculty_profiles = []
+            elif not isinstance(faculty_profiles, list):
+                print(f"WARNING: get_faculties() returned non-list: {type(faculty_profiles)}")
+                faculty_profiles = []
             
             # Create faculty mapping
             faculty_map = {}
             for faculty in faculty_profiles:
-                user_info = faculty.get('user', {})
-                faculty_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-                if not faculty_name:
-                    faculty_name = user_info.get('username', 'Unknown')
-                faculty_map[faculty['id']] = faculty_name
+                try:
+                    faculty_id = faculty.get('id')
+                    if faculty_id:
+                        # Try different field names for user information
+                        user_info = faculty.get('user', {})
+                        if isinstance(user_info, dict):
+                            first_name = user_info.get('first_name', '')
+                            last_name = user_info.get('last_name', '')
+                            faculty_name = f"{first_name} {last_name}".strip()
+                            if not faculty_name:
+                                faculty_name = user_info.get('username', 'Unknown')
+                        else:
+                            faculty_name = faculty.get('name', f"Faculty {faculty_id}")
+                        
+                        faculty_map[faculty_id] = faculty_name
+                        print(f"DEBUG: Mapped faculty ID {faculty_id} to name: {faculty_name}")
+                except Exception as e:
+                    print(f"DEBUG: Error processing faculty profile: {e}")
+                    continue
+            
+            print(f"DEBUG: Faculty map created with {len(faculty_map)} entries")
             
             self.all_appointments = []
             for appt in appointments:
-                # Get faculty name
-                faculty_id = appt.get('faculty')
-                faculty_name = faculty_map.get(faculty_id, 'Unknown Faculty')
-                
-                # Get student info
-                student_info = appt.get('student', {})
-                if isinstance(student_info, dict):
-                    user_info = student_info.get('user', {})
-                    student_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-                    if not student_name:
-                        student_name = user_info.get('username', 'Unknown')
-                else:
-                    student_name = 'Unknown Student'
-                
-                # Format date and time
-                start_at = appt.get('start_at', '')
-                if 'T' in start_at:
-                    date_part, time_part = start_at.split('T')
-                    date_time = f"{date_part} {time_part[:5]}"
-                else:
+                try:
+                    print(f"DEBUG: Processing appointment: {appt.get('id')}")
+                    
+                    # Get faculty ID and name
+                    faculty_id = appt.get('faculty')
+                    faculty_name = faculty_map.get(faculty_id, f"Faculty {faculty_id}")
+                    
+                    # Get student info
+                    student_info = appt.get('student', {})
+                    student_name = "Unknown Student"
+                    
+                    if isinstance(student_info, dict):
+                        user_info = student_info.get('user', {})
+                        if isinstance(user_info, dict):
+                            first_name = user_info.get('first_name', '')
+                            last_name = user_info.get('last_name', '')
+                            student_name = f"{first_name} {last_name}".strip()
+                            if not student_name:
+                                student_name = user_info.get('username', 'Unknown Student')
+                        else:
+                            student_name = student_info.get('name', 'Unknown Student')
+                    
+                    # Format date and time
+                    start_at = appt.get('start_at', '')
                     date_time = start_at
-                
-                # Format created date
-                created_at = appt.get('created_at', '')
-                if 'T' in created_at:
-                    created_at = created_at.split('T')[0]
-                
-                appointment_data = {
-                    'id': appt['id'],
-                    'date_time': date_time,
-                    'faculty_name': faculty_name,
-                    'student_name': student_name,
-                    'purpose': appt.get('additional_details', 'No details provided'),
-                    'status': appt.get('status', 'PENDING').upper(),
-                    'created_at': created_at
-                }
-                
-                self.all_appointments.append(appointment_data)
+                    if start_at and 'T' in start_at:
+                        try:
+                            # Parse ISO format
+                            date_part, time_part = start_at.split('T')
+                            time_part = time_part.split('.')[0]  # Remove milliseconds if present
+                            time_part = time_part[:5]  # Get HH:MM
+                            date_time = f"{date_part} {time_part}"
+                        except Exception as e:
+                            print(f"DEBUG: Error parsing start_at date: {e}")
+                    
+                    # Format created date
+                    created_at = appt.get('created_at', '')
+                    if created_at and 'T' in created_at:
+                        created_at = created_at.split('T')[0]
+                    
+                    # Get purpose/description
+                    purpose = appt.get('additional_details', 'No details provided')
+                    if not purpose or purpose.strip() == "":
+                        purpose = "No details provided"
+                    
+                    # Get status
+                    status = appt.get('status', 'PENDING')
+                    if isinstance(status, str):
+                        status = status.upper()
+                    else:
+                        status = 'PENDING'
+                    
+                    appointment_data = {
+                        'id': appt.get('id', 'Unknown'),
+                        'date_time': date_time,
+                        'faculty_name': faculty_name,
+                        'student_name': student_name,
+                        'purpose': purpose,
+                        'status': status,
+                        'created_at': created_at
+                    }
+                    
+                    self.all_appointments.append(appointment_data)
+                    print(f"DEBUG: Added appointment {appt.get('id')}: {student_name} with {faculty_name}")
+                    
+                except Exception as e:
+                    print(f"DEBUG: Error processing appointment: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+            
+            print(f"DEBUG: Successfully processed {len(self.all_appointments)} appointments")
             
             self.rows = self.all_appointments.copy()
             self._updateTableWithData(self.all_appointments)
             
         except Exception as e:
-            print(f"Error loading appointments data: {e}")
-            QMessageBox.warning(self, "Error", f"Failed to load appointments: {str(e)}")
+            print(f"ERROR: Error loading appointments data: {e}")
+            import traceback
+            traceback.print_exc()
+            QtWidgets.QMessageBox.warning(self, "Error", f"Failed to load appointments: {str(e)}")
 
     def resizeEvent(self, event):
         """Handle window resize to adjust layout and table"""

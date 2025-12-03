@@ -40,20 +40,41 @@ class AppointmentSchedulerPage_ui(QWidget):
 
     def _initialize_user_data(self):
         """Initialize user data based on role"""
+        print(f"DEBUG: Initializing user data for {self.primary_role} - {self.username}")
+        
         if self.primary_role == "faculty":
             # For faculty, get their own profile
             faculty_profiles = self.crud.get_faculties()
-            print(f"faculty test: {faculty_profiles}")
-            print(self.username)
-            user_profile = next((fp for fp in faculty_profiles if fp['user']['first_name'] == self.username), None)
+            print(f"DEBUG: Faculty profiles: {faculty_profiles}")
+            print(f"DEBUG: Looking for faculty with username: {self.username}")
+            
+            user_profile = None
+            for fp in faculty_profiles:
+                user_info = fp.get('user', {})
+                print(f"DEBUG: Checking faculty: {user_info}")
+                # Try to match by username or first_name
+                if (user_info.get('username') == self.username or 
+                    user_info.get('first_name') == self.username):
+                    user_profile = fp
+                    break
+            
             if user_profile:
                 self.faculty_id = user_profile['id']
                 self.current_faculty_id = self.faculty_id
+                print(f"DEBUG: Found faculty profile. ID: {self.faculty_id}")
+            else:
+                print(f"DEBUG: No faculty profile found for {self.username}")
+                # If no profile found, use first faculty as fallback
+                if faculty_profiles:
+                    self.current_faculty_id = faculty_profiles[0]['id']
         else:
             # For students, show all faculty
             faculty_profiles = self.crud.get_faculties()
             if faculty_profiles:
                 self.current_faculty_id = faculty_profiles[0]['id']
+                print(f"DEBUG: Student mode. Selected faculty ID: {self.current_faculty_id}")
+            else:
+                print("DEBUG: No faculty profiles found")
         
         self._populateFacultyComboBox()
         self._populateWeeklySchedule()
@@ -61,6 +82,8 @@ class AppointmentSchedulerPage_ui(QWidget):
     def _populateFacultyComboBox(self):
         """Populate faculty selection combo box"""
         faculty_profiles = self.crud.get_faculties()
+        print(f"DEBUG: Populating faculty combo with {len(faculty_profiles)} profiles")
+        
         self.facultyComboBox.clear()
         
         for faculty in faculty_profiles:
@@ -74,6 +97,7 @@ class AppointmentSchedulerPage_ui(QWidget):
             index = self.facultyComboBox.findData(self.current_faculty_id)
             if index >= 0:
                 self.facultyComboBox.setCurrentIndex(index)
+                print(f"DEBUG: Set faculty combo to index {index} (ID: {self.current_faculty_id})")
 
     def _setupAppointmentSchedulerPage(self):
         self.setObjectName("AppointmentScheduler")
@@ -442,7 +466,10 @@ class AppointmentSchedulerPage_ui(QWidget):
 
     def _populateWeeklySchedule(self):
         """Populate weekly schedule with available slots and appointments"""
+        print(f"DEBUG: Populating weekly schedule for faculty ID: {self.current_faculty_id}")
+        
         if not self.current_faculty_id:
+            print("DEBUG: No faculty ID selected")
             return
 
         # Clear all cells first
@@ -466,47 +493,107 @@ class AppointmentSchedulerPage_ui(QWidget):
             current_date = start_of_week.addDays(i)
             col = i + 1  # Columns 1-7 for Sun-Sat
             date_map[col] = current_date.toString("yyyy-MM-dd")
+            print(f"DEBUG: Column {col} -> Date {date_map[col]}")
+
+        # Create time map for rows
+        time_map = {}
+        for row in range(48):  # 48 half-hour slots
+            hour = row // 2
+            minute = 30 if row % 2 else 0
+            time_key = f"{hour:02d}:{minute:02d}"
+            time_map[time_key] = row
 
         # Get available slots and appointments for each day
         for col, date_str in date_map.items():
-            available_slots = self.crud.get_faculty_available_schedule(self.current_faculty_id, date_str)
-            appointments = self.crud.get_faculty_appointments() if self.primary_role == "faculty" else self.crud.get_student_appointments()
+            print(f"DEBUG: Processing date {date_str} (column {col})")
             
-            # Create time map for rows
-            time_map = {}
-            for row in range(48):  # 48 half-hour slots
-                hour = row // 2
-                minute = 30 if row % 2 else 0
-                time_key = f"{hour:02d}:{minute:02d}"
-                time_map[time_key] = row
-
+            # Get available slots
+            available_slots = self.crud.get_faculty_available_schedule(self.current_faculty_id, date_str)
+            print(f"DEBUG: Available slots for {date_str}: {len(available_slots) if available_slots else 0}")
+            
+            # Get appointments
+            if self.primary_role == "faculty":
+                appointments = self.crud.get_faculty_appointments()
+            else:
+                appointments = self.crud.get_student_appointments()
+            
+            print(f"DEBUG: Found {len(appointments) if appointments else 0} appointments")
+            
             # Mark available slots
-            for slot in available_slots:
-                start_time = slot['start'].split('T')[1][:5]  # Extract HH:MM
-                if start_time in time_map:
-                    row = time_map[start_time]
-                    self._addWeeklySlot(row, col, "Available", None, True)
+            if available_slots:
+                for slot in available_slots:
+                    if isinstance(slot, dict):
+                        start_time_str = slot.get('start', '')
+                        if 'T' in start_time_str:
+                            # Extract HH:MM from ISO format
+                            try:
+                                start_time = start_time_str.split('T')[1][:5]
+                            except:
+                                start_time = start_time_str
+                        else:
+                            start_time = start_time_str[:5] if start_time_str else ''
+                        
+                        if start_time and start_time in time_map:
+                            row = time_map[start_time]
+                            self._addWeeklySlot(row, col, "Available", None, True)
+            else:
+                print(f"DEBUG: No available slots for {date_str}")
 
             # Mark appointments
-            for appt in appointments:
-                if appt.get('faculty', {}).get('id') == self.current_faculty_id:
-                    appt_date = appt['start_at'].split('T')[0]
-                    if appt_date == date_str:
-                        start_time = appt['start_at'].split('T')[1][:5]
-                        if start_time in time_map:
-                            row = time_map[start_time]
-                            status = appt.get('status', 'Pending')
-                            student_name = appt.get('student', {}).get('user', {}).get('first_name', 'Unknown')
-                            title = f"{status}: {student_name}"
-                            self._addWeeklySlot(row, col, title, appt['id'], False)
+            if appointments:
+                for appt in appointments:
+                    # Handle both cases: faculty as ID or as dictionary
+                    faculty_value = appt.get('faculty')
+                    
+                    # Check if this appointment belongs to the current faculty
+                    if isinstance(faculty_value, dict):
+                        faculty_match = faculty_value.get('id') == self.current_faculty_id
+                    else:
+                        # faculty_value is likely an ID (integer)
+                        faculty_match = faculty_value == self.current_faculty_id
+                    
+                    if faculty_match:
+                        # Check date
+                        appt_date = appt.get('start_at', '').split('T')[0] if 'T' in appt.get('start_at', '') else appt.get('start_at', '')
+                        if appt_date == date_str:
+                            start_time = appt.get('start_at', '').split('T')[1][:5] if 'T' in appt.get('start_at', '') else appt.get('start_at', '')[:5]
+                            if start_time in time_map:
+                                row = time_map[start_time]
+                                status = appt.get('status', 'Pending')
+                                
+                                # Get user name
+                                if self.primary_role == "faculty":
+                                    student_info = appt.get('student', {})
+                                    if isinstance(student_info, dict):
+                                        user_info = student_info.get('user', {})
+                                        user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+                                        if not user_name:
+                                            user_name = user_info.get('username', 'Unknown')
+                                    else:
+                                        user_name = "Unknown Student"
+                                else:
+                                    faculty_info = appt.get('faculty', {})
+                                    if isinstance(faculty_info, dict):
+                                        user_info = faculty_info.get('user', {})
+                                        user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+                                        if not user_name:
+                                            user_name = user_info.get('username', 'Unknown')
+                                    else:
+                                        user_name = "Unknown Faculty"
+                                
+                                title = f"{status}: {user_name}"
+                                self._addWeeklySlot(row, col, title, appt.get('id'), False)
+                                print(f"DEBUG: Added appointment at {date_str} {start_time}: {title}")
 
     def _onFacultyChanged(self, index):
         """Handle faculty selection change"""
         if index >= 0:
             self.current_faculty_id = self.facultyComboBox.itemData(index)
+            print(f"DEBUG: Faculty changed to ID: {self.current_faculty_id}")
             self._populateWeeklySchedule()
 
     def _updateWeek(self):
+        print("DEBUG: Date changed, updating schedule")
         self._populateWeeklySchedule()
 
     def _prevWeek(self):
@@ -531,33 +618,67 @@ class AppointmentSchedulerPage_ui(QWidget):
 
     def _showAppointmentDetails(self, row, col, appt_id):
         """Show appointment details dialog"""
-        appointments = self.crud.get_faculty_appointments() if self.primary_role == "faculty" else self.crud.get_student_appointments()
-        appt = next((a for a in appointments if a["id"] == appt_id), None)
+        print(f"DEBUG: Showing details for appointment ID: {appt_id}")
+        
+        if self.primary_role == "faculty":
+            appointments = self.crud.get_faculty_appointments()
+        else:
+            appointments = self.crud.get_student_appointments()
+        
+        if not appointments:
+            QMessageBox.warning(self, "Error", "No appointments found.")
+            return
+        
+        appt = None
+        for a in appointments:
+            if a.get("id") == appt_id:
+                appt = a
+                break
         
         if not appt:
             QMessageBox.warning(self, "Error", "Appointment not found.")
             return
 
         # Format appointment details
-        start_time = appt['start_at'].replace('T', ' ').split('.')[0]
-        end_time = appt['end_at'].replace('T', ' ').split('.')[0]
+        start_time = appt.get('start_at', '').replace('T', ' ').split('.')[0]
+        end_time = appt.get('end_at', '').replace('T', ' ').split('.')[0]
         
         if self.primary_role == "faculty":
-            user_info = appt.get('student', {}).get('user', {})
-            user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-            user_role = "Student"
+            # For faculty view, show student info
+            student_info = appt.get('student', {})
+            if isinstance(student_info, dict):
+                user_info = student_info.get('user', {})
+                user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+                if not user_name:
+                    user_name = user_info.get('username', 'Unknown')
+                user_email = user_info.get('email', 'N/A')
+                user_role = "Student"
+            else:
+                user_name = "Unknown Student"
+                user_email = "N/A"
+                user_role = "Student"
         else:
-            user_info = appt.get('faculty', {}).get('user', {})
-            user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-            user_role = "Faculty"
+            # For student view, show faculty info
+            faculty_info = appt.get('faculty', {})
+            if isinstance(faculty_info, dict):
+                user_info = faculty_info.get('user', {})
+                user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+                if not user_name:
+                    user_name = user_info.get('username', 'Unknown')
+                user_email = user_info.get('email', 'N/A')
+                user_role = "Faculty"
+            else:
+                user_name = "Unknown Faculty"
+                user_email = "N/A"
+                user_role = "Faculty"
 
         details = [
             (f"{user_role}:", user_name),
-            ("Date:", start_time.split()[0]),
-            ("Time:", f"{self.convert_time(start_time.split()[1][:5])} - {self.convert_time(end_time.split()[1][:5])}"),
+            ("Date:", start_time.split()[0] if ' ' in start_time else start_time),
+            ("Time:", f"{self.convert_time(start_time.split()[1][:5])} - {self.convert_time(end_time.split()[1][:5])}" if ' ' in start_time else "Unknown"),
             ("Purpose:", appt.get('additional_details', 'N/A')),
             ("Status:", appt.get('status', 'Pending').capitalize()),
-            ("Contact:", user_info.get('email', 'N/A'))
+            ("Contact:", user_email)
         ]
         
         dialog = QDialog(self)
@@ -606,7 +727,7 @@ class AppointmentSchedulerPage_ui(QWidget):
         layout.addWidget(group)
 
         # Action buttons for faculty
-        if self.primary_role == "faculty" and appt.get('status') in ['pending', 'Pending']:
+        if self.primary_role == "faculty" and appt.get('status', '').lower() in ['pending']:
             button_layout = QtWidgets.QHBoxLayout()
             
             approve_button = QPushButton("Approve")
@@ -647,7 +768,7 @@ class AppointmentSchedulerPage_ui(QWidget):
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addStretch(1)
         
-        if self.primary_role == "student" and appt.get('status') in ['pending', 'Pending', 'approved', 'Approved']:
+        if self.primary_role == "student" and appt.get('status', '').lower() in ['pending', 'approved']:
             cancel_button = QPushButton("Cancel Appointment")
             cancel_button.setFixedSize(140, 35)
             cancel_button.setStyleSheet("""
@@ -686,6 +807,7 @@ class AppointmentSchedulerPage_ui(QWidget):
 
     def _updateAppointmentStatus(self, appointment_id, status, dialog):
         """Update appointment status"""
+        print(f"DEBUG: Updating appointment {appointment_id} to status: {status}")
         result = self.crud.update_appointment(appointment_id, {"status": status})
         if result:
             QMessageBox.information(self, "Success", f"Appointment {status} successfully!")
@@ -697,7 +819,6 @@ class AppointmentSchedulerPage_ui(QWidget):
     def _markAsBusy(self, row, col):
         """Mark time slot as busy (for faculty)"""
         # This would require creating a BusyBlock via the API
-        # For now, show a message
         QMessageBox.information(self, "Feature", "Mark as busy functionality would be implemented here.")
 
     def _deleteSelectedSlots(self):
@@ -708,31 +829,7 @@ class AppointmentSchedulerPage_ui(QWidget):
             return
 
         # For now, this will cancel selected appointments
-        appointment_ids = []
-        for index in selected:
-            row, col = index.row(), index.column()
-            if col == 0:  # Skip time column
-                continue
-            
-            # In a real implementation, you would map the cell back to an appointment ID
-            # For now, we'll just collect potentially affected appointments
-            
-        if appointment_ids:
-            reply = QMessageBox.question(
-                self, 
-                "Confirm Cancellation", 
-                f"Cancel {len(appointment_ids)} selected appointment(s)?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
-            
-            if reply == QMessageBox.StandardButton.Yes:
-                for appt_id in appointment_ids:
-                    self.crud.update_appointment(appt_id, {"status": "canceled"})
-                self._populateWeeklySchedule()
-                QMessageBox.information(self, "Success", "Appointments cancelled successfully.")
-        else:
-            QMessageBox.information(self, "Info", "No appointments found in selected slots.")
+        QMessageBox.information(self, "Info", "This would cancel selected appointments in a real implementation.")
 
     def retranslateUi(self):
         self.Academics_5.setText("Appointment Scheduler")

@@ -21,36 +21,113 @@ class AppointmentPage_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
+        
+        # Initialize APIClient with token
         self.crud = APIClient(token=token)
+        
+        # Test authentication immediately
+        print(f"DEBUG: Initializing AppointmentPage for user: {username}")
+        print(f"DEBUG: Token: {token[:20]}...")
+        print(f"DEBUG: Testing authentication...")
+        
+        # Test if we can get faculty appointments
+        self.test_api_connection()
+        
         self.rows = []  # Store appointment data for easy access
         self.selected_appointment_id = None  # Track selected appointment for rescheduling
-       
         
-        # Create sample data if no appointments exist
-        self._ensure_sample_data()
+        # Don't create sample data automatically - just check if we can get real data
+        self._check_initial_data()
         self.setFixedSize(1000, 550)
         self._setupAppointmentsPage()
         self.retranslateUi()
 
+    def test_api_connection(self):
+        """Test API connection and authentication"""
+        try:
+            print(f"DEBUG: Testing API connection with token: {self.token[:20]}...")
+            print(f"DEBUG: Base URL in APIClient: {self.crud.base_url if hasattr(self.crud, 'base_url') else 'Not set'}")
+            
+            # First, try to get the faculty ID
+            faculty_id = self.get_faculty_id()
+            print(f"DEBUG: Faculty ID retrieved: {faculty_id}")
+            
+            # Test getting appointments directly
+            print(f"DEBUG: Testing get_faculty_appointments()...")
+            appointments = self.crud.get_faculty_appointments()
+            print(f"DEBUG: Appointments response type: {type(appointments)}")
+            print(f"DEBUG: Appointments response: {appointments}")
+            
+            if appointments is None:
+                print("ERROR: get_faculty_appointments() returned None - likely authentication or connection issue")
+            elif isinstance(appointments, list):
+                print(f"DEBUG: Successfully retrieved {len(appointments)} appointments")
+            else:
+                print(f"DEBUG: Unexpected response type: {type(appointments)}")
+                
+        except Exception as e:
+            print(f"ERROR: Failed to test API connection: {e}")
+            import traceback
+            traceback.print_exc()
 
     def get_faculty_id(self):
         """Fetch faculty ID based on the username."""
-        profiles = self.crud.get_faculties()
-        print(f"Debug: Faculty profiles fetched: {profiles}")
-        for profile in profiles:
-            if profile["user"]["first_name"] == self.username:
-                print(f"Debug: Found faculty ID: {profile.get('id')} for user {self.username}")
-                return profile.get('id')
-        return None
-    
-
-    def _ensure_sample_data(self):
-        """Ensure there is sample data for testing."""
-        appointments = self.crud.get_faculty_appointments()
-        print(f"Debug: Current appointments: {appointments}")
-        if not appointments:
-            logging.info("No appointments found, creating sample data")
+        try:
+            print(f"DEBUG: Getting faculty ID for username: {self.username}")
+            profiles = self.crud.get_faculties()
+            print(f"DEBUG: Faculty profiles fetched: {profiles}")
             
+            if profiles is None:
+                print("ERROR: get_faculties() returned None")
+                return None
+                
+            if not isinstance(profiles, list):
+                print(f"ERROR: get_faculties() returned non-list: {type(profiles)}")
+                return None
+                
+            for profile in profiles:
+                print(f"DEBUG: Checking profile: {profile}")
+                # Check if profile has the expected structure
+                if isinstance(profile, dict):
+                    user_info = profile.get('user', {})
+                    if isinstance(user_info, dict):
+                        first_name = user_info.get('first_name', '')
+                        print(f"DEBUG: Found user with first_name: {first_name}")
+                        if first_name == self.username:
+                            faculty_id = profile.get('id')
+                            print(f"DEBUG: Found faculty ID: {faculty_id} for user {self.username}")
+                            return faculty_id
+                    else:
+                        print(f"DEBUG: User info is not a dict: {user_info}")
+                else:
+                    print(f"DEBUG: Profile is not a dict: {profile}")
+                    
+            print(f"WARNING: No faculty profile found for username: {self.username}")
+            return None
+            
+        except Exception as e:
+            print(f"ERROR: Failed to get faculty ID: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def _check_initial_data(self):
+        """Check if we can get initial appointments data."""
+        try:
+            print("DEBUG: Checking initial appointments data...")
+            appointments = self.crud.get_faculty_appointments()
+            print(f"DEBUG: Initial appointments check: {appointments}")
+            
+            if appointments is None:
+                print("WARNING: Could not retrieve appointments - API may be down or authentication failed")
+                # Show a message to the user
+                QMessageBox.warning(self, "Connection Error", 
+                                  "Could not connect to the server. Please check your internet connection and try again.")
+            elif isinstance(appointments, list) and len(appointments) == 0:
+                print("INFO: No appointments found for this faculty")
+                
+        except Exception as e:
+            print(f"ERROR: Failed to check initial data: {e}")
 
     def _setupAppointmentsPage(self):
         self.setObjectName("Appointments_2")
@@ -383,21 +460,14 @@ class AppointmentPage_ui(QWidget):
         info_layout.setVerticalSpacing(8)
         info_layout.setHorizontalSpacing(20)
         
-        # Get student info
-        student_info = self.crud.list_students()
-        student_data = next((s for s in student_info if s.get('id') == appointment_data[6]), {})
-        
         # Prepare appointment data
         appointment_info = [
-            ("Student:", student_data.get('name', 'Unknown')),
-            ("Date & Time:", appointment_data[0]),
+            ("Student:", appointment_data[1] if len(appointment_data) > 1 else "Unknown"),
+            ("Date & Time:", appointment_data[0] if len(appointment_data) > 0 else "Unknown"),
             ("Duration:", "30 minutes"),
-            ("Status:", appointment_data[4]),
-            ("Course:", student_data.get('course', 'Unknown')),
-            ("Year Level:", student_data.get('year_level', 'Unknown')),
-            ("Contact Email:", student_data.get('email', 'Unknown')),
-            ("Address:", appointment_data[8] or "Not specified"),
-            ("Created At:", appointment_data[10] or "Unknown"),
+            ("Status:", appointment_data[4] if len(appointment_data) > 4 else "Unknown"),
+            ("Address:", appointment_data[8] if len(appointment_data) > 8 else "Not specified"),
+            ("Created At:", appointment_data[10] if len(appointment_data) > 10 else "Unknown"),
         ]
         
         for label, value in appointment_info:
@@ -412,7 +482,7 @@ class AppointmentPage_ui(QWidget):
         content_layout.addWidget(info_group)
         
         # Image View Section
-        image_path = appointment_data[11]  # image_path is at index 11
+        image_path = appointment_data[11] if len(appointment_data) > 11 else None  # image_path is at index 11
         image_group = QtWidgets.QGroupBox("Supporting Documents")
         image_group.setStyleSheet("""
             QGroupBox {
@@ -735,8 +805,6 @@ class AppointmentPage_ui(QWidget):
                 appointment_id
             )
             
-        
-            
             if self.reschedule_page.selected_appointment_id:
                 # Connect the back signal from reschedule page
                 self.reschedule_page.back.connect(self._handleRescheduleBack)
@@ -876,10 +944,6 @@ class AppointmentPage_ui(QWidget):
         
         location_layout.addWidget(self.location_input)
         layout.addLayout(location_layout)
-
-        # Online meeting link preview (if online is selected)
-        self.link_preview_layout = QtWidgets.QVBoxLayout()
-        self.link_preview_layout.setSpacing(8)
 
         layout.addStretch(1)
 
@@ -1100,13 +1164,36 @@ class AppointmentPage_ui(QWidget):
     def _populateAppointmentsTable(self):
         """Populate the appointments table with faculty appointments."""
         try:
+            print("DEBUG: Starting to populate appointments table...")
             
             # Get appointments
             appointments = self.crud.get_faculty_appointments()
-            if appointments is not None:
-                logging.debug(f"Found {len(appointments)} appointments")
+            print(f"DEBUG: Appointments response: {appointments}")
+            print(f"DEBUG: Appointments type: {type(appointments)}")
             
-            if not appointments:
+            if appointments is None:
+                print("ERROR: get_faculty_appointments() returned None")
+                self.tableWidget_8.setRowCount(1)
+                error_item = QtWidgets.QTableWidgetItem("Error: Could not connect to server. Please check your connection.")
+                error_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                error_item.setFont(QtGui.QFont("Poppins", 10))
+                self.tableWidget_8.setItem(0, 0, error_item)
+                self.tableWidget_8.setSpan(0, 0, 1, 6)
+                return
+                
+            if not isinstance(appointments, list):
+                print(f"ERROR: get_faculty_appointments() returned non-list: {type(appointments)}")
+                self.tableWidget_8.setRowCount(1)
+                error_item = QtWidgets.QTableWidgetItem("Error: Invalid data received from server.")
+                error_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                error_item.setFont(QtGui.QFont("Poppins", 10))
+                self.tableWidget_8.setItem(0, 0, error_item)
+                self.tableWidget_8.setSpan(0, 0, 1, 6)
+                return
+            
+            print(f"DEBUG: Found {len(appointments)} appointments")
+            
+            if len(appointments) == 0:
                 logging.info("No appointments found")
                 self.tableWidget_8.setRowCount(1)
                 placeholder_item = QtWidgets.QTableWidgetItem("No appointments available")
@@ -1129,52 +1216,68 @@ class AppointmentPage_ui(QWidget):
                 "denied": "#EB5757"
             }
 
-            # Get additional data
-            students = self.crud.list_students()
-            entries = self.crud.entries_db.read_all()
-
             for row, appointment in enumerate(appointments):
                 try:
-                    # Get student info
-                    student = None
-                    for s in students:
-                        if s.get("id") == appointment.get("student_id"):
-                            student = s
-                            break
-
-                    # Get schedule entry info
-                    entry = None
-                    for e in entries:
-                        if e.get("id") == appointment.get("appointment_schedule_entry_id"):
-                            entry = e
-                            break
-
-                    # Handle missing student or entry data
-                    if student is None:
-                        student_name = "Unknown Student"
-                    else:
-                        student_name = student.get("name", "Unknown")
-
-                    if entry is None:
-                        time_text = "Unknown Time"
-                        slot_text = "Unknown Slot"
-                    else:
-                        time_text = f"{appointment.get('appointment_date', 'Unknown')} {entry.get('start_time', '')}"
-                        slot_text = f"{entry.get('start_time', '')} - {entry.get('end_time', '')}"
-
+                    print(f"DEBUG: Processing appointment {row}: {appointment}")
+                    
+                    # Get student info - check different possible field names
+                    student_name = "Unknown Student"
+                    student_info = None
+                    
+                    # Try different possible field names for student info
+                    if "student" in appointment and isinstance(appointment["student"], dict):
+                        student_info = appointment["student"]
+                    elif "student_name" in appointment:
+                        student_name = appointment["student_name"]
+                    elif "student_first_name" in appointment and "student_last_name" in appointment:
+                        student_name = f"{appointment['student_first_name']} {appointment['student_last_name']}"
+                    
+                    # If we have a student dict, extract name
+                    if student_info:
+                        if "first_name" in student_info and "last_name" in student_info:
+                            student_name = f"{student_info['first_name']} {student_info['last_name']}"
+                        elif "name" in student_info:
+                            student_name = student_info["name"]
+                        elif "username" in student_info:
+                            student_name = student_info["username"]
+                    
+                    # Get time information
+                    time_text = "Unknown Time"
+                    slot_text = "Unknown Slot"
+                    
+                    if "start_at" in appointment and appointment["start_at"]:
+                        try:
+                            # Parse ISO format datetime
+                            start_dt = datetime.fromisoformat(appointment["start_at"].replace('Z', '+00:00'))
+                            if "end_at" in appointment and appointment["end_at"]:
+                                end_dt = datetime.fromisoformat(appointment["end_at"].replace('Z', '+00:00'))
+                                time_text = start_dt.strftime("%Y-%m-%d %I:%M %p")
+                                slot_text = f"{start_dt.strftime('%I:%M %p')} - {end_dt.strftime('%I:%M %p')}"
+                            else:
+                                time_text = start_dt.strftime("%Y-%m-%d %I:%M %p")
+                                slot_text = start_dt.strftime("%I:%M %p")
+                        except Exception as e:
+                            print(f"DEBUG: Error parsing datetime: {e}")
+                            time_text = appointment.get("appointment_date", "Unknown Date")
+                    
                     status = appointment.get("status", "pending")
+                    
+                    # Get additional details
+                    purpose = appointment.get('additional_details', 'No details')
+                    if not purpose or purpose.strip() == "":
+                        purpose = "No details provided"
                     
                     # Store row data for later use
                     row_data = (
                         time_text,  # 0: time_text
                         student_name,  # 1: student_name
                         slot_text,  # 2: slot_text
-                        appointment.get('additional_details', 'No details'),  # 3: purpose
+                        purpose,  # 3: purpose
                         status.upper(),  # 4: status
-                        appointment["id"],  # 5: appointment_id
+                        appointment.get("id", "Unknown"),  # 5: appointment_id
                         appointment.get("student_id"),  # 6: student_id
-                        appointment.get("appointment_schedule_entry_id"),  # 7: schedule_entry_id
-                        appointment.get("address"),  # 8: address
+                        appointment.get("faculty_id"),  # 7: faculty_id
+                        appointment.get("address", ""),  # 8: address
                         appointment.get("appointment_date"),  # 9: appointment_date
                         appointment.get("created_at"),  # 10: created_at
                         appointment.get("image_path")  # 11: image_path
@@ -1189,23 +1292,28 @@ class AppointmentPage_ui(QWidget):
                     self.tableWidget_8.setItem(row, 0, time_item)
                     self.tableWidget_8.setItem(row, 1, student_item)
                     self.tableWidget_8.setItem(row, 2, slot_item)
-                    self.tableWidget_8.setCellWidget(row, 3, self._makePurposeViewCell(appointment["id"]))
-                    self.tableWidget_8.setItem(row, 4, self._makeStatusItem(status.upper(), status_colors.get(status, "#333333")))
-                    self.tableWidget_8.setCellWidget(row, 5, self._makeActionsCell(status, row, appointment["id"]))
+                    self.tableWidget_8.setCellWidget(row, 3, self._makePurposeViewCell(appointment.get("id", "Unknown")))
+                    self.tableWidget_8.setItem(row, 4, self._makeStatusItem(status.upper(), status_colors.get(status.lower(), "#333333")))
+                    self.tableWidget_8.setCellWidget(row, 5, self._makeActionsCell(status.lower(), row, appointment.get("id", "Unknown")))
                     self.tableWidget_8.setRowHeight(row, 60)
 
                 except Exception as e:
                     logging.error(f"Error processing appointment row {row}: {str(e)}")
-                    error_item = QtWidgets.QTableWidgetItem(f"Error: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    error_item = QtWidgets.QTableWidgetItem(f"Error: {str(e)[:50]}...")
                     self.tableWidget_8.setItem(row, 0, error_item)
                     continue
                     
+            print("DEBUG: Successfully populated appointments table")
             logging.debug("Successfully populated appointments table")
             
         except Exception as e:
             logging.error(f"Error populating appointments table: {str(e)}")
+            import traceback
+            traceback.print_exc()
             self.tableWidget_8.setRowCount(1)
-            error_item = QtWidgets.QTableWidgetItem(f"Error loading appointments: {str(e)}")
+            error_item = QtWidgets.QTableWidgetItem(f"Error loading appointments: {str(e)[:100]}...")
             error_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             error_item.setFont(QtGui.QFont("Poppins", 10))
             self.tableWidget_8.setItem(0, 0, error_item)
