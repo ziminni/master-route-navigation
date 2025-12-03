@@ -336,21 +336,13 @@ class MaterialForm(QWidget):
 
     # ADDED: Save post to files
     def save_post(self, post_data):
-        """Save post to both JSON files"""
+        """Save post to classroom_data.json (single format, no duplication)"""
         try:
-            # Save to posts.json
-            with open(self.posts_data_path, 'r') as f:
-                posts_data = json.load(f)
-            
-            posts_data['posts'].append(post_data)
-            
-            with open(self.posts_data_path, 'w') as f:
-                json.dump(posts_data, f, indent=4)
-            
-            # Save to classroom_data.json
+            # Save to classroom_data.json only (not posts.json - they're the same file now)
             with open(self.classroom_data_path, 'r') as f:
                 classroom_data = json.load(f)
             
+            # Use consistent format matching what stream/classworks expect
             classroom_post = {
                 "id": post_data['post_id'],
                 "topic_id": post_data['topic_id'],
@@ -363,7 +355,7 @@ class MaterialForm(QWidget):
                     "type": post_data['attachment']['file_type'].upper() if post_data.get('attachment') else "PDF"
                 } if post_data.get('attachment') else None,
                 "score": None,
-                "date": post_data['date_posted'],  # Use the formatted date here
+                "date": post_data['date_posted'],
                 "author": post_data['instructor']
             }
             

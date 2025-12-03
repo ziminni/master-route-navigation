@@ -213,7 +213,8 @@ class ClassroomMain(QWidget):
         SIGNAL: ClassroomView.navigate_to_form → ClassroomMain.show_form
         DATA FLOW: form_type (str) and class data (dict) passed to form
         """
-        print(f"📝 NAVIGATION: Classroom → {form_type.capitalize()} Form ({cls['title']})")
+        print(f"📝 NAVIGATION: Classroom → {form_type.capitalize()} Form")
+        print(f"📝 Class received: id={cls.get('id')}, title={cls.get('title')}")
         
         # Clean up any existing form view
         if self.current_form_view:

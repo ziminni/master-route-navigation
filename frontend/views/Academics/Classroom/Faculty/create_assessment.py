@@ -48,6 +48,7 @@ class AssessmentForm(QWidget):
     def __init__(self, cls=None, username=None, roles=None, primary_role=None, token=None, post_controller=None, parent=None):
         super().__init__(parent)
         self.cls = cls
+        print(f"[AssessmentForm.__init__] Received cls: id={cls.get('id') if cls else None}, title={cls.get('title') if cls else None}")
         self.username = username
         self.roles = roles
         self.primary_role = primary_role
@@ -370,6 +371,12 @@ class AssessmentForm(QWidget):
         """Handle create assessment button click"""
         try:
             class_id = self.cls.get('id', 1) if self.cls else 1
+            print(f"[AssessmentForm] cls = {self.cls}")
+            print(f"[AssessmentForm] class_id = {class_id}")
+            
+            # Warn if class_id defaults to 1 (likely a bug)
+            if class_id == 1 and (not self.cls or 'id' not in self.cls or self.cls.get('id') != 1):
+                print(f"[AssessmentForm] WARNING: class_id defaulted to 1! cls object: {self.cls}")
             
             # Get selected grade category which contains term info
             grade_category = self.grade_dropdown.currentText()

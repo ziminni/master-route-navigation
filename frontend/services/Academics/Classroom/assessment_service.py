@@ -82,22 +82,26 @@ class AssessmentService:
                 "data", "classroom_data.json"
             )
             
+            print(f"[ASSESSMENT SERVICE] Creating post in: {classroom_data_file}")
+            print(f"[ASSESSMENT SERVICE] File exists: {os.path.exists(classroom_data_file)}")
+            
             with open(classroom_data_file, 'r') as f:
                 classroom_data = json.load(f)
             
             posts = classroom_data.get("posts", [])
+            print(f"[ASSESSMENT SERVICE] Current posts count: {len(posts)}")
             
             # Generate new post ID - use 'id' field to match existing format
             max_post_id = max([p.get("id", 0) for p in posts], default=0)
             new_post_id = max_post_id + 1
             
-            # Format date for storage
+            # Format date for display (short format like "Dec 04")
             created_at = assessment.get("created_at", datetime.now().isoformat())
             try:
-                dt = datetime.fromisoformat(created_at)
-                date_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+                dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                date_display = dt.strftime("%b %d")
             except Exception:
-                date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                date_display = datetime.now().strftime("%b %d")
             
             # Create the post - match existing format in classroom_data.json
             post = {
@@ -107,8 +111,8 @@ class AssessmentService:
                 "type": "assessment",
                 "title": assessment.get("title", "Untitled Assessment"),
                 "content": assessment.get("description", ""),
-                "author": assessment.get("created_by", "Instructor"),
-                "date": date_str,
+                "author": assessment.get("created_by") or "Instructor",
+                "date": date_display,
                 "score": assessment.get("max_points", 100),
                 "attachment": None,
                 # Extra fields for assessment linking
@@ -117,16 +121,20 @@ class AssessmentService:
                 "academic_period": assessment.get("academic_period", "midterm")
             }
             
+            print(f"[ASSESSMENT SERVICE] New post: {post}")
+            
             posts.append(post)
             classroom_data["posts"] = posts
             
             with open(classroom_data_file, 'w') as f:
                 json.dump(classroom_data, f, indent=4)
             
-            print(f"[ASSESSMENT SERVICE] Created post for assessment: {assessment.get('title')}")
+            print(f"[ASSESSMENT SERVICE] Created post for assessment: {assessment.get('title')} - Posts now: {len(posts)}")
             
         except Exception as e:
+            import traceback
             print(f"[ASSESSMENT SERVICE] Failed to create assessment post: {e}")
+            traceback.print_exc()
     
     def _generate_id(self) -> int:
         """Generate a new unique ID"""
@@ -227,6 +235,8 @@ class AssessmentService:
             
             # Extract required fields with fallbacks
             class_id = params.get('class_id', 1)
+            print(f"[ASSESSMENT SERVICE] create_assessment called with class_id: {class_id}")
+            print(f"[ASSESSMENT SERVICE] Full params: {params}")
             title = params.get('title', 'Untitled Assessment')
             rubric_component_id = params.get('rubric_component_id', 0)
             rubric_component_name = params.get('rubric_component_name', params.get('rubric_component_type', ''))
