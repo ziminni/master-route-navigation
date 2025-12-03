@@ -25,7 +25,6 @@ class DataManager:
         self.roles = roles or []
         self.primary_role = primary_role
         self.token = token
-        self.current_user = username
         self.base_url = base_url.rstrip("/")
 
         # In-memory caches for performance
@@ -693,8 +692,8 @@ class DataManager:
 
 
     def send_system_broadcast(
-                self, title: str, content: str
-        ) -> Optional[Dict[str, Any]]:
+            self, title: str, content: str
+    ) -> Optional[Dict[str, Any]]:
         """
         Create a global system broadcast message.
 
