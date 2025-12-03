@@ -9,6 +9,27 @@ from .models import ScheduleBlock, ScheduleEntry, Semester
 from .serializers import *
 from django.shortcuts import get_object_or_404
 
+from django.db.models import Prefetch, Q
+from decimal import Decimal
+
+from .models import (
+    GradingRubric, RubricComponent, Topic, Material,
+    Assessment, Score, Class, Enrollment
+)
+from .serializers import (
+    GradingRubricSerializer, GradingRubricCreateSerializer,
+    GradingRubricUpdateSerializer, RubricComponentSerializer,
+    RubricComponentCreateUpdateSerializer, TopicSerializer,
+    TopicCreateUpdateSerializer, MaterialSerializer,
+    MaterialListSerializer, MaterialCreateUpdateSerializer,
+    AssessmentSerializer, AssessmentListSerializer,
+    AssessmentCreateUpdateSerializer, ScoreSerializer,
+    ScoreListSerializer, ScoreCreateUpdateSerializer,
+    BulkScoreCreateSerializer, BulkScoreUploadSerializer,
+    StudentGradesSummarySerializer
+)
+
+
 class BaseCRUDViewSet(viewsets.ModelViewSet):
     """
     Base ViewSet for CRUD endpoints which require admin privileges for write operations, but allow access to all authenticated users for write operations.
@@ -280,3 +301,889 @@ class ScheduleEntryViewSet(viewsets.ModelViewSet):
 
         # Faculty/Admin can create in any block without restrictions
         serializer.save()
+
+
+
+def is_faculty_of_class(user, class_id):
+    """Check if user is the faculty assigned to the class"""
+    if not hasattr(user, 'facultyprofile'):
+        return False
+    return Class.objects.filter(
+        id=class_id, 
+        faculty=user.facultyprofile
+    ).exists()
+
+
+def is_student_in_class(user, class_id):
+    """Check if user is enrolled in the class"""
+    if not hasattr(user, 'studentprofile'):
+        return False
+    return Enrollment.objects.filter(
+        enrolled_class_id=class_id,
+        student=user.studentprofile
+    ).exists()
+
+
+class GradingRubricListCreateAPIView(generics.ListCreateAPIView):
+    """
+    GET: List all grading rubrics for a class
+    POST: Create a new grading rubric with components
+    
+    URL: /api/academics/classes/{class_id}/grading-rubrics/
+    
+    Faculty only for POST, anyone authenticated for GET.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        class_id = self.kwargs['class_id']
+        return GradingRubric.objects.filter(
+            class_instance_id=class_id
+        ).prefetch_related('components')
+    
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return GradingRubricCreateSerializer
+        return GradingRubricSerializer
+    
+    def perform_create(self, serializer):
+        """Only faculty can create rubrics"""
+        class_id = self.kwargs['class_id']
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, class_id)):
+            raise PermissionError("Only faculty can create grading rubrics.")
+        
+        serializer.save()
+
+
+class GradingRubricDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET: Retrieve a specific grading rubric
+    PUT/PATCH: Update a grading rubric
+    DELETE: Delete a grading rubric
+    
+    URL: /api/academics/grading-rubrics/{rubric_id}/
+    """
+    permission_classes = [IsAuthenticated]
+    queryset = GradingRubric.objects.all().prefetch_related('components')
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return GradingRubricUpdateSerializer
+        return GradingRubricSerializer
+    
+    def perform_update(self, serializer):
+        """Only faculty can update rubrics"""
+        rubric = self.get_object()
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, rubric.class_instance.id)):
+            raise PermissionError("Only faculty can update grading rubrics.")
+        
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """Only faculty can delete rubrics"""
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, instance.class_instance.id)):
+            raise PermissionError("Only faculty can delete grading rubrics.")
+        
+        instance.delete()
+
+
+
+class RubricComponentListCreateAPIView(generics.ListCreateAPIView):
+    """
+    GET: List all components for a rubric
+    POST: Create a new component for a rubric
+    
+    URL: /api/academics/grading-rubrics/{rubric_id}/components/
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = RubricComponentCreateUpdateSerializer
+    
+    def get_queryset(self):
+        rubric_id = self.kwargs['rubric_id']
+        return RubricComponent.objects.filter(rubric_id=rubric_id)
+    
+    def perform_create(self, serializer):
+        """Only faculty can create components"""
+        rubric_id = self.kwargs['rubric_id']
+        rubric = get_object_or_404(GradingRubric, id=rubric_id)
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, rubric.class_instance.id)):
+            raise PermissionError("Only faculty can create rubric components.")
+        
+        serializer.save(rubric=rubric)
+
+
+class RubricComponentDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET: Retrieve a specific component
+    PUT/PATCH: Update a component
+    DELETE: Delete a component
+    
+    URL: /api/academics/rubric-components/{component_id}/
+    """
+    permission_classes = [IsAuthenticated]
+    queryset = RubricComponent.objects.all()
+    serializer_class = RubricComponentCreateUpdateSerializer
+    
+    def perform_update(self, serializer):
+        """Only faculty can update components"""
+        component = self.get_object()
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, component.rubric.class_instance.id)):
+            raise PermissionError("Only faculty can update components.")
+        
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """Only faculty can delete components"""
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, instance.rubric.class_instance.id)):
+            raise PermissionError("Only faculty can delete components.")
+        
+        instance.delete()
+
+
+
+class TopicListCreateAPIView(generics.ListCreateAPIView):
+    """
+    GET: List all topics for a class
+    POST: Create a new topic
+    
+    URL: /api/academics/classes/{class_id}/topics/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        class_id = self.kwargs['class_id']
+        return Topic.objects.filter(class_instance_id=class_id)
+    
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return TopicCreateUpdateSerializer
+        return TopicSerializer
+    
+    def perform_create(self, serializer):
+        """Only faculty can create topics"""
+        class_id = self.kwargs['class_id']
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, class_id)):
+            raise PermissionError("Only faculty can create topics.")
+        
+        serializer.save()
+
+
+class TopicDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET: Retrieve a specific topic
+    PUT/PATCH: Update a topic
+    DELETE: Delete a topic
+    
+    URL: /api/academics/topics/{topic_id}/
+    """
+    permission_classes = [IsAuthenticated]
+    queryset = Topic.objects.all()
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return TopicCreateUpdateSerializer
+        return TopicSerializer
+    
+    def perform_update(self, serializer):
+        """Only faculty can update topics"""
+        topic = self.get_object()
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, topic.class_instance.id)):
+            raise PermissionError("Only faculty can update topics.")
+        
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """Only faculty can delete topics"""
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, instance.class_instance.id)):
+            raise PermissionError("Only faculty can delete topics.")
+        
+        instance.delete()
+
+class MaterialListCreateAPIView(generics.ListCreateAPIView):
+    """
+    GET: List all materials for a class
+    POST: Create a new material
+    
+    URL: /api/academics/classes/{class_id}/materials/
+    
+    Students can only see published materials.
+    Faculty can see all materials.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        class_id = self.kwargs['class_id']
+        user = self.request.user
+        
+        queryset = Material.objects.filter(class_instance_id=class_id)
+        
+        # Students only see published materials
+        if hasattr(user, 'studentprofile') and not user.is_staff:
+            queryset = queryset.filter(is_published=True)
+        
+        return queryset.select_related('topic', 'created_by')
+    
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return MaterialCreateUpdateSerializer
+        elif self.request.method == 'GET' and self.request.query_params.get('list_view'):
+            return MaterialListSerializer
+        return MaterialSerializer
+    
+    def perform_create(self, serializer):
+        """Only faculty can create materials"""
+        class_id = self.kwargs['class_id']
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, class_id)):
+            raise PermissionError("Only faculty can create materials.")
+        
+        serializer.save(created_by=user)
+
+
+class MaterialDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET: Retrieve a specific material
+    PUT/PATCH: Update a material
+    DELETE: Delete a material
+    
+    URL: /api/academics/materials/{material_id}/
+    """
+    permission_classes = [IsAuthenticated]
+    queryset = Material.objects.all().select_related('topic', 'created_by')
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return MaterialCreateUpdateSerializer
+        return MaterialSerializer
+    
+    def get_object(self):
+        """Students can only access published materials"""
+        obj = super().get_object()
+        user = self.request.user
+        
+        if hasattr(user, 'studentprofile') and not user.is_staff:
+            if not obj.is_published:
+                raise PermissionError("Material not published yet.")
+        
+        return obj
+    
+    def perform_update(self, serializer):
+        """Only faculty can update materials"""
+        material = self.get_object()
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, material.class_instance.id)):
+            raise PermissionError("Only faculty can update materials.")
+        
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """Only faculty can delete materials"""
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, instance.class_instance.id)):
+            raise PermissionError("Only faculty can delete materials.")
+        
+        instance.delete()
+
+
+class AssessmentListCreateAPIView(generics.ListCreateAPIView):
+    """
+    GET: List all assessments for a class
+    POST: Create a new assessment
+    
+    URL: /api/academics/classes/{class_id}/assessments/
+    
+    Students can only see published assessments.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        class_id = self.kwargs['class_id']
+        user = self.request.user
+        
+        queryset = Assessment.objects.filter(class_instance_id=class_id)
+        
+        # Students only see published assessments
+        if hasattr(user, 'studentprofile') and not user.is_staff:
+            queryset = queryset.filter(is_published=True)
+        
+        return queryset.select_related(
+            'topic', 'rubric_component', 'created_by'
+        )
+    
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return AssessmentCreateUpdateSerializer
+        elif self.request.method == 'GET' and self.request.query_params.get('list_view'):
+            return AssessmentListSerializer
+        return AssessmentSerializer
+    
+    def perform_create(self, serializer):
+        """Only faculty can create assessments"""
+        class_id = self.kwargs['class_id']
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, class_id)):
+            raise PermissionError("Only faculty can create assessments.")
+        
+        serializer.save(created_by=user)
+
+
+class AssessmentDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET: Retrieve a specific assessment
+    PUT/PATCH: Update an assessment
+    DELETE: Delete an assessment
+    
+    URL: /api/academics/assessments/{assessment_id}/
+    """
+    permission_classes = [IsAuthenticated]
+    queryset = Assessment.objects.all().select_related(
+        'topic', 'rubric_component', 'created_by'
+    )
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return AssessmentCreateUpdateSerializer
+        return AssessmentSerializer
+    
+    def get_object(self):
+        """Students can only access published assessments"""
+        obj = super().get_object()
+        user = self.request.user
+        
+        if hasattr(user, 'studentprofile') and not user.is_staff:
+            if not obj.is_published:
+                raise PermissionError("Assessment not published yet.")
+        
+        return obj
+    
+    def perform_update(self, serializer):
+        """Only faculty can update assessments"""
+        assessment = self.get_object()
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, assessment.class_instance.id)):
+            raise PermissionError("Only faculty can update assessments.")
+        
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """Only faculty can delete assessments"""
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, instance.class_instance.id)):
+            raise PermissionError("Only faculty can delete assessments.")
+        
+        instance.delete()
+
+
+
+
+class ScoreListCreateAPIView(generics.ListCreateAPIView):
+    """
+    GET: List all scores for a class or assessment
+    POST: Create a new score
+    
+    URL: /api/academics/classes/{class_id}/scores/
+    Optional query params: ?assessment_id=X&student_id=Y&published_only=true
+    
+    Students can only see their own published scores.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        class_id = self.kwargs['class_id']
+        user = self.request.user
+        
+        queryset = Score.objects.filter(class_instance_id=class_id)
+        
+        # Filter by assessment if provided
+        assessment_id = self.request.query_params.get('assessment_id')
+        if assessment_id:
+            queryset = queryset.filter(assessment_id=assessment_id)
+        
+        # Filter by student if provided (faculty/admin only)
+        student_id = self.request.query_params.get('student_id')
+        if student_id and (user.is_staff or is_faculty_of_class(user, class_id)):
+            queryset = queryset.filter(student_id=student_id)
+        
+        # Students only see their own published scores
+        if hasattr(user, 'studentprofile') and not user.is_staff:
+            queryset = queryset.filter(
+                student=user.studentprofile,
+                is_published=True
+            )
+        
+        # Filter published only if requested
+        if self.request.query_params.get('published_only') == 'true':
+            queryset = queryset.filter(is_published=True)
+        
+        return queryset.select_related('student', 'assessment', 'uploaded_by')
+    
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ScoreCreateUpdateSerializer
+        elif self.request.method == 'GET' and self.request.query_params.get('list_view'):
+            return ScoreListSerializer
+        return ScoreSerializer
+    
+    def perform_create(self, serializer):
+        """Only faculty can create scores"""
+        class_id = self.kwargs['class_id']
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, class_id)):
+            raise PermissionError("Only faculty can create scores.")
+        
+        serializer.save(uploaded_by=user)
+
+
+class ScoreDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET: Retrieve a specific score
+    PUT/PATCH: Update a score
+    DELETE: Delete a score
+    
+    URL: /api/academics/scores/{score_id}/
+    """
+    permission_classes = [IsAuthenticated]
+    queryset = Score.objects.all().select_related('student', 'assessment', 'uploaded_by')
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return ScoreCreateUpdateSerializer
+        return ScoreSerializer
+    
+    def get_object(self):
+        """Students can only access their own published scores"""
+        obj = super().get_object()
+        user = self.request.user
+        
+        if hasattr(user, 'studentprofile') and not user.is_staff:
+            if obj.student != user.studentprofile or not obj.is_published:
+                raise PermissionError("You can only view your own published scores.")
+        
+        return obj
+    
+    def perform_update(self, serializer):
+        """Only faculty can update scores"""
+        score = self.get_object()
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, score.class_instance.id)):
+            raise PermissionError("Only faculty can update scores.")
+        
+        serializer.save(uploaded_by=user)
+    
+    def perform_destroy(self, instance):
+        """Only faculty can delete scores"""
+        user = self.request.user
+        
+        if not (user.is_staff or is_faculty_of_class(user, instance.class_instance.id)):
+            raise PermissionError("Only faculty can delete scores.")
+        
+        instance.delete()
+
+
+class BulkScoreCreateAPIView(APIView):
+    """
+    POST: Bulk create/update scores for all enrolled students in a class.
+    Used when faculty sets the same score for all students (bulk input feature).
+    
+    URL: /api/academics/classes/{class_id}/scores/bulk-create/
+    
+    Request body:
+    {
+        "assessment_id": 1,
+        "points": 35,
+        "is_published": false
+    }
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, class_id):
+        user = request.user
+        
+        # Permission check
+        if not (user.is_staff or is_faculty_of_class(user, class_id)):
+            return Response(
+                {"error": "Only faculty can bulk create scores."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Validate input
+        serializer = BulkScoreCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        assessment = serializer.validated_data['assessment']
+        points = serializer.validated_data['points']
+        is_published = serializer.validated_data['is_published']
+        
+        # Verify assessment belongs to this class
+        if assessment.class_instance.id != class_id:
+            return Response(
+                {"error": "Assessment does not belong to this class."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get all enrolled students
+        enrollments = Enrollment.objects.filter(enrolled_class_id=class_id)
+        
+        # Bulk create/update scores
+        scores_to_create = []
+        scores_to_update = []
+        
+        for enrollment in enrollments:
+            student = enrollment.student
+            
+            # Check if score already exists
+            try:
+                existing_score = Score.objects.get(
+                    student=student,
+                    assessment=assessment
+                )
+                existing_score.points = points
+                existing_score.is_published = is_published
+                existing_score.uploaded_by = user
+                scores_to_update.append(existing_score)
+            except Score.DoesNotExist:
+                scores_to_create.append(
+                    Score(
+                        class_instance_id=class_id,
+                        student=student,
+                        assessment=assessment,
+                        points=points,
+                        is_published=is_published,
+                        uploaded_by=user
+                    )
+                )
+        
+        # Perform bulk operations
+        if scores_to_create:
+            Score.objects.bulk_create(scores_to_create)
+        
+        if scores_to_update:
+            Score.objects.bulk_update(
+                scores_to_update, 
+                ['points', 'is_published', 'uploaded_by', 'updated_at']
+            )
+        
+        return Response(
+            {
+                "message": f"Bulk created/updated scores for {len(scores_to_create) + len(scores_to_update)} students.",
+                "created": len(scores_to_create),
+                "updated": len(scores_to_update)
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class BulkScoreUploadAPIView(APIView):
+    """
+    POST: Bulk upload (publish) all scores for an assessment.
+    Marks all scores for an assessment as published (visible to students).
+    
+    URL: /api/academics/classes/{class_id}/scores/bulk-upload/
+    
+    Request body:
+    {
+        "assessment_id": 1
+    }
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, class_id):
+        user = request.user
+        
+        # Permission check
+        if not (user.is_staff or is_faculty_of_class(user, class_id)):
+            return Response(
+                {"error": "Only faculty can bulk upload scores."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Validate input
+        serializer = BulkScoreUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        assessment_id = serializer.validated_data['assessment_id']
+        
+        # Verify assessment belongs to this class
+        assessment = get_object_or_404(Assessment, id=assessment_id)
+        if assessment.class_instance.id != class_id:
+            return Response(
+                {"error": "Assessment does not belong to this class."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Bulk update all scores for this assessment
+        updated_count = Score.objects.filter(
+            class_instance_id=class_id,
+            assessment_id=assessment_id
+        ).update(is_published=True)
+        
+        return Response(
+            {
+                "message": f"Published {updated_count} scores for assessment '{assessment.title}'.",
+                "count": updated_count
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class StudentGradesSummaryAPIView(APIView):
+    """
+    GET: Retrieve comprehensive grade summary for a student in a class.
+    Calculates midterm, final term, and overall grades based on rubrics.
+    
+    URL: /api/academics/classes/{class_id}/students/{student_id}/grades/
+    
+    Students can only access their own grades.
+    Faculty can access any student's grades.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, class_id, student_id):
+        user = request.user
+        
+        # Permission check
+        if hasattr(user, 'studentprofile'):
+            # Students can only view their own grades
+            if str(user.studentprofile.id) != str(student_id):
+                return Response(
+                    {"error": "You can only view your own grades."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        elif not (user.is_staff or is_faculty_of_class(user, class_id)):
+            return Response(
+                {"error": "You don't have permission to view these grades."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get class and student
+        class_instance = get_object_or_404(Class, id=class_id)
+        from ..Users.models import StudentProfile
+        student = get_object_or_404(StudentProfile, id=student_id)
+        
+        # Verify student is enrolled in this class
+        if not Enrollment.objects.filter(
+            enrolled_class=class_instance,
+            student=student
+        ).exists():
+            return Response(
+                {"error": "Student is not enrolled in this class."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get rubrics for this class
+        rubrics = GradingRubric.objects.filter(
+            class_instance=class_instance
+        ).prefetch_related('components__assessments__scores')
+        
+        # Calculate grades
+        grades_data = self._calculate_grades(student, rubrics)
+        
+        # Prepare response
+        response_data = {
+            'student_id': student.id,
+            'student_name': f"{student.user.last_name}, {student.user.first_name}",
+            'class_id': class_instance.id,
+            'class_name': class_instance.course.title,
+            **grades_data
+        }
+        
+        serializer = StudentGradesSummarySerializer(data=response_data)
+        serializer.is_valid(raise_exception=True)
+        
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+    
+    def _calculate_grades(self, student, rubrics):
+        """
+        Calculate comprehensive grades for a student.
+        Returns midterm, final term, and overall grades with component breakdowns.
+        """
+        midterm_rubric = None
+        final_rubric = None
+        
+        for rubric in rubrics:
+            if rubric.academic_period == 'midterm':
+                midterm_rubric = rubric
+            elif rubric.academic_period == 'finals':
+                final_rubric = rubric
+        
+        # Calculate midterm grade
+        midterm_data = self._calculate_term_grade(student, midterm_rubric) if midterm_rubric else {
+            'grade': Decimal('0.00'),
+            'components': {}
+        }
+        
+        # Calculate final term grade
+        final_data = self._calculate_term_grade(student, final_rubric) if final_rubric else {
+            'grade': Decimal('0.00'),
+            'components': {}
+        }
+        
+        # Calculate overall grade
+        midterm_contribution = Decimal('0.00')
+        final_contribution = Decimal('0.00')
+        
+        if midterm_rubric:
+            midterm_contribution = (midterm_data['grade'] * midterm_rubric.term_percentage) / Decimal('100.00')
+        
+        if final_rubric:
+            final_contribution = (final_data['grade'] * final_rubric.term_percentage) / Decimal('100.00')
+        
+        final_grade = midterm_contribution + final_contribution
+        
+        return {
+            'midterm_grade': midterm_data['grade'],
+            'final_term_grade': final_data['grade'],
+            'final_grade': final_grade,
+            'midterm_components': midterm_data['components'],
+            'final_components': final_data['components']
+        }
+    
+    def _calculate_term_grade(self, student, rubric):
+        """
+        Calculate grade for a single term (midterm or finals).
+        Returns the term grade and component breakdown.
+        """
+        if not rubric:
+            return {'grade': Decimal('0.00'), 'components': {}}
+        
+        components_data = {}
+        term_grade = Decimal('0.00')
+        
+        for component in rubric.components.all():
+            # Get all assessments for this component
+            assessments = component.assessments.all()
+            
+            if not assessments:
+                components_data[component.name] = {
+                    'percentage': float(component.percentage),
+                    'average': 0.00,
+                    'assessments': []
+                }
+                continue
+            
+            # Calculate component average
+            total_score = Decimal('0.00')
+            total_max = Decimal('0.00')
+            assessment_details = []
+            
+            for assessment in assessments:
+                # Get student's score (only published if student is viewing)
+                try:
+                    score = Score.objects.get(
+                        student=student,
+                        assessment=assessment,
+                        is_published=True  # Only count published scores
+                    )
+                    total_score += Decimal(str(score.points))
+                    total_max += Decimal(str(assessment.max_points))
+                    
+                    assessment_details.append({
+                        'title': assessment.title,
+                        'points': float(score.points),
+                        'max_points': assessment.max_points,
+                        'percentage': float(score.percentage)
+                    })
+                except Score.DoesNotExist:
+                    # No score yet, treat as 0
+                    total_max += Decimal(str(assessment.max_points))
+                    assessment_details.append({
+                        'title': assessment.title,
+                        'points': 0,
+                        'max_points': assessment.max_points,
+                        'percentage': 0.00
+                    })
+            
+            # Calculate component average percentage
+            if total_max > 0:
+                component_avg = (total_score / total_max) * Decimal('100.00')
+            else:
+                component_avg = Decimal('0.00')
+            
+            # Calculate contribution to term grade
+            component_contribution = (component_avg * component.percentage) / Decimal('100.00')
+            term_grade += component_contribution
+            
+            components_data[component.name] = {
+                'percentage': float(component.percentage),
+                'average': float(component_avg),
+                'contribution': float(component_contribution),
+                'assessments': assessment_details
+            }
+        
+        return {
+            'grade': term_grade,
+            'components': components_data
+        }
+
+
+
+class ClassStudentsListAPIView(generics.ListAPIView):
+    """
+    GET: List all students enrolled in a class.
+    Used by faculty to see who's in their class.
+    
+    URL: /api/academics/classes/{class_id}/students/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        class_id = self.kwargs['class_id']
+        user = self.request.user
+        
+        # Only faculty and admin can view student list
+        if not (user.is_staff or is_faculty_of_class(user, class_id)):
+            return Enrollment.objects.none()
+        
+        return Enrollment.objects.filter(
+            enrolled_class_id=class_id
+        ).select_related('student__user')
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        
+        students_data = []
+        for enrollment in queryset:
+            student = enrollment.student
+            students_data.append({
+                'id': student.id,
+                'institutional_id': student.institutional_id,
+                'username': student.user.username,
+                'first_name': student.user.first_name,
+                'last_name': student.user.last_name,
+                'name': f"{student.user.last_name}, {student.user.first_name}",
+                'email': student.user.email,
+                'enrolled_at': enrollment.enrolled_at
+            })
+        
+        return Response({
+            'count': len(students_data),
+            'students': students_data
+        }, status=status.HTTP_200_OK)
