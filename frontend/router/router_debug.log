@@ -136,3 +136,21 @@ _preload_pages called
 user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0NzQxOTA5LCJpYXQiOjE3NjQ3NDEwMDksImp0aSI6IjI0MjgzZWE5ZTNjZjRlMTRiZDAyOWMzZmQ2NDEzMDc5IiwidXNlcl9pZCI6IjEifQ.UlyXCpp864R1TmF42vaq0usJ5vQ8Xvf6tQP0K_xDfx0'}
 profile_id in session = None
 ================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0Nzc0NzAzLCJpYXQiOjE3NjQ3NzM4MDMsImp0aSI6IjcwZTVmZjc4MTFiMzRmMWQ4MmRkZWJlZGQ3OGIyNzZjIiwidXNlcl9pZCI6IjEifQ.wiWIr-VjFVW3I_tT9TojKYUyTrY_SpcAGPxTgAyn42k'}
+profile_id in session = None
+================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'Kim', 'roles': ['faculty'], 'primary_role': 'faculty', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0Nzc0NzQzLCJpYXQiOjE3NjQ3NzM4NDMsImp0aSI6IjU2NjU3ODU1YmI4MTRhNDc4MGEyZmMwMTA0NTFjMTUxIiwidXNlcl9pZCI6IjQifQ.HiN3CbezBTO9tppTQ6dHijG68c1xdkJOK5iSPYGRl-U'}
+profile_id in session = None
+================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'Kim', 'roles': ['faculty'], 'primary_role': 'faculty', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0Nzc1Mzc0LCJpYXQiOjE3NjQ3NzQ0NzQsImp0aSI6ImE4MjgzMDNhN2IxMjQyOTdiOThjNTUwZjhiZmFlOGNhIiwidXNlcl9pZCI6IjQifQ.T_4u7DnIzxovvmN9_ED2xI21WTrrRsuf6IwqeuceMyM'}
+profile_id in session = None
+================================================================================

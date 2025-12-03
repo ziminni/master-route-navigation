@@ -37,12 +37,14 @@ class CurrentUserView(APIView):
             
             # Get profile ID based on user type
             student_profile_id = None
+            faculty_profile_id = None
             profile_type = None
             
             if hasattr(user, 'student_profile') and user.student_profile:
                 student_profile_id = user.student_profile.id
                 profile_type = 'student'
             elif hasattr(user, 'faculty_profile') and user.faculty_profile:
+                faculty_profile_id = user.faculty_profile.id
                 profile_type = 'faculty'
             elif hasattr(user, 'staff_profile') and user.staff_profile:
                 profile_type = 'staff'
@@ -59,9 +61,11 @@ class CurrentUserView(APIView):
             data['base_user_id'] = base_user_id
             # student_profile_id is specifically for students to fetch joined orgs
             data['student_profile_id'] = student_profile_id
+            # faculty_profile_id is for faculty to fetch advised orgs
+            data['faculty_profile_id'] = faculty_profile_id
             data['is_base_user'] = (profile_type == 'admin')
             
-            print(f"DEBUG: CurrentUserView - username={user.username}, base_user_id={base_user_id}, student_profile_id={student_profile_id}, profile_type={profile_type}")
+            print(f"DEBUG: CurrentUserView - username={user.username}, base_user_id={base_user_id}, student_profile_id={student_profile_id}, faculty_profile_id={faculty_profile_id}, profile_type={profile_type}")
             
             return Response(
                 {

@@ -443,8 +443,7 @@ class OrgOfficerWindow(QWidget):
         try:
             from controller.module6.event_manager_controller import wire_org_officer_signals
             wire_org_officer_signals(self, ui_path)
-        except Exception as e:
-            print(f"Error wiring Module 6 org officer signals: {e}")
+        except Exception:
             # Fallback: load Attendance UI and populate from JSON
             if hasattr(self, "ViewAttendanceButton"):
                 from PyQt6 import uic as _fallback_uic

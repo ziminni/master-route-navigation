@@ -145,14 +145,11 @@ class ManagerBase:
         from widgets.orgs_custom_widgets.tables import ViewMembers
         
         if not self.current_org:
-            print("DEBUG load_members: No current_org")
             return
             
         self.is_viewing_applicants = False
         
         members_data = self.current_org.get("members", [])
-        print(f"DEBUG load_members: Found {len(members_data)} members in current_org")
-        print(f"DEBUG load_members: Members data: {members_data}")
         
         self.filtered_members = [
             member for member in members_data
@@ -160,7 +157,6 @@ class ManagerBase:
         ] if search_text else members_data.copy()
 
         total_items = len(self.filtered_members)
-        print(f"DEBUG load_members: Total items after filter: {total_items}")
         
         self.total_members_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
         self.current_members_page = max(0, min(self.current_members_page, self.total_members_pages - 1))
@@ -168,8 +164,6 @@ class ManagerBase:
         start = self.current_members_page * self.items_per_page
         end = start + self.items_per_page
         paged_data = self.filtered_members[start:end]
-        
-        print(f"DEBUG load_members: Paged data ({start}:{end}): {paged_data}")
 
         model = self.ui.list_view.model()
         
@@ -185,11 +179,9 @@ class ManagerBase:
             self._setup_action_delegate()
 
         if total_items:
-            print("DEBUG load_members: Showing table, hiding no_member_label")
             self.ui.list_view.show()
             self.no_member_label.hide()
         else:
-            print("DEBUG load_members: Hiding table, showing no_member_label")
             self.ui.list_view.hide()
             self.no_member_label.setText("No Member(s) Found")
             self.no_member_label.show()
@@ -398,28 +390,17 @@ class ManagerBase:
             end_term = getattr(dialog, 'end_term', None)
             old_position = member[1]
             
-            print(f"DEBUG manager_base: Extracted from dialog - start_term={start_term}, end_term={end_term}")
-            
             # Get current user ID for audit trail
             updated_by_id = None
             
             # Try API call first
             if hasattr(self, 'name') and self.name:
-                print(f"DEBUG: self.name = '{self.name}', calling API...")
                 try:
                     api_response = OrganizationAPIService.get_current_user_by_username(self.name)
-                    print(f"DEBUG: API response = {api_response}")
                     if api_response.get('success') and api_response.get('data'):
                         updated_by_id = api_response['data'].get('profile_id')
-                        print(f"DEBUG: Got updated_by_id from API: {updated_by_id}")
-                    else:
-                        print(f"DEBUG: API call failed or no data: {api_response}")
-                except Exception as e:
-                    print(f"DEBUG: Exception calling API: {e}")
-                    import traceback
-                    traceback.print_exc()
-            else:
-                print(f"DEBUG: self.name not available (hasattr={hasattr(self, 'name')}, value={getattr(self, 'name', None)})")
+                except Exception:
+                    pass
             
             # Fallback to other sources
             if not updated_by_id:
@@ -438,17 +419,8 @@ class ManagerBase:
                     from PyQt6.QtCore import QSettings
                     settings = QSettings("CISC", "MasterRoute")
                     updated_by_id = settings.value("user_profile_id", type=int)
-                    if updated_by_id:
-                        print(f"DEBUG: Got updated_by_id from QSettings: {updated_by_id}")
-                except Exception as e:
-                    print(f"DEBUG: Could not get user_profile_id from QSettings: {e}")
-            
-            print(f"DEBUG: Updating member {member_id} with updated_by_id={updated_by_id}")
-            print(f"DEBUG manager_base: position_id={position_id}, position_name={new_position}")
-            print(f"DEBUG manager_base: start_term={start_term}, end_term={end_term}")
-            
-            if not updated_by_id:
-                print("WARNING: Could not determine updated_by_id - audit trail will be incomplete")
+                except Exception:
+                    pass
             
             # Update position via API
             try:
@@ -473,15 +445,13 @@ class ManagerBase:
                     
                     # Get updated member data from API response
                     updated_member_data = api_response.get('data', {})
-                    print(f"DEBUG: Received updated member data: {updated_member_data}")
                     
                     # Update the member in memory without full refresh
                     if updated_member_data and hasattr(self, '_update_member_in_list'):
                         try:
                             self._update_member_in_list(member_id, updated_member_data)
                             self.load_members(search_text)
-                        except Exception as e:
-                            print(f"WARNING: Failed to update member in list: {e}")
+                        except Exception:
                             # Fallback to full refresh
                             if self.current_org and hasattr(self, '_fetch_members'):
                                 self._fetch_members(self.current_org["id"])
@@ -507,9 +477,6 @@ class ManagerBase:
                     )
                     
             except Exception as e:
-                print(f"ERROR: Exception during member position update: {str(e)}")
-                import traceback
-                traceback.print_exc()
                 QMessageBox.critical(
                     self,
                     "Error",
@@ -883,8 +850,8 @@ class ManagerBase:
             admin_user_id = settings.value("user_profile_id")
             if admin_user_id:
                 admin_user_id = int(admin_user_id)
-        except Exception as e:
-            print(f"DEBUG: Could not get user_profile_id from QSettings: {e}")
+        except Exception:
+            pass
         
         api_response = OrganizationAPIService.process_application(application_id, action, admin_user_id)
         

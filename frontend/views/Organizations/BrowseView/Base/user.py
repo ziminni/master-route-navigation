@@ -90,8 +90,7 @@ class User(QtWidgets.QWidget):
             with open(self.data_file, 'r') as file:
                 data = json.load(file)
                 return data.get('organizations', [])
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Error loading {self.data_file}: {str(e)}")
+        except (FileNotFoundError, json.JSONDecodeError):
             return []
         
     def get_archived(self, is_branch: bool = None) -> List[Dict]:
@@ -169,23 +168,17 @@ class User(QtWidgets.QWidget):
                         branch.update(self.current_org)
                         updated = True
                         break
-            if not updated:
-                print("Warning: current_org not found in data!")
-                return
-
-            # Write back with proper formatting
+        if not updated:
+            return            # Write back with proper formatting
             with open(self.data_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
 
-            print(f"Saved changes for org ID {self.current_org.get('id')} - {self.current_org.get('name')}")
-
-        except Exception as e:
-            print(f"ERROR saving data.")
+        except Exception:
+            pass
 
     def save_data_for_org(self, org_to_save: Dict) -> None:
         """Saves a specific org/branch data dict back to the JSON file."""
         if not org_to_save or "id" not in org_to_save:
-            print("Invalid organization data provided to save.")
             return
 
         organizations = self._load_data()
@@ -209,15 +202,13 @@ class User(QtWidgets.QWidget):
                     break
 
         if not updated:
-            print(f"Warning: Could not find organization/branch with ID {org_to_save['id']} to update.")
             return
 
         try:
             with open(self.data_file, 'w') as file:
                 json.dump({"organizations": organizations}, file, indent=4)
-            print(f"Successfully saved data to {self.data_file}")
-        except Exception as e:
-            print(f"Error saving {self.data_file}: {str(e)}")
+        except Exception:
+            pass
             
     def _log_action(self, action_type: str, organization_name: Optional[str], subject_name: Optional[str] = None, changes: Optional[str] = None) -> None:
         """
@@ -251,8 +242,8 @@ class User(QtWidgets.QWidget):
             with open(self.audit_log_file, 'w') as f:
                 json.dump(logs, f, indent=4)
                 
-        except Exception as e:
-            print(f"Error writing to audit log: {str(e)}")
+        except Exception:
+            pass
 
     @staticmethod
     def _get_logo_path(filename: str) -> str:
@@ -471,8 +462,8 @@ class User(QtWidgets.QWidget):
         try:
             with open(self.cooldown_file, 'w') as file:
                 json.dump(cooldowns, file, indent=4)
-        except Exception as e:
-            print(f"Error saving {self.cooldown_file}: {str(e)}")
+        except Exception:
+            pass
 
     def get_application_cooldown(self) -> Optional[datetime.datetime]:
         """Gets the application cooldown end time for the current user."""
@@ -491,7 +482,6 @@ class User(QtWidgets.QWidget):
         cooldown_end_time = datetime.datetime.now() + datetime.timedelta(hours=hours)
         cooldowns[self.name] = cooldown_end_time.isoformat()
         self._save_cooldowns(cooldowns)
-        print(f"Application cooldown set for {self.name} until {cooldown_end_time.isoformat()}")
 
     def check_application_cooldown(self) -> Tuple[bool, Optional[datetime.datetime]]:
         """
@@ -529,8 +519,8 @@ class User(QtWidgets.QWidget):
         try:
             with open(self.manager_cooldown_file, 'w') as file:
                 json.dump(cooldowns, file, indent=4)
-        except Exception as e:
-            print(f"Error saving {self.manager_cooldown_file}: {str(e)}")
+        except Exception:
+            pass
 
     def check_manager_action_cooldown(self, org_id: int, action: str) -> Tuple[bool, Optional[datetime.datetime]]:
         """
@@ -576,7 +566,6 @@ class User(QtWidgets.QWidget):
         cooldown_end_time = datetime.datetime.now() + datetime.timedelta(minutes=minutes)
         cooldowns[org_id_str][action] = cooldown_end_time.isoformat()
         self._save_manager_cooldowns(cooldowns)
-        print(f"Manager action cooldown for {action} on {org_id_str} set until {cooldown_end_time.isoformat()}")
 
     # --- ADDED: Student Notification Methods ---
     
@@ -594,8 +583,8 @@ class User(QtWidgets.QWidget):
         try:
             with open(self.notifications_file, 'w') as file:
                 json.dump(notifications, file, indent=4)
-        except Exception as e:
-            print(f"Error saving {self.notifications_file}: {str(e)}")
+        except Exception:
+            pass
 
     def add_notification(self, student_name: str, notification_data: Dict) -> None:
         """Adds a notification for a specific student."""

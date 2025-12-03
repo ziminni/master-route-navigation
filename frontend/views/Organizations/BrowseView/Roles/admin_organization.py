@@ -392,11 +392,8 @@ class Admin(ManagerBase, FacultyAdminBase):
                         'details': f"{log.get('action_display', log.get('action', ''))} on {log.get('target_name', log.get('target_type', ''))}"
                     })
             else:
-                print(f"Error fetching logs from API: {response.get('message', 'Unknown error')}")
-        except Exception as e:
-            print(f"Error loading audit logs from API: {str(e)}")
-            import traceback
-            traceback.print_exc()
+                pass  # API error, logs will remain empty
+        except Exception:
             logs = []
             
         self.cached_audit_logs = logs
@@ -1036,7 +1033,6 @@ class Admin(ManagerBase, FacultyAdminBase):
         self.ui.view_members_btn.setText("Manage Members")
         
         # Fetch pending applicants and active members for this organization
-        print(f"DEBUG show_org_details: Fetching data for org {org_data['id']}")
         self._fetch_applicants(org_data["id"])
         self._fetch_members(org_data["id"])
         
@@ -1044,7 +1040,6 @@ class Admin(ManagerBase, FacultyAdminBase):
         self._on_officer_history_changed(0)  # Load "Current Officers"
         
         # Load members view by default (this triggers the UI update)
-        print("DEBUG show_org_details: Loading members view")
         self.load_members()
         
         # Clean up existing admin buttons
@@ -1166,10 +1161,7 @@ class Admin(ManagerBase, FacultyAdminBase):
             # Store applicants in current_org for load_applicants to use
             if self.current_org:
                 self.current_org["applicants"] = applicants
-                print(f"DEBUG: Fetched {len(applicants)} applicants for org {org_id}")
         else:
-            error_msg = api_response.get("error", "Failed to fetch applicants")
-            print(f"Error fetching applicants: {error_msg}")
             if self.current_org:
                 self.current_org["applicants"] = []
 
@@ -1177,18 +1169,16 @@ class Admin(ManagerBase, FacultyAdminBase):
         """Fetch active members for the organization from the API."""
         from services.organization_api_service import OrganizationAPIService
         
-        print(f"DEBUG: Fetching members for org {org_id}")
         api_response = OrganizationAPIService.get_organization_members(org_id)
         if api_response.get("success"):
             members_data = api_response.get("data", [])
-            print(f"DEBUG: API returned {len(members_data)} members")
             
             # Transform member data to match ViewMembers table format: [Name, Position, Status, Join Date]
             # But also store the full member dict for Edit functionality
             transformed_members = []
             self.members_dict = {}  # Store full member data by member_id
             
-            for idx, member in enumerate(members_data):
+            for member in members_data:
                 member_id = member.get('id')  # This is OrganizationMembers.id
                 transformed = [
                     member.get('name', 'Unknown'),                                      # Name
@@ -1199,15 +1189,11 @@ class Admin(ManagerBase, FacultyAdminBase):
                 transformed_members.append(transformed)
                 # Store full member data keyed by member_id for Edit operations
                 self.members_dict[member_id] = member
-                print(f"DEBUG: Transformed member {idx}: {transformed}, ID: {member_id}")
             
             # Store transformed members in current_org for load_members to use
             if self.current_org:
                 self.current_org["members"] = transformed_members
-                print(f"DEBUG: Stored {len(transformed_members)} transformed members in current_org")
         else:
-            error_msg = api_response.get("error", "Failed to fetch members")
-            print(f"ERROR: Failed fetching members: {error_msg}")
             if self.current_org:
                 self.current_org["members"] = []
                 self.members_dict = {}
@@ -1215,13 +1201,11 @@ class Admin(ManagerBase, FacultyAdminBase):
     def _update_member_in_list(self, member_id: int, updated_data: dict) -> None:
         """Update a single member in the members list without full refresh"""
         if not hasattr(self, 'members_dict') or not self.current_org:
-            print("DEBUG: Cannot update member - missing members_dict or current_org")
             return
         
         try:
             # Update members_dict with new data
             self.members_dict[member_id] = updated_data
-            print(f"DEBUG: Updated members_dict for member_id {member_id}")
             
             # Find and update the member in current_org["members"]
             members = self.current_org.get("members", [])
@@ -1230,18 +1214,11 @@ class Admin(ManagerBase, FacultyAdminBase):
             for idx, member in enumerate(members):
                 if member[0] == member_name:  # Match by name
                     # Update the position (index 1)
-                    old_position = members[idx][1]
                     new_position = updated_data.get('position', 'Member')
                     members[idx][1] = new_position
-                    print(f"DEBUG: Updated member {member_name} in list from '{old_position}' to '{new_position}'")
                     break
-            else:
-                print(f"WARNING: Could not find member {member_name} in current_org members list")
                 
-        except Exception as e:
-            print(f"ERROR: Failed to update member in list: {str(e)}")
-            import traceback
-            traceback.print_exc()
+        except Exception:
             raise
 
     def _process_application_action(self, application_id: int, action: str, applicant_name: str):
@@ -1257,10 +1234,9 @@ class Admin(ManagerBase, FacultyAdminBase):
             admin_user_id = settings.value("user_profile_id")
             if admin_user_id:
                 admin_user_id = int(admin_user_id)
-        except Exception as e:
-            print(f"DEBUG: Could not get user_profile_id from QSettings: {e}")
+        except Exception:
+            pass
         
-        print(f"DEBUG: Processing application {application_id} with action: {action}")
         api_response = OrganizationAPIService.process_application(application_id, action, admin_user_id)
         
         if api_response.get("success"):
@@ -1272,13 +1248,10 @@ class Admin(ManagerBase, FacultyAdminBase):
             )
             # Refresh the applicants list and members list
             if self.current_org:
-                print(f"DEBUG: Refreshing applicants for org {self.current_org['id']}")
                 self._fetch_applicants(self.current_org["id"])
                 if action == "accept":
                     # Refresh members when accepting to show new member
-                    print(f"DEBUG: Refreshing members for org {self.current_org['id']}")
                     self._fetch_members(self.current_org["id"])
-                    print(f"DEBUG: Current members count: {len(self.current_org.get('members', []))}")
                 self.load_applicants(self._get_search_text())
         else:
             error_msg = api_response.get("error", f"Failed to {action} application")

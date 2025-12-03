@@ -9,32 +9,11 @@ from ..Utils.image_utils import get_image_path, copy_image_to_data
 
 class Student(OrganizationViewBase):
     def __init__(self, student_name: str, user_id: int = None):
-        # Write to log file for debugging
-        import os
-        log_path = os.path.join(os.path.dirname(__file__), "student_debug.log")
-        with open(log_path, "a") as f:
-            f.write(f"\n{'='*80}\n")
-            f.write(f"STUDENT __INIT__ CALLED\n")
-            f.write(f"  student_name={student_name}\n")
-            f.write(f"  user_id parameter={user_id} (type={type(user_id)})\n")
-        
-        print(f"="*80)
-        print(f"STUDENT __INIT__ CALLED")
-        print(f"  student_name={student_name}")
-        print(f"  user_id parameter={user_id} (type={type(user_id)})")
-        print(f"="*80)
-        
         super().__init__(name=student_name)
         
         # user_id is the StudentProfile ID passed from Browse
         self.user_id = user_id
         
-        print(f"  FINAL self.user_id={self.user_id} (type={type(self.user_id)})")
-        print(f"="*80)
-        
-        with open(log_path, "a") as f:
-            f.write(f"  FINAL self.user_id={self.user_id} (type={type(self.user_id)})\n")
-            f.write(f"{'='*80}\n")
         self.load_orgs()
         self._check_for_notifications()
 
@@ -103,10 +82,8 @@ class Student(OrganizationViewBase):
                 
                 self.current_org['officers'] = officers
                 self.current_org['members'] = members
-                
-                print(f"DEBUG: Fetched {len(members)} members and {len(officers)} officers for org {org_id}")
         else:
-            print(f"ERROR: Failed to fetch members: {response.get('message')}")
+            pass  # API call failed, no action needed
 
     def _prompt_for_cv_on_promotion(self) -> None:
         """Prompt the newly promoted student to upload their CV."""
@@ -190,7 +167,6 @@ class Student(OrganizationViewBase):
 
     def load_orgs(self, search_text: str = "") -> None:
         """Load organizations - fetching joined orgs from database and others from API"""
-        print(f"DEBUG: load_orgs called with user_id={self.user_id}")
         
         # Fetch ALL organizations from API with optional search query
         all_orgs_response = OrganizationAPIService.fetch_organizations(search_query=search_text if search_text else None)
@@ -198,15 +174,7 @@ class Student(OrganizationViewBase):
         # Fetch joined organizations specifically for this student
         joined_orgs_response = None
         if self.user_id:
-            print(f"DEBUG load_orgs: About to call API with user_id={self.user_id} (type={type(self.user_id)})")
             joined_orgs_response = OrganizationAPIService.get_student_joined_organizations(self.user_id)
-            print(f"DEBUG load_orgs: Joined orgs API response: {joined_orgs_response}")
-            if joined_orgs_response.get('success'):
-                print(f"DEBUG load_orgs: API SUCCESS - returned {len(joined_orgs_response.get('data', []))} organizations")
-            else:
-                print(f"DEBUG load_orgs: API FAILED - {joined_orgs_response.get('message', 'Unknown error')}")
-        else:
-            print("WARNING load_orgs: No user_id available, cannot fetch joined organizations")
         
         # Fetch student's application statuses
         app_statuses_response = OrganizationAPIService.get_student_application_statuses(self.user_id) if self.user_id else {'success': False}
@@ -216,12 +184,8 @@ class Student(OrganizationViewBase):
             all_organizations_data = all_orgs_response.get('data', [])
             joined_orgs_data = joined_orgs_response.get('data', []) if joined_orgs_response and joined_orgs_response.get('success') else []
             
-            print(f"DEBUG: Total orgs: {len(all_organizations_data)}, Joined orgs: {len(joined_orgs_data)}")
-            print(f"DEBUG: Joined orgs data details: {joined_orgs_data}")
-            
             # Get joined org IDs for filtering
             joined_org_ids = {org.get('id') for org in joined_orgs_data}
-            print(f"DEBUG: Joined org IDs: {joined_org_ids}")
             
             # Convert API data to the format expected by the UI
             joined_organizations = []
@@ -229,7 +193,6 @@ class Student(OrganizationViewBase):
             
             for org in all_organizations_data:
                 org_id = org.get('id')
-                print(f"DEBUG: Processing org_id={org_id}, name={org.get('name')}, is_joined={org_id in joined_org_ids}")
                 
                 # Check if student has applied to this org
                 applicants = []
@@ -262,12 +225,10 @@ class Student(OrganizationViewBase):
                 # Separate joined vs not joined
                 if org_id in joined_org_ids:
                     joined_organizations.append(org_dict)
-                    print(f"DEBUG: Added '{org.get('name')}' to joined orgs")
                 else:
                     college_organizations.append(org_dict)
         else:
             # Fallback to JSON data if API fails
-            print(f"API Error: {all_orgs_response.get('message')}")
             organizations = self._load_data()
             
             student_name = self.name
@@ -284,8 +245,6 @@ class Student(OrganizationViewBase):
                 if not org.get("is_archived", False) and not org.get("is_branch", False) and
                 org['id'] not in joined_org_ids
             ]
-        
-        print(f"DEBUG: Final counts - Joined: {len(joined_organizations)}, College: {len(college_organizations)}")
         
         # Clear and populate grids
         self._clear_grid(self.ui.joined_org_grid)

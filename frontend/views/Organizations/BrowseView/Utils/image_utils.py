@@ -16,7 +16,6 @@ def ensure_data_directory() -> None:
     """Create the Data directory if it doesn't exist."""
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
-        print(f"Created Data directory at: {DATA_DIR}")
 
 
 def ensure_org_directory(org_name: str) -> str:
@@ -38,7 +37,6 @@ def ensure_org_directory(org_name: str) -> str:
     
     if not os.path.exists(org_dir):
         os.makedirs(org_dir)
-        print(f"Created organization directory at: {org_dir}")
     
     return org_dir
 
@@ -129,7 +127,6 @@ def copy_image_to_data(source_path: str, org_name: str) -> Optional[str]:
     
     is_valid, error_msg = validate_image_file(source_path)
     if not is_valid:
-        print(f"Image validation failed: {error_msg}")
         return None
     
     org_dir = ensure_org_directory(org_name)
@@ -148,14 +145,12 @@ def copy_image_to_data(source_path: str, org_name: str) -> Optional[str]:
     
     try:
         shutil.copy2(source_path, destination_path)
-        print(f"Copied image to: {destination_path}")
         
         safe_org_name = sanitize_filename(org_name)
         safe_org_name = os.path.splitext(safe_org_name)[0]
         
         return os.path.join(safe_org_name, safe_filename).replace('\\', '/')
-    except Exception as e:
-        print(f"Error copying image: {str(e)}")
+    except Exception:
         return None
 
 
@@ -184,7 +179,6 @@ def get_image_path(relative_path: str) -> str:
                 found_path = os.path.join(dirpath, filename)
                 return found_path
         
-        print(f"Warning: Image file not found: {full_path}")
         return "No Photo"
 
 
@@ -209,9 +203,7 @@ def delete_image(relative_path: str) -> bool: # MODIFIED (Completed)
     try:
         if os.path.exists(file_path):
             os.remove(file_path)
-            print(f"Deleted image: {file_path}")
             return True
         return False
-    except Exception as e:
-        print(f"Error deleting image: {str(e)}")
+    except Exception:
         return False

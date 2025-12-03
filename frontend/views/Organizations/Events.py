@@ -140,8 +140,8 @@ class Events(QMainWindow):
                         if row >= 0 and col >= 0:
                             table.setItem(row, col, QTableWidgetItem(cell_text))
                 dialog.exec()
-            except Exception as e:
-                print(f"Events: failed to open Event Timeline dialog: {e}")
+            except Exception:
+                pass
 
         def _open_request_proposal_dialog() -> None:
             try:
@@ -155,8 +155,8 @@ class Events(QMainWindow):
                 except Exception:
                     pass
                 dialog.exec()
-            except Exception as e:
-                print(f"Events: failed to open Request Proposal dialog: {e}")
+            except Exception:
+                pass
 
         def _open_request_reschedule_dialog() -> None:
             try:
@@ -169,8 +169,8 @@ class Events(QMainWindow):
                 except Exception:
                     pass
                 dialog.exec()
-            except Exception as e:
-                print(f"Events: failed to open Request Reschedule dialog: {e}")
+            except Exception:
+                pass
 
         # Wire signals via Module 6 controller
         try:
@@ -191,7 +191,7 @@ class Events(QMainWindow):
                         self.RequestRescheduleButton.clicked.connect(_open_request_reschedule_dialog)
                 except Exception:
                     pass
-        except Exception as e:
-            print(f"Events: warning wiring controller signals failed: {e}")
+        except Exception:
+            pass
 
 

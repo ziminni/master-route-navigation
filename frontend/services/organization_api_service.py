@@ -1207,6 +1207,50 @@ class OrganizationAPIService:
             }
 
     @staticmethod
+    def get_faculty_advised_organizations(username: str, search_query: Optional[str] = None) -> Dict:
+        """
+        Get all organizations that a faculty member advises
+        
+        Args:
+            username: The faculty's username
+            search_query: Optional search term to filter organizations
+            
+        Returns:
+            Dictionary containing the API response with list of advised organizations
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/faculty/advised/"
+        
+        params = {'username': username}
+        if search_query:
+            params['search'] = search_query
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', []),
+                    'message': response_data.get('message', 'Advised organizations retrieved successfully'),
+                    'count': response_data.get('count', 0)
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to retrieve advised organizations'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+
+    @staticmethod
     def get_organization_advisers(org_id: int) -> Dict:
         """
         Get all advisers for a specific organization

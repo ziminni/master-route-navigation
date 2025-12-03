@@ -53,7 +53,6 @@ class FacultyAdminBase(OrganizationViewBase):
                 organizations.append(org_dict)
         else:
             # Fallback to JSON data if API fails
-            print(f"API Error: {api_response.get('message')}")
             organizations = self._load_data()
         
         self._clear_grid(self.ui.college_org_grid)

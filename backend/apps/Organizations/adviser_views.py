@@ -6,6 +6,104 @@ from rest_framework.response import Response
 from rest_framework import status
 from apps.Users.models import FacultyProfile
 from .models import Organization, OrgAdviserTerm
+from .serializers import OrganizationSerializer
+
+
+class FacultyAdvisedOrganizationsView(APIView):
+    """
+    API View for getting organizations that a faculty member advises.
+    GET: Retrieve all organizations where the faculty is an adviser
+    Query params:
+        - faculty_id: FacultyProfile ID (required if username not provided)
+        - username: Faculty username (required if faculty_id not provided)
+        - search: Optional search term
+    """
+    
+    def get(self, request):
+        """Retrieve organizations that the faculty advises"""
+        try:
+            faculty_id = request.query_params.get('faculty_id')
+            username = request.query_params.get('username')
+            search_query = request.query_params.get('search')
+            
+            # Get faculty profile by ID or username
+            faculty = None
+            if faculty_id:
+                try:
+                    faculty = FacultyProfile.objects.get(id=faculty_id)
+                except FacultyProfile.DoesNotExist:
+                    return Response(
+                        {
+                            'success': False,
+                            'message': f'Faculty with id {faculty_id} not found'
+                        },
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            elif username:
+                try:
+                    faculty = FacultyProfile.objects.get(user__username=username)
+                except FacultyProfile.DoesNotExist:
+                    return Response(
+                        {
+                            'success': False,
+                            'message': f'Faculty with username {username} not found'
+                        },
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            else:
+                return Response(
+                    {
+                        'success': False,
+                        'message': 'Either faculty_id or username is required'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Get all organizations where this faculty is an adviser
+            adviser_terms = OrgAdviserTerm.objects.filter(adviser=faculty).select_related('org')
+            org_ids = [term.org.id for term in adviser_terms]
+            
+            # Get the organizations - only active and non-archived
+            organizations = Organization.objects.filter(
+                id__in=org_ids,
+                is_archived=False,
+                is_active=True
+            )
+            
+            # Apply search filter if provided
+            if search_query:
+                from django.db.models import Q
+                organizations = organizations.filter(
+                    Q(name__icontains=search_query) |
+                    Q(description__icontains=search_query) |
+                    Q(objectives__icontains=search_query)
+                )
+            
+            organizations = organizations.order_by('-created_at')
+            
+            serializer = OrganizationSerializer(organizations, many=True)
+            
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Advised organizations retrieved successfully',
+                    'data': serializer.data,
+                    'count': organizations.count()
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            print(f"ERROR: Failed to get advised organizations - {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {
+                    'success': False,
+                    'message': f'An error occurred: {str(e)}'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class FacultyListView(APIView):
