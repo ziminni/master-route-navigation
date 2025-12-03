@@ -29,7 +29,7 @@ class NotificationPopup(QWidget):
         filter_layout = QHBoxLayout(filter_widget)
         filter_layout.setContentsMargins(8, 8, 8, 8)
         filter_layout.setSpacing(8)
-        
+
         self.all_btn = QPushButton("All")
         self.unread_btn = QPushButton("Unread")
 
@@ -92,7 +92,7 @@ class NotificationPopup(QWidget):
         self.unread_btn.setChecked(category == "unread")
 
         self.notification_list.clear()
-        
+
         if category == "all":
             filtered = self.notifications
         elif category == "unread":
@@ -130,7 +130,7 @@ class MailPopup(QWidget):
         filter_layout = QHBoxLayout(filter_widget)
         filter_layout.setContentsMargins(8, 8, 8, 8)
         filter_layout.setSpacing(8)
-        
+
         self.all_btn = QPushButton("All")
         self.unread_btn = QPushButton("Unread")
         self.groups_btn = QPushButton("Groups")
@@ -201,7 +201,7 @@ class MailPopup(QWidget):
         self.groups_btn.setChecked(category == "groups")
 
         self.message_list.clear()
-        
+
         if category == "all":
             filtered = self.messages
         elif category == "unread":
@@ -284,7 +284,7 @@ class Header(QWidget):
                 logo.setStyleSheet("color: red; font-size: 12px;")
             else:
                 logo.setPixmap(pixmap.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio,
-                                            Qt.TransformationMode.SmoothTransformation))
+                                             Qt.TransformationMode.SmoothTransformation))
         else:
             print(f"Error: {cisc_path} not found")
             logo.setText("CISC Logo Missing")
@@ -390,7 +390,7 @@ class Header(QWidget):
         layout.addWidget(self.dropdown_button)
         return profile_widget
 
-    
+
     def set_user(self, session: dict | None = None, user: dict | None = None):
         if session is not None:
             self.session = session

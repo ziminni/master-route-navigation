@@ -42,7 +42,7 @@
 #     'rest_framework',
 
 #     # Put your apps here
-    
+#         "messaging"
 # ]
 
 # MIDDLEWARE = [
@@ -146,7 +146,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Directory for image uploads
 MEDIA_ROOT = os.path.join(BASE_DIR.parent, "frontend", "assets","uploads")
 MEDIA_URL = "/uploads/"
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -174,9 +173,13 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
 
     # TODO: Add your apps here
-    # CORS Headers - tried to fix backend conn, should work if front and back runs on different ports
+    # CORS Headers - tried to fix b
+    # ackend conn, should work if front and back runs on different ports
     'corsheaders',
+    'channels',
+
     'apps.Users.apps.UsersConfig',
+    'apps.Messaging.apps.MessagingConfig'
 ]
 
 MIDDLEWARE = [
@@ -209,6 +212,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+# Channels: in‑memory channel layer for dev
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
 
 
 # Database

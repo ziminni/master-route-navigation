@@ -133,12 +133,21 @@ class Router:
                             page_class = self._page_classes.get(mod_key)
                             if page_class:
                                 # Pass user session data to modulars
-                                page = page_class(
-                                    username=self.user_session.get("username", ""),
-                                    roles=self.user_session.get("roles", []),
-                                    primary_role=self.user_session.get("primary_role", ""),
-                                    token=self.user_session.get("token", "")
-                                )
+                                if page_class == 14:
+                                    page = page_class(
+                                        username=self.user_session.get("username", ""),
+                                        roles=self.user_session.get("roles", []),
+                                        primary_role=self.user_session.get("primary_role", ""),
+                                        token=self.user_session.get("token", ""),
+                                        Header = self.self.layout_manager.header
+                                    )
+                                else:
+                                    page = page_class(
+                                        username=self.user_session.get("username", ""),
+                                        roles=self.user_session.get("roles", []),
+                                        primary_role=self.user_session.get("primary_role", ""),
+                                        token=self.user_session.get("token", "")
+                                    )
                             else:
                                 page = self._create_default_widget(mod_name, f"Sub-page for {mod_name}")
                             index = self.stack.addWidget(page)

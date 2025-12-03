@@ -1,112 +1,171 @@
-"""
-CISC Virtual Hub Launcher (Unified Window Version)
-==================================================
+import logging
+import traceback
 
-This launcher dynamically switches between:
-- The launcher menu
-- The student portal
-- The faculty portal
-All inside the same QMainWindow, using show/hide toggling.
-"""
-
-import sys
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QMainWindow
 
-# --- Import your existing widgets (must inherit QWidget) ---
-from .main_chat_widget_wrapper import MainChatWidgetWrapper as StudentMainUI
-from .faculty_app import FacultyMainUI
-from .data_manager import DataManager
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+# Safe imports for local modules
+try:
+    from .main_chat_widget_wrapper import MainChatWidgetWrapper as StudentMainUI
+except Exception:
+    logger.exception("Error importing StudentMainUI (main_chat_widget_wrapper)")
+    StudentMainUI = None
+
+try:
+    from .faculty_app import FacultyMainUI
+except Exception:
+    logger.exception("Error importing FacultyMainUI (faculty_app)")
+    FacultyMainUI = None
+
+try:
+    from .admin_wrapper import AdminMainUI
+except Exception:
+    logger.exception("Error importing AdminMainUI (admin_wrapper)")
+    AdminMainUI = None
+
+try:
+    from .org_wrapper import OrgMainUI
+except Exception:
+    logger.exception("Error importing OrgMainUI (org_wrapper)")
+    OrgMainUI = None
+
+try:
+    from .data_manager import DataManager
+except Exception:
+    logger.exception("Error importing DataManager (data_manager)")
+    DataManager = None
+
+m = None
+def _short_token(tok: str, max_len: int = 20) -> str:
+    """Helper for logging: show only start/end of token."""
+    if not tok:
+        return "<EMPTY>"
+    tok = str(tok)
+    if len(tok) <= max_len:
+        return tok
+    half = max_len // 2
+    return f"{tok[:half]}...{tok[-half:]}"
 
 
-class LauncherWindow(QtWidgets.QMainWindow):
-    def __init__(self ,username, roles, primary_role, token, parent=None):
+class LauncherWindow(QtWidgets.QWidget):
+    """
+    CISC Virtual Hub Launcher (Unified Window Version)
+
+    - Used as a QWidget so Router can embed it in its QStackedWidget.
+    - Can also be run standalone in a QMainWindow.
+    """
+
+    def __init__(self, username, roles, primary_role, token, user_id=None, parent=None):
+        logger.debug(
+            "Initializing LauncherWindow | username=%r roles=%r primary_role=%r token_snip=%s user_id=%r",
+            username,
+            roles,
+            primary_role,
+            _short_token(token),
+            user_id,
+        )
         super().__init__(parent)
+
+        logger.info(
+            "LAUNCHER: init | username=%r primary_role=%r token_snip=%s",
+            username,
+            primary_role,
+            _short_token(token),
+        )
+
         self.username = username
-        self.roles = roles
+        self.roles = roles or []
         self.primary_role = primary_role
         self.token = token
 
+        # Initialize shared DataManager with session info
+        if DataManager is None:
+            logger.error("DataManager is None, likely failed to import.")
+            self.data_manager = None
+        else:
+            try:
+                logger.debug(
+                    "Creating DataManager with username=%r primary_role=%r token_snip=%s",
+                    username,
+                    primary_role,
+                    _short_token(token),
+                )
+                self.data_manager = DataManager(
+                    username=username,
+                    roles=self.roles,
+                    primary_role=primary_role,
+                    token=token,
+                )
+                self.user_id = self.data_manager.get_current_user_id()  # numeric id of logged-in user, if you have it
+                logger.debug(
+                    "DataManager initialized successfully (token_snip=%s).",
+                    _short_token(self.data_manager.token if hasattr(self.data_manager, 'token') else token),
+                )
 
-         # Initialize DataManager with session info
-        self.data_manager = DataManager(
-            data_file_path="dummy_data.json",
-            username=username,
-            roles=roles,
-            primary_role=primary_role,
-            token=token
-        )
-        
-        self.setWindowTitle("🎓 CISC Virtual Hub")
-        self.setGeometry(100, 100, 900, 600)
+            except Exception:
+                logger.exception("Failed to initialize DataManager.")
+                self.data_manager = None
+
         self.setStyleSheet("background-color: #f8f9fa;")
 
-        # --- Central container ---
-        self.container = QtWidgets.QWidget()
-        self.main_layout = QtWidgets.QStackedLayout(self.container)
-        self.setCentralWidget(self.container)
+        # Main stacked layout on this widget
+        try:
+            self.main_layout = QtWidgets.QStackedLayout(self)
+            self.setLayout(self.main_layout)
+        except Exception:
+            logger.exception("Failed to create main QStackedLayout.")
+            raise
 
-        # --- Launcher screen ---
-        self.launcher_widget = self.create_launcher_widget()
-        self.main_layout.addWidget(self.launcher_widget)
-
-        # --- Student & Faculty screens ---
+        # Role-specific screens (lazy created)
         self.student_widget = None
         self.faculty_widget = None
+        self.admin_widget = None
+        self.org_widget = None
 
-        if "student" in self.roles:
-            self.toggle_student_portal()  # Auto-open student portal if role present
-        elif "faculty" in self.roles:
-            self.toggle_faculty_portal()  # Auto-open faculty portal if role present
+        # Placeholder launcher_widget if you have a menu screen
+        self.launcher_widget = QtWidgets.QWidget(self)
+        self.main_layout.addWidget(self.launcher_widget)
+
+        # Auto-open based on primary_role (fallback to roles list)
+        try:
+            self.auto_open_for_role()
+        except Exception:
+            logger.exception("Error during auto_open_for_role().")
 
     # ------------------------------------------------------------
-    # Create the launcher screen (main menu)
+    # Auto-open portal based on role
     # ------------------------------------------------------------
-    def create_launcher_widget(self):
-        widget = QtWidgets.QWidget()
-        layout = QtWidgets.QVBoxLayout(widget)
-        layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(20)
-
-        title = QtWidgets.QLabel("🎓 CISC Virtual Hub")
-        title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #084924;")
-
-        subtitle = QtWidgets.QLabel("Unified Messaging System")
-        subtitle.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet("font-size: 16px; color: #666; margin-bottom: 10px;")
-
-        self.student_btn = QtWidgets.QPushButton("👨‍🎓 Student Portal")
-        self.student_btn.setStyleSheet(self.button_style("#084924"))
-        self.student_btn.clicked.connect(self.toggle_student_portal)
-
-        self.faculty_btn = QtWidgets.QPushButton("👨‍🏫 Faculty Portal")
-        self.faculty_btn.setStyleSheet(self.button_style("#1e4d2b"))
-        self.faculty_btn.clicked.connect(self.toggle_faculty_portal)
-
-        self.exit_btn = QtWidgets.QPushButton("Exit")
-        self.exit_btn.setStyleSheet(self.button_style("#6b7280", small=True))
-        self.exit_btn.clicked.connect(self.close)
-
-        desc = QtWidgets.QLabel(
-            "Choose your role to access the messaging system.\n"
-            "Students can create inquiries and chat with faculty.\n"
-            "Faculty can manage messages and respond to inquiries."
+    def auto_open_for_role(self):
+        role = (self.primary_role or "").lower()
+        roles_lower = [str(r).lower() for r in self.roles]
+        logger.debug(
+            "auto_open_for_role called | primary_role=%r roles=%r token_snip=%s",
+            role,
+            roles_lower,
+            _short_token(self.token),
         )
-        desc.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        desc.setStyleSheet("font-size: 13px; color: #666;")
-        desc.setWordWrap(True)
 
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
-        layout.addSpacing(10)
-        layout.addWidget(self.student_btn)
-        layout.addWidget(self.faculty_btn)
-        layout.addWidget(desc)
-        layout.addSpacing(20)
-        layout.addWidget(self.exit_btn, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
-
-        return widget
+        if role == "student" or "student" in roles_lower:
+            logger.info("Auto-opening Student portal.")
+            self.toggle_student_portal(open_only=True)
+        elif role == "faculty" or "faculty" in roles_lower:
+            logger.info("Auto-opening Faculty portal.")
+            self.toggle_faculty_portal(open_only=True)
+        elif role == "admin" or "admin" in roles_lower:
+            logger.info("Auto-opening Admin portal.")
+            self.toggle_admin_portal(open_only=True)
+        elif role == "org officer" or "org officer" in roles_lower:
+            logger.info("Auto-opening Org Officer portal.")
+            self.toggle_org_portal(open_only=True)
+        else:
+            logger.info("No matching role found; staying on launcher.")
+            self.main_layout.setCurrentWidget(self.launcher_widget)
 
     # ------------------------------------------------------------
     # Button style helper
@@ -114,6 +173,14 @@ class LauncherWindow(QtWidgets.QMainWindow):
     def button_style(self, color, small=False):
         padding = "10px 20px" if small else "15px 30px"
         font_size = "14px" if small else "18px"
+        try:
+            darker1 = self.darken(color, 0.15)
+            darker2 = self.darken(color, 0.3)
+        except Exception:
+            logger.exception("Error darkening color %r; using fallback.", color)
+            darker1 = color
+            darker2 = color
+
         return f"""
             QPushButton {{
                 background-color: {color};
@@ -126,60 +193,236 @@ class LauncherWindow(QtWidgets.QMainWindow):
                 min-height: 50px;
             }}
             QPushButton:hover {{
-                background-color: {self.darken(color, 0.15)};
+                background-color: {darker1};
             }}
             QPushButton:pressed {{
-                background-color: {self.darken(color, 0.3)};
+                background-color: {darker2};
             }}
         """
 
     def darken(self, hex_color, factor):
-        """Darken a hex color for hover/pressed effects"""
-        c = int(hex_color.lstrip('#'), 16)
-        r, g, b = (c >> 16) & 255, (c >> 8) & 255, c & 255
-        r = int(r * (1 - factor))
-        g = int(g * (1 - factor))
-        b = int(b * (1 - factor))
-        return f"#{r:02x}{g:02x}{b:02x}"
+        logger.debug("darken called with color=%r factor=%r", hex_color, factor)
+        try:
+            c = int(hex_color.lstrip("#"), 16)
+            r, g, b = (c >> 16) & 255, (c >> 8) & 255, c & 255
+            r = max(0, int(r * (1 - factor)))
+            g = max(0, int(g * (1 - factor)))
+            b = max(0, int(b * (1 - factor)))
+            return f"#{r:02x}{g:02x}{b:02x}"
+        except Exception:
+            logger.exception("Failed to darken color %r", hex_color)
+            return hex_color
 
     # ------------------------------------------------------------
-    # Toggling between launcher / student / faculty
+    # Safe wrappers for button slots
     # ------------------------------------------------------------
-    def toggle_student_portal(self):
+    def _safe_toggle_student(self):
+        try:
+            self.toggle_student_portal()
+        except Exception:
+            logger.exception("Exception in _safe_toggle_student.")
+            traceback.print_exc()
+
+    def _safe_toggle_faculty(self):
+        try:
+            self.toggle_faculty_portal()
+        except Exception:
+            logger.exception("Exception in _safe_toggle_faculty.")
+            traceback.print_exc()
+
+    def _safe_toggle_admin(self):
+        try:
+            self.toggle_admin_portal()
+        except Exception:
+            logger.exception("Exception in _safe_toggle_admin.")
+            traceback.print_exc()
+
+    def _safe_toggle_org(self):
+        try:
+            self.toggle_org_portal()
+        except Exception:
+            logger.exception("Exception in _safe_toggle_org.")
+            traceback.print_exc()
+
+    # ------------------------------------------------------------
+    # Toggling between launcher / student / faculty / admin / org
+    # ------------------------------------------------------------
+    def toggle_student_portal(self, open_only=False):
+        logger.debug(
+            "toggle_student_portal called | open_only=%r token_snip=%s",
+            open_only,
+            _short_token(self.token),
+        )
+
+        if StudentMainUI is None:
+            logger.error("StudentMainUI is None; cannot open Student portal.")
+            return
+
         if self.student_widget is None:
-            self.student_widget = StudentMainUI()
-            self.main_layout.addWidget(self.student_widget)
+            try:
+                logger.debug(
+                    "Creating StudentMainUI with token_snip=%s",
+                    _short_token(self.token),
+                )
+                self.student_widget = StudentMainUI(
+                    parent=self,
+                    current_user_id=self.user_id,
+                    current_username=self.username,
+                    current_token=self.token,
+                    data_manager=self.data_manager,
+                    layout_manager = m.get_layout() #pass shared DataManager
+                )
+                self.main_layout.addWidget(self.student_widget)
+                logger.info("StudentMainUI created and added to layout.")
+                if hasattr(self.student_widget, "go_back"):
+                    self.student_widget.go_back.connect(self.return_to_launcher)
+            except Exception:
+                logger.exception("Failed to create or add StudentMainUI.")
+                return
 
-            # Optional: add a back button signal if your widget supports it
-            if hasattr(self.student_widget, "go_back"):
-                self.student_widget.go_back.connect(self.return_to_launcher)
+        if open_only:
+            self.main_layout.setCurrentWidget(self.student_widget)
+            return
 
-        # Toggle view
         if self.main_layout.currentWidget() == self.launcher_widget:
             self.main_layout.setCurrentWidget(self.student_widget)
         else:
-            self.main_layout.setCurrentWidget(self.launcher_widget)
+            self.return_to_launcher()
 
-    def toggle_faculty_portal(self):
+    def toggle_faculty_portal(self, open_only=False):
+        logger.debug(
+            "toggle_faculty_portal called | open_only=%r token_snip=%s",
+            open_only,
+            _short_token(self.token),
+        )
+
+        if FacultyMainUI is None:
+            logger.error("FacultyMainUI is None; cannot open Faculty portal.")
+            return
+
         if self.faculty_widget is None:
-            self.faculty_widget = FacultyMainUI()
-            self.main_layout.addWidget(self.faculty_widget)
+            try:
+                logger.debug(
+                    "Creating FacultyMainUI with token_snip=%s",
+                    _short_token(self.token),
+                )
+                self.faculty_widget = FacultyMainUI(
+                    username=self.username,
+                    roles=self.roles,
+                    primary_role="faculty",
+                    token=self.token,
+                    data_manager=self.data_manager,
+                    parent=self,
+                    layout_manager=m.get_layout()
+                )
+                self.main_layout.addWidget(self.faculty_widget)
+                logger.info("FacultyMainUI created and added to layout.")
+                if hasattr(self.faculty_widget, "go_back"):
+                    self.faculty_widget.go_back.connect(self.return_to_launcher)
+            except Exception:
+                logger.exception("Failed to create or add FacultyMainUI.")
+                return
 
-            # Optional back button support
-            if hasattr(self.faculty_widget, "go_back"):
-                self.faculty_widget.go_back.connect(self.return_to_launcher)
+        if open_only:
+            self.main_layout.setCurrentWidget(self.faculty_widget)
+            return
 
-        # Toggle view
         if self.main_layout.currentWidget() == self.launcher_widget:
             self.main_layout.setCurrentWidget(self.faculty_widget)
         else:
-            self.main_layout.setCurrentWidget(self.launcher_widget)
+            self.return_to_launcher()
+
+    def toggle_admin_portal(self, open_only=False):
+        logger.debug(
+            "toggle_admin_portal called | open_only=%r token_snip=%s",
+            open_only,
+            _short_token(self.token),
+        )
+
+        if AdminMainUI is None:
+            logger.error("AdminMainUI is None; cannot open Admin portal.")
+            return
+
+        if self.admin_widget is None:
+            try:
+                logger.debug(
+                    "Creating AdminMainUI with token_snip=%s",
+                    _short_token(self.token),
+                )
+                self.admin_widget = AdminMainUI(
+                    username=self.username,
+                    roles=self.roles,
+                    primary_role=self.primary_role,
+                    token=self.token,
+                    data_manager=self.data_manager,
+                    parent=self,
+                    layout_manager = m
+                )
+                self.main_layout.addWidget(self.admin_widget)
+                logger.info("AdminMainUI created and added to layout.")
+            except Exception:
+                logger.exception("Failed to create or add AdminMainUI.")
+                return
+
+        if open_only:
+            self.main_layout.setCurrentWidget(self.admin_widget)
+            return
+
+        if self.main_layout.currentWidget() == self.launcher_widget:
+            self.main_layout.setCurrentWidget(self.admin_widget)
+        else:
+            self.return_to_launcher()
+
+    def toggle_org_portal(self, open_only=False):
+        logger.debug(
+            "toggle_org_portal called | open_only=%r token_snip=%s",
+            open_only,
+            _short_token(self.token),
+        )
+
+        if OrgMainUI is None:
+            logger.error("OrgMainUI is None; cannot open Org Officer portal.")
+            return
+
+        if self.org_widget is None:
+            try:
+                logger.debug(
+                    "Creating OrgMainUI with token_snip=%s",
+                    _short_token(self.token),
+                )
+                self.org_widget = OrgMainUI(
+                    username=self.username,
+                    roles=self.roles,
+                    primary_role="org officer",
+                    token=self.token,
+                    data_manager=self.data_manager,
+                    parent=self,
+                    layout_manager = m
+                )
+                self.main_layout.addWidget(self.org_widget)
+                logger.info("OrgMainUI created and added to layout.")
+            except Exception:
+                logger.exception("Failed to create or add OrgMainUI.")
+                return
+
+        if open_only:
+            self.main_layout.setCurrentWidget(self.org_widget)
+            return
+
+        if self.main_layout.currentWidget() == self.launcher_widget:
+            self.main_layout.setCurrentWidget(self.org_widget)
+        else:
+            self.return_to_launcher()
 
     # ------------------------------------------------------------
     # Return to launcher
     # ------------------------------------------------------------
     def return_to_launcher(self):
-        self.main_layout.setCurrentWidget(self.launcher_widget)
-
-
-
+        logger.debug(
+            "return_to_launcher called | token_snip=%s",
+            _short_token(self.token),
+        )
+        try:
+            self.main_layout.setCurrentWidget(self.launcher_widget)
+        except Exception:
+            logger.exception("Failed to switch back to launcher_widget.")
