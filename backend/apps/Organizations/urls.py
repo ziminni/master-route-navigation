@@ -7,6 +7,7 @@ from .views import (OrganizationCreateView, OrganizationListView, OrganizationDe
 from .position_views import PositionsListView, MemberPositionUpdateView
 from .current_user_view import CurrentUserView
 from .log_views import LogListView, LogDetailView
+from .adviser_views import FacultyListView, OrganizationAdvisersView, UpdateOrganizationAdviserView
 
 urlpatterns = [
     path('', OrganizationListView.as_view(), name='organization-list'),
@@ -27,6 +28,10 @@ urlpatterns = [
     # Log endpoints
     path('logs/', LogListView.as_view(), name='log-list'),
     path('logs/<str:target_type>/<int:target_id>/', LogDetailView.as_view(), name='log-detail'),
+    # Faculty and Adviser endpoints
+    path('faculty/', FacultyListView.as_view(), name='faculty-list'),
+    path('<int:org_id>/advisers/', OrganizationAdvisersView.as_view(), name='organization-advisers'),
+    path('<int:org_id>/advisers/<int:adviser_term_id>/', UpdateOrganizationAdviserView.as_view(), name='update-adviser'),
     path('debug/memberships/', lambda request: __import__('rest_framework.response', fromlist=['Response']).Response({
         'memberships': list(__import__('apps.Organizations.models', fromlist=['OrganizationMembers']).OrganizationMembers.objects.all().values('id', 'user_id', 'organization_id__name', 'status'))
     }), name='debug-memberships'),

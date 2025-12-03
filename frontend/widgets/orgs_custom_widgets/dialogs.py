@@ -1037,12 +1037,14 @@ class EditMemberDialog(BlurredDialog):
         self.accept()
 
 class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
-    def __init__(self, parent, title, fixed_size=(600, 500)):
+    def __init__(self, parent, title, fixed_size=(600, 700)):
         super().__init__(parent)
         self.parent_window = parent
         self.setWindowTitle(title)
         self.setFixedSize(*fixed_size)
         self.logo_path = "No Photo"
+        self.faculty_list = []  # Store faculty data from API
+        self.adviser_rows = []  # Track adviser row widgets
         
         self.image_preview_size = (200, 200)
         self.circular_logo_setter = self.parent_window.set_circular_logo
@@ -1105,7 +1107,7 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
         
         self.main_org_list = QtWidgets.QListWidget()
         self.main_org_list.setStyleSheet(EDIT_STYLE)
-        self.main_org_list.setMaximumHeight(100)
+        self.main_org_list.setMaximumHeight(60)
         self.main_org_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
         
         # Fetch organizations from API
@@ -1129,6 +1131,43 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
         
         right_layout.addWidget(self.main_org_list)
 
+        # Adviser section header with + button
+        adviser_header_layout = QtWidgets.QHBoxLayout()
+        adviser_label = QtWidgets.QLabel("Organization Adviser(s):")
+        adviser_label.setStyleSheet(LABEL_STYLE)
+        adviser_header_layout.addWidget(adviser_label)
+        adviser_header_layout.addStretch()
+        
+        self.add_adviser_btn = QtWidgets.QPushButton("+")
+        self.add_adviser_btn.setFixedSize(28, 28)
+        self.add_adviser_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
+                border-radius: 14px;
+                font-weight: bold;
+                font-size: 16px;
+            }
+            QPushButton:hover {
+                background-color: #098f42;
+            }
+        """)
+        self.add_adviser_btn.setToolTip("Add secondary adviser")
+        self.add_adviser_btn.clicked.connect(self._add_secondary_adviser_row)
+        self.add_adviser_btn.hide()  # Hidden until primary adviser is selected
+        adviser_header_layout.addWidget(self.add_adviser_btn)
+        right_layout.addLayout(adviser_header_layout)
+        
+        # Container for adviser rows
+        self.adviser_container = QtWidgets.QVBoxLayout()
+        right_layout.addLayout(self.adviser_container)
+        
+        # Add primary adviser row (always visible)
+        self._add_primary_adviser_row()
+        
+        # Fetch faculty list for dropdowns
+        self._fetch_faculty_list()
+
         # Description text edit
         self.desc_edit = BlurredDialog._add_text_edit(right_layout, "Description")
         
@@ -1137,6 +1176,167 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
 
         content_layout.addWidget(right_widget)
         return content_layout
+    
+    def _create_adviser_row(self, role='pri', show_remove_btn=False):
+        """Create a single adviser row with dropdown, role, dates"""
+        row_widget = QtWidgets.QWidget()
+        row_layout = QtWidgets.QVBoxLayout(row_widget)
+        row_layout.setContentsMargins(0, 0, 0, 5)
+        row_layout.setSpacing(3)
+        
+        # First line: Adviser dropdown + Role dropdown + Remove button (if secondary)
+        first_line = QtWidgets.QHBoxLayout()
+        
+        adviser_combo = QtWidgets.QComboBox()
+        adviser_combo.setStyleSheet(EDIT_STYLE)
+        adviser_combo.addItem("Select Adviser...", None)
+        first_line.addWidget(adviser_combo, 3)
+        
+        role_combo = QtWidgets.QComboBox()
+        role_combo.setStyleSheet(EDIT_STYLE)
+        if role == 'pri':
+            role_combo.addItem("Primary", "pri")
+            role_combo.setEnabled(False)  # Primary role is fixed for first row
+        else:
+            role_combo.addItem("Secondary", "sec")
+            role_combo.setEnabled(False)  # Secondary role is fixed for second row
+        first_line.addWidget(role_combo, 1)
+        
+        remove_btn = None
+        if show_remove_btn:
+            remove_btn = QtWidgets.QPushButton("×")
+            remove_btn.setFixedSize(24, 24)
+            remove_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #EB5757;
+                    color: white;
+                    border-radius: 12px;
+                    font-weight: bold;
+                    font-size: 14px;
+                }
+                QPushButton:hover {
+                    background-color: #d64545;
+                }
+            """)
+            remove_btn.setToolTip("Remove this adviser")
+            remove_btn.clicked.connect(lambda: self._remove_adviser_row(row_widget))
+            first_line.addWidget(remove_btn)
+        
+        row_layout.addLayout(first_line)
+        
+        # Second line: Date fields
+        date_line = QtWidgets.QHBoxLayout()
+        
+        start_label = QtWidgets.QLabel("Start:")
+        start_label.setStyleSheet("font-size: 11px;")
+        date_line.addWidget(start_label)
+        
+        start_date = QtWidgets.QDateEdit()
+        start_date.setCalendarPopup(True)
+        start_date.setDisplayFormat("yyyy-MM-dd")
+        start_date.setDate(QtCore.QDate.currentDate())
+        start_date.setStyleSheet(EDIT_STYLE)
+        date_line.addWidget(start_date)
+        
+        end_label = QtWidgets.QLabel("End:")
+        end_label.setStyleSheet("font-size: 11px;")
+        date_line.addWidget(end_label)
+        
+        end_date = QtWidgets.QDateEdit()
+        end_date.setCalendarPopup(True)
+        end_date.setDisplayFormat("yyyy-MM-dd")
+        end_date.setDate(QtCore.QDate.currentDate().addYears(1))
+        end_date.setStyleSheet(EDIT_STYLE)
+        date_line.addWidget(end_date)
+        
+        row_layout.addLayout(date_line)
+        
+        # Store widget references for later access
+        row_widget.adviser_combo = adviser_combo
+        row_widget.role_combo = role_combo
+        row_widget.start_date = start_date
+        row_widget.end_date = end_date
+        row_widget.remove_btn = remove_btn
+        row_widget.role = role
+        
+        # Connect adviser selection change to show/hide add button
+        if role == 'pri':
+            adviser_combo.currentIndexChanged.connect(self._on_primary_adviser_changed)
+        
+        return row_widget
+    
+    def _add_primary_adviser_row(self):
+        """Add the primary adviser row (always visible)"""
+        row_widget = self._create_adviser_row(role='pri', show_remove_btn=False)
+        self.adviser_container.addWidget(row_widget)
+        self.adviser_rows.append(row_widget)
+    
+    def _add_secondary_adviser_row(self):
+        """Add a secondary adviser row"""
+        if len(self.adviser_rows) >= 2:
+            return  # Max 2 advisers
+        
+        row_widget = self._create_adviser_row(role='sec', show_remove_btn=True)
+        
+        # Populate faculty dropdown
+        for faculty in self.faculty_list:
+            display_text = f"{faculty['name']} ({faculty['department']})"
+            row_widget.adviser_combo.addItem(display_text, faculty['id'])
+        
+        self.adviser_container.addWidget(row_widget)
+        self.adviser_rows.append(row_widget)
+        
+        # Hide the add button since we now have 2 advisers
+        self.add_adviser_btn.hide()
+    
+    def _remove_adviser_row(self, row_widget):
+        """Remove a secondary adviser row"""
+        if row_widget in self.adviser_rows:
+            self.adviser_rows.remove(row_widget)
+            row_widget.deleteLater()
+            
+            # Show the add button again if primary adviser is selected
+            if len(self.adviser_rows) == 1:
+                primary_row = self.adviser_rows[0]
+                if primary_row.adviser_combo.currentData() is not None:
+                    self.add_adviser_btn.show()
+    
+    def _on_primary_adviser_changed(self, index):
+        """Show + button when primary adviser is selected"""
+        if len(self.adviser_rows) == 1:
+            primary_row = self.adviser_rows[0]
+            if primary_row.adviser_combo.currentData() is not None:
+                self.add_adviser_btn.show()
+            else:
+                self.add_adviser_btn.hide()
+    
+    def _fetch_faculty_list(self):
+        """Fetch faculty list from API for adviser dropdown"""
+        api_response = OrganizationAPIService.get_faculty_list()
+        
+        if api_response.get('success'):
+            self.faculty_list = api_response.get('data', [])
+            # Populate faculty in all existing adviser rows
+            for row in self.adviser_rows:
+                for faculty in self.faculty_list:
+                    display_text = f"{faculty['name']} ({faculty['department']})"
+                    row.adviser_combo.addItem(display_text, faculty['id'])
+        else:
+            print(f"Warning: Could not fetch faculty list: {api_response.get('message')}")
+    
+    def _get_adviser_data(self):
+        """Get adviser data from all rows for saving"""
+        advisers = []
+        for row in self.adviser_rows:
+            adviser_id = row.adviser_combo.currentData()
+            if adviser_id is not None:
+                advisers.append({
+                    'adviser_id': adviser_id,
+                    'role': row.role_combo.currentData(),
+                    'start_date': row.start_date.date().toString("yyyy-MM-dd"),
+                    'end_date': row.end_date.date().toString("yyyy-MM-dd")
+                })
+        return advisers
 
     def confirm(self):
         raise NotImplementedError("Subclasses must implement confirm")
@@ -1144,7 +1344,8 @@ class BaseOrgDialog(PhotoBrowseMixin, BlurredDialog):
 class EditOrgDialog(BaseOrgDialog):
     def __init__(self, org_data: dict, parent: QtWidgets.QMainWindow):
         self.org_data = org_data
-        super().__init__(parent, "Edit Organization/Branch Details", (600, 500))
+        self.existing_advisers = []  # Store existing advisers from API
+        super().__init__(parent, "Edit Organization/Branch Details", (600, 700))
         self.name_edit.setText(org_data.get("name", ""))
         
         # Set org level if available
@@ -1171,6 +1372,81 @@ class EditOrgDialog(BaseOrgDialog):
             org_id = item.data(QtCore.Qt.ItemDataRole.UserRole)
             if org_id in main_orgs:
                 item.setSelected(True)
+        
+        # Load existing advisers
+        self._load_existing_advisers()
+
+    def _load_existing_advisers(self):
+        """Load existing advisers from database and populate the rows"""
+        org_id = self.org_data.get("id")
+        if not org_id:
+            return
+        
+        api_response = OrganizationAPIService.get_organization_advisers(org_id)
+        
+        if api_response.get('success'):
+            self.existing_advisers = api_response.get('data', [])
+            
+            # Sort advisers: primary first, then secondary
+            self.existing_advisers.sort(key=lambda x: 0 if x['role'] == 'pri' else 1)
+            
+            # Populate the primary adviser row (first one)
+            if self.existing_advisers:
+                primary_adv = self.existing_advisers[0]
+                primary_row = self.adviser_rows[0]
+                
+                # Find and select the adviser in the dropdown
+                for i in range(primary_row.adviser_combo.count()):
+                    if primary_row.adviser_combo.itemData(i) == primary_adv['adviser_id']:
+                        primary_row.adviser_combo.setCurrentIndex(i)
+                        break
+                
+                # Set dates
+                if primary_adv.get('start_date'):
+                    start_date = QtCore.QDate.fromString(primary_adv['start_date'], "yyyy-MM-dd")
+                    if start_date.isValid():
+                        primary_row.start_date.setDate(start_date)
+                
+                if primary_adv.get('end_date'):
+                    end_date = QtCore.QDate.fromString(primary_adv['end_date'], "yyyy-MM-dd")
+                    if end_date.isValid():
+                        primary_row.end_date.setDate(end_date)
+                
+                # Store the adviser term ID for update
+                primary_row.adviser_term_id = primary_adv['id']
+                
+                # Show add button if there's room for secondary
+                if len(self.existing_advisers) < 2:
+                    self.add_adviser_btn.show()
+            
+            # Add secondary adviser row if exists
+            if len(self.existing_advisers) > 1:
+                secondary_adv = self.existing_advisers[1]
+                self._add_secondary_adviser_row()
+                
+                secondary_row = self.adviser_rows[1]
+                
+                # Find and select the adviser in the dropdown
+                for i in range(secondary_row.adviser_combo.count()):
+                    if secondary_row.adviser_combo.itemData(i) == secondary_adv['adviser_id']:
+                        secondary_row.adviser_combo.setCurrentIndex(i)
+                        break
+                
+                # Set dates
+                if secondary_adv.get('start_date'):
+                    start_date = QtCore.QDate.fromString(secondary_adv['start_date'], "yyyy-MM-dd")
+                    if start_date.isValid():
+                        secondary_row.start_date.setDate(start_date)
+                
+                if secondary_adv.get('end_date'):
+                    end_date = QtCore.QDate.fromString(secondary_adv['end_date'], "yyyy-MM-dd")
+                    if end_date.isValid():
+                        secondary_row.end_date.setDate(end_date)
+                
+                # Store the adviser term ID for update
+                secondary_row.adviser_term_id = secondary_adv['id']
+        else:
+            print(f"Warning: Could not load existing advisers: {api_response.get('message')}")
 
     def _create_parent_layout(self):
         return None
@@ -1180,6 +1456,12 @@ class EditOrgDialog(BaseOrgDialog):
         
         if not new_name:
             QtWidgets.QMessageBox.warning(self, "Invalid Input", "Name is required.")
+            return
+        
+        # Validate at least one adviser is selected
+        adviser_data = self._get_adviser_data()
+        if not adviser_data:
+            QtWidgets.QMessageBox.warning(self, "Invalid Input", "At least one organization adviser is required.")
             return
 
         # Get organization ID
@@ -1241,6 +1523,9 @@ class EditOrgDialog(BaseOrgDialog):
         if api_response.get('success'):
             print(f"Updated organization '{new_name}' (ID: {org_id})")
             
+            # Handle adviser changes
+            self._update_advisers(org_id)
+            
             # Refresh the UI to load updated data from database
             if hasattr(self.parent_window, 'load_orgs'):
                 self.parent_window.load_orgs()
@@ -1264,15 +1549,83 @@ class EditOrgDialog(BaseOrgDialog):
                 f"{error_msg}\n\nDetails: {error_details}",
                 QtWidgets.QMessageBox.StandardButton.Ok
             )
+    
+    def _update_advisers(self, org_id):
+        """Update advisers - compare current rows with existing data"""
+        current_adviser_data = self._get_adviser_data()
+        
+        # Get current row IDs (if they have adviser_term_id, they're existing)
+        existing_term_ids = set()
+        for adv in self.existing_advisers:
+            existing_term_ids.add(adv['id'])
+        
+        # Track which term IDs are still in use
+        kept_term_ids = set()
+        
+        # For each current adviser row
+        for row in self.adviser_rows:
+            adviser_id = row.adviser_combo.currentData()
+            if adviser_id is None:
+                continue
+            
+            role = row.role_combo.currentData()
+            start_date = row.start_date.date().toString("yyyy-MM-dd")
+            end_date = row.end_date.date().toString("yyyy-MM-dd")
+            
+            # Check if this row has an existing term ID
+            if hasattr(row, 'adviser_term_id') and row.adviser_term_id:
+                # Update existing adviser
+                term_id = row.adviser_term_id
+                kept_term_ids.add(term_id)
+                
+                # Find the original data to check for changes
+                original = next((a for a in self.existing_advisers if a['id'] == term_id), None)
+                if original:
+                    # Check if anything changed
+                    if (original['adviser_id'] != adviser_id or 
+                        original.get('start_date') != start_date or
+                        original.get('end_date') != end_date):
+                        # Remove old and add new (since adviser might have changed)
+                        OrganizationAPIService.remove_organization_adviser(org_id, term_id)
+                        OrganizationAPIService.add_organization_adviser(
+                            org_id=org_id,
+                            adviser_id=adviser_id,
+                            role=role,
+                            start_date=start_date,
+                            end_date=end_date
+                        )
+                        print(f"  -> Updated {role} adviser")
+            else:
+                # New adviser - add it
+                OrganizationAPIService.add_organization_adviser(
+                    org_id=org_id,
+                    adviser_id=adviser_id,
+                    role=role,
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                print(f"  -> Added new {role} adviser")
+        
+        # Remove advisers that are no longer in the rows
+        for term_id in existing_term_ids:
+            if term_id not in kept_term_ids:
+                OrganizationAPIService.remove_organization_adviser(org_id, term_id)
+                print(f"  -> Removed adviser (term ID: {term_id})")
 
 class CreateOrgDialog(BaseOrgDialog):
     def __init__(self, parent):
-        super().__init__(parent, "Create Organization", (600, 500))
+        super().__init__(parent, "Create Organization", (600, 700))
 
     def confirm(self):
         name = self.name_edit.text().strip()
         if not name:
             QtWidgets.QMessageBox.warning(self, "Invalid Input", "Name is required.")
+            return
+        
+        # Validate at least one adviser is selected
+        adviser_data = self._get_adviser_data()
+        if not adviser_data:
+            QtWidgets.QMessageBox.warning(self, "Invalid Input", "At least one organization adviser is required.")
             return
 
         description = self.desc_edit.toPlainText().strip()
@@ -1323,10 +1676,25 @@ class CreateOrgDialog(BaseOrgDialog):
         # Handle API response
         if api_response.get('success'):
             org_data = api_response.get('data', {})
+            org_id = org_data.get('id')
             
-            print(f"Created organization '{name}' with ID {org_data.get('id')}")
+            print(f"Created organization '{name}' with ID {org_id}")
             if selected_main_orgs:
                 print(f"  -> Part of main organization(s): {selected_main_orgs}")
+            
+            # Add all advisers
+            for adv in adviser_data:
+                adviser_response = OrganizationAPIService.add_organization_adviser(
+                    org_id=org_id,
+                    adviser_id=adv['adviser_id'],
+                    role=adv['role'],
+                    start_date=adv['start_date'],
+                    end_date=adv['end_date']
+                )
+                if adviser_response.get('success'):
+                    print(f"  -> Added {adv['role']} adviser")
+                else:
+                    print(f"  -> Warning: Failed to add adviser: {adviser_response.get('message')}")
 
             # Refresh the UI to load from database
             self.parent_window.load_orgs()

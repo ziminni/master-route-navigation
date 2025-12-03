@@ -159,6 +159,7 @@ class OrganizationAPIService:
             "description": description,
             "org_level": org_level,
             "status": status,
+            "is_active": True,  # Ensure organization is active when created
         }
         
         # Add objectives if provided
@@ -1160,6 +1161,216 @@ class OrganizationAPIService:
                     'success': False,
                     'error': error_data.get('message', 'Unknown error'),
                     'message': error_data.get('message', 'Failed to update organization status'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+
+    @staticmethod
+    def get_faculty_list() -> Dict:
+        """
+        Get all faculty members for adviser selection dropdown
+        
+        Returns:
+            Dictionary containing the API response with list of faculty
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/faculty/"
+        
+        try:
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', []),
+                    'message': response_data.get('message', 'Faculty list retrieved successfully'),
+                    'count': response_data.get('count', 0)
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to retrieve faculty list'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+
+    @staticmethod
+    def get_organization_advisers(org_id: int) -> Dict:
+        """
+        Get all advisers for a specific organization
+        
+        Args:
+            org_id: The organization ID
+            
+        Returns:
+            Dictionary containing the API response with list of advisers
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/{org_id}/advisers/"
+        
+        try:
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', []),
+                    'message': response_data.get('message', 'Advisers retrieved successfully'),
+                    'count': response_data.get('count', 0)
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to retrieve advisers'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+
+    @staticmethod
+    def add_organization_adviser(org_id: int, adviser_id: int, role: str = 'pri', start_date: str = None, end_date: str = None) -> Dict:
+        """
+        Add an adviser to an organization
+        
+        Args:
+            org_id: The organization ID
+            adviser_id: The FacultyProfile ID of the adviser
+            role: 'pri' for Primary, 'sec' for Secondary (default: 'pri')
+            start_date: Start date of the adviser term (YYYY-MM-DD format, required)
+            end_date: End date of the adviser term (YYYY-MM-DD format, optional)
+            
+        Returns:
+            Dictionary containing the API response
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/{org_id}/advisers/"
+        
+        data = {
+            'adviser_id': adviser_id,
+            'role': role,
+            'start_date': start_date,
+            'end_date': end_date
+        }
+        
+        try:
+            response = requests.post(url, json=data, timeout=10)
+            
+            if response.status_code == 201:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', {}),
+                    'message': response_data.get('message', 'Adviser added successfully')
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to add adviser'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+
+    @staticmethod
+    def remove_organization_adviser(org_id: int, adviser_term_id: int) -> Dict:
+        """
+        Remove an adviser from an organization
+        
+        Args:
+            org_id: The organization ID
+            adviser_term_id: The OrgAdviserTerm ID to remove
+            
+        Returns:
+            Dictionary containing the API response
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/{org_id}/advisers/"
+        
+        data = {
+            'adviser_term_id': adviser_term_id
+        }
+        
+        try:
+            response = requests.delete(url, json=data, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'message': response_data.get('message', 'Adviser removed successfully')
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to remove adviser'),
+                    'status_code': response.status_code
+                }
+        except requests.exceptions.RequestException as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': f'Network error: {str(e)}'
+            }
+
+    @staticmethod
+    def update_organization_adviser(org_id: int, adviser_term_id: int, role: Optional[str] = None) -> Dict:
+        """
+        Update an adviser's role for an organization
+        
+        Args:
+            org_id: The organization ID
+            adviser_term_id: The OrgAdviserTerm ID to update
+            role: New role ('pri' or 'sec')
+            
+        Returns:
+            Dictionary containing the API response
+        """
+        url = f"{OrganizationAPIService.BASE_URL}/{org_id}/advisers/{adviser_term_id}/"
+        
+        data = {}
+        if role:
+            data['role'] = role
+        
+        try:
+            response = requests.put(url, json=data, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return {
+                    'success': True,
+                    'data': response_data.get('data', {}),
+                    'message': response_data.get('message', 'Adviser updated successfully')
+                }
+            else:
+                error_data = response.json() if response.text else {}
+                return {
+                    'success': False,
+                    'error': error_data.get('message', 'Unknown error'),
+                    'message': error_data.get('message', 'Failed to update adviser'),
                     'status_code': response.status_code
                 }
         except requests.exceptions.RequestException as e:

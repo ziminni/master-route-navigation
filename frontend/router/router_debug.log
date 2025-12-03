@@ -112,3 +112,27 @@ _preload_pages called
 user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0NzM1OTIzLCJpYXQiOjE3NjQ3MzUwMjMsImp0aSI6ImNhMTdjZDg4MmZkNjQxYjg5MWMwMWRmMWU1ODdhMjNmIiwidXNlcl9pZCI6IjEifQ._ONIfynBw3Jg0efYjKiGjVGbA4Fc0BTlcM78P8XNBLI'}
 profile_id in session = None
 ================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'Kim', 'roles': ['faculty'], 'primary_role': 'faculty', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0NzM2MjQ4LCJpYXQiOjE3NjQ3MzUzNDgsImp0aSI6IjIwMzZhYzA0NjA4ODQxZDBiZmIwMDIwZTYxZjdlYzI5IiwidXNlcl9pZCI6IjQifQ.Z54ofOfytjCulNy2nq7uh71xLJvjbn9YadZIjizf_Ek'}
+profile_id in session = None
+================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0NzM4NzI1LCJpYXQiOjE3NjQ3Mzc4MjUsImp0aSI6ImQwZTBiMzQ2OGJhNDRmNDA5ZGY2ODJiMzlmN2JlNTVmIiwidXNlcl9pZCI6IjEifQ.HRCw6y9p_rraeS2VuCyAY0C8YEU8XkAYCwB2zaUCxaw'}
+profile_id in session = None
+================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0NzQxNTYxLCJpYXQiOjE3NjQ3NDA2NjEsImp0aSI6IjBjMDg5ZWU1Yzc5YjQ5NDRiMTVlMGU0ZGVhMmRjYzA5IiwidXNlcl9pZCI6IjEifQ.zsprQX407GqT32HiTvn8-GjRzF1HeKLB9t2BzTtDy6g'}
+profile_id in session = None
+================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0NzQxOTA5LCJpYXQiOjE3NjQ3NDEwMDksImp0aSI6IjI0MjgzZWE5ZTNjZjRlMTRiZDAyOWMzZmQ2NDEzMDc5IiwidXNlcl9pZCI6IjEifQ.UlyXCpp864R1TmF42vaq0usJ5vQ8Xvf6tQP0K_xDfx0'}
+profile_id in session = None
+================================================================================
