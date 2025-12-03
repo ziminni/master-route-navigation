@@ -539,24 +539,23 @@ class AdminActivities(QWidget):
         # If you want users to be able to sort by columns, comment out this line:
         # self.activities_table.setSortingEnabled(True)
     
-    def populate_upcoming_events(self, activities):
-        """Populate the upcoming events list with activity data - FIXED to filter and sort"""
+    def populate_upcoming_events(self, events):
+        """Populate the upcoming events list."""
         self.list_upcoming.clear()
-        
-        # Define emoji icons for each event type
+
         type_icons = {
             "Academic": "🟢",
             "Organizational": "🔵",
             "Deadline": "🟠",
-            "Holiday": "🔴"
+            "Holiday": "🔴",
         }
-        
-        # Filter and sort upcoming events
-        upcoming_events = self._filter_upcoming_events(activities)
-        
-        for activity in upcoming_events:
-            icon = type_icons.get(activity["type"], "⚪")
-            event_text = f"{icon} {activity['event']}\n    {activity['date_time'].replace(chr(10), ' - ')}"
+
+        for event in events:
+            icon = type_icons.get(event["type"], "⚪")
+            dt_str = event["date_time"]
+            # display nicely for both legacy and ISO
+            display_time = dt_str.replace(chr(10), " - ") if "\n" in dt_str else dt_str
+            event_text = f"{icon} {event['event']}\n    {display_time}"
             self.list_upcoming.addItem(event_text)
 
     # ========== SORTING AND FILTERING FUNCTIONS ==========

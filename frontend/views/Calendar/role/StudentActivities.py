@@ -426,23 +426,23 @@ class StudentActivities(QWidget):
 
         self.activities_table.setSortingEnabled(True)
 
-    def populate_upcoming_events(self, activities):
-        """Fill upcoming list with only future events, sorted by date."""
+    def populate_upcoming_events(self, events):
+        """Populate the upcoming events list."""
         self.list_upcoming.clear()
 
         type_icons = {
             "Academic": "🟢",
             "Organizational": "🔵",
             "Deadline": "🟠",
-            "Holiday": "🔴"
+            "Holiday": "🔴",
         }
 
-        upcoming_events = self._filter_upcoming_events(activities)
-
-        for activity in upcoming_events:
-            icon = type_icons.get(activity.get("type"), "⚪")
-            date_text = activity.get("date_time", "").replace(chr(10), " - ")
-            event_text = f"{icon} {activity.get('event', '')}\n    {date_text}"
+        for event in events:
+            icon = type_icons.get(event["type"], "⚪")
+            dt_str = event["date_time"]
+            # display nicely for both legacy and ISO
+            display_time = dt_str.replace(chr(10), " - ") if "\n" in dt_str else dt_str
+            event_text = f"{icon} {event['event']}\n    {display_time}"
             self.list_upcoming.addItem(event_text)
 
     def _filter_upcoming_events(self, events):
