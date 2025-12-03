@@ -349,12 +349,20 @@ class AssessmentForm(QWidget):
         items = []
         for comp in self.rubric_components:
             name = comp.get('name', '')
-            term = comp.get('term', '')
-            items.append(f"{name.title()} ({term.title()})")
+            period = comp.get('academic_period', '')
+            # Normalize period display
+            if period == 'finals':
+                term_display = 'Final'
+            elif period == 'midterm':
+                term_display = 'Midterm'
+            else:
+                term_display = period.title()
+            items.append(f"{name.title()} ({term_display})")
         
         if not items:
             # Default items if no rubric loaded
-            items = ["Quiz", "Performance Task", "Exam", "Lab Activity"]
+            items = ["Quiz (Midterm)", "Performance Task (Midterm)", "Exam (Midterm)",
+                     "Quiz (Final)", "Performance Task (Final)", "Exam (Final)"]
         
         return items
     
@@ -362,14 +370,25 @@ class AssessmentForm(QWidget):
         """Handle create assessment button click"""
         try:
             class_id = self.cls.get('id', 1) if self.cls else 1
-            term = self.term_dropdown.currentText().lower()
-            if term == "finals":
-                term = "final"
             
-            # Get selected grade category
+            # Get selected grade category which contains term info
             grade_category = self.grade_dropdown.currentText()
-            # Extract component name (remove term suffix if present)
-            component_name = grade_category.split(" (")[0].lower()
+            # Extract component name and term from format "Component Name (Term)"
+            if "(" in grade_category and ")" in grade_category:
+                component_name = grade_category.split(" (")[0].lower()
+                term_part = grade_category.split("(")[1].replace(")", "").lower().strip()
+                # Normalize term
+                if term_part in ["midterm", "mid"]:
+                    term = "midterm"
+                elif term_part in ["final", "finals", "finalterm"]:
+                    term = "final"
+                else:
+                    term = term_part
+            else:
+                component_name = grade_category.lower()
+                term = self.term_dropdown.currentText().lower()
+                if term == "finals":
+                    term = "final"
             
             max_score = int(self.points_input.text()) if self.points_input.text().isdigit() else 100
             
@@ -384,6 +403,8 @@ class AssessmentForm(QWidget):
             if not title:
                 QMessageBox.warning(self, "Validation Error", "Please enter a title for the assessment.")
                 return
+            
+            print(f"[AssessmentForm] Creating assessment: component='{component_name}', term='{term}'")
             
             assessment_data = {
                 'class_id': class_id,
