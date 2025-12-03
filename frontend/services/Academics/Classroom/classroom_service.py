@@ -10,8 +10,14 @@ class ClassroomService:
             self.data = json.load(f)
 
     def load_classes(self):
-        self.load_data()
-        return self.data["classes"]
+        """
+        Load all active (non-archived) classes for classroom view.
+        Uses ClassService to get only active classes.
+        """
+        from frontend.services.Academics.Tagging.class_service import ClassService
+        class_service = ClassService()
+        active_classes = class_service.get_active_classes()
+        return active_classes
 
     def load_topics(self, class_id):
         return [t for t in self.data["topics"] if t["class_id"] == class_id]

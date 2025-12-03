@@ -246,6 +246,7 @@ class SectionService:
             new_section['id'] = self._generate_next_id(data)
             new_section['created_at'] = datetime.now().isoformat()
             new_section['updated_at'] = datetime.now().isoformat()
+            new_section['is_archived'] = False  # New sections are not archived
 
             data['sections'].append(new_section)
             self._save_data(data)
@@ -342,3 +343,120 @@ class SectionService:
         except Exception as e:
             logger.error(f"Error searching sections: {str(e)}")
             raise
+
+    # ========================================================================
+    # ARCHIVING METHODS
+    # ========================================================================
+
+    def archive_section(self, section_id: int, token: str = None) -> bool:
+        """
+        Archive a section.
+
+        Args:
+            section_id: ID of section to archive
+            token: Optional auth token
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            data = self._load_data()
+
+            for section in data['sections']:
+                if section.get('id') == section_id:
+                    section['is_archived'] = True
+                    section['archived_at'] = datetime.now().isoformat()
+                    section['updated_at'] = datetime.now().isoformat()
+                    self._save_data(data)
+                    logger.info(f"Archived section ID {section_id}")
+                    return True
+
+            logger.warning(f"Section with ID {section_id} not found")
+            return False
+
+        except Exception as e:
+            error_msg = f"Error archiving section {section_id}: {str(e)}"
+            logger.error(error_msg)
+            raise SectionStorageError(error_msg)
+
+    def unarchive_section(self, section_id: int, token: str = None) -> bool:
+        """
+        Unarchive a section.
+
+        Args:
+            section_id: ID of section to unarchive
+            token: Optional auth token
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            data = self._load_data()
+
+            for section in data['sections']:
+                if section.get('id') == section_id:
+                    section['is_archived'] = False
+                    section['unarchived_at'] = datetime.now().isoformat()
+                    section['updated_at'] = datetime.now().isoformat()
+                    self._save_data(data)
+                    logger.info(f"Unarchived section ID {section_id}")
+                    return True
+
+            logger.warning(f"Section with ID {section_id} not found")
+            return False
+
+        except Exception as e:
+            error_msg = f"Error unarchiving section {section_id}: {str(e)}"
+            logger.error(error_msg)
+            raise SectionStorageError(error_msg)
+
+    def archive_all_sections(self, token: str = None) -> tuple[bool, List[int]]:
+        """
+        Archive all sections.
+
+        Returns:
+            tuple: (success: bool, failed_section_ids: List[int])
+        """
+        try:
+            data = self._load_data()
+            failed_ids = []
+
+            for section in data['sections']:
+                if not section.get('is_archived', False):
+                    section['is_archived'] = True
+                    section['archived_at'] = datetime.now().isoformat()
+                    section['updated_at'] = datetime.now().isoformat()
+
+            self._save_data(data)
+            logger.info("Archived all sections")
+            return True, failed_ids
+
+        except Exception as e:
+            error_msg = f"Error archiving all sections: {str(e)}"
+            logger.error(error_msg)
+            raise SectionStorageError(error_msg)
+
+    def get_active_sections(self, token: str = None) -> List[Dict]:
+        """Get all non-archived sections."""
+        try:
+            all_sections = self.get_all(token)
+            active_sections = [s for s in all_sections if not s.get('is_archived', False)]
+            logger.info(f"Retrieved {len(active_sections)} active sections")
+            return active_sections
+        except Exception as e:
+            logger.error(f"Error retrieving active sections: {str(e)}")
+            raise
+
+    def get_archived_sections(self, token: str = None) -> List[Dict]:
+        """Get all archived sections."""
+        try:
+            all_sections = self.get_all(token)
+            archived_sections = [s for s in all_sections if s.get('is_archived', False)]
+            logger.info(f"Retrieved {len(archived_sections)} archived sections")
+            return archived_sections
+        except Exception as e:
+            logger.error(f"Error retrieving archived sections: {str(e)}")
+            raise
+            logger.error(error_msg)
+            raise SectionStorageError(error_msg)
+

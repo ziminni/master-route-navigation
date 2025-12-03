@@ -562,6 +562,7 @@ class ClassService:
             new_class['section_name'] = section_name
             new_class['created_at'] = datetime.now().isoformat()
             new_class['updated_at'] = datetime.now().isoformat()
+            new_class['is_archived'] = False  # New classes are not archived
 
             # Add instructor_id if not present (for classroom compatibility)
             if 'instructor_id' not in new_class:
@@ -698,3 +699,135 @@ class ClassService:
         except Exception as e:
             logger.error(f"Error searching classes: {str(e)}")
             raise
+
+    # ========================================================================
+    # ARCHIVING METHODS
+    # ========================================================================
+
+    def archive_class(self, class_id: int, token: str = None) -> bool:
+        """
+        Archive a class.
+
+        Args:
+            class_id: ID of class to archive
+            token: Optional auth token
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            data = self._load_data()
+
+            for cls in data['classes']:
+                if cls.get('id') == class_id:
+                    cls['is_archived'] = True
+                    cls['archived_at'] = datetime.now().isoformat()
+                    cls['updated_at'] = datetime.now().isoformat()
+                    self._save_data(data)
+                    logger.info(f"Archived class ID {class_id}")
+                    return True
+
+            logger.warning(f"Class with ID {class_id} not found")
+            return False
+
+        except Exception as e:
+            error_msg = f"Error archiving class {class_id}: {str(e)}"
+            logger.error(error_msg)
+            raise ClassStorageError(error_msg)
+
+    def unarchive_class(self, class_id: int, token: str = None) -> bool:
+        """
+        Unarchive a class.
+
+        Args:
+            class_id: ID of class to unarchive
+            token: Optional auth token
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            data = self._load_data()
+
+            for cls in data['classes']:
+                if cls.get('id') == class_id:
+                    cls['is_archived'] = False
+                    cls['unarchived_at'] = datetime.now().isoformat()
+                    cls['updated_at'] = datetime.now().isoformat()
+                    self._save_data(data)
+                    logger.info(f"Unarchived class ID {class_id}")
+                    return True
+
+            logger.warning(f"Class with ID {class_id} not found")
+            return False
+
+        except Exception as e:
+            error_msg = f"Error unarchiving class {class_id}: {str(e)}"
+            logger.error(error_msg)
+            raise ClassStorageError(error_msg)
+
+    def archive_all_classes(self, token: str = None) -> bool:
+        """
+        Archive all classes.
+
+        Returns:
+            bool: True if successful
+        """
+        try:
+            data = self._load_data()
+
+            for cls in data['classes']:
+                if not cls.get('is_archived', False):
+                    cls['is_archived'] = True
+                    cls['archived_at'] = datetime.now().isoformat()
+                    cls['updated_at'] = datetime.now().isoformat()
+
+            self._save_data(data)
+            logger.info("Archived all classes")
+            return True
+
+        except Exception as e:
+            error_msg = f"Error archiving all classes: {str(e)}"
+            logger.error(error_msg)
+            raise ClassStorageError(error_msg)
+
+    def get_active_classes(self, token: str = None) -> List[Dict]:
+        """Get all non-archived classes."""
+        try:
+            all_classes = self.get_all(token)
+            active_classes = [c for c in all_classes if not c.get('is_archived', False)]
+            logger.info(f"Retrieved {len(active_classes)} active classes")
+            return active_classes
+        except Exception as e:
+            logger.error(f"Error retrieving active classes: {str(e)}")
+            raise
+
+    def get_archived_classes(self, token: str = None) -> List[Dict]:
+        """Get all archived classes."""
+        try:
+            all_classes = self.get_all(token)
+            archived_classes = [c for c in all_classes if c.get('is_archived', False)]
+            logger.info(f"Retrieved {len(archived_classes)} archived classes")
+            return archived_classes
+        except Exception as e:
+            logger.error(f"Error retrieving archived classes: {str(e)}")
+            raise
+
+    def has_active_classes_for_section(self, section_id: int, token: str = None) -> bool:
+        """
+        Check if a section has any active (non-archived) classes.
+
+        Args:
+            section_id: ID of the section to check
+            token: Optional auth token
+
+        Returns:
+            bool: True if section has active classes
+        """
+        try:
+            section_classes = self.get_by_section(section_id, token)
+            active_classes = [c for c in section_classes if not c.get('is_archived', False)]
+            return len(active_classes) > 0
+        except Exception as e:
+            logger.error(f"Error checking active classes for section {section_id}: {str(e)}")
+            return False

@@ -23,6 +23,8 @@ class ClassroomHome(QtWidgets.QWidget):
         controller.class_created.connect(self.on_class_changed)
         controller.class_updated.connect(self.on_class_changed)
         controller.class_deleted.connect(self.on_class_changed)
+        controller.class_archived.connect(self.on_class_changed)
+        controller.class_unarchived.connect(self.on_class_changed)
 
         self.setup_ui()
         self.load_classes()
