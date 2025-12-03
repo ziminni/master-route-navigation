@@ -1,4 +1,5 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
+from .data_manager import DataManager  # Assumes this is implemented
 
 
 class RecipientDialog(QtWidgets.QDialog):
@@ -219,3 +220,20 @@ class Ui_Form(object):
                 if r["name"].lower().startswith(t)
             ]
         self.populate_recipient_list()
+
+
+# # --------------------------
+# # MAIN ENTRY POINT
+# # --------------------------
+# if __name__ == "__main__":
+#     import sys
+#     app = QtWidgets.QApplication(sys.argv)
+
+#     dialog = RecipientDialog()
+#     if dialog.exec():  # Will be True if accept() is called
+#         selected = dialog.get_selected_recipient()
+#         print("✅ Recipient selected:", selected)
+#     else:
+#         print("❌ Dialog canceled")
+
+#     sys.exit(0)

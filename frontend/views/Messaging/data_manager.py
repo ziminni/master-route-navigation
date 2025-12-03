@@ -25,6 +25,7 @@ class DataManager:
         self.roles = roles or []
         self.primary_role = primary_role
         self.token = token
+        self.current_user = username
         self.base_url = base_url.rstrip("/")
 
         # In-memory caches for performance
