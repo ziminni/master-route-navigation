@@ -32,6 +32,44 @@ class CategoryViewSet(viewsets.ModelViewSet):
         # Only admins can create/update/delete
         return [IsAuthenticated()]
     
+    def create(self, request, *args, **kwargs):
+        """Create a new category - admin only"""
+        # Check if user is admin
+        if not hasattr(request.user, 'role_type') or request.user.role_type != 'admin':
+            if not request.user.is_staff and not request.user.is_superuser:
+                return Response(
+                    {'error': 'Only admins can create categories'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        serializer = CategorySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def update(self, request, *args, **kwargs):
+        """Update a category - admin only"""
+        # Check if user is admin
+        if not hasattr(request.user, 'role_type') or request.user.role_type != 'admin':
+            if not request.user.is_staff and not request.user.is_superuser:
+                return Response(
+                    {'error': 'Only admins can update categories'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        return super().update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        """Delete a category - admin only"""
+        # Check if user is admin
+        if not hasattr(request.user, 'role_type') or request.user.role_type != 'admin':
+            if not request.user.is_staff and not request.user.is_superuser:
+                return Response(
+                    {'error': 'Only admins can delete categories'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        return super().destroy(request, *args, **kwargs)
+    
     @action(detail=True, methods=['get'])
     def documents(self, request, pk=None):
         """Get all documents in this category"""
@@ -72,7 +110,7 @@ class FolderViewSet(viewsets.ModelViewSet):
     """ViewSet for managing folders"""
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'parent', 'is_public']
+    filterset_fields = ['category', 'is_public']
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
@@ -84,6 +122,20 @@ class FolderViewSet(viewsets.ModelViewSet):
         # Optimize queries
         queryset = queryset.select_related('category', 'created_by', 'parent')
         queryset = queryset.prefetch_related('subfolders', 'documents')
+        
+        # Handle parent folder filtering explicitly
+        parent_param = self.request.query_params.get('parent', None)
+        if parent_param is not None:
+            if parent_param == '' or parent_param.lower() == 'none':
+                # Show only root-level folders (no parent)
+                queryset = queryset.filter(parent__isnull=True)
+            else:
+                # Show folders in specific parent folder
+                try:
+                    parent_id = int(parent_param)
+                    queryset = queryset.filter(parent_id=parent_id)
+                except (ValueError, TypeError):
+                    queryset = queryset.filter(parent__isnull=True)
         
         user = self.request.user
         if not user.is_staff:
@@ -159,7 +211,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
     """ViewSet for managing documents"""
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'folder', 'document_type', 'is_featured', 'uploaded_by']
+    filterset_fields = ['category', 'document_type', 'is_featured', 'uploaded_by']
     search_fields = ['title', 'description', 'file_extension']
     ordering_fields = ['title', 'uploaded_at', 'view_count', 'file_size']
     ordering = ['-uploaded_at']
@@ -175,6 +227,22 @@ class DocumentViewSet(viewsets.ModelViewSet):
         queryset = queryset.prefetch_related('permissions', 'versions')
         
         user = self.request.user
+        
+        # Handle folder filtering explicitly
+        # If folder parameter is provided in query params, filter by that folder
+        # If folder parameter is explicitly 'null' or empty, show only root-level documents
+        folder_param = self.request.query_params.get('folder', None)
+        if folder_param is not None:
+            if folder_param == '' or folder_param.lower() == 'null':
+                # Show only root-level documents (no folder)
+                queryset = queryset.filter(folder__isnull=True)
+            else:
+                # Show documents in specific folder
+                try:
+                    folder_id = int(folder_param)
+                    queryset = queryset.filter(folder_id=folder_id)
+                except (ValueError, TypeError):
+                    queryset = queryset.filter(folder__isnull=True)
         
         # Filter based on permissions
         if not user.is_staff:
@@ -392,6 +460,196 @@ class DocumentViewSet(viewsets.ModelViewSet):
             documents, many=True, context={'request': request}
         )
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='my-recent')
+    def my_recent(self, request):
+        """Get current user's recently viewed/accessed documents based on activity log"""
+        from django.db.models import Max
+        
+        # Get document IDs from user's recent activities
+        recent_activities = ActivityLog.objects.filter(
+            user=request.user,
+            action__in=[
+                ActivityLog.ActionTypes.DOCUMENT_VIEW,
+                ActivityLog.ActionTypes.DOCUMENT_DOWNLOAD,
+                ActivityLog.ActionTypes.DOCUMENT_UPLOAD
+            ],
+            content_type__model='document'
+        ).values('object_id').annotate(
+            last_accessed=Max('created_at')
+        ).order_by('-last_accessed')[:50]
+        
+        # Get document IDs
+        doc_ids = [activity['object_id'] for activity in recent_activities]
+        
+        # Fetch documents maintaining the order
+        documents = self.get_queryset().filter(id__in=doc_ids)
+        
+        # Preserve activity order
+        documents_dict = {doc.id: doc for doc in documents}
+        ordered_documents = [documents_dict[doc_id] for doc_id in doc_ids if doc_id in documents_dict]
+        
+        serializer = DocumentListSerializer(
+            ordered_documents, many=True, context={'request': request}
+        )
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='my-uploads')
+    def my_uploads(self, request):
+        """Get documents uploaded by the current user"""
+        # Get documents uploaded by the authenticated user
+        queryset = self.get_queryset().filter(uploaded_by=request.user)
+        
+        # Apply sorting
+        queryset = queryset.order_by('-uploaded_at')
+        
+        serializer = DocumentListSerializer(
+            queryset, many=True, context={'request': request}
+        )
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def trash(self, request):
+        """Get all soft-deleted documents (trash bin)"""
+        # Start with base queryset (without deleted_at filter)
+        queryset = Document.objects.filter(is_active=True)
+        
+        # Apply permission filtering
+        user = request.user
+        if not user.is_staff:
+            queryset = queryset.filter(
+                Q(uploaded_by=user) |
+                Q(folder__is_public=True) |
+                Q(folder__isnull=True) |
+                Q(folder__folder_permissions__user=user) |
+                Q(folder__folder_role_permissions__role=user.role_type)
+            ).distinct()
+        
+        # Filter for deleted documents only
+        queryset = queryset.filter(deleted_at__isnull=False)
+        
+        # Apply optimizations and ordering
+        queryset = queryset.select_related(
+            'category', 'folder', 'document_type', 'uploaded_by', 'deleted_by'
+        ).order_by('-deleted_at')
+        
+        serializer = DocumentListSerializer(
+            queryset, many=True, context={'request': request}
+        )
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        """Restore a soft-deleted document from trash"""
+        from .serializers import DocumentRestoreSerializer
+        
+        # Get document including deleted ones
+        try:
+            document = Document.objects.get(pk=pk)
+        except Document.DoesNotExist:
+            return Response(
+                {'error': 'Document not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if document is actually deleted
+        if not document.deleted_at:
+            return Response(
+                {'error': 'Document is not in trash'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check permissions - only owner or admin can restore
+        if not request.user.is_staff and document.uploaded_by != request.user:
+            return Response(
+                {'error': 'You do not have permission to restore this document'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Validate and get optional destination folder
+        serializer = DocumentRestoreSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Restore document
+        document.deleted_at = None
+        document.deleted_by = None
+        
+        # Update folder if provided
+        restore_to_folder_id = serializer.validated_data.get('restore_to_folder_id')
+        if restore_to_folder_id is not None:
+            try:
+                folder = Folder.objects.get(pk=restore_to_folder_id, deleted_at__isnull=True)
+                document.folder = folder
+            except Folder.DoesNotExist:
+                pass  # Keep original folder
+        
+        document.save()
+        
+        # Log restore activity
+        document.log_activity(
+            action=ActivityLog.ActionTypes.DOCUMENT_UPDATE,
+            user=request.user,
+            description=f"Restored document '{document.title}' from trash"
+        )
+        
+        return Response({
+            'message': f"Document '{document.title}' restored successfully",
+            'document': DocumentDetailSerializer(document, context={'request': request}).data
+        })
+    
+    @action(detail=True, methods=['post'])
+    def move(self, request, pk=None):
+        """Move document to a different folder"""
+        from .serializers import DocumentMoveSerializer
+        
+        document = self.get_object()
+        
+        # Check permissions - owner, admin, or user with edit permission on current folder
+        if not request.user.is_staff and document.uploaded_by != request.user:
+            if document.folder and not document.folder.can_user_access(request.user, 'edit'):
+                return Response(
+                    {'error': 'You do not have permission to move this document'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        serializer = DocumentMoveSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        folder_id = serializer.validated_data.get('folder_id')
+        old_folder = document.folder
+        
+        # Move document
+        if folder_id is None:
+            document.folder = None
+            new_location = "root directory"
+        else:
+            document.folder = Folder.objects.get(pk=folder_id)
+            new_location = document.folder.get_full_path()
+        
+        document.save()
+        
+        # Log move activity
+        old_location = old_folder.get_full_path() if old_folder else "root directory"
+        document.log_activity(
+            action=ActivityLog.ActionTypes.DOCUMENT_UPDATE,
+            user=request.user,
+            description=f"Moved document from '{old_location}' to '{new_location}'",
+            old_folder_id=old_folder.id if old_folder else None,
+            new_folder_id=folder_id
+        )
+        
+        return Response({
+            'message': f"Document moved to {new_location}",
+            'document': DocumentDetailSerializer(document, context={'request': request}).data
+        })
 
 
 class DocumentApprovalViewSet(viewsets.ModelViewSet):

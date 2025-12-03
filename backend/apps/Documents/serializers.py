@@ -1,10 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import (
-    Category, DocumentType, Folder, FolderPermission, FolderRolePermission,
-    Document, DocumentPermission, DocumentApproval, ApprovalHistory,
-    ActivityLog, DocumentVersion
-)
+from .models import *
 
 User = get_user_model()
 
@@ -547,5 +543,46 @@ class BulkApproveSerializer(serializers.Serializer):
     def validate_document_ids(self, value):
         if len(value) > 50:
             raise serializers.ValidationError("Cannot process more than 50 documents at once")
+        return value
+
+
+class DocumentMoveSerializer(serializers.Serializer):
+    """Serializer for moving document to a folder"""
+    folder_id = serializers.IntegerField(allow_null=True, required=False)
+    
+    def validate_folder_id(self, value):
+        """Validate folder exists and user has permission"""
+        if value is None:
+            return None
+        
+        from .models import Folder
+        try:
+            folder = Folder.objects.get(pk=value, deleted_at__isnull=True)
+        except Folder.DoesNotExist:
+            raise serializers.ValidationError("Folder not found or has been deleted")
+        
+        # Check if user can upload to this folder
+        user = self.context.get('request').user
+        if not folder.can_user_access(user, 'upload'):
+            raise serializers.ValidationError("You do not have permission to move documents to this folder")
+        
+        return value
+
+
+class DocumentRestoreSerializer(serializers.Serializer):
+    """Serializer for restoring deleted documents"""
+    restore_to_folder_id = serializers.IntegerField(allow_null=True, required=False)
+    
+    def validate_restore_to_folder_id(self, value):
+        """Validate destination folder if provided"""
+        if value is None:
+            return None
+        
+        from .models import Folder
+        try:
+            folder = Folder.objects.get(pk=value, deleted_at__isnull=True)
+        except Folder.DoesNotExist:
+            raise serializers.ValidationError("Destination folder not found")
+        
         return value
 
