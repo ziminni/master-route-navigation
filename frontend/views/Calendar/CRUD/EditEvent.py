@@ -204,7 +204,7 @@ class EditEvent(QWidget):
             "Completed",
             "Cancelled",
             "Pending",
-            "Holiday"
+            "Holiday",
         ])
         self.combo_status.setStyleSheet(input_style)
         grid.addWidget(self.combo_status, row, 3)
@@ -221,7 +221,7 @@ class EditEvent(QWidget):
             "Academic",
             "Organizational",
             "Deadline",
-            "Holiday"
+            "Holiday",
         ])
         self.combo_event_type.setStyleSheet(input_style)
         grid.addWidget(self.combo_event_type, row, 1)
@@ -284,13 +284,17 @@ class EditEvent(QWidget):
         self.btn_start_am.setChecked(True)
         self.btn_start_am.setFixedSize(40, 35)
         self.btn_start_am.setStyleSheet(ampm_style)
-        self.btn_start_am.clicked.connect(lambda: self.set_am_pm(self.btn_start_am, self.btn_start_pm))
+        self.btn_start_am.clicked.connect(
+            lambda: self.set_am_pm(self.btn_start_am, self.btn_start_pm)
+        )
 
         self.btn_start_pm = QPushButton("PM")
         self.btn_start_pm.setCheckable(True)
         self.btn_start_pm.setFixedSize(40, 35)
         self.btn_start_pm.setStyleSheet(ampm_style)
-        self.btn_start_pm.clicked.connect(lambda: self.set_am_pm(self.btn_start_pm, self.btn_start_am))
+        self.btn_start_pm.clicked.connect(
+            lambda: self.set_am_pm(self.btn_start_pm, self.btn_start_am)
+        )
 
         start_time_layout.addWidget(self.btn_start_am)
         start_time_layout.addWidget(self.btn_start_pm)
@@ -329,14 +333,18 @@ class EditEvent(QWidget):
         self.btn_end_am.setCheckable(True)
         self.btn_end_am.setFixedSize(40, 35)
         self.btn_end_am.setStyleSheet(ampm_style)
-        self.btn_end_am.clicked.connect(lambda: self.set_am_pm(self.btn_end_am, self.btn_end_pm))
+        self.btn_end_am.clicked.connect(
+            lambda: self.set_am_pm(self.btn_end_am, self.btn_end_pm)
+        )
 
         self.btn_end_pm = QPushButton("PM")
         self.btn_end_pm.setCheckable(True)
         self.btn_end_pm.setChecked(True)
         self.btn_end_pm.setFixedSize(40, 35)
         self.btn_end_pm.setStyleSheet(ampm_style)
-        self.btn_end_pm.clicked.connect(lambda: self.set_am_pm(self.btn_end_pm, self.btn_end_am))
+        self.btn_end_pm.clicked.connect(
+            lambda: self.set_am_pm(self.btn_end_pm, self.btn_end_am)
+        )
 
         end_time_layout.addWidget(self.btn_end_am)
         end_time_layout.addWidget(self.btn_end_pm)
@@ -361,7 +369,9 @@ class EditEvent(QWidget):
         user_layout.setSpacing(15)
 
         title = QLabel("Target Audience")
-        title.setStyleSheet("font-weight: bold; color: #084924; font-size: 16px; padding-bottom: 10px;")
+        title.setStyleSheet(
+            "font-weight: bold; color: #084924; font-size: 16px; padding-bottom: 10px;"
+        )
         user_layout.addWidget(title)
 
         checkboxes_layout = QHBoxLayout()
@@ -521,7 +531,6 @@ class EditEvent(QWidget):
             return
 
         self.original_event_name = self.event_data.get("event", "")
-
         self.input_event_title.setText(self.event_data.get("event", ""))
 
         event_type = self.event_data.get("type", "")
@@ -538,37 +547,52 @@ class EditEvent(QWidget):
         if idx_status >= 0:
             self.combo_status.setCurrentIndex(idx_status)
 
-        # date_time format: "10/2/2025\n9:00 AM"
+        # date_time is ISO 8601 (or legacy); parse both
         date_time_str = self.event_data.get("date_time", "")
-        if date_time_str and "\n" in date_time_str:
-            date_part, time_part = date_time_str.split("\n", 1)
-            try:
-                d = datetime.strptime(date_part.strip(), "%m/%d/%Y")
-                self.date_start.setDate(QDate(d.year, d.month, d.day))
-                self.date_end.setDate(QDate(d.year, d.month, d.day))
-            except Exception:
-                pass
+        if not date_time_str:
+            return
 
-            time_part = time_part.strip()
-            if "AM" in time_part or "PM" in time_part:
-                is_pm = "PM" in time_part
-                time_str = time_part.replace("AM", "").replace("PM", "").strip()
-                try:
-                    t = datetime.strptime(time_str, "%I:%M")
-                    self.time_start.setTime(QTime(t.hour, t.minute))
-                    self.time_end.setTime(QTime(t.hour, t.minute))
-                    if is_pm:
-                        self.btn_start_pm.setChecked(True)
-                        self.btn_start_am.setChecked(False)
-                        self.btn_end_pm.setChecked(True)
-                        self.btn_end_am.setChecked(False)
-                    else:
-                        self.btn_start_am.setChecked(True)
-                        self.btn_start_pm.setChecked(False)
-                        self.btn_end_am.setChecked(True)
-                        self.btn_end_pm.setChecked(False)
-                except Exception:
-                    pass
+        try:
+            if "\n" in date_time_str:
+                # legacy "MM/DD/YYYY\nh:mm AM"
+                date_part, time_part = date_time_str.split("\n", 1)
+                dt = datetime.strptime(
+                    f"{date_part.strip()} {time_part.strip()}",
+                    "%m/%d/%Y %I:%M %p",
+                )
+            else:
+                # ISO 8601
+                normalized = date_time_str.replace("Z", "+00:00")
+                dt = datetime.fromisoformat(normalized)
+        except Exception:
+            return
+
+        self.date_start.setDate(QDate(dt.year, dt.month, dt.day))
+        self.date_end.setDate(QDate(dt.year, dt.month, dt.day))
+
+        hour_12 = dt.hour
+        is_pm = False
+        if hour_12 == 0:
+            hour_12 = 12
+        elif hour_12 == 12:
+            is_pm = True
+        elif hour_12 > 12:
+            hour_12 -= 12
+            is_pm = True
+
+        self.time_start.setTime(QTime(hour_12, dt.minute))
+        self.time_end.setTime(QTime(hour_12, dt.minute))
+
+        if is_pm:
+            self.btn_start_pm.setChecked(True)
+            self.btn_start_am.setChecked(False)
+            self.btn_end_pm.setChecked(True)
+            self.btn_end_am.setChecked(False)
+        else:
+            self.btn_start_am.setChecked(True)
+            self.btn_start_pm.setChecked(False)
+            self.btn_end_am.setChecked(True)
+            self.btn_end_pm.setChecked(False)
 
     # ---------- Navigation and save ----------
 
@@ -604,8 +628,11 @@ class EditEvent(QWidget):
         elif self.btn_start_am.isChecked() and start_hour == 12:
             start_hour = 0
 
-        start_time_str = QTime(start_hour, start_time.minute()).toString("h:mm AP")
-        date_time_str = f"{start_date.toString('M/d/yyyy')}\n{start_time_str}"
+        start_qtime = QTime(start_hour, start_time.minute())
+        start_qdatetime = QDateTime(start_date, start_qtime)
+
+        # ISO 8601 for date_time
+        date_time_str = start_qdatetime.toString(Qt.ISODate)
 
         location = self.input_location.text().strip() or "N/A"
         status = self.combo_status.currentText()
@@ -615,12 +642,16 @@ class EditEvent(QWidget):
             "event": event_title,
             "type": event_type,
             "location": location,
-            "status": status
+            "status": status,
         }
 
         if self.main_calendar:
             if self.main_calendar.update_event(self.original_event_name, updated_event_data):
-                QMessageBox.information(self, "Success", f"Event '{event_title}' has been updated successfully!")
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    f"Event '{event_title}' has been updated successfully!",
+                )
                 if self.navigate_back_to_activities:
                     self.navigate_back_to_activities()
             else:
