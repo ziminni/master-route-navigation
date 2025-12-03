@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ScheduleBlockViewSet, ScheduleEntryViewSet, SemesterViewSet, CurriculumViewSet, \
     ActiveSemesterRetrieveAPIView, SectionViewSet, \
-    CourseViewSet, CurriculumCourseListAPIView
+    CourseViewSet, CurriculumCourseListAPIView, ClassViewSet
 
 from .views import (
     GradingRubricListCreateAPIView,
@@ -21,6 +21,12 @@ from .views import (
     BulkScoreUploadAPIView,
     StudentGradesSummaryAPIView,
     ClassStudentsListAPIView,
+    EnrollmentListCreateAPIView,
+    EnrollmentDetailAPIView,
+    BulkEnrollmentAPIView,
+    AttendanceListCreateAPIView,
+    AttendanceDetailAPIView,
+    BulkAttendanceAPIView,
 )
 
 
@@ -50,6 +56,7 @@ router.register(r'semesters', SemesterViewSet, basename='semester')
 router.register(r'curriculums', CurriculumViewSet, basename='curriculum')
 router.register(r'sections', SectionViewSet, basename='section')
 router.register(r'courses', CourseViewSet, basename='course')
+router.register(r'classes', ClassViewSet, basename='class')
 
 
 urlpatterns = [
@@ -146,6 +153,40 @@ urlpatterns = [
         'classes/<int:class_id>/students/',
         ClassStudentsListAPIView.as_view(),
         name='class-students-list'
+    ),
+    
+    # Enrollment endpoints
+    path(
+        'classes/<int:class_id>/enrollments/',
+        EnrollmentListCreateAPIView.as_view(),
+        name='enrollment-list-create'
+    ),
+    path(
+        'enrollments/<int:pk>/',
+        EnrollmentDetailAPIView.as_view(),
+        name='enrollment-detail'
+    ),
+    path(
+        'classes/<int:class_id>/enrollments/bulk/',
+        BulkEnrollmentAPIView.as_view(),
+        name='enrollment-bulk-create'
+    ),
+    
+    # Attendance endpoints
+    path(
+        'classes/<int:class_id>/attendance/',
+        AttendanceListCreateAPIView.as_view(),
+        name='attendance-list-create'
+    ),
+    path(
+        'attendance/<int:pk>/',
+        AttendanceDetailAPIView.as_view(),
+        name='attendance-detail'
+    ),
+    path(
+        'classes/<int:class_id>/attendance/bulk/',
+        BulkAttendanceAPIView.as_view(),
+        name='attendance-bulk-create'
     ),
     
     path('', include(router.urls)),

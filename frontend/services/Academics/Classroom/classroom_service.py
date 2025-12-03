@@ -2,7 +2,7 @@ import json
 
 class ClassroomService:
     def __init__(self):
-        self.data_file = "services/Academics/data/classroom_data.json"
+        self.data_file = "frontend/services/Academics/data/classroom_data.json"
         self.load_data()
 
     def load_data(self):

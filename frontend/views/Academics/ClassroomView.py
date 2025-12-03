@@ -335,8 +335,8 @@ class ClassroomView(QWidget):
         # layout.addWidget(tabs)
 
         # === SERVICE LAYER SETUP ===
-        post_service = PostService("services/Academics/data/classroom_data.json")
-        topic_service = TopicService("services/Academics/data/classroom_data.json")
+        post_service = PostService("frontend/services/Academics/data/classroom_data.json")
+        topic_service = TopicService("frontend/services/Academics/data/classroom_data.json")
         post_controller = PostController(
             post_service=post_service,
             topic_service=topic_service

@@ -52,7 +52,7 @@ class SectionService:
     VALID_TYPES = {'Lecture', 'Laboratory', 'Hybrid'}
     VALID_YEARS = {'1st', '2nd', '3rd', '4th', '5th', 'N/A (Petition)'}
 
-    def __init__(self, json_file: str = "services/Academics/data/classroom_data.json"):  # CHANGED: unified file
+    def __init__(self, json_file: str = "frontend/services/Academics/data/classroom_data.json"):  # CHANGED: unified file
         """
         Initialize the section service.
 

@@ -10,9 +10,9 @@ from django.conf import settings
 from .models import *
 from .models import (
     GradingRubric, RubricComponent, Topic, Material, 
-    Assessment, Score, Class, Enrollment
+    Assessment, Score, Class, Enrollment, Attendance
 )
-from ..Users.models import Program
+from ..Users.models import Program, StudentProfile
 from ..Users.serializers import ProgramSerializer
 from ..Users.serializers import StudentProfileSerializer, BaseUserSerializer
 
@@ -131,6 +131,357 @@ class CurriculumCourseSerializer(serializers.ModelSerializer):
         fields = ["id", "program", "revision_year", "is_active", "courses"]
         read_only_fields = ["program", "revision_year", "is_active", "courses"]
 
+
+class ClassSerializer(serializers.ModelSerializer):
+    """
+    Serializer for retrieving Class instances with full details.
+    """
+    course_details = CourseSerializer(source='course', read_only=True)
+    section_details = SectionSerializer(source='section', read_only=True)
+    semester_details = SemesterSerializer(source='semester', read_only=True)
+    faculty_name = serializers.CharField(source='faculty.user.get_full_name', read_only=True)
+    lecture_class_details = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Class
+        fields = [
+            'id', 'course', 'course_details', 'faculty', 'faculty_name',
+            'section', 'section_details', 'semester', 'semester_details',
+            'lecture_class', 'lecture_class_details'
+        ]
+        read_only_fields = ['id', 'course_details', 'section_details', 'semester_details', 'faculty_name']
+    
+    def get_lecture_class_details(self, obj):
+        """Get basic details of the associated lecture class if this is a lab."""
+        if obj.lecture_class:
+            return {
+                'id': obj.lecture_class.id,
+                'course_code': obj.lecture_class.course.code,
+                'course_title': obj.lecture_class.course.title
+            }
+        return None
+
+
+class ClassCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating Class instances.
+    """
+    class Meta:
+        model = Class
+        fields = ['id', 'course', 'faculty', 'section', 'semester', 'lecture_class']
+        read_only_fields = ['id']
+    
+    def validate(self, data):
+        """
+        Validate that:
+        1. The course belongs to the section's curriculum
+        2. If lecture_class is provided, it exists and is for the same section/semester
+        """
+        course = data.get('course')
+        section = data.get('section')
+        semester = data.get('semester')
+        lecture_class = data.get('lecture_class')
+        
+        # Validate course belongs to section's curriculum
+        if course.curriculum != section.curriculum:
+            raise serializers.ValidationError({
+                'course': f'Course {course.code} does not belong to the curriculum of section {section.code}'
+            })
+        
+        # Validate lecture_class if provided
+        if lecture_class:
+            if lecture_class.section != section:
+                raise serializers.ValidationError({
+                    'lecture_class': 'Lecture class must be for the same section'
+                })
+            if lecture_class.semester != semester:
+                raise serializers.ValidationError({
+                    'lecture_class': 'Lecture class must be for the same semester'
+                })
+        
+        return data
+
+
+class ClassUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating Class instances.
+    Only allows updating faculty and lecture_class.
+    """
+    class Meta:
+        model = Class
+        fields = ['id', 'faculty', 'lecture_class']
+        read_only_fields = ['id']
+    
+    def validate_lecture_class(self, value):
+        """Validate that lecture class is for the same section and semester."""
+        if value:
+            instance = self.instance
+            if value.section != instance.section:
+                raise serializers.ValidationError('Lecture class must be for the same section')
+            if value.semester != instance.semester:
+                raise serializers.ValidationError('Lecture class must be for the same semester')
+        return value
+
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for retrieving Enrollment instances with full details.
+    """
+    student_details = StudentProfileSerializer(source='student', read_only=True)
+    class_details = ClassSerializer(source='enrolled_class', read_only=True)
+    enrolled_by_name = serializers.CharField(source='enrolled_by.get_full_name', read_only=True)
+    
+    class Meta:
+        model = Enrollment
+        fields = [
+            'id', 'enrolled_class', 'class_details', 'student', 'student_details',
+            'enrolled_at', 'enrolled_by', 'enrolled_by_name'
+        ]
+        read_only_fields = ['id', 'enrolled_at', 'class_details', 'student_details', 'enrolled_by_name']
+
+
+class EnrollmentCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for enrolling a student in a class.
+    """
+    class Meta:
+        model = Enrollment
+        fields = ['id', 'enrolled_class', 'student', 'enrolled_by']
+        read_only_fields = ['id', 'enrolled_by']
+    
+    def validate(self, data):
+        """
+        Validate that:
+        1. The student is not already enrolled in the class
+        2. The class has not exceeded capacity
+        """
+        enrolled_class = data.get('enrolled_class')
+        student = data.get('student')
+        
+        # Check if student is already enrolled
+        if Enrollment.objects.filter(enrolled_class=enrolled_class, student=student).exists():
+            raise serializers.ValidationError({
+                'student': f'Student is already enrolled in this class'
+            })
+        
+        # Check class capacity
+        current_enrollments = Enrollment.objects.filter(enrolled_class=enrolled_class).count()
+        section_capacity = enrolled_class.section.capacity
+        
+        if current_enrollments >= section_capacity:
+            raise serializers.ValidationError({
+                'enrolled_class': f'Class has reached maximum capacity ({section_capacity})'
+            })
+        
+        return data
+    
+    def create(self, validated_data):
+        """Set enrolled_by to the current user making the request."""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['enrolled_by'] = request.user
+        return super().create(validated_data)
+
+
+class BulkEnrollmentSerializer(serializers.Serializer):
+    """
+    Serializer for bulk enrolling multiple students in a class.
+    """
+    enrolled_class = serializers.PrimaryKeyRelatedField(queryset=Class.objects.all())
+    students = serializers.PrimaryKeyRelatedField(
+        queryset=StudentProfile.objects.all(),
+        many=True
+    )
+    
+    def validate(self, data):
+        """
+        Validate that:
+        1. No duplicate students in the request
+        2. None of the students are already enrolled
+        3. Class has enough capacity
+        """
+        enrolled_class = data.get('enrolled_class')
+        students = data.get('students')
+        
+        # Check for duplicates in request
+        student_ids = [s.id for s in students]
+        if len(student_ids) != len(set(student_ids)):
+            raise serializers.ValidationError({
+                'students': 'Duplicate students in enrollment list'
+            })
+        
+        # Check if any student is already enrolled
+        already_enrolled = Enrollment.objects.filter(
+            enrolled_class=enrolled_class,
+            student__in=students
+        ).values_list('student__user__first_name', 'student__user__last_name')
+        
+        if already_enrolled:
+            names = [f"{first} {last}" for first, last in already_enrolled]
+            raise serializers.ValidationError({
+                'students': f'The following students are already enrolled: {", ".join(names)}'
+            })
+        
+        # Check capacity
+        current_enrollments = Enrollment.objects.filter(enrolled_class=enrolled_class).count()
+        section_capacity = enrolled_class.section.capacity
+        new_total = current_enrollments + len(students)
+        
+        if new_total > section_capacity:
+            raise serializers.ValidationError({
+                'enrolled_class': f'Enrolling {len(students)} students would exceed capacity '
+                                 f'({new_total}/{section_capacity})'
+            })
+        
+        return data
+
+
+class AttendanceSerializer(serializers.ModelSerializer):
+    """
+    Serializer for retrieving Attendance records with full details.
+    """
+    student_details = StudentProfileSerializer(source='student', read_only=True)
+    student_name = serializers.CharField(source='student.user.get_full_name', read_only=True)
+    class_details = ClassSerializer(source='class_instance', read_only=True)
+    updated_by_name = serializers.CharField(source='updated_by.get_full_name', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = Attendance
+        fields = [
+            'id', 'class_instance', 'class_details', 'student', 'student_details',
+            'student_name', 'date', 'status', 'status_display', 'remarks',
+            'updated_at', 'updated_by', 'updated_by_name'
+        ]
+        read_only_fields = [
+            'id', 'updated_at', 'class_details', 'student_details',
+            'student_name', 'updated_by_name', 'status_display'
+        ]
+
+
+class AttendanceCreateUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating or updating attendance records.
+    """
+    class Meta:
+        model = Attendance
+        fields = ['id', 'class_instance', 'student', 'date', 'status', 'remarks', 'updated_by']
+        read_only_fields = ['id', 'updated_by']
+    
+    def validate(self, data):
+        """
+        Validate that:
+        1. The student is enrolled in the class
+        2. The date is not in the future
+        """
+        from datetime import date as dt_date
+        
+        class_instance = data.get('class_instance')
+        student = data.get('student')
+        date = data.get('date')
+        
+        # Check if student is enrolled in the class
+        if not Enrollment.objects.filter(enrolled_class=class_instance, student=student).exists():
+            raise serializers.ValidationError({
+                'student': 'Student is not enrolled in this class'
+            })
+        
+        # Check date is not in the future
+        if date and date > dt_date.today():
+            raise serializers.ValidationError({
+                'date': 'Attendance date cannot be in the future'
+            })
+        
+        return data
+    
+    def create(self, validated_data):
+        """Set updated_by to the current user."""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['updated_by'] = request.user
+        return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        """Set updated_by to the current user."""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['updated_by'] = request.user
+        return super().update(instance, validated_data)
+
+
+class BulkAttendanceSerializer(serializers.Serializer):
+    """
+    Serializer for bulk recording attendance for multiple students.
+    """
+    class_instance = serializers.PrimaryKeyRelatedField(queryset=Class.objects.all())
+    date = serializers.DateField()
+    attendance_records = serializers.ListField(
+        child=serializers.DictField(
+            child=serializers.CharField()
+        )
+    )
+    
+    def validate_attendance_records(self, value):
+        """
+        Validate attendance records format.
+        Expected format: [{"student": 1, "status": "present", "remarks": "..."}, ...]
+        """
+        from ..Users.models import StudentProfile
+        
+        for record in value:
+            # Check required fields
+            if 'student' not in record or 'status' not in record:
+                raise serializers.ValidationError(
+                    'Each record must have "student" and "status" fields'
+                )
+            
+            # Validate student ID
+            try:
+                student_id = int(record['student'])
+                if not StudentProfile.objects.filter(id=student_id).exists():
+                    raise serializers.ValidationError(f'Student with ID {student_id} does not exist')
+            except (ValueError, TypeError):
+                raise serializers.ValidationError(f'Invalid student ID: {record["student"]}')
+            
+            # Validate status
+            valid_statuses = ['present', 'absent', 'late', 'excused']
+            if record['status'] not in valid_statuses:
+                raise serializers.ValidationError(
+                    f'Invalid status "{record["status"]}". Must be one of: {", ".join(valid_statuses)}'
+                )
+        
+        return value
+    
+    def validate(self, data):
+        """Validate date and enrollment."""
+        from datetime import date as dt_date
+        
+        date = data.get('date')
+        class_instance = data.get('class_instance')
+        attendance_records = data.get('attendance_records', [])
+        
+        # Check date is not in the future
+        if date and date > dt_date.today():
+            raise serializers.ValidationError({
+                'date': 'Attendance date cannot be in the future'
+            })
+        
+        # Check all students are enrolled
+        student_ids = [int(record['student']) for record in attendance_records]
+        enrolled_students = set(
+            Enrollment.objects.filter(
+                enrolled_class=class_instance,
+                student_id__in=student_ids
+            ).values_list('student_id', flat=True)
+        )
+        
+        not_enrolled = set(student_ids) - enrolled_students
+        if not_enrolled:
+            raise serializers.ValidationError({
+                'attendance_records': f'Students not enrolled in class: {list(not_enrolled)}'
+            })
+        
+        return data
 
 
 class RubricComponentSerializer(serializers.ModelSerializer):

@@ -40,8 +40,8 @@ class MaterialForm(QWidget):
         self.post_controller = post_controller
         
         # ADDED: Data file paths
-        self.classroom_data_path = "services/Academics/data/classroom_data.json"
-        self.posts_data_path = "services/Academics/data/classroom_data.json"
+        self.classroom_data_path = "frontend/services/Academics/data/classroom_data.json"
+        self.posts_data_path = "frontend/services/Academics/data/classroom_data.json"
         
         self.initUI()
         self.load_topics()  # ADDED: Load topics for dropdown

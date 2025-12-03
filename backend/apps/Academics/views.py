@@ -14,7 +14,7 @@ from decimal import Decimal
 
 from .models import (
     GradingRubric, RubricComponent, Topic, Material,
-    Assessment, Score, Class, Enrollment
+    Assessment, Score, Class, Enrollment, Attendance
 )
 from .serializers import (
     GradingRubricSerializer, GradingRubricCreateSerializer,
@@ -26,7 +26,10 @@ from .serializers import (
     AssessmentCreateUpdateSerializer, ScoreSerializer,
     ScoreListSerializer, ScoreCreateUpdateSerializer,
     BulkScoreCreateSerializer, BulkScoreUploadSerializer,
-    StudentGradesSummarySerializer
+    StudentGradesSummarySerializer,
+    ClassSerializer, ClassCreateSerializer, ClassUpdateSerializer,
+    EnrollmentSerializer, EnrollmentCreateSerializer, BulkEnrollmentSerializer,
+    AttendanceSerializer, AttendanceCreateUpdateSerializer, BulkAttendanceSerializer
 )
 
 
@@ -181,6 +184,296 @@ class CourseViewSet(BaseCRUDViewSet):
         elif self.action in ["update", "partial_update"]:
             return CourseUpdateSerializer
         return CourseSerializer
+
+
+class ClassViewSet(BaseCRUDViewSet):
+    """
+    API endpoint for managing Class instances.
+    
+    GET: List all classes or retrieve a specific class
+    POST: Create a new class (admin only)
+    PUT/PATCH: Update a class (admin only)
+    DELETE: Delete a class (admin only)
+    """
+    queryset = Class.objects.select_related(
+        'course', 'faculty', 'section', 'semester', 'lecture_class'
+    ).all()
+
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action."""
+        if self.action == 'create':
+            return ClassCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return ClassUpdateSerializer
+        return ClassSerializer
+    
+    def get_queryset(self):
+        """
+        Optionally filter classes by semester, section, course, or faculty.
+        """
+        queryset = super().get_queryset()
+        
+        # Filter by semester
+        semester_id = self.request.query_params.get('semester')
+        if semester_id:
+            queryset = queryset.filter(semester_id=semester_id)
+        
+        # Filter by section
+        section_id = self.request.query_params.get('section')
+        if section_id:
+            queryset = queryset.filter(section_id=section_id)
+        
+        # Filter by course
+        course_id = self.request.query_params.get('course')
+        if course_id:
+            queryset = queryset.filter(course_id=course_id)
+        
+        # Filter by faculty
+        faculty_id = self.request.query_params.get('faculty')
+        if faculty_id:
+            queryset = queryset.filter(faculty_id=faculty_id)
+        
+        return queryset
+
+
+class EnrollmentListCreateAPIView(generics.ListCreateAPIView):
+    """
+    API endpoint for listing and creating enrollments.
+    
+    GET: List all enrollments for a specific class
+    POST: Enroll a student in a class (admin only)
+    """
+    serializer_class = EnrollmentSerializer
+    
+    def get_permissions(self):
+        """Admin only for POST, authenticated for GET."""
+        if self.request.method == 'POST':
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+    
+    def get_queryset(self):
+        """Get enrollments for a specific class."""
+        class_id = self.kwargs.get('class_id')
+        return Enrollment.objects.filter(enrolled_class_id=class_id).select_related(
+            'student', 'enrolled_class', 'enrolled_by'
+        )
+    
+    def get_serializer_class(self):
+        """Use create serializer for POST."""
+        if self.request.method == 'POST':
+            return EnrollmentCreateSerializer
+        return EnrollmentSerializer
+    
+    def perform_create(self, serializer):
+        """Set the enrolled_by to the current user."""
+        serializer.save(enrolled_by=self.request.user)
+
+
+class EnrollmentDetailAPIView(generics.RetrieveDestroyAPIView):
+    """
+    API endpoint for retrieving or deleting a specific enrollment.
+    
+    GET: Retrieve enrollment details
+    DELETE: Unenroll a student (admin only)
+    """
+    queryset = Enrollment.objects.select_related('student', 'enrolled_class', 'enrolled_by')
+    serializer_class = EnrollmentSerializer
+    
+    def get_permissions(self):
+        """Admin only for DELETE, authenticated for GET."""
+        if self.request.method == 'DELETE':
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+
+
+class BulkEnrollmentAPIView(APIView):
+    """
+    API endpoint for bulk enrolling multiple students in a class.
+    
+    POST: Enroll multiple students at once (admin only)
+    """
+    permission_classes = [IsAdminUser]
+    
+    def post(self, request, class_id):
+        """
+        Bulk enroll students in a class.
+        
+        Request body:
+        {
+            "students": [1, 2, 3, ...]  // Array of student IDs
+        }
+        """
+        # Add class_id to request data
+        data = {
+            'enrolled_class': class_id,
+            'students': request.data.get('students', [])
+        }
+        
+        serializer = BulkEnrollmentSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Create enrollments
+        enrolled_class = serializer.validated_data['enrolled_class']
+        students = serializer.validated_data['students']
+        
+        enrollments = []
+        for student in students:
+            enrollments.append(
+                Enrollment(
+                    enrolled_class=enrolled_class,
+                    student=student,
+                    enrolled_by=request.user
+                )
+            )
+        
+        # Bulk create
+        created_enrollments = Enrollment.objects.bulk_create(enrollments)
+        
+        return Response({
+            'message': f'Successfully enrolled {len(created_enrollments)} students',
+            'enrolled_count': len(created_enrollments),
+            'class_id': class_id
+        }, status=status.HTTP_201_CREATED)
+
+
+class AttendanceListCreateAPIView(generics.ListCreateAPIView):
+    """
+    API endpoint for listing and creating attendance records.
+    
+    GET: List all attendance records for a specific class
+    POST: Record attendance for a student (admin/faculty only)
+    """
+    serializer_class = AttendanceSerializer
+    
+    def get_permissions(self):
+        """Admin/Faculty only for POST, authenticated for GET."""
+        if self.request.method == 'POST':
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+    
+    def get_queryset(self):
+        """Get attendance records for a specific class, optionally filtered by date."""
+        class_id = self.kwargs.get('class_id')
+        queryset = Attendance.objects.filter(class_instance_id=class_id).select_related(
+            'student', 'class_instance', 'updated_by'
+        )
+        
+        # Optional date filter
+        date = self.request.query_params.get('date')
+        if date:
+            queryset = queryset.filter(date=date)
+        
+        # Optional student filter
+        student_id = self.request.query_params.get('student')
+        if student_id:
+            queryset = queryset.filter(student_id=student_id)
+        
+        return queryset
+    
+    def get_serializer_class(self):
+        """Use create/update serializer for POST."""
+        if self.request.method == 'POST':
+            return AttendanceCreateUpdateSerializer
+        return AttendanceSerializer
+
+
+class AttendanceDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a specific attendance record.
+    
+    GET: Retrieve attendance details
+    PUT/PATCH: Update attendance record (admin/faculty only)
+    DELETE: Delete attendance record (admin only)
+    """
+    queryset = Attendance.objects.select_related('student', 'class_instance', 'updated_by')
+    serializer_class = AttendanceSerializer
+    
+    def get_permissions(self):
+        """Admin only for DELETE, admin/faculty for PUT/PATCH, authenticated for GET."""
+        if self.request.method == 'DELETE':
+            return [IsAdminUser()]
+        elif self.request.method in ['PUT', 'PATCH']:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+    
+    def get_serializer_class(self):
+        """Use create/update serializer for PUT/PATCH."""
+        if self.request.method in ['PUT', 'PATCH']:
+            return AttendanceCreateUpdateSerializer
+        return AttendanceSerializer
+
+
+class BulkAttendanceAPIView(APIView):
+    """
+    API endpoint for bulk recording attendance for multiple students.
+    
+    POST: Record attendance for multiple students at once (admin/faculty only)
+    """
+    permission_classes = [IsAdminUser]
+    
+    def post(self, request, class_id):
+        """
+        Bulk record attendance for students.
+        
+        Request body:
+        {
+            "date": "2025-12-03",
+            "attendance_records": [
+                {"student": 1, "status": "present", "remarks": ""},
+                {"student": 2, "status": "absent", "remarks": "Sick"},
+                ...
+            ]
+        }
+        """
+        # Add class_id to request data
+        data = {
+            'class_instance': class_id,
+            'date': request.data.get('date'),
+            'attendance_records': request.data.get('attendance_records', [])
+        }
+        
+        serializer = BulkAttendanceSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Process attendance records
+        class_instance = serializer.validated_data['class_instance']
+        date = serializer.validated_data['date']
+        attendance_records = serializer.validated_data['attendance_records']
+        
+        # Update or create attendance records
+        created_count = 0
+        updated_count = 0
+        
+        for record in attendance_records:
+            student_id = int(record['student'])
+            status = record['status']
+            remarks = record.get('remarks', '')
+            
+            attendance, created = Attendance.objects.update_or_create(
+                class_instance=class_instance,
+                student_id=student_id,
+                date=date,
+                defaults={
+                    'status': status,
+                    'remarks': remarks,
+                    'updated_by': request.user
+                }
+            )
+            
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+        
+        return Response({
+            'message': f'Attendance recorded successfully',
+            'created': created_count,
+            'updated': updated_count,
+            'total': created_count + updated_count,
+            'class_id': class_id,
+            'date': date
+        }, status=status.HTTP_201_CREATED)
+
 
 class CurriculumCourseListAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]

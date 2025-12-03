@@ -37,11 +37,11 @@
             "section_name": "Ps",
             "schedule": "FRIDAY - 8:00 - 10:00 AM",
             "date_created": "2025-08-18",
-            "updated_at": "2025-12-03T15:38:22.183205",
+            "updated_at": "2025-12-03T15:47:52.944574",
             "created_at": "2025-10-16T23:39:46.928626",
             "is_archived": true,
-            "archived_at": "2025-12-03T15:38:22.183205",
-            "unarchived_at": "2025-12-03T15:35:56.196047"
+            "archived_at": "2025-12-03T15:47:52.944574",
+            "unarchived_at": "2025-12-03T15:43:29.299728"
         },
         {
             "code": "ITSD83",
@@ -61,11 +61,11 @@
             "id": 2,
             "section_name": "BSCS-3C",
             "created_at": "2025-10-08T18:57:12.159138",
-            "updated_at": "2025-12-03T15:38:22.183205",
+            "updated_at": "2025-12-03T15:47:52.944574",
             "instructor_id": "faculty_2",
             "is_archived": true,
-            "archived_at": "2025-12-03T15:38:22.183205",
-            "unarchived_at": "2025-12-03T15:35:56.236599"
+            "archived_at": "2025-12-03T15:47:52.944574",
+            "unarchived_at": "2025-12-03T15:43:29.342864"
         },
         {
             "code": "IT 65",
@@ -90,11 +90,11 @@
             "id": 4,
             "section_name": "BSIT-3C",
             "created_at": "2025-10-15T18:50:52.428959",
-            "updated_at": "2025-12-03T15:38:22.183205",
+            "updated_at": "2025-12-03T15:47:52.944574",
             "instructor_id": "faculty_4",
             "is_archived": true,
-            "archived_at": "2025-12-03T15:38:22.183205",
-            "unarchived_at": "2025-12-03T15:35:56.281308"
+            "archived_at": "2025-12-03T15:47:52.944574",
+            "unarchived_at": "2025-12-03T15:43:29.390148"
         },
         {
             "code": "IT 57",
@@ -114,11 +114,11 @@
             "id": 5,
             "section_name": "BSIT-3C",
             "created_at": "2025-10-16T22:53:16.127226",
-            "updated_at": "2025-12-03T15:38:22.183205",
+            "updated_at": "2025-12-03T15:47:52.944574",
             "instructor_id": "faculty_5",
             "is_archived": true,
-            "archived_at": "2025-12-03T15:38:22.183205",
-            "unarchived_at": "2025-12-03T15:35:56.337812"
+            "archived_at": "2025-12-03T15:47:52.944574",
+            "unarchived_at": "2025-12-03T15:43:29.443355"
         },
         {
             "code": "GEC 15",
@@ -138,11 +138,11 @@
             "id": 6,
             "section_name": "BSIT-1B",
             "created_at": "2025-10-16T23:04:27.272753",
-            "updated_at": "2025-12-03T15:38:22.183205",
+            "updated_at": "2025-12-03T15:47:52.944574",
             "instructor_id": "faculty_6",
             "is_archived": true,
-            "archived_at": "2025-12-03T15:38:22.183205",
-            "unarchived_at": "2025-12-03T15:35:56.399744"
+            "archived_at": "2025-12-03T15:47:52.944574",
+            "unarchived_at": "2025-12-03T15:43:29.512277"
         },
         {
             "code": "IT 65",
@@ -162,11 +162,11 @@
             "id": 7,
             "section_name": "BSIT-3C",
             "created_at": "2025-10-16T23:33:31.497950",
-            "updated_at": "2025-12-03T15:38:22.183205",
+            "updated_at": "2025-12-03T15:47:52.944574",
             "instructor_id": "faculty_7",
             "is_archived": true,
-            "archived_at": "2025-12-03T15:38:22.183205",
-            "unarchived_at": "2025-12-03T15:35:56.475688"
+            "archived_at": "2025-12-03T15:47:52.944574",
+            "unarchived_at": "2025-12-03T15:43:29.593964"
         },
         {
             "code": "IT 61",
@@ -186,11 +186,11 @@
             "id": 8,
             "section_name": "BSIT-3C",
             "created_at": "2025-10-16T23:38:48.086432",
-            "updated_at": "2025-12-03T15:38:22.183205",
+            "updated_at": "2025-12-03T15:47:52.944574",
             "instructor_id": "faculty_8",
             "is_archived": true,
-            "archived_at": "2025-12-03T15:38:22.183205",
-            "unarchived_at": "2025-12-03T15:35:56.558624"
+            "archived_at": "2025-12-03T15:47:52.944574",
+            "unarchived_at": "2025-12-03T15:43:29.671640"
         }
     ],
     "topics": [
