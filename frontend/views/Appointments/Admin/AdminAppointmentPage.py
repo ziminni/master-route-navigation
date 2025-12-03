@@ -47,6 +47,25 @@ class AdminAppointmentPage_ui(QWidget):
             QtWidgets.QSizePolicy.Policy.Expanding
         )
 
+    def get_faculty_name(self, faculty_id):
+        faculties = self.appointment_crud.get_faculties()
+        print(f"Faculties list: {faculties}")
+        for faculty in faculties:
+            print(f"{faculty}")
+            print("Hello Lord!")
+            if int(faculty["id"]) == int(faculty_id):
+                return faculty['full_name']
+            
+    def get_student_name(self, student_id):
+        students = self.appointment_crud.get_students()
+        print(f"Students list: {students}")
+        for student in students:
+            print(f"{student}")
+            print("Hello Lord!")
+            if int(student["id"]) == int(student_id):
+                return student['full_name']
+
+
     def test_api_connection(self):
         """Test API connection and authentication"""
         try:
@@ -536,6 +555,7 @@ class AdminAppointmentPage_ui(QWidget):
                             if not faculty_name:
                                 faculty_name = user_info.get('username', 'Unknown')
                         else:
+                            faculty_name = self.get_faculty_name(faculty_id)
                             faculty_name = faculty.get('name', f"Faculty {faculty_id}")
                         
                         faculty_map[faculty_id] = faculty_name
@@ -545,30 +565,26 @@ class AdminAppointmentPage_ui(QWidget):
                     continue
             
             print(f"DEBUG: Faculty map created with {len(faculty_map)} entries")
-            
+            self.get_faculty_name(faculty_id)
             self.all_appointments = []
             for appt in appointments:
+                print(f"Testing Name: {appt}")
                 try:
                     print(f"DEBUG: Processing appointment: {appt.get('id')}")
                     
                     # Get faculty ID and name
                     faculty_id = appt.get('faculty')
-                    faculty_name = faculty_map.get(faculty_id, f"Faculty {faculty_id}")
+                    
+                    
                     
                     # Get student info
                     student_info = appt.get('student', {})
-                    student_name = "Unknown Student"
+                    student_name = self.get_student_name(appt["student"])
                     
                     if isinstance(student_info, dict):
                         user_info = student_info.get('user', {})
-                        if isinstance(user_info, dict):
-                            first_name = user_info.get('first_name', '')
-                            last_name = user_info.get('last_name', '')
-                            student_name = f"{first_name} {last_name}".strip()
-                            if not student_name:
-                                student_name = user_info.get('username', 'Unknown Student')
-                        else:
-                            student_name = student_info.get('name', 'Unknown Student')
+                    
+                    faculty_name = self.get_faculty_name(faculty_id)
                     
                     # Format date and time
                     start_at = appt.get('start_at', '')

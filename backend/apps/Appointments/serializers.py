@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import AvailabilityRule, Appointment
-from apps.Users.models import FacultyProfile, BaseUser
+from apps.Users.models import FacultyProfile, BaseUser, StudentProfile
 
 class AvailabilityRuleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -136,6 +136,41 @@ class FacultyProfileListSerializer(serializers.ModelSerializer):
 
     def get_full_name(self, obj):
         """Get the full name of the faculty member"""
+        if obj.user.middle_name:
+            return f"{obj.user.last_name}, {obj.user.first_name} {obj.user.middle_name}"
+        return f"{obj.user.last_name}, {obj.user.first_name}"
+
+
+class StudentUserSerializer(serializers.ModelSerializer):
+    """Serializer for BaseUser details (for students)"""
+    class Meta:
+        model = BaseUser
+        fields = ['id', 'first_name', 'last_name', 'middle_name', 'email', 'institutional_id', 'phone_number']
+
+
+class StudentProfileListSerializer(serializers.ModelSerializer):
+    """Serializer for StudentProfile with user details"""
+    user = StudentUserSerializer(read_only=True)
+    program_name = serializers.CharField(source='program.name', read_only=True)
+    section_name = serializers.CharField(source='section.name', read_only=True)
+    full_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = StudentProfile
+        fields = [
+            'id',
+            'user',
+            'full_name',
+            'program',
+            'program_name',
+            'section',
+            'section_name',
+            'indiv_points',
+            'year_level'
+        ]
+    
+    def get_full_name(self, obj):
+        """Get the full name of the student"""
         if obj.user.middle_name:
             return f"{obj.user.last_name}, {obj.user.first_name} {obj.user.middle_name}"
         return f"{obj.user.last_name}, {obj.user.first_name}"

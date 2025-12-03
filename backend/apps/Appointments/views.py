@@ -7,10 +7,10 @@ from datetime import datetime, timedelta, time, timezone
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from django.utils.timezone import make_aware
 from .models import AvailabilityRule, BusyBlock, Appointment
-from .serializers import FacultyProfileListSerializer, AvailabilityRuleSerializer, AvailableSlotSerializer, AppointmentCreateSerializer, AppointmentListSerializer, AppointmentUpdateSerializer
+from .serializers import StudentProfileListSerializer, FacultyProfileListSerializer, AvailabilityRuleSerializer, AvailableSlotSerializer, AppointmentCreateSerializer, AppointmentListSerializer, AppointmentUpdateSerializer
 from rest_framework.permissions import IsAuthenticated
 from django.utils.dateparse import parse_datetime
-from apps.Users.models import FacultyProfile
+from apps.Users.models import FacultyProfile, StudentProfile
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
 
@@ -333,3 +333,36 @@ class FacultyProfileListView(generics.ListAPIView):
             'faculty_department',  # This is crucial!
             'position'
         ).all().order_by('user__last_name', 'user__first_name')
+
+
+
+class StudentProfileListView(generics.ListAPIView):
+    """
+    Get all student profiles with their user details
+    """
+    queryset = StudentProfile.objects.all()
+    serializer_class = StudentProfileListSerializer
+    permission_classes = [permissions.IsAuthenticated]  # Or [permissions.AllowAny] if public
+
+    def get_queryset(self):
+        """Optionally add filtering and ordering"""
+        queryset = StudentProfile.objects.select_related(
+            'user', 
+            'program',
+            'section'
+        ).all()
+        
+        # Optional filters via query parameters
+        program_id = self.request.query_params.get('program_id')
+        if program_id:
+            queryset = queryset.filter(program_id=program_id)
+            
+        section_id = self.request.query_params.get('section_id')
+        if section_id:
+            queryset = queryset.filter(section_id=section_id)
+            
+        year_level = self.request.query_params.get('year_level')
+        if year_level:
+            queryset = queryset.filter(year_level=year_level)
+        
+        return queryset.order_by('user__last_name', 'user__first_name')

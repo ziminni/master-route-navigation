@@ -25,6 +25,19 @@ class StudentAppointmentPage_ui(QWidget):
         self.retranslateUi()
         self.load_appointments_data()  # Load initial data
 
+
+
+    def get_faculty_name(self, faculty_id):
+        faculties = self.appointment_crud.get_faculties()
+        print(f"Faculties list: {faculties}")
+        for faculty in faculties:
+            print(f"{faculty}")
+            print("Hello Lord!")
+            if int(faculty["id"]) == int(faculty_id):
+                return faculty['full_name']
+
+    
+
     def set_student_request_page(self, request_page):
         """Set the student request page and connect signals"""
         self.student_request_page = request_page
@@ -54,18 +67,7 @@ class StudentAppointmentPage_ui(QWidget):
                 appointment_id = appointment.get('id')
                 student_id = appointment.get('student')
                 faculty_id = appointment.get('faculty')
-                
-                # Get faculty name
-                faculty_name = "Unknown Faculty"
-                if isinstance(faculty_id, dict):
-                    # If faculty is nested object
-                    faculty_user = faculty_id.get('user', {})
-                    faculty_name = f"{faculty_user.get('first_name', '')} {faculty_user.get('last_name', '')}".strip()
-                    if not faculty_name:
-                        faculty_name = faculty_user.get('username', 'Unknown Faculty')
-                elif faculty_id:
-                    # If faculty is just ID, we could fetch details but for now use Unknown
-                    faculty_name = f"Faculty ID: {faculty_id}"
+                faculty_name = self.get_faculty_name(faculty_id)
                 
                 # Format time
                 start_at = appointment.get('start_at', '')

@@ -116,6 +116,13 @@ class APIClient:
     def get_faculties(self):
         """Get all faculty profiles"""
         return self._make_request('GET', 'faculty_profiles/')
+    def get_faculties(self):
+        """Get all faculty profiles"""
+        return self._make_request('GET', 'faculty_profiles/')
+
+    def get_students(self):
+        """Get all student profiles"""
+        return self._make_request('GET', 'student_profiles/')
 
     def get_availability_rules(self, faculty_id=None, semester_id=None):
         """Get availability rules for faculty"""

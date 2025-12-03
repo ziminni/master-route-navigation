@@ -42,6 +42,17 @@ class AppointmentPage_ui(QWidget):
         self._setupAppointmentsPage()
         self.retranslateUi()
 
+
+    def get_student_name(self, student_id):
+        students = self.crud.get_students()
+        print(f"Students list: {students}")
+        for student in students:
+            print(f"{student}")
+            print("Hello Lord!")
+            if int(student["id"]) == int(student_id):
+                return student['full_name']
+            
+
     def test_api_connection(self):
         """Test API connection and authentication"""
         try:
@@ -1221,25 +1232,25 @@ class AppointmentPage_ui(QWidget):
                     print(f"DEBUG: Processing appointment {row}: {appointment}")
                     
                     # Get student info - check different possible field names
-                    student_name = "Unknown Student"
+                    student_name = self.get_student_name(appointment["student"])
                     student_info = None
                     
-                    # Try different possible field names for student info
-                    if "student" in appointment and isinstance(appointment["student"], dict):
-                        student_info = appointment["student"]
-                    elif "student_name" in appointment:
-                        student_name = appointment["student_name"]
-                    elif "student_first_name" in appointment and "student_last_name" in appointment:
-                        student_name = f"{appointment['student_first_name']} {appointment['student_last_name']}"
+                    # # Try different possible field names for student info
+                    # if "student" in appointment and isinstance(appointment["student"], dict):
+                    #     student_info = appointment["student"]
+                    # elif "student_name" in appointment:
+                    #     student_name = appointment["student_name"]
+                    # elif "student_first_name" in appointment and "student_last_name" in appointment:
+                    #     student_name = f"{appointment['student_first_name']} {appointment['student_last_name']}"
                     
-                    # If we have a student dict, extract name
-                    if student_info:
-                        if "first_name" in student_info and "last_name" in student_info:
-                            student_name = f"{student_info['first_name']} {student_info['last_name']}"
-                        elif "name" in student_info:
-                            student_name = student_info["name"]
-                        elif "username" in student_info:
-                            student_name = student_info["username"]
+                    # # If we have a student dict, extract name
+                    # if student_info:
+                    #     if "first_name" in student_info and "last_name" in student_info:
+                    #         student_name = f"{student_info['first_name']} {student_info['last_name']}"
+                    #     elif "name" in student_info:
+                    #         student_name = student_info["name"]
+                    #     elif "username" in student_info:
+                    #         student_name = student_info["username"]
                     
                     # Get time information
                     time_text = "Unknown Time"
