@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from PyQt6.QtWidgets import QCalendarWidget
-from PyQt6.QtGui import QPainter, QColor
+from PyQt6.QtGui import QPainter, QColor, QFont
 from PyQt6.QtCore import Qt, QDate
 
 
@@ -28,114 +28,100 @@ class EventCalendarWidget(QCalendarWidget):
                 self.events_by_date.setdefault(qd, []).append(
                     {"event": title, "type": etype}
                 )
-            except Exception:
+                # Debug print
+                print(f"Added event: {title} on {qd.toString('MM/dd/yyyy')}")
+            except Exception as e:
+                print(f"Error parsing date '{date_str}': {e}")
                 continue
-        self.update()
+        print(f"Total dates with events: {len(self.events_by_date)}")
+        self.updateCells()  # Use updateCells() instead of update()
 
     def paintCell(self, painter, rect, date):
-        # DO NOT call super().paintCell(...) or it will overwrite your drawing
-
+        # Get events for this date
         events = self.events_by_date.get(date, [])
         has_events = len(events) > 0
-
-        # Debug: make sure events really exist for this date
+        
+        # Debug: print when painting cells with events
         if has_events:
-            print("paintCell", date.toString("MM/dd/yyyy"),
-                [e.get("event") for e in events])
+            print(f"Painting cell for {date.toString('MM/dd/yyyy')} with {len(events)} events")
 
+        # Define type colors
         type_color_map = {
-            "Academic": QColor("#4CAF50"),
-            "Organizational": QColor("#2196F3"),
-            "Deadline": QColor("#FF9800"),
-            "Holiday": QColor("#F44336"),
+            "Academic": QColor("#90EE90"),      # Light green
+            "Organizational": QColor("#ADD8E6"), # Light blue
+            "Deadline": QColor("#FFD700"),       # Gold
+            "Holiday": QColor("#FFB6C1"),        # Light pink
         }
 
-        # ---------- 1) background ----------
+        # ---------- 1) Draw background ----------
         painter.save()
-
-        if date == QDate.currentDate():
-            base_color = QColor("#FFF3C0")  # light gold
-        else:
-            base_color = QColor("#FFFFFF")
-
+        
         if has_events:
+            # Color background based on event type
             first_type = events[0].get("type", "")
-            etype_color = type_color_map.get(first_type, QColor("#9E9E9E"))
-            base_color = QColor(
-                (etype_color.red() + 255) // 2,
-                (etype_color.green() + 255) // 2,
-                (etype_color.blue() + 255) // 2,
-            )
+            bg_color = type_color_map.get(first_type, QColor("#FFFFFF"))
+        elif date == QDate.currentDate():
+            bg_color = QColor("#FFF3C0")  # Light gold for today
+        else:
+            bg_color = QColor("#FFFFFF")  # White for other days
 
-        painter.setBrush(base_color)
+        painter.setBrush(bg_color)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRect(rect)
         painter.restore()
 
-        # ---------- 2) day number ----------
+        # ---------- 2) Draw day number ----------
         painter.save()
-        font = painter.font()
+        font = QFont()
         font.setBold(True)
+        font.setPointSize(10)
         painter.setFont(font)
         painter.setPen(QColor("#000000"))
-        day_rect = rect.adjusted(2, 0, -2, -rect.height() // 2 + 4)
+        
+        # Day number in top-left
+        day_rect = rect.adjusted(2, 2, -2, -rect.height() + 16)
         painter.drawText(
             day_rect,
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
-            str(date.day()),
+            str(date.day())
         )
         painter.restore()
 
-        # ---------- 3) event titles ----------
+        # ---------- 3) Draw event title (if exists) ----------
         if has_events:
             painter.save()
-            font = painter.font()
-            font.setPointSize(max(font.pointSize(), 10))
+            font = QFont()
+            font.setPointSize(7)  # Small font size
+            font.setBold(False)
             painter.setFont(font)
-
-            top_offset = rect.top() + 20
-            line_height = painter.fontMetrics().height()
-            max_lines = 2
-
-            for i, ev in enumerate(events[:max_lines]):
-                title = ev.get("event", "")
-                title = painter.fontMetrics().elidedText(
-                    title,
-                    Qt.TextElideMode.ElideRight,
-                    rect.width() - 4,
-                )
-                painter.setPen(QColor("#000000"))
-                text_rect = rect.adjusted(
-                    2, top_offset + i * line_height, -2, 0
-                )
-                painter.drawText(
-                    text_rect,
-                    Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                    title,
-                )
-
-            extra = len(events) - max_lines
-            if extra > 0:
-                more_text = f"+{extra} more"
-                painter.setPen(QColor("#000000"))
-                text_rect = rect.adjusted(
-                    2, top_offset + (max_lines - 1) * line_height, -2, 0
-                )
-                painter.drawText(
-                    text_rect,
-                    Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-                    more_text,
-                )
-
+            painter.setPen(QColor("#000000"))
+            
+            # Get first event title
+            title = events[0].get("event", "")
+            
+            # Truncate if too long
+            title = painter.fontMetrics().elidedText(
+                title,
+                Qt.TextElideMode.ElideRight,
+                rect.width() - 6
+            )
+            
+            # Draw title below day number with word wrap
+            title_rect = rect.adjusted(2, 18, -2, -2)
+            painter.drawText(
+                title_rect,
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap,
+                title
+            )
             painter.restore()
 
-        # ---------- 4) border for today ----------
+        # ---------- 4) Border for today ----------
         if date == QDate.currentDate():
             painter.save()
             pen = painter.pen()
-            pen.setColor(QColor("black"))
+            pen.setColor(QColor("#000000"))
             pen.setWidth(2)
             painter.setPen(pen)
-            r = rect.adjusted(1, 1, -1, -1)
-            painter.drawRect(r)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRect(rect.adjusted(1, 1, -2, -2))
             painter.restore()
