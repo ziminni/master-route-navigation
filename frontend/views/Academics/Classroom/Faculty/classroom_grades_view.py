@@ -167,28 +167,6 @@ class FacultyGradesView(QWidget):
         """Create header with faculty controls"""
         header_layout = QHBoxLayout()
         
-        self.rubrics_combo = QComboBox()
-        self.rubrics_combo.addItems(["Overall Lecture", "Performance Task", "Quiz", "Exam"])
-        self.rubrics_combo.setFixedWidth(150)
-        self.rubrics_combo.setStyleSheet("""
-            QComboBox {
-                padding: 8px;
-                border: 2px solid #E0E0E0;
-                border-radius: 5px;
-                font-size: 12px;
-                color: #084924;
-                background-color: white;
-                font-weight: bold;
-            }
-            QComboBox:focus {
-                border: 2px solid #084924;
-            }
-            QComboBox QAbstractItemView {
-                background-color: white;
-                color: #084924;
-                selection-background-color: #E8F5E8;
-            }
-        """)
         
         spacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         
@@ -209,26 +187,9 @@ class FacultyGradesView(QWidget):
         self.grading_label.setCursor(Qt.CursorShape.PointingHandCursor)
         connect_grading_button(self, self.grading_label)
         
-        download_button = QPushButton("📥 Download")
-        download_button.setStyleSheet("""
-            QPushButton {
-                background-color: #084924;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 8px 16px;
-                font-weight: bold;
-                font-size: 12px;
-            }
-            QPushButton:hover {
-                background-color: #0A5A2A;
-            }
-        """)
-        
-        header_layout.addWidget(self.rubrics_combo)
+
         header_layout.addItem(spacer)
         header_layout.addWidget(self.grading_label)
-        header_layout.addWidget(download_button)
         
         return header_layout
     

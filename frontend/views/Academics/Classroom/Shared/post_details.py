@@ -1,7 +1,7 @@
 # post_details.py - Add menu button with Edit and Delete options
-from PyQt6.QtWidgets import QWidget, QLabel, QMenu, QMessageBox
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtGui import QAction, QFont
+from PyQt6.QtWidgets import QWidget, QLabel, QMenu, QMessageBox, QPushButton
+from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtGui import QAction, QPixmap, QIcon, QFont
 from widgets.Academics.Ui_viewContent import Ui_viewContent
 
 class PostDetails(QWidget):
@@ -22,7 +22,128 @@ class PostDetails(QWidget):
         self.ui.setupUi(self, content_type=post.get("type", "material"))
         self.load_post(post)
         self.setup_menu_button()
-        self.ui.backButton.clicked.connect(self.back_clicked.emit)
+        
+        # FIX: Ensure back button is properly connected and visible
+        self.setup_back_button()
+    
+    def setup_back_button(self):
+        """Setup and connect the back button with custom icon"""
+        if hasattr(self.ui, 'backButton') and isinstance(self.ui.backButton, QPushButton):
+            print(f"DEBUG: Back button found, connecting...")
+            
+            # Load and set the custom back icon
+            try:
+                # Try to load the back icon from assets
+                back_icon = QIcon("assets/icons/back2.png")
+                
+                # Check if the icon was loaded successfully
+                if not back_icon.isNull():
+                    self.ui.backButton.setIcon(back_icon)
+                    # Set appropriate icon size
+                    self.ui.backButton.setIconSize(QPixmap(40, 40))
+                    # Remove text if it exists
+                    self.ui.backButton.setText("")
+                    print("DEBUG: Back icon loaded successfully")
+                else:
+                    print("DEBUG: Back icon not found, using fallback text")
+                    self.ui.backButton.setText("← Back")
+                    
+                    # Alternative: Load pixmap directly
+                    pixmap = QPixmap("assets/icons/back2.png")
+                    if not pixmap.isNull():
+                        self.ui.backButton.setIcon(QIcon(pixmap))
+                        self.ui.backButton.setIconSize(pixmap.size().scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio))
+                        self.ui.backButton.setText("")
+                    else:
+                        self.ui.backButton.setText("← Back")
+            except Exception as e:
+                print(f"DEBUG: Error loading back icon: {e}")
+                self.ui.backButton.setText("")
+            
+            # Style the back button
+            self.ui.backButton.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    border: none;
+                    padding: 8px;
+                    border-radius: 20px;
+                    font-family: "Poppins", Arial, sans-serif;
+                }
+                QPushButton:hover {
+                    background-color: #F3F4F6;
+                }
+                QPushButton:pressed {
+                    background-color: #E5E7EB;
+                }
+                QPushButton:focus {
+                    outline: none;
+                }
+            """)
+            
+            # Set tooltip
+            self.ui.backButton.setToolTip("Go back")
+            
+            # Ensure it's visible
+            self.ui.backButton.setVisible(True)
+            
+            # Connect the click event
+            self.ui.backButton.clicked.connect(self.back_clicked.emit)
+            print(f"DEBUG: Back button connected and visible")
+            
+            # Add spacing/margin if needed
+            self.ui.backButton.setMinimumSize(40, 40)
+            
+        else:
+            print(f"DEBUG: No backButton attribute found in UI, creating custom back button")
+            
+            # Create a custom back button with icon
+            back_button = QPushButton()
+            
+            try:
+                # Try to load the back icon
+                back_icon = QIcon("assets/icons/back2.png")
+                if not back_icon.isNull():
+                    back_button.setIcon(back_icon)
+                    back_button.setIconSize(QPixmap(30, 30))
+                    back_button.setToolTip("Go back")
+                else:
+                    back_button.setText("← Back")
+            except:
+                back_button.setText("← Back")
+            
+            # Style the back button
+            back_button.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    border: none;
+                    padding: 8px;
+                    border-radius: 20px;
+                    margin: 10px;
+                    font-family: "Poppins", Arial, sans-serif;
+                }
+                QPushButton:hover {
+                    background-color: #F3F4F6;
+                }
+                QPushButton:pressed {
+                    background-color: #E5E7EB;
+                }
+            """)
+            
+            back_button.setMinimumSize(40, 40)
+            back_button.clicked.connect(self.back_clicked.emit)
+            
+            # Add it to the layout
+            if hasattr(self.ui, 'verticalLayout'):
+                # Insert at the beginning of the layout
+                self.ui.verticalLayout.insertWidget(0, back_button)
+            elif hasattr(self.ui, 'main_layout'):
+                self.ui.main_layout.insertWidget(0, back_button)
+            else:
+                # Fallback: create a simple layout
+                layout = self.layout()
+                if layout:
+                    layout.addWidget(back_button)
+
 
     def setup_menu_button(self):
         """Setup menu button with Edit and Delete options for faculty/admin"""
