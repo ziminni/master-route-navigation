@@ -2,13 +2,14 @@ import sys
 import json
 import os
 import requests
+import threading
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QPushButton,
     QVBoxLayout, QHBoxLayout, QGridLayout, 
     QScrollArea, QFrame, QMessageBox, QDialog, QLineEdit, QMenu, QSizePolicy, QGraphicsDropShadowEffect, QStackedWidget
 )
 from PyQt6.QtGui import QPixmap, QFont, QPainterPath, QRegion, QFontMetrics, QPainter, QIcon, QColor
-from PyQt6.QtCore import Qt, QRectF, QSize
+from PyQt6.QtCore import Qt, QRectF, QSize, QTimer
 
 
 # Helper function to get the project root directory
@@ -73,32 +74,27 @@ class EventCard(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # --- Image Section (only top corners rounded) ---
-        img_label = RoundedTopImageLabel(radius=12)
-        img_label.setFixedSize(288, 288)
+        self.img_label = RoundedTopImageLabel(radius=12)
+        self.img_label.setFixedSize(288, 288)
+        self.img_label.setStyleSheet("background-color: #e0e0e0; border-radius: 12px;")  # Placeholder
 
-        # Load image relative to [projectname]/frontend/assets/images/pics
-        project_root = get_project_root()
-        img_filename = self.event_data.get("img", "") or "default.png"
-        img_path = os.path.join(project_root, "frontend", "assets", "images", "pics", img_filename)
-        print(f"Attempting to load image: {img_path}")  # Debug log
-        pixmap = QPixmap(img_path)
-        if not pixmap.isNull():
-            pixmap = pixmap.scaled(
-                288, 288,
-                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                Qt.TransformationMode.SmoothTransformation
-            )
-            rect = pixmap.rect()
-            x = (rect.width() - 288) // 2
-            y = (rect.height() - 288) // 2
-            pixmap = pixmap.copy(x, y, 288, 288)
-            img_label.setPixmap(pixmap)
-        else:
-            # Set placeholder background instead of showing warning
-            img_label.setStyleSheet("background-color: #e0e0e0; border-radius: 12px;")
-            print(f"Image not found, using placeholder: {img_path}")
+        # Load image - handle both URLs and local filenames
+        img_source = self.event_data.get("img", "") or ""
+        
+        if img_source.startswith("http://") or img_source.startswith("https://"):
+            # Load from URL asynchronously
+            self._load_image_from_url(img_source)
+        elif img_source.startswith("/"):
+            # Relative URL from backend - prepend base URL
+            full_url = f"http://127.0.0.1:8000{img_source}"
+            self._load_image_from_url(full_url)
+        elif img_source:
+            # Local file
+            project_root = get_project_root()
+            img_path = os.path.join(project_root, "frontend", "assets", "images", "pics", img_source)
+            self._load_local_image(img_path)
 
-        main_layout.addWidget(img_label)
+        main_layout.addWidget(self.img_label)
 
         # --- White Rectangle Section (attached below) ---
         content_frame = QFrame()
@@ -173,6 +169,49 @@ class EventCard(QWidget):
 
         main_layout.addWidget(content_frame)
 
+    def _load_local_image(self, img_path):
+        """Load image from local file path."""
+        pixmap = QPixmap(img_path)
+        if not pixmap.isNull():
+            self._apply_pixmap(pixmap)
+        else:
+            print(f"[EventCard] Local image not found: {img_path}")
+
+    def _load_image_from_url(self, url):
+        """Load image from URL asynchronously."""
+        def download():
+            try:
+                response = requests.get(url, timeout=10)
+                if response.status_code == 200:
+                    image_data = response.content
+                    # Apply in main thread
+                    QTimer.singleShot(0, lambda: self._apply_image_data(image_data))
+                else:
+                    print(f"[EventCard] Failed to load image: {response.status_code}")
+            except Exception as e:
+                print(f"[EventCard] Error downloading image: {e}")
+        
+        threading.Thread(target=download, daemon=True).start()
+
+    def _apply_image_data(self, image_data):
+        """Apply image data to the label (must be called from main thread)."""
+        pixmap = QPixmap()
+        if pixmap.loadFromData(image_data):
+            self._apply_pixmap(pixmap)
+
+    def _apply_pixmap(self, pixmap):
+        """Apply and scale pixmap to the image label."""
+        pixmap = pixmap.scaled(
+            288, 288,
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        rect = pixmap.rect()
+        x = (rect.width() - 288) // 2
+        y = (rect.height() - 288) // 2
+        pixmap = pixmap.copy(x, y, 288, 288)
+        self.img_label.setPixmap(pixmap)
+        self.img_label.setStyleSheet("")  # Remove placeholder style
 
 
     def open_participate_popup(self, event_title):
@@ -951,35 +990,48 @@ class EventsPage(QWidget):
         self.setup_ui()
 
     def load_events_from_api(self):
-        """Load events from backend API."""
+        """Load events from Organizations API (mock_data_create_events)."""
         events = []
         try:
             headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
-            url = f"{self.api_base}/api/house/events/"
-            if self.house_id:
-                url += f"?house={self.house_id}"
             
-            response = requests.get(url, headers=headers)
+            # Fetch from Organizations events API
+            url = f"{self.api_base}/api/organizations/events/"
+            
+            print(f"[EventsPage] Fetching events from: {url}")
+            response = requests.get(url, headers=headers, timeout=10)
+            print(f"[EventsPage] Response status: {response.status_code}")
+            
             if response.status_code == 200:
                 api_events = response.json()
                 if isinstance(api_events, dict) and "results" in api_events:
                     api_events = api_events["results"]
                 
-                # Transform API data to expected format
+                print(f"[EventsPage] Found {len(api_events)} events")
+                
+                # Transform Organizations API data to expected format
                 for event in api_events:
+                    # Map event_type to is_competition (Competitive = True, Behavioral = False)
+                    event_type_name = event.get("event_type_name", "").lower()
+                    is_competition = "competitive" in event_type_name
+                    
                     events.append({
                         "id": event.get("id"),
                         "title": event.get("title", "Untitled Event"),
-                        "desc": event.get("description", ""),
-                        "img": event.get("img", "") or "",
-                        "start_date": event.get("start_date", ""),
-                        "end_date": event.get("end_date", ""),
-                        "is_competition": event.get("is_competition", False),
+                        "desc": event.get("venue", ""),  # Use venue as description
+                        "img": "",  # Organizations events don't have images
+                        "start_date": "",  # Schedule is in separate model
+                        "end_date": "",
+                        "is_competition": is_competition,
+                        "event_status": event.get("event_status", ""),
+                        "event_type": event_type_name,
+                        "schedule_block": event.get("schedule_block_name", ""),
                     })
             else:
-                print(f"Failed to load events: {response.status_code}")
+                print(f"[EventsPage] Failed to load events: {response.status_code}")
+                print(f"[EventsPage] Response: {response.text[:200]}")
         except Exception as e:
-            print(f"Error loading events from API: {e}")
+            print(f"[EventsPage] Error loading events from API: {e}")
         
         return events
 

@@ -3,123 +3,325 @@ import re
 import contextlib
 import requests
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
-    QPushButton, QFileDialog, QMessageBox
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
+    QPushButton, QFileDialog, QMessageBox, QFrame, QGraphicsDropShadowEffect
 )
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
 
 from controller.HouseController import HouseController
 
 
-class AdminCreateHousePage(QWidget):
-    """Simple admin UI to create a House and upload banner/logo to backend."""
+class AdminCreateHousePage(QDialog):
+    """Simple admin UI to create a House and upload logo to backend."""
 
     def __init__(self, token=None, api_base=None, parent=None, parent_manager=None):
         super().__init__(parent)
         self.token = token
         self.parent_manager = parent_manager
-        # default API base if not provided
         self.api_base = api_base or "http://127.0.0.1:8000"
-
-        # controller used for helper methods (keeps consistency with other pages)
         self.controller = HouseController(self)
-
-        self.banner_path = None
         self.logo_path = None
 
         self.init_ui()
 
     def init_ui(self):
-        self.setMinimumSize(640, 480)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
+        self.setWindowTitle("Create New House")
+        self.setFixedSize(520, 700)
+        
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(24, 24, 24, 24)
+        main_layout.setSpacing(20)
 
-        # Back button and title row
-        top_row = QHBoxLayout()
-        back_btn = QPushButton("← Back")
+        # Header
+        header_layout = QHBoxLayout()
+        
+        back_btn = QPushButton("← Cancel")
+        back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        back_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #666666;
+                border: none;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+                font-weight: 500;
+                padding: 8px 0;
+            }
+            QPushButton:hover {
+                color: #084924;
+            }
+        """)
         back_btn.clicked.connect(self.go_back)
-        top_row.addWidget(back_btn)
-        top_row.addStretch()
-        layout.addLayout(top_row)
+        header_layout.addWidget(back_btn)
+        header_layout.addStretch()
+        main_layout.addLayout(header_layout)
 
+        # Title
         title = QLabel("Create New House")
-        title.setStyleSheet("font-size:20px; font-weight:800; color:#084924;")
-        layout.addWidget(title)
+        title.setStyleSheet("""
+            font-family: 'Poppins', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: #084924;
+        """)
+        main_layout.addWidget(title)
 
-        # Name + slug
+        # Form container
+        form_frame = QFrame()
+        form_frame.setObjectName("formFrame")
+        form_frame.setStyleSheet("""
+            QFrame#formFrame {
+                background-color: white;
+                border-radius: 12px;
+                border: 1px solid #e0e0e0;
+            }
+            QFrame#formFrame QLabel {
+                border: none;
+                background: transparent;
+            }
+            QFrame#formFrame QLineEdit {
+                border: 1px solid #e0e0e0;
+            }
+            QFrame#formFrame QTextEdit {
+                border: 1px solid #e0e0e0;
+            }
+        """)
+        form_shadow = QGraphicsDropShadowEffect()
+        form_shadow.setBlurRadius(15)
+        form_shadow.setXOffset(0)
+        form_shadow.setYOffset(4)
+        form_shadow.setColor(QColor(0, 0, 0, 20))
+        form_frame.setGraphicsEffect(form_shadow)
+        
+        form_layout = QVBoxLayout(form_frame)
+        form_layout.setContentsMargins(24, 24, 24, 24)
+        form_layout.setSpacing(20)
+
+        # House Name
         name_label = QLabel("House Name")
+        name_label.setStyleSheet("""
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333333;
+            border: none;
+        """)
+        form_layout.addWidget(name_label)
+        
         self.name_input = QLineEdit()
+        self.name_input.setPlaceholderText("Enter house name...")
+        self.name_input.setStyleSheet("""
+            QLineEdit {
+                padding: 12px 16px;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                background-color: #fafafa;
+                color: #333333;
+            }
+            QLineEdit:focus {
+                border: 2px solid #084924;
+                background-color: white;
+            }
+            QLineEdit::placeholder {
+                color: #999999;
+            }
+        """)
         self.name_input.textChanged.connect(self.on_name_changed)
-        layout.addWidget(name_label)
-        layout.addWidget(self.name_input)
+        form_layout.addWidget(self.name_input)
 
+        # Slug
         slug_label = QLabel("Slug (optional)")
+        slug_label.setStyleSheet("""
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333333;
+            border: none;
+        """)
+        form_layout.addWidget(slug_label)
+        
         self.slug_input = QLineEdit()
         self.slug_input.setPlaceholderText("leave blank to auto-generate")
-        layout.addWidget(slug_label)
-        layout.addWidget(self.slug_input)
+        self.slug_input.setStyleSheet("""
+            QLineEdit {
+                padding: 12px 16px;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                background-color: #fafafa;
+                color: #333333;
+            }
+            QLineEdit:focus {
+                border: 2px solid #084924;
+                background-color: white;
+            }
+            QLineEdit::placeholder {
+                color: #999999;
+            }
+        """)
+        form_layout.addWidget(self.slug_input)
 
         # Description
         desc_label = QLabel("Description")
+        desc_label.setStyleSheet("""
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333333;
+            border: none;
+        """)
+        form_layout.addWidget(desc_label)
+        
         self.desc_input = QTextEdit()
-        self.desc_input.setFixedHeight(140)
-        layout.addWidget(desc_label)
-        layout.addWidget(self.desc_input)
+        self.desc_input.setPlaceholderText("Enter house description...")
+        self.desc_input.setFixedHeight(100)
+        self.desc_input.setStyleSheet("""
+            QTextEdit {
+                padding: 12px 16px;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                background-color: #fafafa;
+                color: #333333;
+            }
+            QTextEdit:focus {
+                border: 2px solid #084924;
+                background-color: white;
+            }
+        """)
+        form_layout.addWidget(self.desc_input)
 
-        # Banner & Logo selectors and previews
-        row = QHBoxLayout()
+        # Logo selector
+        logo_label = QLabel("House Logo")
+        logo_label.setStyleSheet("""
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333333;
+            border: none;
+        """)
+        form_layout.addWidget(logo_label)
 
-        left_col = QVBoxLayout()
-        self.banner_btn = QPushButton("Select Banner")
-        self.banner_btn.clicked.connect(self.select_banner)
-        left_col.addWidget(self.banner_btn)
-        self.banner_preview = QLabel()
-        self.banner_preview.setFixedHeight(120)
-        self.banner_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        left_col.addWidget(self.banner_preview)
-
-        right_col = QVBoxLayout()
+        logo_row = QHBoxLayout()
+        logo_row.setSpacing(16)
+        
         self.logo_btn = QPushButton("Select Logo")
+        self.logo_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.logo_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #084924;
+                border: 2px solid #084924;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-family: 'Inter', sans-serif;
+                font-size: 13px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #084924;
+                color: white;
+            }
+        """)
         self.logo_btn.clicked.connect(self.select_logo)
-        right_col.addWidget(self.logo_btn)
+        logo_row.addWidget(self.logo_btn)
+        
         self.logo_preview = QLabel()
-        self.logo_preview.setFixedHeight(120)
+        self.logo_preview.setFixedSize(80, 80)
         self.logo_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        right_col.addWidget(self.logo_preview)
+        self.logo_preview.setStyleSheet("""
+            QLabel {
+                background-color: #f5f5f5;
+                border: 1px dashed #cccccc;
+                border-radius: 8px;
+                color: #999999;
+                font-size: 11px;
+            }
+        """)
+        self.logo_preview.setText("No logo")
+        logo_row.addWidget(self.logo_preview)
+        logo_row.addStretch()
+        
+        form_layout.addLayout(logo_row)
+        main_layout.addWidget(form_frame)
 
-        row.addLayout(left_col)
-        row.addLayout(right_col)
-        layout.addLayout(row)
-
-        # Create button
+        # Buttons row
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #666666;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                border-color: #999999;
+                color: #333333;
+            }
+        """)
+        cancel_btn.clicked.connect(self.go_back)
+        btn_row.addWidget(cancel_btn)
+        
         create_btn = QPushButton("Create House")
-        create_btn.setStyleSheet("background:#084924; color:white; padding:10px; border-radius:8px;")
+        create_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        create_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #0a5c2e;
+            }
+        """)
         create_btn.clicked.connect(self.on_create)
-        layout.addWidget(create_btn, alignment=Qt.AlignmentFlag.AlignRight)
-
-    def select_banner(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Select Banner Image", os.path.expanduser("~"), "Images (*.png *.jpg *.jpeg)")
-        if path:
-            self.banner_path = path
-            self.update_preview(path)
+        btn_row.addWidget(create_btn)
+        
+        main_layout.addLayout(btn_row)
 
     def select_logo(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Select Logo Image", os.path.expanduser("~"), "Images (*.png *.jpg *.jpeg)")
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select Logo Image", 
+            os.path.expanduser("~"), 
+            "Images (*.png *.jpg *.jpeg)"
+        )
         if path:
             self.logo_path = path
-            self.update_preview(path)
-
-    def update_preview(self, path):
-        pix = QPixmap(path)
-        if not pix.isNull():
-            scaled = pix.scaledToHeight(120, Qt.TransformationMode.SmoothTransformation)
-            # assign to both previews depending on which file was set last
-            if path == self.banner_path:
-                self.banner_preview.setPixmap(scaled)
-            elif path == self.logo_path:
+            pix = QPixmap(path)
+            if not pix.isNull():
+                scaled = pix.scaled(
+                    76, 76, 
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
                 self.logo_preview.setPixmap(scaled)
+                self.logo_preview.setStyleSheet("""
+                    QLabel {
+                        background-color: white;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 8px;
+                    }
+                """)
 
     def on_create(self):
         name = self.name_input.text().strip()
@@ -130,16 +332,13 @@ class AdminCreateHousePage(QWidget):
             QMessageBox.warning(self, "Validation", "Please provide a house name.")
             return
 
-        # Prepare data and files
         data = {"name": name, "description": desc}
         if slug:
             data["slug"] = slug
-        # Use ExitStack to ensure files are closed after request
+
         try:
-            # Use controller helper if available
             token = self.token
             if not token:
-                # try reading token from controller attribute if present
                 token = getattr(self.controller, "token", None)
 
             headers = {}
@@ -149,8 +348,6 @@ class AdminCreateHousePage(QWidget):
             url = f"{self.api_base}/api/house/houses/"
             with contextlib.ExitStack() as stack:
                 files = {}
-                if self.banner_path:
-                    files["banner"] = stack.enter_context(open(self.banner_path, "rb"))
                 if self.logo_path:
                     files["logo"] = stack.enter_context(open(self.logo_path, "rb"))
 
@@ -158,11 +355,9 @@ class AdminCreateHousePage(QWidget):
 
             if resp.status_code in (200, 201):
                 QMessageBox.information(self, "Success", "House created successfully.")
-                # Reload parent manager's house list
                 if self.parent_manager and hasattr(self.parent_manager, 'load_houses'):
                     self.parent_manager.load_houses()
-                # Navigate back
-                self.go_back()
+                self.accept()
             else:
                 try:
                     err = resp.json()
@@ -174,17 +369,11 @@ class AdminCreateHousePage(QWidget):
             QMessageBox.critical(self, "Error", f"Unexpected error: {e}")
 
     def on_name_changed(self, text: str):
-        # simple slugify preview locally (backend will ensure uniqueness)
         slug = text.strip().lower()
         slug = re.sub(r"[^a-z0-9\-]+", "-", slug)
         slug = re.sub(r"-+", "-", slug).strip("-")
-        self.slug_input.setPlaceholderText(f"e.g. {slug}")
+        self.slug_input.setPlaceholderText(f"e.g. {slug}" if slug else "leave blank to auto-generate")
 
     def go_back(self):
-        """Navigate back to the house manager page"""
-        if self.parent_manager and hasattr(self.parent_manager, 'stacked_widget'):
-            # Remove this create page from the stack
-            self.parent_manager.stacked_widget.removeWidget(self)
-            # Go back to the house manager page
-            self.parent_manager.stacked_widget.setCurrentWidget(self.parent_manager)
-            self.deleteLater()
+        """Close the dialog"""
+        self.reject()

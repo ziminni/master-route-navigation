@@ -413,25 +413,42 @@ class HistoryCard(QWidget):
         frame = QFrame()
         frame.setFixedSize(220, 230)
         frame.setStyleSheet("""
-            background: white;
-            border-bottom-left-radius: 10px;
-            border-bottom-right-radius: 10px;
-            border-top: 1px solid #ccc;
+            QFrame {
+                background: white;
+                border-bottom-left-radius: 10px;
+                border-bottom-right-radius: 10px;
+                border: 1px solid #ddd;
+                border-top: 3px solid #fdd835;
+            }
         """)
 
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(6)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(8)
 
-        # --- Placement Label ---
-        placement_map = {1: "1st Place", 2: "2nd Place", 3: "3rd Place"}
-        placement_text = placement_map.get(self.data.get("placement"), "Participant")
+        # --- Placement Label with badge styling ---
+        placement_map = {1: "🥇 1st Place", 2: "🥈 2nd Place", 3: "🥉 3rd Place"}
+        placement_text = placement_map.get(self.data.get("placement"), "📋 Participant")
 
         place_label = QLabel(placement_text)
         place_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        place_label.setStyleSheet("color: #084924; font-family: 'Poppins'; font-weight: bold;")
-        place_label.setFont(QFont("Poppins", 14, QFont.Weight.Bold))
+        place_label.setStyleSheet("""
+            color: #084924; 
+            font-family: 'Poppins'; 
+            font-weight: bold;
+            background: #f0f9f4;
+            border-radius: 8px;
+            padding: 5px;
+        """)
+        place_label.setFont(QFont("Poppins", 13, QFont.Weight.Bold))
         layout.addWidget(place_label)
+
+        # --- Event Title ---
+        title_label = QLabel(self.data.get("title", "Event"))
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setWordWrap(True)
+        title_label.setStyleSheet("color: #084924; font-family: 'Poppins'; font-size: 12px; font-weight: 600;")
+        layout.addWidget(title_label)
 
         # --- Icon Grid ---
         icon_grid = QGridLayout()
@@ -470,22 +487,24 @@ class HistoryCard(QWidget):
             return wrapper
 
         icon_grid.addWidget(create_icon_text(icons["members"], self.data["membersO"]), 0, 0)
-        icon_grid.addWidget(create_icon_text(icons["points"], self.data["points"]), 0, 1)
-        icon_grid.addWidget(create_icon_text(icons["date"], self.data["date"]), 1, 0)
-        icon_grid.addWidget(create_icon_text(icons["category"], self.data["type"]), 1, 1)
+        icon_grid.addWidget(create_icon_text(icons["points"], str(self.data.get("points", "0"))), 0, 1)
+        icon_grid.addWidget(create_icon_text(icons["date"], self.data.get("date", "N/A")), 1, 0)
+        icon_grid.addWidget(create_icon_text(icons["category"], self.data.get("type", "Event")), 1, 1)
 
         layout.addLayout(icon_grid)
 
         # --- Description ---
-        desc_label = QLabel(self.data["desc"])
+        desc_text = self.data.get("desc", "")
+        if len(desc_text) > 40:
+            desc_text = desc_text[:40] + "..."
+        desc_label = QLabel(desc_text)
         desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         desc_label.setWordWrap(True)
         desc_label.setStyleSheet("""
-            color: #084924;
+            color: #666;
             font-family: 'Inter';
-            font-size: 11px;
+            font-size: 10px;
             font-style: italic;
-            text-decoration: underline;
         """)
         layout.addWidget(desc_label)
         main_layout.addWidget(frame)
@@ -508,20 +527,27 @@ class HistoryPage(QWidget):
         self.api_base = api_base
 
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(15, 10, 15, 10)
+        main_layout.setSpacing(12)
 
-        # --- Quote section ---
-        quote = QLabel("“Match History records every battle you've played — tracking placements, scores, and rankings so you can see your growth.”")
+        # --- Header Section with gradient background ---
+        header_frame = QFrame()
+        header_frame.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #084924, stop:1 #0b6b34); border-radius: 12px;")
+        header_layout = QVBoxLayout(header_frame)
+        header_layout.setContentsMargins(15, 12, 15, 12)
+        
+        title = QLabel("🏆 Match History")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("font-family: 'Poppins'; font-size: 22px; font-weight: bold; color: white; background: transparent;")
+        header_layout.addWidget(title)
+        
+        quote = QLabel("\"Track your journey through competitions and events — see placements, points, and achievements.\"")
         quote.setWordWrap(True)
         quote.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        quote.setStyleSheet("""
-            font-family: 'Inter';
-            font-style: italic;
-            background: white;
-            border: 1px solid #ccc;
-            padding: 6px;
-            border-radius: 6px;
-        """)
-        main_layout.addWidget(quote)
+        quote.setStyleSheet("font-family: 'Inter'; font-style: italic; font-size: 12px; color: rgba(255, 255, 255, 0.85); background: transparent;")
+        header_layout.addWidget(quote)
+        
+        main_layout.addWidget(header_frame)
 
         # --- Scrollable Area ---
         scroll = QScrollArea()
@@ -539,9 +565,13 @@ class HistoryPage(QWidget):
                 border-radius: 7px;
             }
             QScrollBar::handle:horizontal {
-                background: white;
+                background: #fdd835;
                 border-radius: 7px;
                 margin: 3px;
+                min-width: 40px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #ffeb3b;
             }
             QScrollBar::add-line:horizontal,
             QScrollBar::sub-line:horizontal {
@@ -572,53 +602,44 @@ class HistoryPage(QWidget):
         main_layout.addWidget(scroll)
 
     def load_history_from_api(self):
-        """Load history data from backend API."""
+        """Load history data from mock JSON file (will be replaced with API later)."""
         history_data = []
         details_data = []
         
         try:
-            headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
-            url = f"{self.api_base}/api/house/events/"
-            if self.house_id:
-                url += f"?house={self.house_id}"
+            # Load from mock data file
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            mock_dir = os.path.join(base_dir, "..", "..", "Mock")
+            history_json_path = os.path.join(mock_dir, "history.json")
+            details_json_path = os.path.join(mock_dir, "history_details.json")
             
-            response = requests.get(url, headers=headers)
-            if response.status_code == 200:
-                events = response.json()
-                if isinstance(events, dict) and "results" in events:
-                    events = events["results"]
-                
-                # Transform events to history format
-                for idx, event in enumerate(events):
-                    history_item = {
-                        "id": event.get("id", idx + 1),
-                        "title": event.get("title", "Untitled Event"),
-                        "img": event.get("img", "") or "default.png",
-                        "placement": 1,
-                        "points": "100",
-                        "membersO": "House Members",
-                        "date": event.get("start_date", "N/A")[:10] if event.get("start_date") else "N/A",
-                        "type": "Competition" if event.get("is_competition") else "Event",
-                        "desc": event.get("description", "")[:50] + "..." if event.get("description") else "No description",
-                    }
-                    history_data.append(history_item)
-                    
-                    details_item = {
-                        "id": event.get("id", idx + 1),
-                        "title": event.get("title", "Untitled Event"),
-                        "date": event.get("start_date", "N/A")[:10] if event.get("start_date") else "N/A",
-                        "time": event.get("start_date", "N/A")[11:16] if event.get("start_date") and len(event.get("start_date", "")) > 11 else "N/A",
-                        "location": "TBD",
-                        "adviser": "N/A",
-                        "category": "Competition" if event.get("is_competition") else "Event",
-                        "details": [event.get("description", "No description available.")],
-                        "participants": [],
-                    }
-                    details_data.append(details_item)
+            # Load history data
+            if os.path.exists(history_json_path):
+                with open(history_json_path, 'r', encoding='utf-8') as f:
+                    history_data = json.load(f)
+                print(f"[HistoryPage] Loaded {len(history_data)} history records from mock data")
+            
+            # Load details data
+            if os.path.exists(details_json_path):
+                with open(details_json_path, 'r', encoding='utf-8') as f:
+                    details_data = json.load(f)
             else:
-                print(f"Failed to load history: {response.status_code}")
+                # Generate details from history data if details file doesn't exist
+                for item in history_data:
+                    details_data.append({
+                        "id": item.get("id"),
+                        "title": item.get("title", ""),
+                        "date": item.get("date", "N/A"),
+                        "time": "09:00 AM",
+                        "location": "CMU Campus",
+                        "adviser": "TBA",
+                        "category": item.get("type", "Event"),
+                        "details": [item.get("desc", "No description available.")],
+                        "participants": [],
+                    })
+                    
         except Exception as e:
-            print(f"Error loading history from API: {e}")
+            print(f"[HistoryPage] Error loading history data: {e}")
         
         return history_data, details_data
 

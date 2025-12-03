@@ -3,9 +3,11 @@ import requests
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
-    QMessageBox, QLineEdit, QSpacerItem, QSizePolicy, QDialog
+    QMessageBox, QLineEdit, QSpacerItem, QSizePolicy, QDialog,
+    QFrame, QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
 from .AdminCreateHousePage import AdminCreateHousePage
 from .HouseDetails import HouseDetailsPage
 
@@ -26,28 +28,76 @@ class HouseManager(QWidget):
 
         # Main layout
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(32, 24, 32, 24)
+        main_layout.setSpacing(20)
 
         # Title
         title = QLabel("House Management")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #084924;")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("""
+            font-family: 'Poppins', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            color: #084924;
+            letter-spacing: -0.5px;
+        """)
         main_layout.addWidget(title)
 
-        # Search bar
-        search_layout = QHBoxLayout()
+        # Search bar container
+        search_container = QFrame()
+        search_container.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 12px;
+                border: 1px solid #e0e0e0;
+            }
+        """)
+        search_shadow = QGraphicsDropShadowEffect()
+        search_shadow.setBlurRadius(10)
+        search_shadow.setXOffset(0)
+        search_shadow.setYOffset(2)
+        search_shadow.setColor(QColor(0, 0, 0, 15))
+        search_container.setGraphicsEffect(search_shadow)
+        
+        search_layout = QHBoxLayout(search_container)
+        search_layout.setContentsMargins(16, 8, 16, 8)
+        
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search by name or slug...")
+        self.search_input.setPlaceholderText("🔍  Search by name or slug...")
         self.search_input.setStyleSheet("""
-            padding: 12px 16px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 12px;
+            QLineEdit {
+                padding: 12px 16px;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+                border: none;
+                background: transparent;
+                color: #333333;
+            }
+            QLineEdit::placeholder {
+                color: #999999;
+            }
         """)
         self.search_input.textChanged.connect(self.filter_houses)
         search_layout.addWidget(self.search_input)
-        main_layout.addLayout(search_layout)
+        main_layout.addWidget(search_container)
+
+        # Table container
+        table_container = QFrame()
+        table_container.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 12px;
+                border: 1px solid #e0e0e0;
+            }
+        """)
+        table_shadow = QGraphicsDropShadowEffect()
+        table_shadow.setBlurRadius(15)
+        table_shadow.setXOffset(0)
+        table_shadow.setYOffset(4)
+        table_shadow.setColor(QColor(0, 0, 0, 25))
+        table_container.setGraphicsEffect(table_shadow)
+        
+        table_layout = QVBoxLayout(table_container)
+        table_layout.setContentsMargins(0, 0, 0, 0)
 
         # Table
         self.table = QTableWidget(0, 4)
@@ -57,48 +107,84 @@ class HouseManager(QWidget):
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(3, 260)
+        self.table.setColumnWidth(3, 280)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setShowGrid(False)
+        self.table.setAlternatingRowColors(True)
 
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setStyleSheet("""
-            QTableWidget { font-size: 15px; border: none; }
-            QHeaderView::section {
-                background-color: #084924;
-                color: white;
-                padding: 12px;
-                font-weight: bold;
+            QTableWidget {
+                background-color: white;
                 border: none;
+                border-radius: 12px;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+            }
+            QTableWidget::item {
+                padding: 12px 16px;
+                border-bottom: 1px solid #f0f0f0;
+                color: #333333;
+            }
+            QTableWidget::item:selected {
+                background-color: #e8f5e9;
+                color: #084924;
+            }
+            QTableWidget::item:alternate {
+                background-color: #fafafa;
+            }
+            QHeaderView::section {
+                background-color: #f5f5f5;
+                color: #666666;
+                padding: 14px 16px;
+                border: none;
+                border-bottom: 2px solid #084924;
+                font-family: 'Inter', sans-serif;
+                font-weight: 600;
+                font-size: 12px;
+                text-transform: uppercase;
+            }
+            QScrollBar:vertical {
+                background-color: #f5f5f5;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #cccccc;
+                border-radius: 4px;
+                min-height: 30px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #084924;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
             }
         """)
-        main_layout.addWidget(self.table)
-
-        # Bottom spacer so table doesn't fight with FAB
-        main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        table_layout.addWidget(self.table)
+        main_layout.addWidget(table_container)
 
         # THE REAL FLOATING ACTION BUTTON
-        self.fab = QPushButton("+", self)  # Parent = self → floats over everything
-        self.fab.setFixedSize(66, 66)
+        self.fab = QPushButton("+", self)
+        self.fab.setFixedSize(60, 60)
+        self.fab.setCursor(Qt.CursorShape.PointingHandCursor)
         self.fab.setStyleSheet("""
             QPushButton {
                 background-color: #084924;
                 color: white;
-                border-radius: 33px;
-                font-size: 36px;
+                border-radius: 30px;
+                font-size: 32px;
                 font-weight: bold;
                 border: none;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             }
             QPushButton:hover {
-                background-color: #0d7a3d;
-                transform: translateY(-2px);
+                background-color: #0a5c2e;
             }
             QPushButton:pressed {
                 background-color: #06381b;
             }
         """)
         self.fab.clicked.connect(self.open_create_house_page)
-
-        # Position it — will be updated in resizeEvent
         self.position_fab()
 
     def resizeEvent(self, event):
@@ -111,35 +197,81 @@ class HouseManager(QWidget):
             self.width() - self.fab.width() - margin,
             self.height() - self.fab.height() - margin
         )
-        self.fab.raise_()  # Always on top
-
-    # Rest of your methods unchanged (load_houses, populate_table, etc.)
-    # I'm just pasting the fixed/updated parts below:
+        self.fab.raise_()
 
     def populate_table(self):
         self.table.setRowCount(0)
         for house in self.houses:
             row = self.table.rowCount()
             self.table.insertRow(row)
+            self.table.setRowHeight(row, 52)
 
             self.table.setItem(row, 0, QTableWidgetItem(str(house["id"])))
             self.table.setItem(row, 1, QTableWidgetItem(house["name"]))
             self.table.setItem(row, 2, QTableWidgetItem(house.get("slug", "—")))
 
             actions_widget = QWidget()
+            actions_widget.setStyleSheet("background: transparent;")
             actions_layout = QHBoxLayout(actions_widget)
-            actions_layout.setContentsMargins(6, 4, 6, 4)
-            actions_layout.setSpacing(6)
+            actions_layout.setContentsMargins(8, 6, 8, 6)
+            actions_layout.setSpacing(8)
 
             view_btn = QPushButton("View")
-            view_btn.setStyleSheet("background:#5bc0de; color:white; border-radius:6px; padding:6px 12px;")
+            view_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            view_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #084924;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 14px 18px;
+                    font-family: 'Inter', sans-serif;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+                QPushButton:hover {
+                    background-color: #0a5c2e;
+                }
+            """)
             view_btn.clicked.connect(lambda _, h=house: self.view_house(h))
 
             edit_btn = QPushButton("Edit")
-            edit_btn.setStyleSheet("background:#f0ad4e; color:white; border-radius:6px; padding:6px 12px;")
+            edit_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            edit_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    color: #084924;
+                    border: 2px solid #084924;
+                    border-radius: 6px;
+                    padding: 12px 18px;
+                    font-family: 'Inter', sans-serif;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+                QPushButton:hover {
+                    background-color: #084924;
+                    color: white;
+                }
+            """)
 
             delete_btn = QPushButton("Delete")
-            delete_btn.setStyleSheet("background:#d9534f; color:white; border-radius:6px; padding:6px 12px;")
+            delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            delete_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    color: #dc3545;
+                    border: 2px solid #dc3545;
+                    border-radius: 6px;
+                    padding: 12px 18px;
+                    font-family: 'Inter', sans-serif;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+                QPushButton:hover {
+                    background-color: #dc3545;
+                    color: white;
+                }
+            """)
             delete_btn.clicked.connect(lambda _, hid=house["id"]: self.delete_house(hid))
 
             actions_layout.addWidget(view_btn)
@@ -157,13 +289,14 @@ class HouseManager(QWidget):
             self.table.setRowHidden(row, text not in name and text not in slug)
 
     def open_create_house_page(self):
-        if not hasattr(self, 'stacked_widget') or not self.stacked_widget:
-            QMessageBox.warning(self, "Error", "Navigation stack not available.")
-            return
-        
-        create_page = AdminCreateHousePage(token=self.token, api_base=self.api_base, parent_manager=self)
-        self.stacked_widget.addWidget(create_page)
-        self.stacked_widget.setCurrentWidget(create_page)
+        """Open the create house dialog"""
+        dialog = AdminCreateHousePage(
+            token=self.token, 
+            api_base=self.api_base, 
+            parent=self,
+            parent_manager=self
+        )
+        dialog.exec()
 
     def view_house(self, house):
         """Open the detailed view of a house in the stacked widget"""

@@ -268,7 +268,8 @@ class Header(QWidget):
         mail_path = ASSETS_DIR / "mail.png"
         bell_path = ASSETS_DIR / "bell.png"
         cmu_path = ASSETS_DIR / "cmu.png"
-        new_button_path = ASSETS_DIR / "new_icon.png"  # Placeholder for new button icon
+        # Support icon is in assets/icons (not assets/images/icons)
+        new_button_path = BASE_DIR / "frontend" / "assets" / "icons" / "support.png"
 
         # Debug image existence
         for path in [cisc_path, mail_path, bell_path, cmu_path, new_button_path]:

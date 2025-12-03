@@ -2,9 +2,11 @@
 import requests
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem,
-    QPushButton, QHBoxLayout, QMessageBox
+    QPushButton, QHBoxLayout, QMessageBox, QFrame, QHeaderView,
+    QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
 from .AddMemberDialog import AddMemberDialog
 
 
@@ -37,70 +39,266 @@ class HouseDetailsPage(QWidget):
 
         # Main layout
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(32, 24, 32, 24)
+        main_layout.setSpacing(20)
 
-        # === BACK BUTTON + TITLE ===
+        # === TOP ROW: BACK BUTTON + TITLE ===
         top_row = QHBoxLayout()
         
         back_btn = QPushButton("← Back")
+        back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        back_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #084924;
+                border: 2px solid #084924;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #084924;
+                color: white;
+            }
+        """)
         back_btn.clicked.connect(self.go_back)
         top_row.addWidget(back_btn)
         
         top_row.addStretch()
         
-        title = QLabel(f"{self.house_name}")
-        title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        title = QLabel(self.house_name)
+        title.setStyleSheet("""
+            font-family: 'Poppins', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            color: #084924;
+            letter-spacing: -0.5px;
+        """)
         top_row.addWidget(title)
         
         top_row.addStretch()
+        
+        # Spacer to balance the back button
+        spacer = QWidget()
+        spacer.setFixedWidth(100)
+        top_row.addWidget(spacer)
 
         main_layout.addLayout(top_row)
 
-        # === POINTS SUMMARY ===
+        # === POINTS CARDS ===
         points_layout = QHBoxLayout()
+        points_layout.setSpacing(20)
         
-        beh_label = QLabel(f"Behavioral Points: {house_data.get('behavioral_points', 0)}")
-        beh_label.setStyleSheet("font-size: 16px;")
-        points_layout.addWidget(beh_label)
+        # Behavioral Points Card
+        beh_card = self._create_points_card(
+            "Behavioral Points",
+            str(house_data.get('behavioral_points', 0)),
+            "#4CAF50"
+        )
+        points_layout.addWidget(beh_card)
         
-        points_layout.addStretch()
-        
-        comp_label = QLabel(f"Competitive Points: {house_data.get('competitive_points', 0)}")
-        comp_label.setStyleSheet("font-size: 16px;")
-        points_layout.addWidget(comp_label)
+        # Competitive Points Card
+        comp_card = self._create_points_card(
+            "Competitive Points",
+            str(house_data.get('competitive_points', 0)),
+            "#084924"
+        )
+        points_layout.addWidget(comp_card)
 
         main_layout.addLayout(points_layout)
 
-        # === STUDENTS TABLE ===
+        # === MEMBERS TABLE SECTION ===
+        table_section = QFrame()
+        table_section.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 12px;
+                border: 1px solid #e0e0e0;
+            }
+        """)
+        
+        # Add shadow to section
+        section_shadow = QGraphicsDropShadowEffect()
+        section_shadow.setBlurRadius(15)
+        section_shadow.setXOffset(0)
+        section_shadow.setYOffset(4)
+        section_shadow.setColor(QColor(0, 0, 0, 25))
+        table_section.setGraphicsEffect(section_shadow)
+        
+        table_layout = QVBoxLayout(table_section)
+        table_layout.setContentsMargins(24, 20, 24, 20)
+        table_layout.setSpacing(16)
+        
+        # Table header row
         table_header_row = QHBoxLayout()
         table_title = QLabel("House Members")
-        table_title.setStyleSheet("font-size: 18px; font-weight: bold; margin-top: 10px;")
+        table_title.setStyleSheet("""
+            font-family: 'Inter', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #084924;
+        """)
         table_header_row.addWidget(table_title)
         table_header_row.addStretch()
         
         add_member_btn = QPushButton("+ Add Member")
-        add_member_btn.setStyleSheet("background-color: #084924; color: white; padding: 8px 16px;")
+        add_member_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        add_member_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-family: 'Inter', sans-serif;
+                font-size: 13px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #0a5c2e;
+            }
+        """)
         add_member_btn.clicked.connect(self.open_add_member_dialog)
         table_header_row.addWidget(add_member_btn)
         
-        remove_member_btn = QPushButton("- Remove Member")
-        remove_member_btn.setStyleSheet("background-color: #dc3545; color: white; padding: 8px 16px;")
+        remove_member_btn = QPushButton("− Remove")
+        remove_member_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        remove_member_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-family: 'Inter', sans-serif;
+                font-size: 13px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """)
         remove_member_btn.clicked.connect(self.remove_selected_member)
         table_header_row.addWidget(remove_member_btn)
         
-        main_layout.addLayout(table_header_row)
+        table_layout.addLayout(table_header_row)
 
+        # Table widget
         self.table = QTableWidget()
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(["Member Name", "Role", "Points"])
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
-        main_layout.addWidget(self.table)
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.verticalHeader().setVisible(False)
+        
+        # Make columns stretch
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                border: 1px solid #e8e8e8;
+                border-radius: 8px;
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+            }
+            QTableWidget::item {
+                padding: 12px 16px;
+                border-bottom: 1px solid #f0f0f0;
+                color: #333333;
+            }
+            QTableWidget::item:selected {
+                background-color: #e8f5e9;
+                color: #084924;
+            }
+            QTableWidget::item:alternate {
+                background-color: #fafafa;
+            }
+            QHeaderView::section {
+                background-color: #f5f5f5;
+                color: #666666;
+                padding: 12px 16px;
+                border: none;
+                border-bottom: 2px solid #084924;
+                font-family: 'Inter', sans-serif;
+                font-weight: 600;
+                font-size: 12px;
+                text-transform: uppercase;
+            }
+            QScrollBar:vertical {
+                background-color: #f5f5f5;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #cccccc;
+                border-radius: 4px;
+                min-height: 30px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #084924;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+        """)
+        
+        table_layout.addWidget(self.table)
+        main_layout.addWidget(table_section)
         
         # Load members from API
         self.load_members()
+
+    def _create_points_card(self, title, value, accent_color):
+        """Create a styled points card"""
+        card = QFrame()
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: white;
+                border-radius: 12px;
+                border: 1px solid #e0e0e0;
+            }}
+        """)
+        
+        # Add shadow
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(12)
+        shadow.setXOffset(0)
+        shadow.setYOffset(3)
+        shadow.setColor(QColor(0, 0, 0, 20))
+        card.setGraphicsEffect(shadow)
+        
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(8)
+        
+        title_label = QLabel(title)
+        title_label.setStyleSheet("""
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: #888888;
+            font-weight: 500;
+        """)
+        layout.addWidget(title_label)
+        
+        value_label = QLabel(value)
+        value_label.setStyleSheet(f"""
+            font-family: 'Poppins', sans-serif;
+            font-size: 36px;
+            font-weight: 800;
+            color: {accent_color};
+        """)
+        layout.addWidget(value_label)
+        
+        return card
 
     def load_members(self):
         """Load house members from the API"""
@@ -148,6 +346,10 @@ class HouseDetailsPage(QWidget):
             role_item = QTableWidgetItem(role)
             points_item = QTableWidgetItem(points)
             
+            # Center align role and points
+            role_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            points_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            
             # Store the membership ID in the first column for deletion
             name_item.setData(Qt.ItemDataRole.UserRole, member.get("id"))
             
@@ -155,7 +357,9 @@ class HouseDetailsPage(QWidget):
             self.table.setItem(row, 1, role_item)
             self.table.setItem(row, 2, points_item)
         
-        self.table.resizeColumnsToContents()
+        # Set row height for better spacing
+        for row in range(self.table.rowCount()):
+            self.table.setRowHeight(row, 48)
 
     def remove_selected_member(self):
         """Remove the selected member from the house"""

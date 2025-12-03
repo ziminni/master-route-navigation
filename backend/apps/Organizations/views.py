@@ -77,10 +77,16 @@ class EventViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), IsOrgOfficer()]
         elif self.action in ['update_status', 'approve', 'reject', 'reschedule']:
             return [permissions.IsAuthenticated(), CanApproveEvents()]
+        elif self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]  # Allow public read access
         return [permissions.IsAuthenticated()]
     
     def get_queryset(self):
         queryset = super().get_queryset()
+        
+        # If not authenticated, return all approved events (public view)
+        if not self.request.user.is_authenticated:
+            return queryset.filter(event_status=Event.EventStatus.approved)
         
         # Students can only see approved, current, and upcoming events
         if hasattr(self.request.user, 'student_profile'):

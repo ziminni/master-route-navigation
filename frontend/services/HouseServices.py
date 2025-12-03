@@ -1,4 +1,4 @@
-# projname/frontend/services/house_service.py
+# frontend/services/HouseServices.py
 
 import threading
 import requests

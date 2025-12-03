@@ -9,7 +9,7 @@ import threading
 import requests
 import hashlib
 
-from .HouseServices import HouseService
+from services.HouseServices import HouseService
 
 
 class RulesDialog(QDialog):
