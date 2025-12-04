@@ -168,6 +168,14 @@ class MeView(APIView):
         data = BaseUserSerializer(request.user, context={"request": request}).data
         return Response(data, status=status.HTTP_200_OK)
 
+class UserListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        users = BaseUser.objects.all().order_by("id")
+        serializer = AdminUserListSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 # For the resume builder shit
 from rest_framework import viewsets, permissions
 from .models import Education, Experience, Skill, Interest

@@ -112,7 +112,7 @@ class Documents(models.Model):
     description = models.TextField(null=True, blank=True)
 
     class Meta:
-        db_table = 'documents'
+        db_table = 'announcement_documents'
 
 
 class Reminders(models.Model):
