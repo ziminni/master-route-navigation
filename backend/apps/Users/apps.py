@@ -10,10 +10,7 @@ class UsersConfig(AppConfig):
         # import signals
         from . import signals
 
-        # ensure roles exist
-        from .roles import ensure_roles
-        try:
-            ensure_roles()
-        except Exception:
-            # Avoid startup crashes during initial migrate (DB might not be ready)
-            pass
+        # Note: ensure_roles() is intentionally NOT called here to avoid
+        # database access during app initialization. Instead, call it manually
+        # when needed (e.g., in a management command or during setup script).
+        # This prevents the RuntimeWarning about database access in AppConfig.ready()

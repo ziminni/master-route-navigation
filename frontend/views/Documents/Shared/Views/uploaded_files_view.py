@@ -179,9 +179,35 @@ class UploadedFilesView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         
         download_btn = QPushButton("Download")
-        delete_btn = QPushButton("Delete")
-        
+        download_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                font-weight: bold;
+                padding: 4px 12px;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+        """)
         download_btn.clicked.connect(lambda: self.handle_download(filename))
+        
+        delete_btn = QPushButton("Delete")
+        delete_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                font-weight: bold;
+                padding: 4px 12px;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """)
         delete_btn.clicked.connect(lambda: self.handle_delete(filename))
         
         layout.addWidget(download_btn)

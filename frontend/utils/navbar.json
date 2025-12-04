@@ -136,9 +136,9 @@
         {
           "id": 14,
           "name": "Documents",
-          "function": "DocumentsView()",
-          "path": "views.Documents.Documents",
-          "access": ["student","admin"],
+          "function": "create_document_view()",
+          "path": "views.DocumentsV2",
+          "access": ["student","admin","faculty","staff"],
           "modulars":[]
         },
         {
