@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 
 # 1) Absolute path to the project root (folder that contains the config package)
-PROJECT_ROOT = r"D:\master-route-navigation\backend"
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, BASE_DIR)
+
 
 # 2) Point DJANGO_SETTINGS_MODULE to your real settings module
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
