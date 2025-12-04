@@ -165,23 +165,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         Relay chat message events to this user.
 
         Expected event format:
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            {"type": "chat_message", "data": {...}
-=======
             {"type": "chat_message", "data": {...}}
->>>>>>> Stashed changes
-=======
-            {"type": "chat_message", "data": {...}}
->>>>>>> Stashed changes
-=======
-            {"type": "chat_message", "data": {...}}
->>>>>>> Stashed changes
-=======
-            {"type": "chat_message", "data": {...}}
->>>>>>> Stashed changes
 
         Sends JSON with type="message" and the original data included.
         """

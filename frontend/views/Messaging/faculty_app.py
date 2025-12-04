@@ -131,34 +131,11 @@ class FacultyMainUI(QtWidgets.QWidget):
         print("[FacultyMainUI] Incoming message via WS:", data)
         # reload list & inbox popup
         self.load_messages()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        self._refresh_inbox_popup()  # NEW
-
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
         # If WS payload has conversation, subject, content, etc.:
 
         self._refresh_inbox_popup()  # NEW
 
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     def _show_broadcast_popup(self, msg: dict):
         """Simple green-header popup for system broadcasts."""
         try:
@@ -493,24 +470,6 @@ class FacultyMainUI(QtWidgets.QWidget):
             faculty_messages = [
                 m for m in messages
                 if m.get("receiver") == self.current_faculty_id
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            ]
-            print(f"[FacultyMainUI] faculty_messages (receiver={self.current_faculty_id}):")
-            for m in faculty_messages:
-                print(
-                    f"  msg id={m.get('id')} conv={m.get('conversation')} "
-                    f"created_at={m.get('created_at')} content={m.get('content')!r}"
-                )
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                    or m.get("sender") == self.current_faculty_id
             ]
             print("[FacultyMainUI] faculty_messages (sender/receiver = current):")
@@ -519,16 +478,6 @@ class FacultyMainUI(QtWidgets.QWidget):
                       "conv=", m.get("conversation"),
                       "sender=", m.get("sender"),
                       "receiver=", m.get("receiver"))
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
             faculty_inquiries = []
             try:
@@ -1077,22 +1026,7 @@ class FacultyMainUI(QtWidgets.QWidget):
                         if isinstance(created, dict):
                             thread_msgs.append(created)
                             thread_msgs.sort(key=lambda m: m.get("created_at", ""))
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
                             self.upsert_card_from_message(created)
->>>>>>> Stashed changes
-=======
-                            self.upsert_card_from_message(created)
->>>>>>> Stashed changes
-=======
-                            self.upsert_card_from_message(created)
->>>>>>> Stashed changes
-=======
-                            self.upsert_card_from_message(created)
->>>>>>> Stashed changes
                     except Exception as e:
                         print("[FacultyUI] ERROR creating reply:", e)
                         QtWidgets.QMessageBox.critical(
@@ -1201,16 +1135,6 @@ class FacultyMainUI(QtWidgets.QWidget):
             )
             dialog.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground, True)
             dialog.setStyleSheet("background: transparent;")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
             ui = ComposeUI()
             ui.setupUi(dialog)
@@ -1291,112 +1215,6 @@ class FacultyMainUI(QtWidgets.QWidget):
                     QtWidgets.QMessageBox.information(
                         dialog, "Sent", "Message sent successfully."
                     )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                except Exception as e:
-                    print("[FacultyUI] ERROR creating message:", e)
-                    QtWidgets.QMessageBox.critical(
-                        dialog, "Error", f"Failed to send message:\n{e}"
-                    )
-                    return
-
-                self.load_messages()
-                dialog.accept()
-
-
-            ui.btn_send.clicked.connect(send_new_message)
-            dialog.exec()
-        except Exception as e:
-            print(f"Error composing message: {e}")
-
-=======
-
-            ui = ComposeUI()
-            ui.setupUi(dialog)
-
-            ui.btn_cancel.clicked.connect(dialog.reject)
-            ui.btn_close.clicked.connect(dialog.reject)
-
-            ui.textEdit_msg.clear()
-            ui.label_placeholder.setVisible(True)
-
-            def hide_placeholder():
-                ui.label_placeholder.setVisible(False)
-                ui.textEdit_msg.textChanged.connect(hide_placeholder)
-
-            ui.textEdit_msg.textChanged.connect(hide_placeholder)
-            def send_new_message():
-                receiver_username = ui.lineEdit_to.text().strip()
-                print("[DEBUG] compose TO raw:", receiver_username)
-
-                if not receiver_username:
-                    QtWidgets.QMessageBox.warning(
-                        dialog, "Invalid Recipient", "Receiver username is required."
-                    )
-                    return
-
-                receiver_id = self.data_manager.get_user_id_by_username(receiver_username)
-                print("[DEBUG] resolved receiver_id:", receiver_id)
-                if not receiver_id:
-                    QtWidgets.QMessageBox.warning(
-                        dialog, "Invalid Recipient", "Recipient not found."
-                    )
-                    return
-
-                receiver = self.data_manager.get_user(receiver_id)
-                if not receiver:
-                    QtWidgets.QMessageBox.warning(
-                        dialog, "Invalid Recipient", "Recipient not found."
-                    )
-                    return
-
-                content = ui.textEdit_msg.toPlainText().strip()
-                if not content:
-                    QtWidgets.QMessageBox.warning(
-                        dialog, "Empty Message", "Message content cannot be empty."
-                    )
-                    return
-
-                conv_id = self._get_or_create_conversation_with_user_id(receiver_id)
-                if not conv_id:
-                    QtWidgets.QMessageBox.critical(
-                        dialog, "Error", "Failed to create or find a conversation."
-                    )
-                    return
-
-                prio_text = ui.comboBox_prio.currentText()
-                prio_map = {
-                    "High Priority": "high",
-                    "Medium Priority": "normal",
-                    "Low Priority": "normal",
-                    "": "normal",
-                }
-                backend_priority = prio_map.get(prio_text, "normal")
-
-                msg_payload = {
-                    "conversation": conv_id,
-                    "subject": ui.lineEdit_subject.text().strip() or "No Subject",
-                    "content": content,
-                    "priority": backend_priority,
-                    "status": "sent",
-                    "message_type": "message",
-                    "receiver": receiver_id,
-                }
-                print("[DEBUG] new msg_payload:", msg_payload)
-
-                try:
-                    created = self.data_manager.create_message(msg_payload)
-                    print("[FacultyUI] create_message response:", created)
-                    QtWidgets.QMessageBox.information(
-                        dialog, "Sent", "Message sent successfully."
-                    )
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
                 except Exception as e:
                     print("[FacultyUI] ERROR creating message:", e)
@@ -1414,16 +1232,6 @@ class FacultyMainUI(QtWidgets.QWidget):
         except Exception as e:
             print(f"Error composing message: {e}")
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     def _get_or_create_conversation_with_user_id(self, receiver_id: int) -> int | None:
         """
         Find or create a direct conversation between this faculty and the
@@ -1431,39 +1239,6 @@ class FacultyMainUI(QtWidgets.QWidget):
         """
         if not self.data_manager or not self.current_faculty_id:
             return None
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-        if not receiver_id or receiver_id == self.current_faculty_id:
-            return None
-
-        # look for existing conversation with both participants
-        convs = self.data_manager.get_conversations_by_user(self.current_faculty_id)
-        for c in convs:
-            participants = c.get("participants", []) or []
-            if self.current_faculty_id in participants and receiver_id in participants:
-                return c.get("id")
-
-        # else create a new direct conversation
-        payload = {
-            "title": "",
-            "type": "direct",
-            "participants": [self.current_faculty_id, receiver_id],
-            "creator": self.current_faculty_id,
-        }
-        created = self.data_manager.create_conversation(payload)
-        if isinstance(created, dict):
-            return created.get("id")
-        return None
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
         if not receiver_id or receiver_id == self.current_faculty_id:
             return None
@@ -1517,14 +1292,4 @@ class FacultyMainUI(QtWidgets.QWidget):
         self.text_filtered_items = self.all_items.copy()
         self.filtered_items = self.all_items.copy()
         self.display_items()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 

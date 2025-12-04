@@ -23,17 +23,4 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('apps.Users.urls')),
     path("api/", include("apps.Messaging.urls")),
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
->>>>>>> Stashed changes

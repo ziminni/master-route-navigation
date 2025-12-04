@@ -5,53 +5,12 @@ User = get_user_model()
 
 
 class Conversation(models.Model):
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    CONVERSATION_TYPES = [
-        ("direct", "Direct"),   # one-on-one
-=======
     CONVERSATION_TYPE_CHOICES = [
         ("one_to_one", "One to One"),
->>>>>>> Stashed changes
-=======
-    CONVERSATION_TYPE_CHOICES = [
-        ("one_to_one", "One to One"),
->>>>>>> Stashed changes
-=======
-    CONVERSATION_TYPE_CHOICES = [
-        ("one_to_one", "One to One"),
->>>>>>> Stashed changes
-=======
-    CONVERSATION_TYPE_CHOICES = [
-        ("one_to_one", "One to One"),
->>>>>>> Stashed changes
         ("group", "Group"),
     ]
 
     title = models.CharField(max_length=255, blank=True)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    creator = models.ForeignKey(User, related_name="created_conversations",
-                                on_delete=models.CASCADE)
-    participants = models.ManyToManyField(User, related_name="conversations", blank=True)
-    type = models.CharField(max_length=10, choices=CONVERSATION_TYPES, default="direct")
-    group_name = models.CharField(max_length=255, blank=True)  # for group display
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        if self.type == "group" and self.group_name:
-            return self.group_name
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     creator = models.ForeignKey(
         User,
         related_name="created_conversations",
@@ -70,16 +29,6 @@ class Conversation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
         return self.title or f"Conversation {self.id}"
 
 

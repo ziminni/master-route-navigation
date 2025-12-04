@@ -22,7 +22,7 @@ User = get_user_model()
 # Convert to dictionary
 ROLE_PRIORITY = ["admin", "faculty", "staff", "student"] 
 '''
-    choices = {x
+    choices = {
 1:'ADMIN',
 2:'STUDENT'
 }

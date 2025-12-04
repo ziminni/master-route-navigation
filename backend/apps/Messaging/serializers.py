@@ -38,23 +38,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "creator",
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            "type",
-=======
             "conversation_type",
->>>>>>> Stashed changes
-=======
-            "conversation_type",
->>>>>>> Stashed changes
-=======
-            "conversation_type",
->>>>>>> Stashed changes
-=======
-            "conversation_type",
->>>>>>> Stashed changes
             "participants",
             "created_at",
         ]

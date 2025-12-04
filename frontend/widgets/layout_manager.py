@@ -15,15 +15,15 @@ class LayoutManager:
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
         self.pages = {}
-
+        
         # CRITICAL FIX: Create container widgets ONCE
         self.content_container = None
         self.header_container = None
         self.stack_container = None
         self.current_layout_mode = None  # Track current mode
-
-        self._init_stack(content)
-
+        
+        self._init_stack(content)  
+        
         print(f"LayoutManager: Initialized with user_role '{user_role}', content widget: {type(self.content).__name__}, visible: {self.content.isVisible()}")
 
         self.navbar = Sidebar(self.router, self.user_role)
@@ -38,7 +38,7 @@ class LayoutManager:
         self.header.logoutRequested.connect(self._logout)
 
         self.apply_desktop_layout()
-
+        
         # Connect sidebar toggle AFTER desktop layout is applied
         # This ensures content_container exists before we try to update it
         self.navbar.toggled.connect(self.on_sidebar_toggled)
@@ -55,11 +55,11 @@ class LayoutManager:
     def update_layout(self, width):
         """FIXED: Update layout without recreating widgets"""
         print(f"LayoutManager: Updating layout with window_width {width}")
-
+        
         # Determine target mode
         should_be_mobile = width <= self.breakpoint[0]
         target_mode = "mobile" if should_be_mobile else "desktop"
-
+        
         # Only rebuild if mode actually changed
         if self.current_layout_mode == target_mode:
             print(f"LayoutManager: Already in {target_mode} mode, no rebuild needed")
@@ -70,9 +70,9 @@ class LayoutManager:
                 else:
                     self.main_layout.setColumnMinimumWidth(0, 280)
             return
-
+        
         print(f"LayoutManager: Switching from {self.current_layout_mode} to {target_mode}")
-
+        
         # Clear layout safely
         while self.main_layout.count():
             item = self.main_layout.takeAt(0)
@@ -86,22 +86,22 @@ class LayoutManager:
             self.apply_mobile_layout()
         else:
             self.apply_desktop_layout()
-
+        
         self.current_layout_mode = target_mode
-
+        
         # Force update
         self.content.update()
         if self.navbar:
             self.navbar.update()
         if self.header:
             self.header.update()
-
+        
         print(f"LayoutManager: Layout updated to {target_mode}, content visible: {self.content.isVisible()}, navbar visible: {self.navbar.isVisible()}, header visible: {self.header.isVisible()}")
 
     def apply_desktop_layout(self):
         """FIXED: Reuse containers instead of recreating them"""
         print("LayoutManager: Applying desktop layout")
-
+        
         if not self.navbar:
             self.navbar = Sidebar(self.router, self.user_role)
             self.navbar.setContentsMargins(0, 0, 0, 0)
@@ -123,7 +123,7 @@ class LayoutManager:
             # FIXED: Use consistent margins regardless of sidebar state
             content_layout.setContentsMargins(10, 0, 10, 10)
             content_layout.setSpacing(10)
-
+            
             # Header container
             self.header_container = QWidget()
             self.header_container.setStyleSheet("background: transparent;")
@@ -131,7 +131,7 @@ class LayoutManager:
             header_layout.setContentsMargins(12, 0, 12, 12)
             header_layout.addWidget(self.header)
             content_layout.addWidget(self.header_container)
-
+            
             # Stack container
             self.stack_container = QWidget()
             stack_layout = QVBoxLayout(self.stack_container)
@@ -140,7 +140,7 @@ class LayoutManager:
             stack_layout.setSpacing(0)
             stack_layout.addWidget(self.content)
             content_layout.addWidget(self.stack_container, 1)
-
+            
             self.content_container.setStyleSheet("background: #ffffff;")
         else:
             # Ensure widgets are properly parented (in case they were unparented)
@@ -148,12 +148,12 @@ class LayoutManager:
                 layout = self.header_container.layout()
                 if layout and layout.count() == 0:
                     layout.addWidget(self.header)
-
+            
             if self.content.parent() != self.stack_container:
                 layout = self.stack_container.layout()
                 if layout and layout.count() == 0:
                     layout.addWidget(self.content)
-
+            
             # FIXED: Reset margins to consistent values
             self.content_container.layout().setContentsMargins(10, 0, 10, 10)
 
@@ -182,14 +182,14 @@ class LayoutManager:
         self.content_container.show()
         self.header.show()
         self.content.show()
-
+        
         self.main_layout.invalidate()
         print("LayoutManager: Desktop layout applied")
 
     def apply_mobile_layout(self):
         """FIXED: Reuse containers instead of recreating them"""
         print("LayoutManager: Applying mobile layout")
-
+        
         if not self.navbar:
             self.navbar = Sidebar(self.router, self.user_role)
             self.navbar.setContentsMargins(0, 0, 0, 0)
@@ -210,7 +210,7 @@ class LayoutManager:
             content_layout = QVBoxLayout(self.content_container)
             content_layout.setContentsMargins(0, 12, 20, 20)
             content_layout.setSpacing(20)
-
+            
             # Header container
             self.header_container = QWidget()
             self.header_container.setStyleSheet("background: transparent;")
@@ -218,7 +218,7 @@ class LayoutManager:
             header_layout.setContentsMargins(12, 12, 12, 12)
             header_layout.addWidget(self.header)
             content_layout.addWidget(self.header_container)
-
+            
             # Stack container
             self.stack_container = QWidget()
             stack_layout = QVBoxLayout(self.stack_container)
@@ -226,7 +226,7 @@ class LayoutManager:
             stack_layout.setSpacing(0)
             stack_layout.addWidget(self.content)
             content_layout.addWidget(self.stack_container, 1)
-
+            
             self.content_container.setStyleSheet("background: #ffffff;")
         else:
             # Ensure widgets are properly parented
@@ -234,7 +234,7 @@ class LayoutManager:
                 layout = self.header_container.layout()
                 if layout and layout.count() == 0:
                     layout.addWidget(self.header)
-
+            
             if self.content.parent() != self.stack_container:
                 layout = self.stack_container.layout()
                 if layout and layout.count() == 0:
@@ -246,19 +246,19 @@ class LayoutManager:
         self.main_layout.setRowStretch(0, 3)
         self.main_layout.setRowStretch(1, 1)
         self.navbar.setFixedHeight(100)
-
+        
         # Ensure everything is visible
         self.navbar.show()
         self.content_container.show()
         self.header.show()
         self.content.show()
-
+        
         print("LayoutManager: Mobile layout applied")
 
     def on_sidebar_toggled(self, is_collapsed):
         """Handle sidebar collapse/expand - dynamically adjust spacing"""
         print(f"LayoutManager: Sidebar toggled, collapsed={is_collapsed}")
-
+        
         if self.current_layout_mode == "desktop":
             # FIXED: Only adjust column width, keep margins consistent
             if is_collapsed:
@@ -267,7 +267,7 @@ class LayoutManager:
             else:
                 self.main_layout.setColumnMinimumWidth(0, 280)
                 print("LayoutManager: Adjusted for expanded sidebar")
-
+            
             # Force layout update without changing margins
             self.main_layout.update()
         else:
