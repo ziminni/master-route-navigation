@@ -114,7 +114,7 @@ class AdminDocumentView(DocumentsV2View):
             # (Label, Action Name, Condition Callback)
             ("Approve", "approve", lambda doc: doc.get('approval_status') == 'pending'),
             ("Reject", "reject", lambda doc: doc.get('approval_status') == 'pending'),
-            ("Permanent Delete", "permanent_delete", lambda doc: doc.get('deleted_at') is not None),
+            # Note: "Delete Permanently" is now built into base file_list for admins on trash items
             ("Transfer Ownership", "transfer_ownership", lambda doc: doc.get('folder') is not True),
         ]
         self.file_list.set_custom_menu_items(admin_menu_items)

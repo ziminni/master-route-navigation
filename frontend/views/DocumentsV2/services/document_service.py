@@ -92,33 +92,59 @@ class DocumentService(QObject):
                 timeout=30
             )
             
+            print(f"[DocumentService] {method} {url} - Status: {response.status_code}")
+            print(f"[DocumentService] Response content length: {len(response.content) if response.content else 0}")
+            
             if response.status_code in [200, 201, 204]:
+                # 204 No Content returns empty response (e.g., DELETE operations)
+                if response.status_code == 204 or not response.content:
+                    print(f"[DocumentService] No content response, returning None")
+                    data = None
+                else:
+                    try:
+                        data = response.json()
+                        print(f"[DocumentService] Successfully parsed JSON response")
+                    except Exception as json_error:
+                        print(f"[DocumentService] JSON parse error: {json_error}")
+                        print(f"[DocumentService] Response text: {response.text[:200]}")
+                        raise
+                    
                 return {
                     'success': True,
-                    'data': response.json() if response.content else None,
+                    'data': data,
                     'error': None
                 }
             else:
-                error_msg = response.json().get('error', response.text) if response.content else 'Unknown error'
+                print(f"[DocumentService] Error response: {response.status_code}")
+                try:
+                    error_msg = response.json().get('error', response.text) if response.content else 'Unknown error'
+                except:
+                    error_msg = response.text if response.text else 'Unknown error'
+                print(f"[DocumentService] Error message: {error_msg}")
                 return {
                     'success': False,
                     'data': None,
                     'error': f"HTTP {response.status_code}: {error_msg}"
                 }
                 
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as e:
+            print(f"[DocumentService] Connection error: {e}")
             return {
                 'success': False,
                 'data': None,
                 'error': "Cannot connect to server. Is the backend running?"
             }
-        except requests.exceptions.Timeout:
+        except requests.exceptions.Timeout as e:
+            print(f"[DocumentService] Timeout error: {e}")
             return {
                 'success': False,
                 'data': None,
                 'error': "Request timed out"
             }
         except Exception as e:
+            print(f"[DocumentService] Unexpected error: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 'success': False,
                 'data': None,
@@ -290,6 +316,34 @@ class DocumentService(QObject):
         """
         return self._make_request('GET', f'/documents/{doc_id}/download/')
     
+    def rename_document(self, doc_id: int, new_title: str) -> Dict[str, Any]:
+        """
+        Rename a document.
+        
+        Args:
+            doc_id (int): Document ID
+            new_title (str): New title/name
+            
+        Returns:
+            dict: {'success': bool, 'data': updated document, 'error': str}
+        """
+        data = {'title': new_title}
+        return self._make_request('PATCH', f'/documents/{doc_id}/', data=data)
+    
+    def permanent_delete_document(self, doc_id: int) -> Dict[str, Any]:
+        """
+        Permanently delete a document (cannot be undone).
+        Admin only operation.
+        
+        Args:
+            doc_id (int): Document ID
+            
+        Returns:
+            dict: {'success': bool, 'data': None, 'error': str}
+        """
+        # Use a special query parameter to signal permanent deletion
+        return self._make_request('DELETE', f'/documents/{doc_id}/', params={'permanent': 'true'})
+    
     # ==================== Folder Operations ====================
     
     def get_folders(self, parent_id: int = None, category_id: int = None) -> Dict[str, Any]:
@@ -349,6 +403,32 @@ class DocumentService(QObject):
                   Each item: {'id': int, 'name': str, 'slug': str}
         """
         return self._make_request('GET', f'/folders/{folder_id}/breadcrumbs/')
+    
+    def rename_folder(self, folder_id: int, new_name: str) -> Dict[str, Any]:
+        """
+        Rename a folder.
+        
+        Args:
+            folder_id (int): Folder ID
+            new_name (str): New folder name
+            
+        Returns:
+            dict: {'success': bool, 'data': updated folder, 'error': str}
+        """
+        data = {'name': new_name}
+        return self._make_request('PATCH', f'/folders/{folder_id}/', data=data)
+    
+    def delete_folder(self, folder_id: int) -> Dict[str, Any]:
+        """
+        Delete a folder (soft delete).
+        
+        Args:
+            folder_id (int): Folder ID
+            
+        Returns:
+            dict: {'success': bool, 'data': None, 'error': str}
+        """
+        return self._make_request('DELETE', f'/folders/{folder_id}/')
     
     # ==================== Category Operations ====================
     
@@ -438,20 +518,6 @@ class DocumentService(QObject):
         params = filters if filters else {}
         params['admin_view'] = True  # Signal backend to return all documents
         return self._make_request('GET', '/documents/', params=params)
-    
-    def permanent_delete_document(self, doc_id: int) -> Dict[str, Any]:
-        """
-        Permanently delete a document (Admin only).
-        
-        This is irreversible. Use with caution.
-        
-        Args:
-            doc_id (int): Document ID to permanently delete
-            
-        Returns:
-            dict: {'success': bool, 'data': confirmation, 'error': str}
-        """
-        return self._make_request('DELETE', f'/documents/{doc_id}/permanent_delete/')
     
     def transfer_ownership(self, doc_id: int, new_owner_id: int, notes: str = "") -> Dict[str, Any]:
         """

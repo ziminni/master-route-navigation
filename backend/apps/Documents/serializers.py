@@ -355,7 +355,7 @@ class DocumentListSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'file_extension', 'mime_type',
             'file_size', 'file_size_mb', 'file_url', 'category', 'category_name',
             'folder', 'folder_name', 'uploaded_by_name', 'uploaded_at',
-            'view_count', 'is_featured', 'is_active', 'can_download'
+            'view_count', 'is_featured', 'is_active', 'can_download', 'deleted_at'
         ]
         read_only_fields = fields
     

@@ -218,7 +218,11 @@ class DocumentViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Filter documents based on user permissions"""
-        queryset = Document.objects.filter(is_active=True, deleted_at__isnull=True)
+        # For permanent delete, include deleted documents
+        if self.action == 'destroy' and self.request.query_params.get('permanent', 'false').lower() == 'true':
+            queryset = Document.objects.filter(is_active=True)  # Include deleted documents
+        else:
+            queryset = Document.objects.filter(is_active=True, deleted_at__isnull=True)
         
         # Optimize queries
         queryset = queryset.select_related(
@@ -291,17 +295,37 @@ class DocumentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     def perform_destroy(self, instance):
-        """Soft delete document"""
-        instance.deleted_at = timezone.now()
-        instance.deleted_by = self.request.user
-        instance.save()
+        """Soft delete document (or permanent if query param set)"""
+        # Check if permanent delete is requested
+        permanent = self.request.query_params.get('permanent', 'false').lower() == 'true'
         
-        # Log deletion
-        instance.log_activity(
-            action=ActivityLog.ActionTypes.DOCUMENT_DELETE,
-            user=self.request.user,
-            description=f"Deleted document '{instance.title}'"
-        )
+        if permanent:
+            # Permanent delete - admin only
+            if not self.request.user.is_staff and self.request.user.role_type != 'admin':
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Only admins can permanently delete documents")
+            
+            # Log before deleting
+            instance.log_activity(
+                action=ActivityLog.ActionTypes.DOCUMENT_DELETE,
+                user=self.request.user,
+                description=f"PERMANENTLY deleted document '{instance.title}'"
+            )
+            
+            # Actually delete from database
+            instance.delete()
+        else:
+            # Soft delete
+            instance.deleted_at = timezone.now()
+            instance.deleted_by = self.request.user
+            instance.save()
+            
+            # Log deletion
+            instance.log_activity(
+                action=ActivityLog.ActionTypes.DOCUMENT_DELETE,
+                user=self.request.user,
+                description=f"Deleted document '{instance.title}'"
+            )
     
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):

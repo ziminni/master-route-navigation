@@ -280,11 +280,13 @@ class FileListView(QTableWidget):
             restore_action.triggered.connect(lambda: self.context_menu_action.emit('restore', doc_id))
             menu.addAction(restore_action)
             
-            menu.addSeparator()
-            
-            delete_action = QAction("Delete Permanently", self)
-            delete_action.triggered.connect(lambda: self.context_menu_action.emit('delete_permanent', doc_id))
-            menu.addAction(delete_action)
+            # Only admins can permanently delete
+            if self.user_role == 'admin':
+                menu.addSeparator()
+                
+                delete_action = QAction("Delete Permanently", self)
+                delete_action.triggered.connect(lambda: self.context_menu_action.emit('delete_permanent', doc_id))
+                menu.addAction(delete_action)
         
         elif is_folder:
             # Menu for folders

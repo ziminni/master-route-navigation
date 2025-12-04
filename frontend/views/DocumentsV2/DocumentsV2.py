@@ -23,7 +23,7 @@ from PyQt6.QtCore import Qt, QTimer
 from datetime import datetime, timedelta
 
 from .widgets import Sidebar, Toolbar, FileListView, BreadcrumbBar
-from .dialogs import UploadDialog, FolderDialog, DownloadDialog, MoveDialog
+from .dialogs import UploadDialog, FolderDialog, DownloadDialog, MoveDialog, RenameDialog
 from .services import DocumentService
 from .workers import APIWorker, DownloadWorker
 from .utils import EmptyStateWidget, EmptyStateFactory
@@ -1135,17 +1135,59 @@ class DocumentsV2View(QWidget):
     
     def _rename_item(self, item_id: int):
         """
-        Rename document or folder (placeholder).
+        Rename document or folder.
         
         Args:
             item_id (int): Item ID
         """
-        # TODO: Implement rename dialog
-        QMessageBox.information(
-            self,
-            "Rename",
-            "Rename functionality will be implemented in the next iteration."
+        print(f"[DocumentsV2] Rename item requested: {item_id}")
+        
+        # Determine if it's a document or folder
+        doc = next((d for d in self.documents if d.get('id') == item_id), None)
+        
+        if doc:
+            # It's a document
+            is_folder = doc.get('folder') is True
+            current_name = doc.get('title') if not is_folder else doc.get('name')
+            item_type = 'folder' if is_folder else 'document'
+        else:
+            # Not found in current view
+            self.show_error("Rename Failed", "Item not found")
+            return
+        
+        # Open rename dialog
+        dialog = RenameDialog(
+            item_id,
+            current_name,
+            item_type,
+            self.document_service,
+            self
         )
+        
+        if dialog.exec():
+            new_name = dialog.get_new_name()
+            print(f"[DocumentsV2] Renaming {item_type} {item_id} to: {new_name}")
+            
+            # Perform rename via API
+            if item_type == 'document':
+                result = self.document_service.rename_document(item_id, new_name)
+            else:
+                result = self.document_service.rename_folder(item_id, new_name)
+            
+            if result['success']:
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    f"{item_type.capitalize()} renamed successfully"
+                )
+                
+                # Invalidate cache and refresh
+                if item_type == 'folder':
+                    self.invalidate_cache('folders')
+                self.invalidate_cache('documents')
+                self.load_documents(force_refresh=True)
+            else:
+                self.show_error("Rename Failed", result['error'])
     
     def _show_details(self, doc_id: int):
         """
@@ -1214,17 +1256,82 @@ class DocumentsV2View(QWidget):
     
     def _permanent_delete(self, doc_id: int):
         """
-        Permanently delete a document (placeholder).
+        Permanently delete a document (irreversible).
         
         Args:
             doc_id (int): Document ID
         """
-        # TODO: Implement permanent delete (requires admin endpoint)
-        QMessageBox.warning(
+        print(f"[DocumentsV2] Permanent delete requested: {doc_id}")
+        
+        # Check if user is admin
+        if self.primary_role != 'admin':
+            QMessageBox.warning(
+                self,
+                "Permission Denied",
+                "Only administrators can permanently delete documents."
+            )
+            return
+        
+        # Get document info
+        doc = next((d for d in self.documents if d.get('id') == doc_id), None)
+        if not doc:
+            self.show_error("Delete Failed", "Document not found")
+            return
+        
+        doc_title = doc.get('title', 'Untitled')
+        
+        # Strong confirmation for permanent deletion
+        reply = QMessageBox.warning(
             self,
-            "Permanent Delete",
-            "Permanent delete requires admin privileges and is not yet implemented."
+            "Permanent Delete - WARNING",
+            f"Are you sure you want to PERMANENTLY delete:\n\n'{doc_title}'\n\n"
+            f"This action CANNOT be undone!\n"
+            f"The document will be deleted forever.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No  # Default to No
         )
+        
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        
+        # Second confirmation
+        reply2 = QMessageBox.critical(
+            self,
+            "Final Confirmation",
+            f"LAST CHANCE!\n\nPermanently delete '{doc_title}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply2 == QMessageBox.StandardButton.Yes:
+            print(f"[DocumentsV2] Performing permanent delete of document {doc_id}")
+            
+            try:
+                # Perform permanent delete via API
+                result = self.document_service.permanent_delete_document(doc_id)
+                
+                print(f"[DocumentsV2] Permanent delete result: {result}")
+                
+                if result['success']:
+                    print(f"[DocumentsV2] Document {doc_id} permanently deleted successfully")
+                    QMessageBox.information(
+                        self,
+                        "Deleted",
+                        f"Document permanently deleted"
+                    )
+                    
+                    # Invalidate cache and refresh
+                    self.invalidate_cache('documents')
+                    self.invalidate_cache('trash')
+                    self.load_documents(force_refresh=True)
+                else:
+                    print(f"[DocumentsV2] Permanent delete failed: {result['error']}")
+                    self.show_error("Delete Failed", result['error'])
+            except Exception as e:
+                print(f"[DocumentsV2] Exception during permanent delete: {type(e).__name__}: {e}")
+                import traceback
+                traceback.print_exc()
+                self.show_error("Delete Failed", f"Unexpected error: {str(e)}")
     
     # ==================== Utility Methods ====================
     
