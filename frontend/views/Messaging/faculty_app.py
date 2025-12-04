@@ -132,14 +132,20 @@ class FacultyMainUI(QtWidgets.QWidget):
         # reload list & inbox popup
         self.load_messages()
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         self._refresh_inbox_popup()  # NEW
 
 =======
+=======
+>>>>>>> Stashed changes
         # If WS payload has conversation, subject, content, etc.:
 
         self._refresh_inbox_popup()  # NEW
 
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     def _show_broadcast_popup(self, msg: dict):
         """Simple green-header popup for system broadcasts."""
@@ -476,6 +482,7 @@ class FacultyMainUI(QtWidgets.QWidget):
                 m for m in messages
                 if m.get("receiver") == self.current_faculty_id
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             ]
             print(f"[FacultyMainUI] faculty_messages (receiver={self.current_faculty_id}):")
             for m in faculty_messages:
@@ -484,6 +491,8 @@ class FacultyMainUI(QtWidgets.QWidget):
                     f"created_at={m.get('created_at')} content={m.get('content')!r}"
                 )
 =======
+=======
+>>>>>>> Stashed changes
                    or m.get("sender") == self.current_faculty_id
             ]
             print("[FacultyMainUI] faculty_messages (sender/receiver = current):")
@@ -492,6 +501,9 @@ class FacultyMainUI(QtWidgets.QWidget):
                       "conv=", m.get("conversation"),
                       "sender=", m.get("sender"),
                       "receiver=", m.get("receiver"))
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
             faculty_inquiries = []
@@ -1042,6 +1054,10 @@ class FacultyMainUI(QtWidgets.QWidget):
                             thread_msgs.append(created)
                             thread_msgs.sort(key=lambda m: m.get("created_at", ""))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+                            self.upsert_card_from_message(created)
+>>>>>>> Stashed changes
 =======
                             self.upsert_card_from_message(created)
 >>>>>>> Stashed changes
@@ -1154,6 +1170,9 @@ class FacultyMainUI(QtWidgets.QWidget):
             dialog.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground, True)
             dialog.setStyleSheet("background: transparent;")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 
             ui = ComposeUI()
             ui.setupUi(dialog)
@@ -1234,6 +1253,7 @@ class FacultyMainUI(QtWidgets.QWidget):
                     QtWidgets.QMessageBox.information(
                         dialog, "Sent", "Message sent successfully."
                     )
+<<<<<<< Updated upstream
                 except Exception as e:
                     print("[FacultyUI] ERROR creating message:", e)
                     QtWidgets.QMessageBox.critical(
@@ -1331,6 +1351,8 @@ class FacultyMainUI(QtWidgets.QWidget):
                     QtWidgets.QMessageBox.information(
                         dialog, "Sent", "Message sent successfully."
                     )
+=======
+>>>>>>> Stashed changes
 
                 except Exception as e:
                     print("[FacultyUI] ERROR creating message:", e)
@@ -1348,6 +1370,9 @@ class FacultyMainUI(QtWidgets.QWidget):
         except Exception as e:
             print(f"Error composing message: {e}")
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     def _get_or_create_conversation_with_user_id(self, receiver_id: int) -> int | None:
         """
@@ -1356,6 +1381,7 @@ class FacultyMainUI(QtWidgets.QWidget):
         """
         if not self.data_manager or not self.current_faculty_id:
             return None
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
         if not receiver_id or receiver_id == self.current_faculty_id:
@@ -1380,6 +1406,8 @@ class FacultyMainUI(QtWidgets.QWidget):
             return created.get("id")
         return None
 =======
+=======
+>>>>>>> Stashed changes
 
         if not receiver_id or receiver_id == self.current_faculty_id:
             return None
@@ -1433,5 +1461,8 @@ class FacultyMainUI(QtWidgets.QWidget):
         self.text_filtered_items = self.all_items.copy()
         self.filtered_items = self.all_items.copy()
         self.display_items()
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 

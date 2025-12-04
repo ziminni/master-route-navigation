@@ -166,7 +166,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         Expected event format:
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             {"type": "chat_message", "data": {...}
+=======
+            {"type": "chat_message", "data": {...}}
+>>>>>>> Stashed changes
 =======
             {"type": "chat_message", "data": {...}}
 >>>>>>> Stashed changes

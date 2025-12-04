@@ -6,8 +6,13 @@ User = get_user_model()
 
 class Conversation(models.Model):
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     CONVERSATION_TYPES = [
         ("direct", "Direct"),   # one-on-one
+=======
+    CONVERSATION_TYPE_CHOICES = [
+        ("one_to_one", "One to One"),
+>>>>>>> Stashed changes
 =======
     CONVERSATION_TYPE_CHOICES = [
         ("one_to_one", "One to One"),
@@ -16,6 +21,7 @@ class Conversation(models.Model):
     ]
 
     title = models.CharField(max_length=255, blank=True)
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     creator = models.ForeignKey(User, related_name="created_conversations",
                                 on_delete=models.CASCADE)
@@ -28,6 +34,8 @@ class Conversation(models.Model):
         if self.type == "group" and self.group_name:
             return self.group_name
 =======
+=======
+>>>>>>> Stashed changes
     creator = models.ForeignKey(
         User,
         related_name="created_conversations",
@@ -46,6 +54,9 @@ class Conversation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         return self.title or f"Conversation {self.id}"
 
