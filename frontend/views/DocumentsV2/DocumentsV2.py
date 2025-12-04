@@ -23,9 +23,9 @@ from PyQt6.QtCore import Qt, QTimer
 from datetime import datetime, timedelta
 
 from .widgets import Sidebar, Toolbar, FileListView, BreadcrumbBar
-from .dialogs import UploadDialog, FolderDialog
+from .dialogs import UploadDialog, FolderDialog, DownloadDialog
 from .services import DocumentService
-from .workers import APIWorker
+from .workers import APIWorker, DownloadWorker
 from .utils import EmptyStateWidget, EmptyStateFactory
 
 
@@ -84,10 +84,17 @@ class DocumentsV2View(QWidget):
         
         # Loading state
         self.is_loading = False
+        self._loading_lock = False  # Prevent simultaneous loads
         
         # Worker threads for async operations
         self.current_worker = None
         self.active_workers = []  # Keep references to prevent premature deletion
+        
+        # Navigation queue system to prevent spam-clicking chaos
+        self._pending_navigation = None  # Store the most recent navigation request
+        self._navigation_timer = QTimer()
+        self._navigation_timer.setSingleShot(True)
+        self._navigation_timer.timeout.connect(self._process_pending_navigation)
         
         # Debounce timer for search
         self.search_timer = QTimer()
@@ -152,6 +159,12 @@ class DocumentsV2View(QWidget):
         self.toolbar.action_triggered.connect(self._handle_toolbar_action)
         self.toolbar.sort_changed.connect(self._handle_sort_changed)
         self.toolbar.search_requested.connect(self._handle_search)
+        
+        # Hide upload/new folder buttons for students (students can ONLY download)
+        if self.primary_role == 'student':
+            self.toolbar.btn_upload.setVisible(False)
+            self.toolbar.btn_new_folder.setVisible(False)
+        
         top_layout.addWidget(self.toolbar)
         
         # Breadcrumb bar
@@ -172,8 +185,8 @@ class DocumentsV2View(QWidget):
         # Stacked widget for content/loading/empty states
         self.content_stack = QStackedWidget()
         
-        # File list
-        self.file_list = FileListView()
+        # File list (pass user role for permission-based context menus)
+        self.file_list = FileListView(user_role=self.primary_role)
         self.file_list.item_double_clicked.connect(self._handle_item_double_click)
         self.file_list.context_menu_action.connect(self._handle_context_menu_action)
         self.file_list.selection_changed.connect(self._handle_selection_changed)
@@ -515,12 +528,23 @@ class DocumentsV2View(QWidget):
         Args:
             force_refresh (bool): Force refresh from API, bypassing cache
         """
-        # Cancel any existing load operation to allow immediate navigation
+        print(f"[DocumentsV2] load_documents called - is_loading: {self.is_loading}, _loading_lock: {self._loading_lock}")
+        
+        # If already loading, ignore this request (prevent spam-clicking chaos)
+        if self._loading_lock:
+            print("[DocumentsV2] Already loading, ignoring duplicate request")
+            return
+        
+        # Cancel any existing load operation
         if self.is_loading:
             if self.current_worker and self.current_worker.isRunning():
+                print("[DocumentsV2] Cancelling existing worker")
                 self.current_worker.cancel()
-                self.current_worker.wait()
+                self.current_worker.wait(500)  # Wait max 500ms
             self.is_loading = False
+        
+        # Set loading lock to prevent simultaneous loads
+        self._loading_lock = True
         
         # Clear documents to prevent showing stale data
         self.documents = []
@@ -568,6 +592,7 @@ class DocumentsV2View(QWidget):
         if not force_refresh:
             cached_data, is_valid = self._get_from_cache(cache_key, cache_type)
             if is_valid:
+                print("[DocumentsV2] Using cached data")
                 # Prepare data from cache
                 self.documents = cached_data
                 # Turn off loading before displaying (display will set correct index)
@@ -575,6 +600,8 @@ class DocumentsV2View(QWidget):
                 self.toolbar.setEnabled(True)
                 self._display_documents_immediately()
                 self.set_status(f"Loaded {len(self.documents)} document(s)")
+                # Release lock after cache hit
+                self._loading_lock = False
                 return
         
         # Fetch from API asynchronously
@@ -604,11 +631,14 @@ class DocumentsV2View(QWidget):
         # Create and start worker
         self.current_worker = APIWorker(api_function, *api_args)
         self.current_worker.finished.connect(lambda result: self._on_documents_loaded(result, cache_key, cache_type))
+        self.current_worker.finished.connect(lambda: self._release_loading_lock())
         self.current_worker.finished.connect(lambda: self._cleanup_worker(self.current_worker))
         self.current_worker.error.connect(self._on_documents_load_error)
+        self.current_worker.error.connect(lambda: self._release_loading_lock())
         self.current_worker.error.connect(lambda: self._cleanup_worker(self.current_worker))
         self.active_workers.append(self.current_worker)
         self.current_worker.start()
+        print("[DocumentsV2] Worker started")
     
     def _on_documents_loaded(self, result: dict, cache_key: str, cache_type: str):
         """
@@ -726,16 +756,25 @@ class DocumentsV2View(QWidget):
             self._open_folder_dialog()
         elif action == 'refresh':
             # Invalidate cache and force refresh
+            # If currently loading, ignore refresh
+            if self._loading_lock:
+                print("[DocumentsV2] Currently loading, ignoring refresh")
+                return
             self.invalidate_cache()
             self.load_documents(force_refresh=True)
     
     def _handle_sort_changed(self, sort_field: str):
         """
-        Handle sort option change.
+        Handle sort option change with anti-spam protection.
         
         Args:
             sort_field (str): Sort field with optional '-' prefix for descending
         """
+        # If currently loading, ignore sort changes
+        if self._loading_lock:
+            print("[DocumentsV2] Currently loading, ignoring sort change")
+            return
+        
         self.current_sort = sort_field
         self.load_documents()
     
@@ -757,12 +796,35 @@ class DocumentsV2View(QWidget):
     
     def _handle_navigation_change(self, nav_type: str, item_id: int):
         """
-        Handle sidebar navigation change.
+        Handle sidebar navigation change with anti-spam protection.
         
         Args:
             nav_type (str): Navigation type ('mydrive', 'recent', 'starred', 'trash', 'category')
             item_id (int): Item ID (for categories)
         """
+        print(f"[DocumentsV2] Navigation requested: {nav_type}, item_id: {item_id}")
+        
+        # If currently loading, queue this navigation request
+        if self._loading_lock:
+            print("[DocumentsV2] Currently loading, queueing navigation request")
+            self._pending_navigation = (nav_type, item_id)
+            # Start/restart timer to process after a short delay
+            self._navigation_timer.stop()
+            self._navigation_timer.start(100)  # 100ms delay
+            return
+        
+        # Process navigation immediately
+        self._process_navigation(nav_type, item_id)
+    
+    def _process_navigation(self, nav_type: str, item_id: int):
+        """
+        Process navigation change immediately.
+        
+        Args:
+            nav_type (str): Navigation type
+            item_id (int): Item ID
+        """
+        print(f"[DocumentsV2] Processing navigation: {nav_type}")
         self.current_view = nav_type
         self.current_category_id = item_id if nav_type == 'category' else None
         self.current_folder_id = None  # Reset folder navigation
@@ -776,34 +838,69 @@ class DocumentsV2View(QWidget):
         
         self.load_documents()
     
+    def _process_pending_navigation(self):
+        """Process the most recent pending navigation request."""
+        if self._pending_navigation and not self._loading_lock:
+            print("[DocumentsV2] Processing pending navigation")
+            nav_type, item_id = self._pending_navigation
+            self._pending_navigation = None
+            self._process_navigation(nav_type, item_id)
+        elif self._pending_navigation and self._loading_lock:
+            # Still loading, try again after a bit
+            print("[DocumentsV2] Still loading, retrying pending navigation")
+            self._navigation_timer.start(100)
+    
+    def _release_loading_lock(self):
+        """Release the loading lock and process any pending navigation."""
+        print("[DocumentsV2] Releasing loading lock")
+        self._loading_lock = False
+        
+        # Check if there's a pending navigation
+        if self._pending_navigation:
+            print("[DocumentsV2] Found pending navigation, processing after brief delay")
+            self._navigation_timer.start(50)  # Small delay before processing next
+    
     def _handle_breadcrumb_click(self, folder_id: int, folder_name: str):
         """
-        Handle breadcrumb segment click.
+        Handle breadcrumb segment click with anti-spam protection.
         
         Args:
             folder_id (int): Folder ID (None for root)
             folder_name (str): Folder name
         """
+        print(f"[DocumentsV2] Breadcrumb click: folder_id={folder_id}")
+        
+        # If currently loading, ignore (breadcrumb clicks should wait)
+        if self._loading_lock:
+            print("[DocumentsV2] Currently loading, ignoring breadcrumb click")
+            return
+        
         self.current_folder_id = folder_id
         self.breadcrumb.navigate_to_level(folder_id)
         self.load_documents()
     
     def _handle_item_double_click(self, item_data: dict):
         """
-        Handle double-click on file list item.
+        Handle double-click on file list item with anti-spam protection.
         
         Args:
             item_data (dict): Document or folder data
         """
         if item_data.get('folder'):
             # It's a folder, navigate into it
+            # If currently loading, ignore (prevent spam double-clicks)
+            if self._loading_lock:
+                print("[DocumentsV2] Currently loading, ignoring folder double-click")
+                return
+            
             folder_id = item_data['id']
             folder_name = item_data['name']
+            print(f"[DocumentsV2] Navigating into folder: {folder_name}")
             self.current_folder_id = folder_id
             self.breadcrumb.append_folder(folder_id, folder_name)
             self.load_documents()
         else:
-            # It's a document, download it
+            # It's a document, download it (downloads don't need loading lock)
             doc_id = item_data['id']
             self._download_document(doc_id)
     
@@ -896,31 +993,88 @@ class DocumentsV2View(QWidget):
     
     def _download_document(self, doc_id: int):
         """
-        Download a document.
+        Download a document to the user's Downloads directory.
         
         Args:
             doc_id (int): Document ID
         """
+        print(f"[DocumentsV2] Download requested for document ID: {doc_id}")
         self.set_status("Preparing download...")
-        self.toolbar.setEnabled(False)
-        result = self.document_service.download_document(doc_id)
-        self.toolbar.setEnabled(True)
         
-        if result['success']:
-            url = result['data']['url']
-            filename = result['data']['filename']
-            
-            # In a real app, you'd use QNetworkAccessManager to download
-            # For now, just show the URL
-            QMessageBox.information(
-                self,
-                "Download",
-                f"Download URL:\n{url}\n\nFilename: {filename}\n\n"
-                f"(In production, this would automatically download the file)"
-            )
-            self.set_status("Ready")
-        else:
+        # Get download URL from API
+        print("[DocumentsV2] Requesting download URL from API...")
+        result = self.document_service.download_document(doc_id)
+        print(f"[DocumentsV2] API result - success: {result['success']}")
+        
+        if not result['success']:
+            print(f"[DocumentsV2] Download failed: {result['error']}")
             self.show_error("Download Failed", result['error'])
+            self.set_status("Ready")
+            return
+        
+        url = result['data']['url']
+        filename = result['data']['filename']
+        print(f"[DocumentsV2] Download URL: {url}")
+        print(f"[DocumentsV2] Filename: {filename}")
+        
+        # Create and show download dialog
+        print("[DocumentsV2] Creating download dialog")
+        download_dialog = DownloadDialog(filename, self)
+        download_dialog.show()
+        
+        # Create download worker
+        print("[DocumentsV2] Creating download worker")
+        download_worker = DownloadWorker(url, filename, self.token)
+        download_worker.progress.connect(download_dialog.update_progress)
+        download_worker.finished.connect(lambda path: self._on_download_finished(download_dialog, path, filename))
+        download_worker.error.connect(lambda err: self._on_download_error(download_dialog, err))
+        download_worker.finished.connect(lambda: self._cleanup_worker(download_worker))
+        download_worker.error.connect(lambda: self._cleanup_worker(download_worker))
+        
+        # Handle cancel
+        download_dialog.rejected.connect(download_worker.cancel)
+        
+        # Start download
+        self.active_workers.append(download_worker)
+        print("[DocumentsV2] Starting download worker thread")
+        download_worker.start()
+        self.set_status(f"Downloading {filename}...")
+    
+    def _on_download_finished(self, dialog: DownloadDialog, file_path: str, filename: str):
+        """
+        Handle successful download completion.
+        
+        Args:
+            dialog (DownloadDialog): Download progress dialog
+            file_path (str): Path where file was saved
+            filename (str): Original filename
+        """
+        print(f"[DocumentsV2] Download completed successfully: {file_path}")
+        dialog.set_completed(file_path)
+        self.set_status(f"Downloaded {filename}")
+        
+        # Auto-close dialog after 2 seconds
+        QTimer.singleShot(2000, dialog.accept)
+        
+        # Show success message
+        QMessageBox.information(
+            self,
+            "Download Complete",
+            f"File downloaded successfully:\n\n{file_path}"
+        )
+    
+    def _on_download_error(self, dialog: DownloadDialog, error_msg: str):
+        """
+        Handle download error.
+        
+        Args:
+            dialog (DownloadDialog): Download progress dialog
+            error_msg (str): Error message
+        """
+        print(f"[DocumentsV2] Download error: {error_msg}")
+        dialog.set_error(error_msg)
+        self.set_status("Download failed")
+        self.show_error("Download Failed", error_msg)
     
     def _move_document(self, doc_id: int):
         """

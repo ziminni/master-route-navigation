@@ -66,17 +66,19 @@ class FileListView(QTableWidget):
         'folder': '\U0001F4C1',  # Keep as unicode for folder display
     }
     
-    def __init__(self, parent=None):
+    def __init__(self, user_role='student', parent=None):
         """
         Initialize file list view.
         
         Args:
+            user_role (str): User's primary role (admin, faculty, staff, student)
             parent: Parent widget (optional)
         """
         super().__init__(parent)
         self.documents = []  # Store current document list
         self.selected_ids = []  # Track selected document IDs
         self.custom_menu_items = []  # Store custom context menu items
+        self.user_role = user_role  # Store user role for permission checks
         self.init_ui()
     
     def set_custom_menu_items(self, items: list):
@@ -312,27 +314,30 @@ class FileListView(QTableWidget):
             download_action.triggered.connect(lambda: self.context_menu_action.emit('download', doc_id))
             menu.addAction(download_action)
             
-            menu.addSeparator()
+            # Students can ONLY open and download - no other actions
+            if self.user_role != 'student':
+                menu.addSeparator()
+                
+                move_action = QAction("Move to...", self)
+                move_action.triggered.connect(lambda: self.context_menu_action.emit('move', doc_id))
+                menu.addAction(move_action)
+                
+                rename_action = QAction("Rename", self)
+                rename_action.triggered.connect(lambda: self.context_menu_action.emit('rename', doc_id))
+                menu.addAction(rename_action)
+                
+                menu.addSeparator()
+                
+                delete_action = QAction("Move to Trash", self)
+                delete_action.triggered.connect(lambda: self.context_menu_action.emit('delete', doc_id))
+                menu.addAction(delete_action)
             
-            move_action = QAction("Move to...", self)
-            move_action.triggered.connect(lambda: self.context_menu_action.emit('move', doc_id))
-            menu.addAction(move_action)
-            
-            rename_action = QAction("Rename", self)
-            rename_action.triggered.connect(lambda: self.context_menu_action.emit('rename', doc_id))
-            menu.addAction(rename_action)
-            
+            # Always show details/info (read-only)
             menu.addSeparator()
             
             info_action = QAction("Details", self)
             info_action.triggered.connect(lambda: self.context_menu_action.emit('details', doc_id))
             menu.addAction(info_action)
-            
-            menu.addSeparator()
-            
-            delete_action = QAction("Move to Trash", self)
-            delete_action.triggered.connect(lambda: self.context_menu_action.emit('delete', doc_id))
-            menu.addAction(delete_action)
         
         # Add custom menu items
         if self.custom_menu_items:

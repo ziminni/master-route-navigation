@@ -6,5 +6,6 @@ This keeps the UI responsive while loading data.
 """
 
 from .api_worker import APIWorker
+from .download_worker import DownloadWorker
 
-__all__ = ['APIWorker']
+__all__ = ['APIWorker', 'DownloadWorker']

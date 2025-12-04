@@ -322,6 +322,13 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Check if file exists
+        if not document.file_path:
+            return Response(
+                {'error': 'Document file not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
         # Log download
         document.log_activity(
             action=ActivityLog.ActionTypes.DOCUMENT_DOWNLOAD,
@@ -332,9 +339,12 @@ class DocumentViewSet(viewsets.ModelViewSet):
         
         # Return file URL
         file_url = request.build_absolute_uri(document.file_path.url)
+        # Extract just the filename from the path
+        import os
+        filename = os.path.basename(document.file_path.name)
         return Response({
             'url': file_url,
-            'filename': document.file_path.name,
+            'filename': filename,
             'size': document.file_size,
             'mime_type': document.mime_type
         })

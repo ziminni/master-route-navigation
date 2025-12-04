@@ -421,13 +421,21 @@ class Document(ActivityTrackingMixin, models.Model):
         if user.role_type == 'admin':
             return True
         
-        # Check folder permissions first (inherited)
-        if self.folder and not self.folder.can_user_access(user, action):
-            return False
-        
         # Faculty can do everything with their own documents
         if user.role_type == 'faculty' and self.uploaded_by == user:
             return True
+        
+        # Check folder permissions for actions that modify structure (not view/download)
+        # For view and download, we need to check if user can at least view the folder
+        if self.folder:
+            if action in ['edit', 'delete', 'upload']:
+                # For modifying actions, check exact folder permission
+                if not self.folder.can_user_access(user, action):
+                    return False
+            else:
+                # For view/download, only require view access to folder
+                if not self.folder.can_user_access(user, 'view'):
+                    return False
         
         # Check document-specific permissions
         permission = self.permissions.filter(role=user.role_type).first()
@@ -436,10 +444,14 @@ class Document(ActivityTrackingMixin, models.Model):
                 return permission.can_view
             elif action == 'download':
                 return permission.can_download and self.can_be_downloaded
+            elif action == 'edit':
+                return permission.can_edit
+            elif action == 'delete':
+                return permission.can_delete
         
         # Default role-based permissions
         if user.role_type == 'student':
-            # Students can view and download (if approved)
+            # Students can ONLY view and download (if approved), nothing else
             if action in ['view', 'download']:
                 return self.can_be_downloaded
             return False
