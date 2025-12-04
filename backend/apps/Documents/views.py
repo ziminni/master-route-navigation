@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count, Prefetch
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import *
@@ -684,6 +685,152 @@ class DocumentViewSet(viewsets.ModelViewSet):
             'message': f"Document moved to {new_location}",
             'document': DocumentDetailSerializer(document, context={'request': request}).data
         })
+    
+    @action(detail=False, methods=['get'])
+    def analytics(self, request):
+        """Get document analytics and statistics (Admin only)"""
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Only administrators can access analytics'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        from django.db.models import Count, Sum, Q
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Calculate date ranges
+        now = timezone.now()
+        week_ago = now - timedelta(days=7)
+        
+        # Total documents
+        total_documents = Document.objects.filter(is_active=True, deleted_at__isnull=True).count()
+        
+        # Total storage usage
+        total_size = Document.objects.filter(
+            is_active=True, deleted_at__isnull=True
+        ).aggregate(
+            total=Sum('file_size')
+        )['total'] or 0
+        total_size_mb = total_size / (1024 * 1024)
+        
+        # Total users
+        User = get_user_model()
+        total_users = User.objects.filter(is_active=True).count()
+        
+        # Total downloads
+        total_downloads = Document.objects.filter(
+            is_active=True, deleted_at__isnull=True
+        ).aggregate(
+            total=Sum('download_count')
+        )['total'] or 0
+        
+        # Recent uploads (last 7 days)
+        recent_uploads = Document.objects.filter(
+            is_active=True,
+            deleted_at__isnull=True,
+            uploaded_at__gte=week_ago
+        ).count()
+        
+        # Active users (last 7 days)
+        active_users = ActivityLog.objects.filter(
+            created_at__gte=week_ago
+        ).values('user').distinct().count()
+        
+        # Category distribution
+        categories = Category.objects.annotate(
+            doc_count=Count(
+                'documents',
+                filter=Q(documents__is_active=True, documents__deleted_at__isnull=True)
+            ),
+            total_size=Sum(
+                'documents__file_size',
+                filter=Q(documents__is_active=True, documents__deleted_at__isnull=True)
+            )
+        ).filter(doc_count__gt=0).order_by('-doc_count')
+        
+        category_data = [
+            {
+                'name': cat.name,
+                'count': cat.doc_count,
+                'size_mb': (cat.total_size or 0) / (1024 * 1024)
+            }
+            for cat in categories
+        ]
+        
+        # Top documents by views
+        top_documents = Document.objects.filter(
+            is_active=True,
+            deleted_at__isnull=True
+        ).order_by('-view_count')[:10]
+        
+        top_docs_data = [
+            {
+                'id': doc.id,
+                'title': doc.title,
+                'views': doc.view_count,
+                'downloads': doc.download_count
+            }
+            for doc in top_documents
+        ]
+        
+        return Response({
+            'total_documents': total_documents,
+            'total_size_mb': round(total_size_mb, 2),
+            'total_users': total_users,
+            'total_downloads': total_downloads,
+            'recent_uploads': recent_uploads,
+            'active_users': active_users,
+            'categories': category_data,
+            'top_documents': top_docs_data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def user_activity(self, request):
+        """Get user activity logs (Admin only)"""
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Only administrators can access user activity'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get filter parameters
+        action_filter = request.query_params.get('action', None)
+        limit = int(request.query_params.get('limit', 100))
+        
+        # Query activity logs
+        queryset = ActivityLog.objects.select_related(
+            'user', 'content_type'
+        ).order_by('-created_at')
+        
+        # Apply action filter
+        if action_filter and action_filter != 'all':
+            queryset = queryset.filter(action__icontains=action_filter)
+        
+        # Limit results
+        activities = queryset[:limit]
+        
+        # Format response
+        activity_data = []
+        for act in activities:
+            # Get document title if content_object is a Document
+            document_title = '-'
+            if act.content_object and isinstance(act.content_object, Document):
+                document_title = act.content_object.title
+            
+            # Get IP address from metadata
+            ip_address = act.metadata.get('ip', '-') if act.metadata else '-'
+            
+            activity_data.append({
+                'timestamp': act.created_at.isoformat(),
+                'user_name': f"{act.user.first_name} {act.user.last_name}".strip() or act.user.username if act.user else 'System',
+                'action': act.get_action_display(),
+                'document_title': document_title,
+                'ip_address': ip_address,
+                'description': act.description
+            })
+        
+        return Response(activity_data)
 
 
 class DocumentApprovalViewSet(viewsets.ModelViewSet):

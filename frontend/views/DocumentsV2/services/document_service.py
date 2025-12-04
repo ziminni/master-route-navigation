@@ -610,3 +610,144 @@ class DocumentService(QObject):
             dict: {'success': bool, 'data': list of orphaned documents, 'error': str}
         """
         return self._make_request('GET', '/documents/orphaned/')
+    
+    # ==================== Analytics ====================
+    
+    def get_analytics(self) -> Dict[str, Any]:
+        """
+        Get document analytics and statistics (Admin only).
+        
+        Returns:
+            dict: {'success': bool, 'data': analytics data, 'error': str}
+                {
+                    'total_documents': int,
+                    'total_size_mb': float,
+                    'total_users': int,
+                    'total_downloads': int,
+                    'recent_uploads': int,
+                    'active_users': int,
+                    'categories': [...],
+                    'top_documents': [...]
+                }
+        """
+        return self._make_request('GET', '/documents/analytics/')
+    
+    def get_user_activity(self, action_filter: str = 'all', limit: int = 100) -> Dict[str, Any]:
+        """
+        Get user activity logs (Admin only).
+        
+        Args:
+            action_filter (str): Filter by action type ('all', 'upload', 'download', etc.)
+            limit (int): Maximum number of records to return
+            
+        Returns:
+            dict: {'success': bool, 'data': list of activity logs, 'error': str}
+        """
+        params = {
+            'action': action_filter,
+            'limit': limit
+        }
+        return self._make_request('GET', '/documents/user_activity/', params=params)
+    
+    # ==================== Bulk Operations ====================
+    
+    def bulk_delete(self, doc_ids: List[int]) -> Dict[str, Any]:
+        """
+        Bulk delete documents (move to trash).
+        
+        Args:
+            doc_ids (list): List of document IDs
+            
+        Returns:
+            dict: {'success': bool, 'data': {'deleted': int, 'failed': list}, 'error': str}
+        """
+        results = {'deleted': 0, 'failed': []}
+        
+        for doc_id in doc_ids:
+            result = self.delete_document(doc_id)
+            if result['success']:
+                results['deleted'] += 1
+            else:
+                results['failed'].append({'id': doc_id, 'error': result['error']})
+        
+        return {
+            'success': len(results['failed']) == 0,
+            'data': results,
+            'error': f"{len(results['failed'])} document(s) failed to delete" if results['failed'] else None
+        }
+    
+    def bulk_restore(self, doc_ids: List[int]) -> Dict[str, Any]:
+        """
+        Bulk restore documents from trash.
+        
+        Args:
+            doc_ids (list): List of document IDs
+            
+        Returns:
+            dict: {'success': bool, 'data': {'restored': int, 'failed': list}, 'error': str}
+        """
+        results = {'restored': 0, 'failed': []}
+        
+        for doc_id in doc_ids:
+            result = self.restore_document(doc_id)
+            if result['success']:
+                results['restored'] += 1
+            else:
+                results['failed'].append({'id': doc_id, 'error': result['error']})
+        
+        return {
+            'success': len(results['failed']) == 0,
+            'data': results,
+            'error': f"{len(results['failed'])} document(s) failed to restore" if results['failed'] else None
+        }
+    
+    def bulk_move(self, doc_ids: List[int], folder_id: int = None) -> Dict[str, Any]:
+        """
+        Bulk move documents to a folder.
+        
+        Args:
+            doc_ids (list): List of document IDs
+            folder_id (int): Destination folder ID (None for root)
+            
+        Returns:
+            dict: {'success': bool, 'data': {'moved': int, 'failed': list}, 'error': str}
+        """
+        results = {'moved': 0, 'failed': []}
+        
+        for doc_id in doc_ids:
+            result = self.move_document(doc_id, folder_id)
+            if result['success']:
+                results['moved'] += 1
+            else:
+                results['failed'].append({'id': doc_id, 'error': result['error']})
+        
+        return {
+            'success': len(results['failed']) == 0,
+            'data': results,
+            'error': f"{len(results['failed'])} document(s) failed to move" if results['failed'] else None
+        }
+    
+    def bulk_permanent_delete(self, doc_ids: List[int]) -> Dict[str, Any]:
+        """
+        Bulk permanently delete documents (Admin only).
+        
+        Args:
+            doc_ids (list): List of document IDs
+            
+        Returns:
+            dict: {'success': bool, 'data': {'deleted': int, 'failed': list}, 'error': str}
+        """
+        results = {'deleted': 0, 'failed': []}
+        
+        for doc_id in doc_ids:
+            result = self.permanent_delete_document(doc_id)
+            if result['success']:
+                results['deleted'] += 1
+            else:
+                results['failed'].append({'id': doc_id, 'error': result['error']})
+        
+        return {
+            'success': len(results['failed']) == 0,
+            'data': results,
+            'error': f"{len(results['failed'])} document(s) failed to permanently delete" if results['failed'] else None
+        }

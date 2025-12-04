@@ -11,12 +11,12 @@ Provides full CRUD operations plus:
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, 
-    QLabel, QMessageBox, QPushButton
+    QLabel, QMessageBox, QPushButton, QStackedWidget
 )
 from PyQt6.QtCore import Qt
 
 from ..DocumentsV2 import DocumentsV2View
-from ..widgets import Sidebar
+from ..widgets import Sidebar, AnalyticsWidget, UserActivityWidget, BulkOperationsWidget
 from ..services import DocumentService
 
 
@@ -44,9 +44,15 @@ class AdminDocumentView(DocumentsV2View):
         self.cache['all_documents'] = {'data': None, 'timestamp': None}
         self.cache['analytics'] = {'data': None, 'timestamp': None}
         
+        # Create admin widgets
+        self.analytics_widget = None
+        self.activity_widget = None
+        self.bulk_ops_widget = None
+        
         # Add admin-specific features
         self._add_admin_tools()
         self._setup_admin_context_menu()
+        self._init_admin_widgets()
     
     def _add_admin_tools(self):
         """Add admin tools section to sidebar."""
@@ -96,6 +102,18 @@ class AdminDocumentView(DocumentsV2View):
         btn_analytics.setStyleSheet(self._get_admin_button_style())
         btn_analytics.clicked.connect(lambda: self._handle_navigation_change('analytics', None))
         admin_layout.addWidget(btn_analytics)
+        
+        # User Activity button
+        btn_activity = QPushButton("User Activity")
+        btn_activity.setStyleSheet(self._get_admin_button_style())
+        btn_activity.clicked.connect(lambda: self._handle_navigation_change('activity', None))
+        admin_layout.addWidget(btn_activity)
+        
+        # Bulk Operations button
+        btn_bulk = QPushButton("Bulk Operations")
+        btn_bulk.setStyleSheet(self._get_admin_button_style())
+        btn_bulk.clicked.connect(lambda: self._handle_navigation_change('bulk_ops', None))
+        admin_layout.addWidget(btn_bulk)
         
         # Add separator
         admin_layout.addSpacing(10)
@@ -159,9 +177,77 @@ class AdminDocumentView(DocumentsV2View):
         elif nav_type == 'analytics':
             self._show_analytics()
             return
+        elif nav_type == 'activity':
+            self._show_user_activity()
+            return
+        elif nav_type == 'bulk_ops':
+            self._show_bulk_operations()
+            return
         
         # Fall back to parent navigation
         super()._handle_navigation_change(nav_type, item_id)
+    
+    def _init_admin_widgets(self):
+        """Initialize admin-specific widgets."""
+        if self.analytics_widget is None:
+            # Analytics widget
+            self.analytics_widget = AnalyticsWidget()
+            self.analytics_widget.refresh_requested.connect(self._show_analytics)
+            self.content_stack.addWidget(self.analytics_widget)
+            
+            # User activity widget
+            self.activity_widget = UserActivityWidget()
+            self.activity_widget.refresh_requested.connect(self._show_user_activity)
+            self.activity_widget.filter_changed.connect(self._on_activity_filter_changed)
+            self.content_stack.addWidget(self.activity_widget)
+            
+            # Bulk operations widget
+            self.bulk_ops_widget = BulkOperationsWidget()
+            self.bulk_ops_widget.bulk_operation_requested.connect(self._handle_bulk_operation)
+            self.content_stack.addWidget(self.bulk_ops_widget)
+            
+            # Connect file list selection to bulk ops
+            self.file_list.selection_changed.connect(self.bulk_ops_widget.update_selection_count)
+    
+    def _show_user_activity(self):
+        """Show user activity monitoring."""
+        if not self.activity_widget:
+            self._init_admin_widgets()
+        
+        self.content_stack.setCurrentWidget(self.activity_widget)
+        self.activity_widget.show_loading()
+        
+        # Load activity data
+        result = self.document_service.get_user_activity()
+        if result['success']:
+            self.activity_widget.update_activity(result['data'])
+        else:
+            self.activity_widget.show_error(result['error'])
+    
+    def _on_activity_filter_changed(self, action_filter: str):
+        """Handle activity filter change."""
+        result = self.document_service.get_user_activity(action_filter=action_filter)
+        if result['success']:
+            self.activity_widget.update_activity(result['data'])
+        else:
+            self.activity_widget.show_error(result['error'])
+    
+    def _show_bulk_operations(self):
+        """Show bulk operations panel."""
+        if not self.bulk_ops_widget:
+            self._init_admin_widgets()
+        
+        self.content_stack.setCurrentWidget(self.bulk_ops_widget)
+    
+    def _handle_bulk_operation(self, operation_type: str, params: dict):
+        """Handle bulk operation request from bulk ops widget."""
+        selected_ids = self.file_list.get_selected_ids()
+        
+        if not selected_ids:
+            QMessageBox.warning(self, "No Selection", "No documents selected")
+            return
+        
+        self._execute_bulk_operation(operation_type, selected_ids, params)
     
     def _show_approvals_view(self):
         """Show pending approvals for admin review."""
@@ -303,33 +389,51 @@ class AdminDocumentView(DocumentsV2View):
     
     def _show_analytics(self):
         """Show system analytics dashboard."""
-        QMessageBox.information(
-            self,
-            "Analytics",
-            "System analytics dashboard will be implemented.\n\n"
-            "Metrics:\n"
-            "- Total documents/storage\n"
-            "- Downloads by category\n"
-            "- Most active users\n"
-            "- Approval statistics"
-        )
+        if not self.analytics_widget:
+            self._init_admin_widgets()
+        
+        # Switch to analytics widget
+        self.content_stack.setCurrentWidget(self.analytics_widget)
+        self.analytics_widget.show_loading()
+        
+        # Load analytics data
+        result = self.document_service.get_analytics()
+        if result['success']:
+            self.analytics_widget.update_analytics(result['data'])
+        else:
+            self.analytics_widget.show_error(result['error'])
     
     def _handle_context_menu_action(self, action: str, item_id: int):
         """
-        Override context menu handler to add admin actions.
+        Override context menu handler to support bulk operations and admin actions.
         
         Args:
             action (str): Action name
             item_id (int): Document or folder ID
         """
-        # Admin-specific actions
+        # Check if multiple items are selected for bulk operations
+        selected_ids = self.file_list.get_selected_ids()
+        
+        # Bulk operations for multi-selection
+        if len(selected_ids) > 1 and action in ['delete', 'restore', 'move', 'delete_permanent']:
+            if action == 'delete':
+                self._execute_bulk_operation('delete', selected_ids)
+            elif action == 'restore':
+                self._execute_bulk_operation('restore', selected_ids)
+            elif action == 'move':
+                self._bulk_move_documents(selected_ids)
+            elif action == 'delete_permanent':
+                self._execute_bulk_operation('permanent_delete', selected_ids)
+            return
+        
+        # Admin-specific single-item actions
         if action == 'approve':
             self._approve_document(item_id)
             return
         elif action == 'reject':
             self._reject_document(item_id)
             return
-        elif action == 'permanent_delete':
+        elif action == 'delete_permanent':
             self._permanent_delete_document(item_id)
             return
         elif action == 'transfer_ownership':
@@ -461,3 +565,144 @@ class AdminDocumentView(DocumentsV2View):
         # Show success message
         category_name = category_data.get('name', 'New category')
         self.set_status(f"Category '{category_name}' created successfully")
+    
+    def _execute_bulk_operation(self, operation_type: str, doc_ids: list, params: dict = None):
+        """
+        Execute bulk operation on multiple documents.
+        
+        Args:
+            operation_type (str): Operation type ('delete', 'restore', 'move', 'permanent_delete')
+            doc_ids (list): List of document IDs
+            params (dict): Additional parameters for the operation
+        """
+        if not doc_ids:
+            return
+        
+        params = params or {}
+        count = len(doc_ids)
+        
+        # Confirm dangerous operations
+        if operation_type == 'delete':
+            reply = QMessageBox.question(
+                self,
+                "Confirm Bulk Delete",
+                f"Move {count} document(s) to trash?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+            
+            self.set_status(f"Deleting {count} document(s)...")
+            result = self.document_service.bulk_delete(doc_ids)
+            
+        elif operation_type == 'restore':
+            self.set_status(f"Restoring {count} document(s)...")
+            result = self.document_service.bulk_restore(doc_ids)
+            
+        elif operation_type == 'move':
+            folder_id = params.get('folder_id')
+            folder_name = params.get('folder_name', 'selected folder')
+            
+            reply = QMessageBox.question(
+                self,
+                "Confirm Bulk Move",
+                f"Move {count} document(s) to '{folder_name}'?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+            
+            self.set_status(f"Moving {count} document(s)...")
+            result = self.document_service.bulk_move(doc_ids, folder_id)
+            
+        elif operation_type == 'permanent_delete':
+            reply = QMessageBox.warning(
+                self,
+                "Confirm Permanent Delete",
+                f"PERMANENTLY delete {count} document(s)?\n\n"
+                "This action CANNOT be undone!",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+            
+            self.set_status(f"Permanently deleting {count} document(s)...")
+            result = self.document_service.bulk_permanent_delete(doc_ids)
+            
+        else:
+            QMessageBox.warning(self, "Unknown Operation", f"Unknown operation: {operation_type}")
+            return
+        
+        # Handle result
+        if result['success']:
+            data = result['data']
+            if operation_type == 'delete':
+                QMessageBox.information(
+                    self, "Success", 
+                    f"Successfully deleted {data['deleted']} document(s)"
+                )
+            elif operation_type == 'restore':
+                QMessageBox.information(
+                    self, "Success",
+                    f"Successfully restored {data['restored']} document(s)"
+                )
+            elif operation_type == 'move':
+                QMessageBox.information(
+                    self, "Success",
+                    f"Successfully moved {data['moved']} document(s)"
+                )
+            elif operation_type == 'permanent_delete':
+                QMessageBox.information(
+                    self, "Success",
+                    f"Successfully permanently deleted {data['deleted']} document(s)"
+                )
+            
+            # Clear selection
+            self.file_list.clear_selection()
+            
+            # Invalidate caches and refresh
+            self.invalidate_cache('documents')
+            self.invalidate_cache('all_documents')
+            self.invalidate_cache('trash')
+            self.load_documents(force_refresh=True)
+            
+        else:
+            data = result.get('data', {})
+            failed = data.get('failed', [])
+            error_msg = result.get('error', 'Unknown error')
+            
+            if failed:
+                failed_ids = [str(f['id']) for f in failed[:5]]
+                error_details = ', '.join(failed_ids)
+                if len(failed) > 5:
+                    error_details += f', ... ({len(failed) - 5} more)'
+                
+                QMessageBox.warning(
+                    self, "Partial Failure",
+                    f"{error_msg}\n\nFailed IDs: {error_details}"
+                )
+            else:
+                self.show_error("Bulk Operation Failed", error_msg)
+    
+    def _bulk_move_documents(self, doc_ids: list):
+        """Show folder selection dialog and move multiple documents."""
+        from ..dialogs import MoveFolderDialog
+        
+        dialog = MoveFolderDialog(
+            self.folders,
+            self.categories,
+            self.document_service,
+            self
+        )
+        
+        if dialog.exec():
+            folder_id = dialog.get_selected_folder()
+            folder_name = dialog.get_selected_folder_name()
+            
+            self._execute_bulk_operation('move', doc_ids, {
+                'folder_id': folder_id,
+                'folder_name': folder_name or 'Root'
+            })

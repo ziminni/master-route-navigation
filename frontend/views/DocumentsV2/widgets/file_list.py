@@ -271,12 +271,29 @@ class FileListView(QTableWidget):
         is_folder = doc_data.get('folder') is True
         is_deleted = doc_data.get('deleted_at') is not None
         
+        # Check if multiple items are selected
+        selected_count = len(self.selected_ids)
+        is_multi_select = selected_count > 1
+        
         # Create context menu
         menu = QMenu(self)
         
+        # Add bulk operation header if multiple items selected
+        if is_multi_select:
+            header_action = QAction(f"{selected_count} items selected", self)
+            header_action.setEnabled(False)
+            font = header_action.font()
+            font.setBold(True)
+            header_action.setFont(font)
+            menu.addAction(header_action)
+            menu.addSeparator()
+        
         if is_deleted:
             # Menu for trash items
-            restore_action = QAction("↩️ Restore", self)
+            if is_multi_select:
+                restore_action = QAction(f"Restore {selected_count} items", self)
+            else:
+                restore_action = QAction("↩️ Restore", self)
             restore_action.triggered.connect(lambda: self.context_menu_action.emit('restore', doc_id))
             menu.addAction(restore_action)
             
@@ -284,7 +301,10 @@ class FileListView(QTableWidget):
             if self.user_role == 'admin':
                 menu.addSeparator()
                 
-                delete_action = QAction("Delete Permanently", self)
+                if is_multi_select:
+                    delete_action = QAction(f"Permanently Delete {selected_count} items", self)
+                else:
+                    delete_action = QAction("Delete Permanently", self)
                 delete_action.triggered.connect(lambda: self.context_menu_action.emit('delete_permanent', doc_id))
                 menu.addAction(delete_action)
         
@@ -320,17 +340,25 @@ class FileListView(QTableWidget):
             if self.user_role != 'student':
                 menu.addSeparator()
                 
-                move_action = QAction("Move to...", self)
+                if is_multi_select:
+                    move_action = QAction(f"Move {selected_count} items to...", self)
+                else:
+                    move_action = QAction("Move to...", self)
                 move_action.triggered.connect(lambda: self.context_menu_action.emit('move', doc_id))
                 menu.addAction(move_action)
                 
-                rename_action = QAction("Rename", self)
-                rename_action.triggered.connect(lambda: self.context_menu_action.emit('rename', doc_id))
-                menu.addAction(rename_action)
+                # Only show rename for single selection
+                if not is_multi_select:
+                    rename_action = QAction("Rename", self)
+                    rename_action.triggered.connect(lambda: self.context_menu_action.emit('rename', doc_id))
+                    menu.addAction(rename_action)
                 
                 menu.addSeparator()
                 
-                delete_action = QAction("Move to Trash", self)
+                if is_multi_select:
+                    delete_action = QAction(f"Move {selected_count} items to Trash", self)
+                else:
+                    delete_action = QAction("Move to Trash", self)
                 delete_action.triggered.connect(lambda: self.context_menu_action.emit('delete', doc_id))
                 menu.addAction(delete_action)
             
