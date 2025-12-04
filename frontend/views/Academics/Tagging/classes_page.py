@@ -26,6 +26,9 @@ class ClassesPage(QWidget):
 
         self.model = ClassesTableModel()
         self.controller.set_model(self.model)
+        
+        # Connect to unarchive signal to refresh when a class is unarchived
+        self.controller.class_unarchived.connect(self.on_class_unarchived)
 
         self.init_ui()
         self.controller.load_classes()
@@ -84,6 +87,24 @@ class ClassesPage(QWidget):
             }
         """)
         header_layout.addWidget(self.add_btn)
+
+        # Archive All button
+        self.archive_btn = QPushButton("Archive All")
+        self.archive_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                padding: 8px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 13px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
+        header_layout.addWidget(self.archive_btn)
         layout.addLayout(header_layout)
         
         # Table
@@ -187,6 +208,7 @@ class ClassesPage(QWidget):
         Connect page signals to its appropriate slots.
         """
         self.add_btn.clicked.connect(self.handle_add)
+        self.archive_btn.clicked.connect(self.handle_archive_all)
 
         # Connect model signals to refresh action buttons
         self.model.rowsInserted.connect(self._on_rows_changed)
@@ -200,7 +222,7 @@ class ClassesPage(QWidget):
             row: Row index to create buttons for
 
         Returns:
-            QWidget containing edit and delete buttons
+            QWidget containing edit, delete, and archive buttons
         """
         button_widget = QWidget()
         button_layout = QHBoxLayout(button_widget)
@@ -243,8 +265,27 @@ class ClassesPage(QWidget):
         """)
         delete_btn.clicked.connect(lambda checked, btn=delete_btn: self._handle_delete_clicked(btn))
 
+        # Archive button
+        archive_btn = QPushButton("Archive")
+        archive_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 12px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
+        archive_btn.clicked.connect(lambda checked, btn=archive_btn: self._handle_archive_clicked(btn))
+
         button_layout.addWidget(edit_btn)
         button_layout.addWidget(delete_btn)
+        button_layout.addWidget(archive_btn)
         button_layout.addStretch()
 
         return button_widget
@@ -279,6 +320,21 @@ class ClassesPage(QWidget):
                 self.handle_delete(row)
                 return
 
+    def _handle_archive_clicked(self, button: QPushButton) -> None:
+        """
+        Handle archive button click by finding the row from the button's position.
+
+        Args:
+            button: The archive button that was clicked
+        """
+        # Find which row this button belongs to
+        for row in range(self.model.rowCount()):
+            index = self.model.index(row, 9)
+            widget = self.table.indexWidget(index)
+            if widget and button in widget.findChildren(QPushButton):
+                self.handle_archive(row)
+                return
+
     def _on_rows_changed(self):
         """
         Called when rows are inserted into the model.
@@ -293,6 +349,15 @@ class ClassesPage(QWidget):
         for row in range(self.model.rowCount()):
             button_widget = self._create_action_buttons(row)
             self.table.setIndexWidget(self.model.index(row, 9), button_widget)
+    
+    def on_class_unarchived(self, class_data):
+        """
+        Called when a class is unarchived from the archived classes page.
+        Refreshes the view to show the unarchived class.
+        """
+        logger.info(f"[ClassesPage] Class unarchived, refreshing view")
+        self.controller.load_classes()
+        self._refresh_all_buttons()
 
     # =========================================================================
     # CRUD OPERATIONS
@@ -483,4 +548,86 @@ class ClassesPage(QWidget):
         """
         button_widget = self._create_action_buttons(row)
         self.table.setIndexWidget(self.model.index(row, 9), button_widget)
+
+    def handle_archive(self, row: int) -> None:
+        """
+        Handle archive button click for a specific row.
+
+        Args:
+            row: Row index in the table
+        """
+        try:
+            from PyQt6.QtWidgets import QMessageBox
+
+            class_id = self.model.get_class_id(row)
+            class_data = self.controller.get_class_by_id(class_id)
+
+            if not class_data:
+                logger.error(f"Class data not found for row {row}")
+                return
+
+            # Confirmation dialog
+            reply = QMessageBox.question(
+                self,
+                "Confirm Archive",
+                f"Are you sure you want to archive class '{class_data['code']} - {class_data['title']}'?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.Yes:
+                success = self.controller.handle_archive_class(class_id)
+
+                if success:
+                    QMessageBox.information(
+                        self,
+                        "Success",
+                        "Class archived successfully!",
+                        QMessageBox.StandardButton.Ok
+                    )
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Archive Failed",
+                        "Failed to archive the class."
+                    )
+
+        except Exception as e:
+            logger.exception(f"Error archiving class at row {row}: {e}")
+
+    def handle_archive_all(self) -> None:
+        """
+        Handle archive all button click.
+        """
+        try:
+            from PyQt6.QtWidgets import QMessageBox
+
+            # Confirmation dialog
+            reply = QMessageBox.question(
+                self,
+                "Confirm Archive All",
+                "Are you sure you want to archive all classes?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.Yes:
+                success = self.controller.handle_archive_all_classes()
+
+                if success:
+                    QMessageBox.information(
+                        self,
+                        "Success",
+                        "All classes archived successfully!",
+                        QMessageBox.StandardButton.Ok
+                    )
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Archive Failed",
+                        "Failed to archive all classes."
+                    )
+
+        except Exception as e:
+            logger.exception(f"Error archiving all classes: {e}")
 

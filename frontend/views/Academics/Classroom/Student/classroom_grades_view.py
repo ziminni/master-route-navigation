@@ -1,6 +1,6 @@
 """
 Student Grades View - Read-only view showing student's own grades
-UPDATED: Shows only uploaded grades with proper expandable components
+UPDATED: Shows only published grades, integrated with enrollment service
 """
 
 import os
@@ -24,6 +24,12 @@ except ImportError:
     # Fallback for development
     from Main_Module2.frontend.services.Academics.model import GradeDataModel
     from .....controller.Academics.Classroom.grade_controller import GradeController
+
+# Import enrollment service to check if student is enrolled
+try:
+    from frontend.services.Academics.Classroom.enrollment_service import EnrollmentService
+except ImportError:
+    EnrollmentService = None
 
 
 class ExpandableGradeRow(QWidget):
@@ -168,6 +174,9 @@ class StudentGradesView(QWidget):
         self.grade_model = GradeDataModel(class_id=class_id)
         self.grade_controller = GradeController(self.grade_model)
         
+        # Initialize enrollment service
+        self.enrollment_service = EnrollmentService() if EnrollmentService else None
+        
         # Set current user context
         self.grade_model.set_current_user(username, {'roles': roles, 'primary_role': primary_role})
         
@@ -180,14 +189,23 @@ class StudentGradesView(QWidget):
     def load_student_data(self):
         """
         Flexible data loading for student view
-        1. Try Django API (if available)
-        2. Try JSON file
-        3. Use sample data
+        1. Try enrollment service (backend)
+        2. Try Django API (if available)
+        3. Try JSON file
+        4. Use sample data
         """
         print(f"[STUDENT GRADES] Loading data for username: {self.username}")
         
+        # First check if student is enrolled in this class
+        if self._check_enrollment():
+            print("[STUDENT GRADES] Student is enrolled in this class")
+        else:
+            print("[STUDENT GRADES] Student enrollment status unknown or not enrolled")
+        
         # Try different loading strategies
-        if self.token and self._try_load_from_api():
+        if self._try_load_from_enrollment():
+            print("[STUDENT GRADES] Loaded from enrollment service")
+        elif self.token and self._try_load_from_api():
             print("[STUDENT GRADES] Loaded from Django API")
         elif self._try_load_from_json():
             print("[STUDENT GRADES] Loaded from JSON file")
@@ -197,6 +215,39 @@ class StudentGradesView(QWidget):
         
         # Now load the grades
         self.load_student_grades()
+    
+    def _check_enrollment(self):
+        """Check if current student is enrolled in this class"""
+        if not self.enrollment_service:
+            return False
+        
+        try:
+            class_id = self.cls.get('id', 1)
+            # Get student's institutional ID if possible
+            student_id = self._get_student_id_from_username()
+            if student_id:
+                return self.enrollment_service.is_student_enrolled(class_id, student_id)
+        except Exception as e:
+            print(f"[STUDENT GRADES] Enrollment check failed: {e}")
+        
+        return False
+    
+    def _get_student_id_from_username(self):
+        """Get student ID from username"""
+        # First check if we can find from model
+        student = self.grade_model.get_student_by_username(self.username)
+        if student:
+            return student.get('id')
+        return None
+    
+    def _try_load_from_enrollment(self):
+        """Try to load from enrollment service"""
+        try:
+            if self.grade_model.load_students_from_enrollment():
+                return len(self.grade_model.students) > 0
+        except Exception as e:
+            print(f"[STUDENT GRADES] Enrollment load failed: {e}")
+        return False
     
     def _try_load_from_api(self):
         """Try to load from Django API"""
@@ -425,7 +476,7 @@ class StudentGradesView(QWidget):
         
         for comp_name in self.grade_model.get_rubric_components(term_key):
             type_key = self.grade_model.get_component_type_key(comp_name, term)
-            sub_items = self.grade_model.get_component_items_with_scores(type_key)
+            sub_items = self.grade_model.get_component_items_with_scores(type_key, term=term, component_name=comp_name)
             
             # Calculate component average from ALL grades (for display)
             total_score = 0

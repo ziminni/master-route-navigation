@@ -3,6 +3,8 @@ from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QVBoxLayo
 from PyQt6.QtGui import QAction, QPixmap
 from PyQt6.QtCore import Qt, pyqtSignal
 import os
+import json
+from datetime import datetime
 from view_materials import ViewMaterial
 from view_assessment import ViewAssessment
 
@@ -241,6 +243,11 @@ class TopicWidget(QWidget):
             topic_frame.post_clicked.connect(self.parent_content.open_post_details)
 
 class ClassroomClassworksContent(QWidget):
+    # Signals for navigation to forms
+    navigate_to_material_form = pyqtSignal()
+    navigate_to_assessment_form = pyqtSignal()
+    navigate_to_topic_form = pyqtSignal()
+    
     def __init__(self, class_data, user_role):
         super().__init__()
         self.class_data = class_data
@@ -326,35 +333,27 @@ class ClassroomClassworksContent(QWidget):
         menu.exec(button_pos)
 
     def create_material(self):
-        """Handle create material (placeholder)"""
-        print("Creating Material")
+        """Handle create material - emit signal to navigate to form"""
+        print("[CLASSWORKS] Navigating to Material form")
+        self.navigate_to_material_form.emit()
 
     def create_assessment(self):
-        """Handle create assessment (placeholder)"""
-        print("Creating Assessment")
+        """Handle create assessment - emit signal to navigate to form"""
+        print("[CLASSWORKS] Navigating to Assessment form")
+        self.navigate_to_assessment_form.emit()
 
     def create_topic(self):
-        """Handle create topic (placeholder)"""
-        print("Creating Topic")
+        """Handle create topic - emit signal to navigate to form"""
+        print("[CLASSWORKS] Navigating to Topic form")
+        self.navigate_to_topic_form.emit()
 
     def populate_data(self):
-        """Populate with hardcoded data and add multiple topics with items"""
+        """Populate with posts from classroom_data.json"""
         if not self.topicScrollArea:
             return
         
-        # Hardcoded posts, including untitled ones
-        untitled_posts = [
-            (":/icons/document.svg", "Desktop Project Guidelines", "Posted Aug 18")
-        ]
-        topics_data = [
-            ("Lecture: Topic 1", [
-                (":/icons/document.svg", "Chapter 2: Basics", "Posted Aug 25")
-            ]),
-            ("Lecture: Topic 2", [
-                (":/icons/document.svg", "Chapter 3: Advanced Concepts", "Posted Sep 1"),
-                (":/icons/document.svg", "Midterm Exam", "Posted Sep 8")
-            ])
-        ]
+        # Load data from JSON
+        posts_data, topics_data = self._load_classwork_data()
 
         # Get the layout for adding topics (topicListLayout in topicScrollArea widget)
         scroll_widget = self.topicScrollArea.widget()
@@ -369,6 +368,9 @@ class ClassroomClassworksContent(QWidget):
                         if widget:
                             topic_layout.removeWidget(widget)
                             widget.deleteLater()
+                
+                self.untitled_frames = []
+                self.topic_widgets = []
 
                 # Populate filter combo box
                 if self.filterComboBox:
@@ -376,19 +378,60 @@ class ClassroomClassworksContent(QWidget):
                     self.filterComboBox.addItem("All")
                     self.filterComboBox.addItem("Materials")
                     self.filterComboBox.addItem("Assessments")
-                    for topic_title, _ in topics_data:
-                        self.filterComboBox.addItem(topic_title)
+                    for topic in topics_data:
+                        self.filterComboBox.addItem(topic.get("title", "Untitled"))
+
+                # Group posts by topic
+                topic_posts = {}  # topic_id -> list of posts
+                untitled_posts = []
+                
+                for post in posts_data:
+                    topic_id = post.get("topic_id")
+                    if topic_id is None:
+                        untitled_posts.append(post)
+                    else:
+                        if topic_id not in topic_posts:
+                            topic_posts[topic_id] = []
+                        topic_posts[topic_id].append(post)
 
                 # Add untitled posts as standalone frames at the top
-                for item_data in untitled_posts:
+                for post in untitled_posts:
+                    item_data = (
+                        ":/icons/document.svg",
+                        post.get("title", "Untitled"),
+                        f"Posted {self._format_date(post.get('date', ''))}"
+                    )
                     topic_frame = TopicFrame(item_data)
+                    topic_frame.post_data = post  # Store full post data
+                    topic_frame.post_type = post.get("type", "material")
                     self.untitled_frames.append(topic_frame)
                     topic_layout.addWidget(topic_frame)
                     topic_frame.post_clicked.connect(self.open_post_details)
 
                 # Add topic-based posts
-                for topic_title, items_data in topics_data:
+                for topic in topics_data:
+                    topic_id = topic.get("id")
+                    topic_title = topic.get("title", "Untitled")
+                    
+                    # Get posts for this topic
+                    items = topic_posts.get(topic_id, [])
+                    if not items:
+                        continue  # Skip empty topics
+                    
+                    items_data = []
+                    for post in items:
+                        items_data.append((
+                            ":/icons/document.svg",
+                            post.get("title", "Untitled"),
+                            f"Posted {self._format_date(post.get('date', ''))}"
+                        ))
+                    
                     topic_widget = TopicWidget(topic_title, items_data, self)
+                    # Store post types for filtering
+                    for i, frame in enumerate(topic_widget.frames):
+                        if i < len(items):
+                            frame.post_data = items[i]
+                            frame.post_type = items[i].get("type", "material")
                     self.topic_widgets.append(topic_widget)
                     topic_layout.addWidget(topic_widget)
 
@@ -396,6 +439,54 @@ class ClassroomClassworksContent(QWidget):
                 spacer = QWidget()
                 spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
                 topic_layout.addWidget(spacer)
+    
+    def _load_classwork_data(self):
+        """Load posts and topics from classroom_data.json"""
+        try:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            data_file = os.path.join(current_dir, '../../../../services/Academics/data/classroom_data.json')
+            data_file = os.path.normpath(data_file)
+            
+            with open(data_file, 'r') as f:
+                data = json.load(f)
+            
+            class_id = self.class_data.get("id", 1)
+            
+            # Filter posts for this class
+            all_posts = data.get("posts", [])
+            class_posts = [p for p in all_posts if p.get("class_id") == class_id]
+            
+            # Sort by date (newest first)
+            class_posts.sort(key=lambda x: x.get("date", ""), reverse=True)
+            
+            # Filter topics for this class
+            all_topics = data.get("topics", [])
+            class_topics = [t for t in all_topics if t.get("class_id") == class_id]
+            
+            return class_posts, class_topics
+            
+        except Exception as e:
+            print(f"[CLASSWORKS] Error loading data: {e}")
+            return [], []
+    
+    def _format_date(self, date_str):
+        """Format date string for display"""
+        if not date_str:
+            return ""
+        try:
+            for fmt in ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]:
+                try:
+                    dt = datetime.strptime(date_str.split('.')[0], fmt)
+                    return dt.strftime("%b %d")
+                except ValueError:
+                    continue
+            return date_str
+        except:
+            return date_str
+    
+    def refresh_data(self):
+        """Refresh the classwork data from JSON"""
+        self.populate_data()
 
     def filter_posts(self, filter_text):
         """Filter posts based on the selected combo box item"""
@@ -415,20 +506,24 @@ class ClassroomClassworksContent(QWidget):
             pass  # All are already visible
         elif filter_text == "Materials":
             for frame in self.untitled_frames:
-                frame.setVisible("material" in self.get_post_type(frame.title))
+                post_type = getattr(frame, 'post_type', 'material')
+                frame.setVisible(post_type == "material")
             for widget in self.topic_widgets:
-                has_materials = any("material" in self.get_post_type(frame.title) for frame in widget.frames)
+                has_materials = any(getattr(frame, 'post_type', 'material') == "material" for frame in widget.frames)
                 widget.setVisible(has_materials)
                 for frame in widget.frames:
-                    frame.setVisible("material" in self.get_post_type(frame.title))
+                    post_type = getattr(frame, 'post_type', 'material')
+                    frame.setVisible(post_type == "material")
         elif filter_text == "Assessments":
             for frame in self.untitled_frames:
-                frame.setVisible("assessment" in self.get_post_type(frame.title))
+                post_type = getattr(frame, 'post_type', 'material')
+                frame.setVisible(post_type == "assessment")
             for widget in self.topic_widgets:
-                has_assessments = any("assessment" in self.get_post_type(frame.title) for frame in widget.frames)
+                has_assessments = any(getattr(frame, 'post_type', 'material') == "assessment" for frame in widget.frames)
                 widget.setVisible(has_assessments)
                 for frame in widget.frames:
-                    frame.setVisible("assessment" in self.get_post_type(frame.title))
+                    post_type = getattr(frame, 'post_type', 'material')
+                    frame.setVisible(post_type == "assessment")
         else:  # Topic filter
             for frame in self.untitled_frames:
                 frame.setVisible(False)
@@ -437,10 +532,6 @@ class ClassroomClassworksContent(QWidget):
                 if widget.isVisible():
                     for frame in widget.frames:
                         frame.setVisible(True)
-
-    def get_post_type(self, title):
-        """Determine post type based on title"""
-        return "material" if "Guidelines" in title or "Chapter" in title else "assessment"
 
     def open_post_details(self, post_data):
         """Switch to the appropriate page in the stacked widget with post details"""

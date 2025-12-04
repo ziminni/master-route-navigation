@@ -386,21 +386,74 @@ class GradeInputDelegate(QStyledItemDelegate):
         self.option_widgets = {}
     
     def paint(self, painter, option, index):
-        """Custom paint to show cell with options button"""
-        super().paint(painter, option, index)
+        """Custom paint to show cell with score/max format"""
+        # Get column info to access max_score
+        col_info = index.data(GradesTableModel.ColumnInfoRole)
+        max_score = col_info.get('max_score', 100) if col_info else 100
+        
+        # Get the current value
+        value = index.data(Qt.ItemDataRole.DisplayRole)
+        
+        # Draw background
+        painter.save()
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        else:
+            bg = index.data(Qt.ItemDataRole.BackgroundRole)
+            if bg:
+                painter.fillRect(option.rect, bg)
+        
+        # Draw the value with /max format
+        painter.setPen(QColor("#000000"))
+        text_rect = option.rect.adjusted(4, 0, -4, 0)
+        
+        if value:
+            # If value already has format like "50/100", use it
+            display_text = str(value)
+        else:
+            # Show just the max score placeholder
+            display_text = f"__/{max_score}"
+            painter.setPen(QColor("#999999"))  # Gray for placeholder
+        
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter, display_text)
+        painter.restore()
     
     def createEditor(self, parent, option, index):
         editor = QLineEdit(parent)
-        editor.setPlaceholderText("e.g., 35/40")
+        # Get max score from column info
+        col_info = index.data(GradesTableModel.ColumnInfoRole)
+        max_score = col_info.get('max_score', 100) if col_info else 100
+        editor.setPlaceholderText(f"Score/{max_score}")
         editor.setAlignment(Qt.AlignmentFlag.AlignCenter)
         return editor
     
     def setEditorData(self, editor, index):
         value = index.data(Qt.ItemDataRole.EditRole)
-        editor.setText(str(value) if value else "")
+        if value:
+            # If value contains "/", extract just the score part for editing
+            if '/' in str(value):
+                score_part = str(value).split('/')[0]
+                editor.setText(score_part)
+            else:
+                editor.setText(str(value))
+        else:
+            editor.setText("")
     
     def setModelData(self, editor, model, index):
-        value = editor.text()
+        value = editor.text().strip()
+        # Get max score from column info
+        col_info = index.data(GradesTableModel.ColumnInfoRole)
+        max_score = col_info.get('max_score', 100) if col_info else 100
+        
+        if value:
+            # If user entered just a number, append /max_score
+            if '/' not in value:
+                try:
+                    score = float(value)
+                    value = f"{score}/{max_score}"
+                except ValueError:
+                    pass  # Keep original value if not a number
+        
         model.setData(index, value, Qt.ItemDataRole.EditRole)
 
 

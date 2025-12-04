@@ -1,0 +1,13 @@
+{
+    "enrollments": [
+        {
+            "id": 1,
+            "class_id": 1,
+            "student_id": "456456456",
+            "enrolled_at": "2025-12-03T00:00:00",
+            "enrolled_by": "admin"
+        }
+    ],
+    "last_id": 1,
+    "last_updated": "2025-12-03T00:00:00"
+}
