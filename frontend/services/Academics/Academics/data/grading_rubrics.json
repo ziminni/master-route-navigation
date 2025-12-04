@@ -1,0 +1,73 @@
+{
+    "rubrics": [
+        {
+            "id": 1,
+            "class_id": 1,
+            "academic_period": "midterm",
+            "term_percentage": 33.0,
+            "created_at": "2025-12-03T23:50:38.418809",
+            "updated_at": "2025-12-04T03:19:57.394998"
+        },
+        {
+            "id": 2,
+            "class_id": 1,
+            "academic_period": "finals",
+            "term_percentage": 67.0,
+            "created_at": "2025-12-03T23:50:38.466634",
+            "updated_at": "2025-12-04T03:19:57.492197"
+        }
+    ],
+    "components": [
+        {
+            "id": 12,
+            "rubric_id": 1,
+            "name": "Quizzes",
+            "percentage": 20.0,
+            "created_at": "2025-12-04T03:19:57.454186",
+            "updated_at": "2025-12-04T03:19:57.454186"
+        },
+        {
+            "id": 13,
+            "rubric_id": 1,
+            "name": "Performance Task",
+            "percentage": 30.0,
+            "created_at": "2025-12-04T03:19:57.462795",
+            "updated_at": "2025-12-04T03:19:57.462795"
+        },
+        {
+            "id": 14,
+            "rubric_id": 1,
+            "name": "Exam",
+            "percentage": 50.0,
+            "created_at": "2025-12-04T03:19:57.473218",
+            "updated_at": "2025-12-04T03:19:57.473218"
+        },
+        {
+            "id": 15,
+            "rubric_id": 1,
+            "name": "New Component",
+            "percentage": 0.0,
+            "created_at": "2025-12-04T03:19:57.482742",
+            "updated_at": "2025-12-04T03:19:57.482742"
+        },
+        {
+            "id": 16,
+            "rubric_id": 2,
+            "name": "Quizzes",
+            "percentage": 50.0,
+            "created_at": "2025-12-04T03:19:57.553875",
+            "updated_at": "2025-12-04T03:19:57.553875"
+        },
+        {
+            "id": 17,
+            "rubric_id": 2,
+            "name": "Activities",
+            "percentage": 50.0,
+            "created_at": "2025-12-04T03:19:57.564194",
+            "updated_at": "2025-12-04T03:19:57.564194"
+        }
+    ],
+    "last_id": 0,
+    "last_rubric_id": 2,
+    "last_component_id": 17
+}

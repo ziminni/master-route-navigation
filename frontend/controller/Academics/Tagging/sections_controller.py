@@ -1,5 +1,6 @@
 import logging
 from typing import Optional, Dict, List
+from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QWidget
 
 from frontend.services.Academics.Tagging.section_service import SectionService
@@ -8,7 +9,7 @@ from frontend.views.Academics.Tagging.create_section_dialog import CreateSection
 
 logger = logging.getLogger(__name__)
 
-class SectionsController:
+class SectionsController(QObject):
     """
     Controller for section operations.
     
@@ -19,7 +20,21 @@ class SectionsController:
         service: SectionService instance for data operations
         model: SectionsTableModel for displaying data
         parent_widget: Parent widget for message boxes
+    
+    Signals:
+        section_created: Emitted when a section is created (passes section data dict)
+        section_updated: Emitted when a section is updated (passes section data dict)
+        section_deleted: Emitted when a section is deleted (passes section_id int)
+        section_archived: Emitted when a section is archived (passes section_id int)
+        section_unarchived: Emitted when a section is unarchived (passes section data dict)
     """
+    
+    # Signals for notifying other components of changes
+    section_created = pyqtSignal(dict)  # Emits created section data
+    section_updated = pyqtSignal(dict)  # Emits updated section data
+    section_deleted = pyqtSignal(int)   # Emits deleted section_id
+    section_archived = pyqtSignal(int)  # Emits archived section_id
+    section_unarchived = pyqtSignal(dict)  # Emits unarchived section data
 
     def __init__(self, parent_widget: Optional[QWidget] = None):
         """
@@ -28,6 +43,7 @@ class SectionsController:
         Args:
             parent_widget: Parent widget for dialogs (optional) 
         """
+        super().__init__(parent_widget)
         self.service = SectionService()
         self.parent = parent_widget 
         self.model = None # will be set by view 
@@ -47,10 +63,10 @@ class SectionsController:
 
     def load_sections(self) -> bool:
         """
-        Loads all sections from data store. 
+        Loads all active (non-archived) sections from data store.
         """
         try:
-            sections = self.service.get_all()
+            sections = self.service.get_active_sections()
             if self.model:
                 self.model.set_sections(sections)
                 return True
@@ -316,3 +332,134 @@ class SectionsController:
         except Exception as e:
             logger.error(f"Error checking classes for section {section_id}: {e}")
             return False
+
+    # =================================================
+    # ARCHIVING OPERATIONS
+    # =================================================
+
+    def handle_archive_section(self, section_id: int) -> tuple[bool, Optional[str]]:
+        """
+        Archive a section. Can only archive if all classes are already archived.
+
+        Args:
+            section_id: ID of section to archive
+
+        Returns:
+            tuple: (success: bool, error_message: Optional[str])
+        """
+        try:
+            from frontend.services.Academics.Tagging.class_service import ClassService
+            class_service = ClassService()
+
+            # Check if section has any active classes
+            if class_service.has_active_classes_for_section(section_id):
+                error_message = (
+                    "Cannot archive section. Some associated Classes are still active.\n\n"
+                    "Please archive all Classes first."
+                )
+                logger.warning(f"Cannot archive section {section_id}: has active classes")
+                return False, error_message
+
+            success = self.service.archive_section(section_id)
+
+            if success:
+                # Emit signal to notify all listening components (SectionsPage, ArchivedSectionsPage)
+                # Each page will handle the refresh appropriately
+                self.section_archived.emit(section_id)
+                
+                logger.info(f"Successfully archived section ID {section_id}, signal emitted")
+                return True, None
+            else:
+                logger.warning(f"Failed to archive section ID {section_id}")
+                return False, "Failed to archive section."
+
+        except Exception as e:
+            logger.exception(f"Error archiving section {section_id}: {e}")
+            error_msg = f"An unexpected error occurred: {str(e)}"
+            return False, error_msg
+
+    def handle_unarchive_section(self, section_id: int) -> bool:
+        """
+        Unarchive a section.
+
+        Args:
+            section_id: ID of section to unarchive
+
+        Returns:
+            bool: True if successful
+        """
+        try:
+            success = self.service.unarchive_section(section_id)
+
+            if success:
+                # Emit signal to notify all listening components (SectionsPage, ArchivedSectionsPage)
+                # Each page will handle the refresh appropriately
+                section_data = self.service.get_by_id(section_id)
+                if section_data:
+                    self.section_unarchived.emit(section_data)
+                    logger.info(f"Successfully unarchived section ID {section_id}, signal emitted")
+                else:
+                    logger.warning(f"Section data not found after unarchiving ID {section_id}")
+                
+                return True
+            else:
+                logger.warning(f"Failed to unarchive section ID {section_id}")
+                return False
+
+        except Exception as e:
+            logger.exception(f"Error unarchiving section {section_id}: {e}")
+            return False
+
+    def handle_archive_all_sections(self) -> tuple[bool, Optional[str]]:
+        """
+        Archive all sections. Can only archive if all classes are already archived.
+
+        Returns:
+            tuple: (success: bool, error_message: Optional[str])
+        """
+        try:
+            from frontend.services.Academics.Tagging.class_service import ClassService
+            class_service = ClassService()
+
+            # Check if any section has active classes
+            all_sections = self.service.get_all()
+            sections_with_active_classes = []
+
+            for section in all_sections:
+                if not section.get('is_archived', False):
+                    if class_service.has_active_classes_for_section(section['id']):
+                        sections_with_active_classes.append(section['section'])
+
+            if sections_with_active_classes:
+                error_message = (
+                    "Cannot archive Section(s). Some associated Classes are still active.\n\n"
+                    f"Sections with active classes: {', '.join(sections_with_active_classes)}\n\n"
+                    "Please archive all Classes first."
+                )
+                logger.warning("Cannot archive all sections: some have active classes")
+                return False, error_message
+
+            # Get all active sections before archiving
+            active_sections = [s for s in all_sections if not s.get('is_archived', False)]
+            
+            success, failed_ids = self.service.archive_all_sections()
+
+            if success:
+                # Emit signal for each archived section
+                for section_data in active_sections:
+                    self.section_archived.emit(section_data['id'])
+                
+                # Reload all sections to update the view
+                self.load_sections()
+                logger.info(f"Successfully archived all {len(active_sections)} sections")
+                return True, None
+            else:
+                error_message = f"Failed to archive some sections: {failed_ids}"
+                logger.warning(error_message)
+                return False, error_message
+
+        except Exception as e:
+            logger.exception(f"Error archiving all sections: {e}")
+            error_msg = f"An unexpected error occurred: {str(e)}"
+            return False, error_msg
+

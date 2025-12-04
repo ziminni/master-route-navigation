@@ -188,10 +188,39 @@ class DeletedFileView(QWidget):
         widget = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
+        
         erase_btn = QPushButton("Erase")
-        restore_btn = QPushButton("Restore")
+        erase_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                font-weight: bold;
+                padding: 4px 12px;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """)
         erase_btn.clicked.connect(lambda: self.handle_permanent_delete(filename, deleted_at))
+        
+        restore_btn = QPushButton("Restore")
+        restore_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                font-weight: bold;
+                padding: 4px 12px;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+        """)
         restore_btn.clicked.connect(lambda: self.handle_restore(filename, deleted_at))
+        
         layout.addWidget(erase_btn)
         layout.addWidget(restore_btn)
         widget.setLayout(layout)

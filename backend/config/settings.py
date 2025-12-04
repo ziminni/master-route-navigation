@@ -173,6 +173,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'django_filters',
+    'django_filters',
 
     # TODO: Add your apps here
     # CORS Headers - tried to fix backend conn, should work if front and back runs on different ports
@@ -303,6 +304,7 @@ from datetime import timedelta
 # JWT Settings
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -323,6 +325,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 import os
 
 EMAIL_BACKEND = 'django.config.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'django.config.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
@@ -330,3 +333,4 @@ EMAIL_HOST_USER = 'janmarcpulmones24@gmail.com'      # your@gmail.com
 EMAIL_HOST_PASSWORD = 'sopg utsv eizo jocd'#  16-char app pw
 DEFAULT_FROM_EMAIL = f"CISC Hub <{EMAIL_HOST_USER}>"
 EMAIL_TIMEOUT = 10
+

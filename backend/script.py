@@ -219,6 +219,11 @@ def create_users():
     print("CREATING DEFAULT USERS")
     print(f"{'='*60}\n")
     
+    # Ensure roles/groups exist before creating users
+    from apps.Users.roles import ensure_roles
+    ensure_roles()
+    print("✓ Roles/groups initialized")
+    
     #==============================Start of User Creation==============================
     if not User.objects.filter(username="admin").exists():
         User.objects.create_superuser(
@@ -232,7 +237,7 @@ def create_users():
         print("Admin superuser created")
     else:
         print("Admin already exists")
-    if not User.objects.filter(username="Adolf").exists():
+    if not User.objects.filter(username="Marcus").exists():
         user1 = User.objects.create_user(
             username="Marcus",
             email="immarcusmercer@gmail.com",

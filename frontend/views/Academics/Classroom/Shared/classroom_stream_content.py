@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QVBoxLayo
 from PyQt6.QtGui import QPixmap, QPainter, QRegion
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 import os
+import json
 from view_materials import ViewMaterial
 from view_assessment import ViewAssessment
 
@@ -145,7 +146,7 @@ class ClassroomStreamContent(QWidget):
         self.stackedWidget.setCurrentIndex(0)
 
     def populate_data(self):
-        """Populate with hardcoded data based on class_data and add multiple posts"""
+        """Populate with posts from classroom_data.json based on class_data"""
         # Hardcoded header data (using class_data where possible)
         course_code_label = self.main_content.findChild(QLabel, "courseCode_label")
         course_title_label = self.main_content.findChild(QLabel, "courseTitle_label")
@@ -154,7 +155,7 @@ class ClassroomStreamContent(QWidget):
         if course_code_label:
             course_code_label.setText(self.class_data.get("code", "ITSD81"))
         if course_title_label:
-            course_title_label.setText("DESKTOP APPLICATION DEVELOPMENT LECTURE")
+            course_title_label.setText(self.class_data.get("title", "DESKTOP APPLICATION DEVELOPMENT LECTURE"))
         if course_section_label:
             course_section_label.setText(self.class_data.get("section", "BSIT-2C\nMONDAY - 1:00 - 4:00 PM"))
 
@@ -172,25 +173,82 @@ class ClassroomStreamContent(QWidget):
                             post_layout.removeWidget(widget_to_remove)
                             widget_to_remove.deleteLater()
 
-                # Hardcoded multiple posts (recyclable structure)
-                posts_data = [
-                    (":/icons/document.svg", "Desktop Project Guidelines", "Aug 18", "material"),
-                    (":/icons/document.svg", "Midterm Exam", "Sep 15", "assessment"),
-                    (":/icons/document.svg", "Project Deadline Extended", "Sep 14", "material"),
-                    (":/icons/document.svg", "Practice Test", "Sep 10", "assessment"),
-                    (":/icons/document.svg", "Testing", "Sep 10", "material")
-                ]
+                # Load posts from classroom_data.json
+                posts_data = self._load_posts_from_json()
 
                 # Add posts dynamically to stream_items_layout
-                for icon_path, title, date, post_type in posts_data:
-                    post_widget = PostWidget(icon_path, title, date, post_type)
+                for post in posts_data:
+                    icon_path = ":/icons/document.svg"
+                    title = post.get("title", "Untitled")
+                    author = post.get("author", "Instructor")
+                    date = self._format_date(post.get("date", ""))
+                    post_type = post.get("type", "material")
+                    
+                    # Create title text with author
+                    title_text = f"{author} posted a {post_type}: {title}" if author else title
+                    
+                    post_widget = PostWidget(icon_path, title_text, date, post_type)
+                    post_widget.post_data = post  # Store full post data
                     post_layout.addWidget(post_widget)
                     post_widget.post_clicked.connect(self.open_post_details)
 
                 # Ensure spacer at the end for scrolling
-                if post_layout.count() > 0 and not isinstance(post_layout.itemAt(post_layout.count() - 1).spacerItem(), QSpacerItem):
-                    spacer = QSpacerItem(0, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-                    post_layout.addItem(spacer)
+                if post_layout.count() > 0:
+                    has_spacer = False
+                    last_item = post_layout.itemAt(post_layout.count() - 1)
+                    if last_item:
+                        has_spacer = last_item.spacerItem() is not None
+                    if not has_spacer:
+                        spacer = QSpacerItem(0, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+                        post_layout.addItem(spacer)
+    
+    def _load_posts_from_json(self):
+        """Load posts from classroom_data.json for this class"""
+        try:
+            # Get the data file path
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            data_file = os.path.join(current_dir, '../../../../services/Academics/data/classroom_data.json')
+            data_file = os.path.normpath(data_file)
+            
+            with open(data_file, 'r') as f:
+                data = json.load(f)
+            
+            # Get class ID from class_data
+            class_id = self.class_data.get("id", 1)
+            
+            # Filter posts for this class
+            all_posts = data.get("posts", [])
+            class_posts = [p for p in all_posts if p.get("class_id") == class_id]
+            
+            # Sort by date (newest first)
+            class_posts.sort(key=lambda x: x.get("date", ""), reverse=True)
+            
+            return class_posts
+            
+        except Exception as e:
+            print(f"[STREAM] Error loading posts: {e}")
+            # Return fallback data
+            return [
+                {"title": "Desktop Project Guidelines", "date": "Aug 18", "type": "material", "author": "Instructor"},
+                {"title": "Midterm Exam", "date": "Sep 15", "type": "assessment", "author": "Instructor"},
+            ]
+    
+    def _format_date(self, date_str):
+        """Format date string for display"""
+        if not date_str:
+            return ""
+        try:
+            from datetime import datetime
+            # Try to parse ISO format or common date format
+            for fmt in ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]:
+                try:
+                    dt = datetime.strptime(date_str.split('.')[0], fmt)
+                    return dt.strftime("%b %d")
+                except ValueError:
+                    continue
+            return date_str
+        except:
+            return date_str
 
     def open_post_details(self, post_data):
         """Switch to the appropriate page in the stacked widget with post details"""

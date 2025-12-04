@@ -6,6 +6,8 @@ from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex, QPropertyAnimatio
 from PyQt6.QtGui import QFont, QIcon, QColor
 from .Tagging.classes_page import ClassesPage
 from .Tagging.sections_page import SectionsPage
+from .Tagging.archived_classes_page import ArchivedClassesPage
+from .Tagging.archived_sections_page import ArchivedSectionsPage
 
 
 
@@ -53,14 +55,16 @@ class TaggingMain(QWidget):
         
         sections_btn = self.create_nav_button("Sections", "sections")
         classes_btn = self.create_nav_button("Classes", "classes")
-        archive_btn = self.create_nav_button("Archive", "archive")
+        archive_sections_btn = self.create_nav_button("Archived Sections", "archive_sections")
+        archive_classes_btn = self.create_nav_button("Archived Classes", "archive_classes")
         
         sidebar_layout.addWidget(sections_btn)
         sidebar_layout.addWidget(classes_btn)
-        sidebar_layout.addWidget(archive_btn)
+        sidebar_layout.addWidget(archive_sections_btn)
+        sidebar_layout.addWidget(archive_classes_btn)
         sidebar_layout.addStretch()
         
-        self.nav_buttons = [sections_btn, classes_btn, archive_btn]
+        self.nav_buttons = [sections_btn, classes_btn, archive_sections_btn, archive_classes_btn]
         
         main_layout.addWidget(self.sidebar)
         
@@ -92,13 +96,13 @@ class TaggingMain(QWidget):
         # Add pages
         self.sections_page = SectionsPage()
         self.classes_page = ClassesPage()
-        archive_page = QLabel("Archive")
-        archive_page.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        archive_page.setFont(QFont("Segoe UI", 16))
+        self.archived_sections_page = ArchivedSectionsPage()
+        self.archived_classes_page = ArchivedClassesPage()
         
         self.stacked_widget.addWidget(self.sections_page)
         self.stacked_widget.addWidget(self.classes_page)
-        self.stacked_widget.addWidget(archive_page)
+        self.stacked_widget.addWidget(self.archived_sections_page)
+        self.stacked_widget.addWidget(self.archived_classes_page)
         
         content_layout.addWidget(self.stacked_widget)
         main_layout.addWidget(content_widget)
@@ -158,8 +162,10 @@ class TaggingMain(QWidget):
             self.stacked_widget.setCurrentIndex(0)
         elif page_id == "classes":
             self.stacked_widget.setCurrentIndex(1)
-        elif page_id == "archive":
+        elif page_id == "archive_sections":
             self.stacked_widget.setCurrentIndex(2)
+        elif page_id == "archive_classes":
+            self.stacked_widget.setCurrentIndex(3)
         
         self.set_active_nav_button(button)
     
