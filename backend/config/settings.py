@@ -179,6 +179,11 @@ INSTALLED_APPS = [
     'channels',
 
     'apps.Users.apps.UsersConfig',
+<<<<<<< Updated upstream
+=======
+    'apps.Documents.apps.DocumentsConfig',
+
+>>>>>>> Stashed changes
     'apps.Messaging.apps.MessagingConfig'
 ]
 
@@ -211,6 +216,7 @@ TEMPLATES = [
     },
 ]
 
+<<<<<<< Updated upstream
 WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
@@ -220,7 +226,17 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
+=======
+WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+>>>>>>> Stashed changes
 
+# Channels: in‑memory channel layer for dev
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
