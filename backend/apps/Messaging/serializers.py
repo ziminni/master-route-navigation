@@ -41,7 +41,11 @@ class ConversationSerializer(serializers.ModelSerializer):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "type",
+=======
+            "conversation_type",
+>>>>>>> Stashed changes
 =======
             "conversation_type",
 >>>>>>> Stashed changes

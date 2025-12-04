@@ -134,9 +134,12 @@ class FacultyMainUI(QtWidgets.QWidget):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         self._refresh_inbox_popup()  # NEW
 
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -148,6 +151,9 @@ class FacultyMainUI(QtWidgets.QWidget):
 
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -490,6 +496,7 @@ class FacultyMainUI(QtWidgets.QWidget):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             ]
             print(f"[FacultyMainUI] faculty_messages (receiver={self.current_faculty_id}):")
             for m in faculty_messages:
@@ -498,6 +505,8 @@ class FacultyMainUI(QtWidgets.QWidget):
                     f"created_at={m.get('created_at')} content={m.get('content')!r}"
                 )
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -512,6 +521,9 @@ class FacultyMainUI(QtWidgets.QWidget):
                       "receiver=", m.get("receiver"))
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -1068,6 +1080,10 @@ class FacultyMainUI(QtWidgets.QWidget):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+                            self.upsert_card_from_message(created)
+>>>>>>> Stashed changes
 =======
                             self.upsert_card_from_message(created)
 >>>>>>> Stashed changes
@@ -1188,6 +1204,9 @@ class FacultyMainUI(QtWidgets.QWidget):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -1272,6 +1291,7 @@ class FacultyMainUI(QtWidgets.QWidget):
                     QtWidgets.QMessageBox.information(
                         dialog, "Sent", "Message sent successfully."
                     )
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
                 except Exception as e:
@@ -1375,6 +1395,8 @@ class FacultyMainUI(QtWidgets.QWidget):
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
                 except Exception as e:
                     print("[FacultyUI] ERROR creating message:", e)
@@ -1394,6 +1416,9 @@ class FacultyMainUI(QtWidgets.QWidget):
 
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -1406,6 +1431,7 @@ class FacultyMainUI(QtWidgets.QWidget):
         """
         if not self.data_manager or not self.current_faculty_id:
             return None
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
@@ -1432,6 +1458,8 @@ class FacultyMainUI(QtWidgets.QWidget):
             return created.get("id")
         return None
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -1491,6 +1519,9 @@ class FacultyMainUI(QtWidgets.QWidget):
         self.display_items()
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes

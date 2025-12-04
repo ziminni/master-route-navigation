@@ -26,8 +26,11 @@ urlpatterns = [
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======

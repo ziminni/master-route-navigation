@@ -168,7 +168,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             {"type": "chat_message", "data": {...}
+=======
+            {"type": "chat_message", "data": {...}}
+>>>>>>> Stashed changes
 =======
             {"type": "chat_message", "data": {...}}
 >>>>>>> Stashed changes
