@@ -181,6 +181,11 @@ INSTALLED_APPS = [
     'apps.Users.apps.UsersConfig',
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+    'apps.Documents.apps.DocumentsConfig',
+
+>>>>>>> Stashed changes
 =======
     'apps.Documents.apps.DocumentsConfig',
 
@@ -226,6 +231,9 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 =======
 WSGI_APPLICATION = 'config.wsgi.application'
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 ASGI_APPLICATION = 'config.asgi.application'
 
@@ -235,6 +243,7 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 =======
 WSGI_APPLICATION = 'config.wsgi.application'
@@ -247,6 +256,8 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 
