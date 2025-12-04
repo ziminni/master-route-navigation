@@ -23,7 +23,7 @@ from PyQt6.QtCore import Qt, QTimer
 from datetime import datetime, timedelta
 
 from .widgets import Sidebar, Toolbar, FileListView, BreadcrumbBar
-from .dialogs import UploadDialog, FolderDialog, DownloadDialog
+from .dialogs import UploadDialog, FolderDialog, DownloadDialog, MoveDialog
 from .services import DocumentService
 from .workers import APIWorker, DownloadWorker
 from .utils import EmptyStateWidget, EmptyStateFactory
@@ -1078,17 +1078,60 @@ class DocumentsV2View(QWidget):
     
     def _move_document(self, doc_id: int):
         """
-        Move document to different folder (placeholder).
+        Move document to different folder.
         
         Args:
             doc_id (int): Document ID
         """
-        # TODO: Implement folder selection dialog
-        QMessageBox.information(
-            self,
-            "Move Document",
-            "Move functionality will be implemented in the next iteration."
+        print(f"[DocumentsV2] Move document requested: {doc_id}")
+        
+        # Get document info
+        doc = next((d for d in self.documents if d.get('id') == doc_id), None)
+        if not doc:
+            self.show_error("Move Failed", "Document not found")
+            return
+        
+        doc_title = doc.get('title', 'Untitled')
+        current_folder = doc.get('folder')
+        
+        # Open move dialog
+        dialog = MoveDialog(
+            doc_id,
+            doc_title,
+            self.categories,
+            current_folder,
+            self.document_service,
+            self
         )
+        
+        # Handle folder creation from dialog
+        dialog.folder_created.connect(lambda: (
+            self.invalidate_cache('folders'),
+            self.load_folders()
+        ))
+        
+        if dialog.exec():
+            # Get selected folder
+            new_folder_id = dialog.get_selected_folder_id()
+            
+            print(f"[DocumentsV2] Moving document {doc_id} to folder {new_folder_id}")
+            
+            # Perform move via API
+            result = self.document_service.move_document(doc_id, new_folder_id)
+            
+            if result['success']:
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    f"Document moved successfully"
+                )
+                
+                # Invalidate cache and refresh
+                self.invalidate_cache('documents')
+                self.invalidate_cache('folders')
+                self.load_documents(force_refresh=True)
+            else:
+                self.show_error("Move Failed", result['error'])
     
     def _rename_item(self, item_id: int):
         """
