@@ -22,6 +22,9 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('apps.Users.urls')), 
+    # config/urls.py (correct for your layout)
+    path("api/calendar/", include("apps.Calendar.urls")),
+
 
     # Documents
     path('api/documents/', include('apps.Documents.urls')),

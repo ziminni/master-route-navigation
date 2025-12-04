@@ -1,9 +1,9 @@
-# AdminActivities.py
+# AdminActivities.py with Toggle for Upcoming Events Panel
 import requests
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
-    QMessageBox, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, QListWidget
+    QMessageBox, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, QListWidget, QGridLayout
 )
 from PyQt6.QtCore import Qt
 
@@ -24,12 +24,41 @@ class AdminActivities(QWidget):
         # Add navigation callback attributes
         self.navigate_back_to_calendar = None  # Will be set by Calendar.py
         self.navigate_to_edit_event = None  # Will be set by Calendar.py
+        
+        # Toggle state for upcoming events panel
+        self.upcoming_events_visible = True
 
         self.setWindowTitle("Activities")
         self.resize(1200, 700)
 
         # Top Controls (Filters and Buttons)
         controls = QHBoxLayout()
+        
+        # Toggle Upcoming Events button (NEW)
+        self.btn_toggle_upcoming = QPushButton("◀ Hide Panel")
+        self.btn_toggle_upcoming.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 12px;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #FDC601;
+                color: #084924;
+            }
+            QPushButton:pressed {
+                background-color: #d4a000;
+            }
+        """)
+        self.btn_toggle_upcoming.clicked.connect(self.toggle_upcoming_events)
+        controls.addWidget(self.btn_toggle_upcoming)
+        
+        controls.addSpacing(20)
         
         # Filter section
         filter_label = QLabel("Filter by:")
@@ -121,20 +150,20 @@ class AdminActivities(QWidget):
         controls.addWidget(self.btn_back)
 
         # Main content area - split between upcoming events and activities table
-        content_layout = QHBoxLayout()
+        self.content_layout = QHBoxLayout()
         
         # Left side - Upcoming Events Panel
         self.setup_upcoming_events_panel()
-        content_layout.addWidget(self.upcoming_events_widget)
+        self.content_layout.addWidget(self.upcoming_events_widget)
         
         # Right side - Activities Table
         self.setup_activities_table()
-        content_layout.addWidget(self.activities_widget)
+        self.content_layout.addWidget(self.activities_widget)
 
         # Main Layout
         root = QVBoxLayout(self)
         root.addLayout(controls)
-        root.addLayout(content_layout)
+        root.addLayout(self.content_layout)
 
         # Signals
         self.btn_back.clicked.connect(self.back_to_calendar)
@@ -143,6 +172,19 @@ class AdminActivities(QWidget):
 
         # Initial data
         self.activities_data = []
+
+    def toggle_upcoming_events(self):
+        """Toggle visibility of upcoming events panel"""
+        if self.upcoming_events_visible:
+            # Hide the panel
+            self.upcoming_events_widget.setVisible(False)
+            self.btn_toggle_upcoming.setText("▶ Show Panel")
+            self.upcoming_events_visible = False
+        else:
+            # Show the panel
+            self.upcoming_events_widget.setVisible(True)
+            self.btn_toggle_upcoming.setText("◀ Hide Panel")
+            self.upcoming_events_visible = True
 
     def setup_upcoming_events_panel(self):
         """Setup the upcoming events panel on the left side"""
@@ -178,8 +220,9 @@ class AdminActivities(QWidget):
         frame_layout.addWidget(title_label)
         
         # Legend
-        legend_layout = QHBoxLayout()
-        legend_layout.setSpacing(8)
+        legend_grid = QGridLayout()
+        legend_grid.setSpacing(8)
+        legend_grid.setContentsMargins(5, 5, 5, 5)
         
         legend_style = """
             QLabel {
@@ -192,21 +235,29 @@ class AdminActivities(QWidget):
             }
         """
         
+         # Create labels
         label_academic = QLabel("🟢 Academic")
         label_academic.setStyleSheet(legend_style)
+        
         label_org = QLabel("🔵 Organizational")
         label_org.setStyleSheet(legend_style)
+        
         label_deadline = QLabel("🟠 Deadlines")
         label_deadline.setStyleSheet(legend_style)
+        
         label_holiday = QLabel("🔴 Holidays")
         label_holiday.setStyleSheet(legend_style)
         
-        legend_layout.addWidget(label_academic)
-        legend_layout.addWidget(label_org)
-        legend_layout.addWidget(label_deadline)
-        legend_layout.addWidget(label_holiday)
+        # Add to grid in 2x2 layout
+        # Row 0: Academic, Organizational
+        legend_grid.addWidget(label_academic, 0, 0)
+        legend_grid.addWidget(label_org, 0, 1)
         
-        frame_layout.addLayout(legend_layout)
+        # Row 1: Deadlines, Holidays
+        legend_grid.addWidget(label_deadline, 1, 0)
+        legend_grid.addWidget(label_holiday, 1, 1)
+        
+        frame_layout.addLayout(legend_grid)
         
         # Filter dropdown
         self.combo_upcoming_filter = QComboBox()
@@ -277,12 +328,21 @@ class AdminActivities(QWidget):
         upcoming_layout.addWidget(upcoming_frame)
 
     def setup_activities_table(self):
-        """Setup the activities table on the right side"""
+        """Setup the activities table - centered"""
         self.activities_widget = QWidget()
         self.activities_widget.setStyleSheet("background-color: white;")
         
-        table_layout = QVBoxLayout(self.activities_widget)
-        table_layout.setContentsMargins(10, 10, 10, 10)
+        # Main container layout to center the table
+        container_layout = QVBoxLayout(self.activities_widget)
+        container_layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Horizontal layout for centering
+        h_layout = QHBoxLayout()
+        h_layout.addStretch()  # Left stretch
+        
+        # Table widget wrapper
+        table_wrapper = QWidget()
+        table_layout = QVBoxLayout(table_wrapper)
         
         # Table title
         table_title = QLabel("Daily Activities")
@@ -297,7 +357,7 @@ class AdminActivities(QWidget):
         
         # Activities Table
         self.activities_table = QTableWidget(0, 6)
-        self.activities_table.setMinimumSize(600, 400)
+        self.activities_table.setMinimumSize(775, 400)
         
         # Set column headers
         headers = ["Date & Time", "Event", "Type", "Location", "Status", "Action"]
@@ -356,10 +416,10 @@ class AdminActivities(QWidget):
         self.activities_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         self.activities_table.setColumnWidth(0, 120)  # Date & Time
         self.activities_table.setColumnWidth(1, 190)  # Event
-        self.activities_table.setColumnWidth(2, 90)   # Type
+        self.activities_table.setColumnWidth(2, 125)   # Type
         self.activities_table.setColumnWidth(3, 100)  # Location
-        self.activities_table.setColumnWidth(4, 100)  # Status
-        self.activities_table.setColumnWidth(5, 150)  # Action
+        self.activities_table.setColumnWidth(4, 90)  # Status
+        self.activities_table.setColumnWidth(5, 145)  # Action
         
         # Set row height
         self.activities_table.verticalHeader().setDefaultSectionSize(60)
@@ -370,6 +430,13 @@ class AdminActivities(QWidget):
         self.activities_table.setSortingEnabled(False)  # DISABLED to maintain custom sort order
         
         table_layout.addWidget(self.activities_table)
+        
+        # Add table wrapper to horizontal layout
+        h_layout.addWidget(table_wrapper)
+        h_layout.addStretch()  # Right stretch
+        
+        # Add horizontal layout to container
+        container_layout.addLayout(h_layout)
 
     def load_events(self, events):
         """Load events from MainCalendar"""
@@ -472,24 +539,23 @@ class AdminActivities(QWidget):
         # If you want users to be able to sort by columns, comment out this line:
         # self.activities_table.setSortingEnabled(True)
     
-    def populate_upcoming_events(self, activities):
-        """Populate the upcoming events list with activity data - FIXED to filter and sort"""
+    def populate_upcoming_events(self, events):
+        """Populate the upcoming events list."""
         self.list_upcoming.clear()
-        
-        # Define emoji icons for each event type
+
         type_icons = {
             "Academic": "🟢",
             "Organizational": "🔵",
             "Deadline": "🟠",
-            "Holiday": "🔴"
+            "Holiday": "🔴",
         }
-        
-        # Filter and sort upcoming events
-        upcoming_events = self._filter_upcoming_events(activities)
-        
-        for activity in upcoming_events:
-            icon = type_icons.get(activity["type"], "⚪")
-            event_text = f"{icon} {activity['event']}\n    {activity['date_time'].replace(chr(10), ' - ')}"
+
+        for event in events:
+            icon = type_icons.get(event["type"], "⚪")
+            dt_str = event["date_time"]
+            # display nicely for both legacy and ISO
+            display_time = dt_str.replace(chr(10), " - ") if "\n" in dt_str else dt_str
+            event_text = f"{icon} {event['event']}\n    {display_time}"
             self.list_upcoming.addItem(event_text)
 
     # ========== SORTING AND FILTERING FUNCTIONS ==========
@@ -693,4 +759,3 @@ class AdminActivities(QWidget):
 
     def _error(self, msg):
         QMessageBox.critical(self, "Error", str(msg))
-        

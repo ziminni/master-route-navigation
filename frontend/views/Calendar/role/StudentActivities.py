@@ -1,11 +1,17 @@
-# StudentActivities.py
-import requests
+# Standard library
 from datetime import datetime
+
+# Third-party
+import requests
+
+# PyQt6
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
-    QMessageBox, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, QListWidget
+    QMessageBox, QComboBox, QTableWidget, QTableWidgetItem,
+    QHeaderView, QListWidget, QGridLayout
 )
-from PyQt6.QtCore import Qt
+
 
 class StudentActivities(QWidget):
     def __init__(self, username, roles, primary_role, token, parent=None):
@@ -15,25 +21,56 @@ class StudentActivities(QWidget):
         self.primary_role = primary_role
         self.token = token
 
-        # ---- config your API base + endpoints here ----
+        # API config
         self.api_base = "http://127.0.0.1:8000/api/"
         self.activities_url = self.api_base + "activities/"
-
         self.headers = {"Authorization": f"Bearer {self.token}"}
 
-        # Add navigation callback attribute
-        self.navigate_back_to_calendar = None  # Will be set by Calendar.py
+        # Navigation callback, set from Calendar.py
+        self.navigate_back_to_calendar = None
+
+        # Will be set from MainCalendar so filters work
+        self.main_calendar = None
+
+        # Toggle state for upcoming events panel
+        self.upcoming_events_visible = True
 
         self.setWindowTitle("Activities")
         self.resize(1200, 700)
 
-        # Top Controls (Filters and Buttons)
+        # ---------- Top controls ----------
         controls = QHBoxLayout()
-        
-        # Filter section
+
+        # Toggle Upcoming Events button
+        self.btn_toggle_upcoming = QPushButton("◀ Hide Panel")
+        self.btn_toggle_upcoming.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 12px;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #FDC601;
+                color: #084924;
+            }
+            QPushButton:pressed {
+                background-color: #d4a000;
+            }
+        """)
+        self.btn_toggle_upcoming.clicked.connect(self.toggle_upcoming_events)
+        controls.addWidget(self.btn_toggle_upcoming)
+
+        controls.addSpacing(20)
+
+        # Filter label + combo
         filter_label = QLabel("Filter by:")
         filter_label.setStyleSheet("font-weight: bold; color: #084924; font-size: 14px;")
-        
+
         self.combo_activity_type = QComboBox()
         self.combo_activity_type.setMinimumWidth(150)
         self.combo_activity_type.addItems([
@@ -63,12 +100,12 @@ class StudentActivities(QWidget):
                 selection-color: #084924;
             }
         """)
-        
+
         controls.addWidget(filter_label)
         controls.addWidget(self.combo_activity_type)
         controls.addStretch()
-        
-        # Back to Calendar button (NO Add Event button for students)
+
+        # Back to Calendar button
         self.btn_back = QPushButton("← Back to Calendar")
         self.btn_back.setStyleSheet("""
             QPushButton {
@@ -91,40 +128,53 @@ class StudentActivities(QWidget):
         """)
         controls.addWidget(self.btn_back)
 
-        # Main content area - split between upcoming events and activities table
-        content_layout = QHBoxLayout()
-        
-        # Left side - Upcoming Events Panel
-        self.setup_upcoming_events_panel()
-        content_layout.addWidget(self.upcoming_events_widget)
-        
-        # Right side - Activities Table
-        self.setup_activities_table()
-        content_layout.addWidget(self.activities_widget)
+        # ---------- Main content area ----------
+        self.content_layout = QHBoxLayout()
 
-        # Main Layout
+        # Left: upcoming events panel
+        self.setup_upcoming_events_panel()
+        self.content_layout.addWidget(self.upcoming_events_widget)
+
+        # Right: activities table
+        self.setup_activities_table()
+        self.content_layout.addWidget(self.activities_widget)
+
+        # ---------- Root layout ----------
         root = QVBoxLayout(self)
         root.addLayout(controls)
-        root.addLayout(content_layout)
+        root.addLayout(self.content_layout)
 
         # Signals
         self.btn_back.clicked.connect(self.back_to_calendar)
         self.combo_activity_type.currentTextChanged.connect(self.filter_activities)
 
-        # Initial data
+        # Data
         self.activities_data = []
 
+    # ---------- Toggle panel ----------
+
+    def toggle_upcoming_events(self):
+        """Show/hide upcoming events side panel."""
+        if self.upcoming_events_visible:
+            self.upcoming_events_widget.setVisible(False)
+            self.btn_toggle_upcoming.setText("▶ Show Panel")
+        else:
+            self.upcoming_events_widget.setVisible(True)
+            self.btn_toggle_upcoming.setText("◀ Hide Panel")
+        self.upcoming_events_visible = not self.upcoming_events_visible
+
+    # ---------- Upcoming events panel ----------
+
     def setup_upcoming_events_panel(self):
-        """Setup the upcoming events panel on the left side"""
+        """Create upcoming events panel with 2x2 legend and filter."""
         self.upcoming_events_widget = QWidget()
         self.upcoming_events_widget.setMinimumWidth(300)
         self.upcoming_events_widget.setMaximumWidth(400)
         self.upcoming_events_widget.setStyleSheet("background-color: white;")
-        
+
         upcoming_layout = QVBoxLayout(self.upcoming_events_widget)
         upcoming_layout.setContentsMargins(10, 10, 10, 10)
-        
-        # Upcoming Events Frame
+
         upcoming_frame = QWidget()
         upcoming_frame.setStyleSheet("""
             QWidget {
@@ -135,22 +185,23 @@ class StudentActivities(QWidget):
             }
         """)
         frame_layout = QVBoxLayout(upcoming_frame)
-        
+
         # Title
         title_label = QLabel("Upcoming Events")
         title_label.setStyleSheet("""
-            font-size: 18px; 
-            font-weight: bold; 
-            color: #084924; 
+            font-size: 18px;
+            font-weight: bold;
+            color: #084924;
             padding: 10px;
         """)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         frame_layout.addWidget(title_label)
-        
-        # Legend
-        legend_layout = QHBoxLayout()
-        legend_layout.setSpacing(8)
-        
+
+        # Legend 2x2 grid
+        legend_grid = QGridLayout()
+        legend_grid.setSpacing(8)
+        legend_grid.setContentsMargins(5, 5, 5, 5)
+
         legend_style = """
             QLabel {
                 padding: 5px 8px;
@@ -161,7 +212,7 @@ class StudentActivities(QWidget):
                 font-weight: 500;
             }
         """
-        
+
         label_academic = QLabel("🟢 Academic")
         label_academic.setStyleSheet(legend_style)
         label_org = QLabel("🔵 Organizational")
@@ -170,15 +221,15 @@ class StudentActivities(QWidget):
         label_deadline.setStyleSheet(legend_style)
         label_holiday = QLabel("🔴 Holidays")
         label_holiday.setStyleSheet(legend_style)
-        
-        legend_layout.addWidget(label_academic)
-        legend_layout.addWidget(label_org)
-        legend_layout.addWidget(label_deadline)
-        legend_layout.addWidget(label_holiday)
-        
-        frame_layout.addLayout(legend_layout)
-        
-        # Filter dropdown
+
+        legend_grid.addWidget(label_academic, 0, 0)
+        legend_grid.addWidget(label_org, 0, 1)
+        legend_grid.addWidget(label_deadline, 1, 0)
+        legend_grid.addWidget(label_holiday, 1, 1)
+
+        frame_layout.addLayout(legend_grid)
+
+        # Filter for upcoming list
         self.combo_upcoming_filter = QComboBox()
         self.combo_upcoming_filter.setStyleSheet("""
             QComboBox {
@@ -215,8 +266,8 @@ class StudentActivities(QWidget):
         ])
         self.combo_upcoming_filter.currentTextChanged.connect(self.on_upcoming_filter_changed)
         frame_layout.addWidget(self.combo_upcoming_filter)
-        
-        # Upcoming events list
+
+        # Upcoming list
         self.list_upcoming = QListWidget()
         self.list_upcoming.setMinimumHeight(400)
         self.list_upcoming.setStyleSheet("""
@@ -243,18 +294,25 @@ class StudentActivities(QWidget):
             }
         """)
         frame_layout.addWidget(self.list_upcoming)
-        
+
         upcoming_layout.addWidget(upcoming_frame)
 
+    # ---------- Activities table ----------
+
     def setup_activities_table(self):
-        """Setup the activities table on the right side"""
+        """Create center‑aligned, read‑only activities table."""
         self.activities_widget = QWidget()
         self.activities_widget.setStyleSheet("background-color: white;")
-        
-        table_layout = QVBoxLayout(self.activities_widget)
-        table_layout.setContentsMargins(10, 10, 10, 10)
-        
-        # Table title
+
+        container_layout = QVBoxLayout(self.activities_widget)
+        container_layout.setContentsMargins(10, 10, 10, 10)
+
+        h_layout = QHBoxLayout()
+        h_layout.addStretch()
+
+        table_wrapper = QWidget()
+        table_layout = QVBoxLayout(table_wrapper)
+
         table_title = QLabel("Daily Activities")
         table_title.setStyleSheet("""
             font-size: 18px;
@@ -264,16 +322,13 @@ class StudentActivities(QWidget):
         """)
         table_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         table_layout.addWidget(table_title)
-        
-        # Activities Table - 5 columns for students (NO Action column)
+
         self.activities_table = QTableWidget(0, 5)
-        self.activities_table.setMinimumSize(600, 400)
-        
-        # Set column headers (NO Action column)
+        self.activities_table.setMinimumSize(750, 400)
+
         headers = ["Date & Time", "Event", "Type", "Location", "Status"]
         self.activities_table.setHorizontalHeaderLabels(headers)
-        
-        # Style the table
+
         self.activities_table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
@@ -321,222 +376,130 @@ class StudentActivities(QWidget):
                 background-color: #FDC601;
             }
         """)
-        
-        # Set column widths (expanded to fill space without Action column)
+
         self.activities_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        self.activities_table.setColumnWidth(0, 150)  # Date & Time (expanded)
-        self.activities_table.setColumnWidth(1, 250)  # Event (expanded)
-        self.activities_table.setColumnWidth(2, 100)  # Type (expanded)
-        self.activities_table.setColumnWidth(3, 150)  # Location (expanded)
-        self.activities_table.setColumnWidth(4, 100)  # Status (expanded)
-        
-        # Set row height
+        self.activities_table.setColumnWidth(0, 120)
+        self.activities_table.setColumnWidth(1, 250)
+        self.activities_table.setColumnWidth(2, 125)
+        self.activities_table.setColumnWidth(3, 150)
+        self.activities_table.setColumnWidth(4, 100)
+
         self.activities_table.verticalHeader().setDefaultSectionSize(60)
-        
-        # Additional settings
         self.activities_table.verticalHeader().setVisible(False)
         self.activities_table.setAlternatingRowColors(True)
         self.activities_table.setSortingEnabled(True)
-        
-        # Make table read-only for students
         self.activities_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        
+
         table_layout.addWidget(self.activities_table)
 
+        h_layout.addWidget(table_wrapper)
+        h_layout.addStretch()
+
+        container_layout.addLayout(h_layout)
+
+    # ---------- Data loading ----------
+
     def load_events(self, events):
-        """Load events from MainCalendar"""
+        """Load events from MainCalendar into table and upcoming panel."""
         self.activities_data = events
         self.populate_table(events)
         self.populate_upcoming_events(events)
-    
+
     def populate_table(self, activities):
-        """Populate the table with activity data (read-only for students)"""
-        # Disable sorting while populating
         self.activities_table.setSortingEnabled(False)
         self.activities_table.setRowCount(0)
-        
+
         for activity in activities:
-            row_position = self.activities_table.rowCount()
-            self.activities_table.insertRow(row_position)
-            
-            # Add data to columns (NO Action column for students)
-            self.activities_table.setItem(row_position, 0, QTableWidgetItem(activity["date_time"]))
-            self.activities_table.setItem(row_position, 1, QTableWidgetItem(activity["event"]))
-            self.activities_table.setItem(row_position, 2, QTableWidgetItem(activity["type"]))
-            self.activities_table.setItem(row_position, 3, QTableWidgetItem(activity["location"]))
-            self.activities_table.setItem(row_position, 4, QTableWidgetItem(activity["status"]))
-            
-            # Center align all cells
+            row = self.activities_table.rowCount()
+            self.activities_table.insertRow(row)
+
+            self.activities_table.setItem(row, 0, QTableWidgetItem(activity["date_time"]))
+            self.activities_table.setItem(row, 1, QTableWidgetItem(activity["event"]))
+            self.activities_table.setItem(row, 2, QTableWidgetItem(activity["type"]))
+            self.activities_table.setItem(row, 3, QTableWidgetItem(activity["location"]))
+            self.activities_table.setItem(row, 4, QTableWidgetItem(activity["status"]))
+
             for col in range(5):
-                item = self.activities_table.item(row_position, col)
+                item = self.activities_table.item(row, col)
                 if item:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Re-enable sorting
+
         self.activities_table.setSortingEnabled(True)
-    
-    def populate_upcoming_events(self, activities):
-        """Populate the upcoming events list with activity data - FIXED to filter and sort"""
+
+    def populate_upcoming_events(self, events):
+        """Populate the upcoming events list."""
         self.list_upcoming.clear()
-        
-        # Define emoji icons for each event type
+
         type_icons = {
             "Academic": "🟢",
             "Organizational": "🔵",
             "Deadline": "🟠",
-            "Holiday": "🔴"
+            "Holiday": "🔴",
         }
-        
-        # Filter and sort upcoming events
-        upcoming_events = self._filter_upcoming_events(activities)
-        
-        for activity in upcoming_events:
-            icon = type_icons.get(activity["type"], "⚪")
-            event_text = f"{icon} {activity['event']}\n    {activity['date_time'].replace(chr(10), ' - ')}"
+
+        for event in events:
+            icon = type_icons.get(event["type"], "⚪")
+            dt_str = event["date_time"]
+            # display nicely for both legacy and ISO
+            display_time = dt_str.replace(chr(10), " - ") if "\n" in dt_str else dt_str
+            event_text = f"{icon} {event['event']}\n    {display_time}"
             self.list_upcoming.addItem(event_text)
 
-    def _sort_activities_by_priority(self, events):
-        """
-        Sort events by priority:
-        1. Current month events from today onwards 
-        2. Future month events 
-        3. Past events from current month 
-        4. Past events from previous months 
-        """
-        today = datetime.now().date()
-        current_month = today.month
-        current_year = today.year
-        
-        current_month_upcoming = []
-        future_months = []
-        current_month_past = []
-        old_past_events = []
-        
-        for event in events:
-            date_str = event.get('date_time', '')
-            
-            try:
-                # Parse the date
-                if '\n' in date_str:
-                    date_part = date_str.split('\n')[0].strip()
-                else:
-                    date_part = date_str.strip()
-                
-                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
-                
-                # Update status based on date
-                if event_date < today:
-                    event['status'] = "Finished"
-                elif event.get('status') == "Finished":
-                    event['status'] = "Upcoming"
-                
-                # Categorize events
-                if event_date.month == current_month and event_date.year == current_year:
-                    # Current month events
-                    if event_date >= today:
-                        current_month_upcoming.append((event_date, event))
-                    else:
-                        current_month_past.append((event_date, event))
-                elif event_date > today:
-                    # Future months
-                    future_months.append((event_date, event))
-                else:
-                    # Past events from previous months
-                    old_past_events.append((event_date, event))
-                    
-            except (ValueError, IndexError) as e:
-                print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
-                # Put unparseable events at the very end
-                old_past_events.append((datetime.max.date(), event))
-                continue
-        
-        # Sort each category by date
-        current_month_upcoming.sort(key=lambda x: x[0])
-        current_month_past.sort(key=lambda x: x[0])
-        future_months.sort(key=lambda x: x[0])
-        old_past_events.sort(key=lambda x: x[0])
-        
-        # Combine: current month upcoming → future months → current month past → old past events
-        sorted_events = (
-            [event for _, event in current_month_upcoming] +
-            [event for _, event in future_months] +
-            [event for _, event in current_month_past] +
-            [event for _, event in old_past_events]
-        )
-        
-        return sorted_events
-    
     def _filter_upcoming_events(self, events):
-        """
-        Filter events to show only upcoming events (today onwards) and sort by date.
-        Events that ended before today are excluded.
-        
-        Returns:
-            list: Sorted list of upcoming events (nearest date first)
-        """
         today = datetime.now().date()
         upcoming = []
-        
+
         for event in events:
             date_str = event.get('date_time', '')
-            
             try:
                 if '\n' in date_str:
                     date_part = date_str.split('\n')[0].strip()
                 else:
                     date_part = date_str.strip()
-                
                 event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
-                
                 if event_date >= today:
                     upcoming.append(event)
-                    
-            except (ValueError, IndexError) as e:
+            except (ValueError, IndexError):
                 print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
                 continue
-        
-        # Sort by date (earliest first)
-        def get_event_date(event):
-            date_str = event.get('date_time', '')
-            try:
-                if '\n' in date_str:
-                    date_part = date_str.split('\n')[0].strip()
-                else:
-                    date_part = date_str.strip()
-                
-                return datetime.strptime(date_part, "%m/%d/%Y").date()
-            except:
-                return datetime.max.date()
-        
-        upcoming.sort(key=get_event_date)
-        
-        return upcoming
-    
 
-    # -------- Event handlers --------
+        def get_event_date(e):
+            ds = e.get('date_time', '')
+            try:
+                if '\n' in ds:
+                    dp = ds.split('\n')[0].strip()
+                else:
+                    dp = ds.strip()
+                return datetime.strptime(dp, "%m/%d/%Y").date()
+            except Exception:
+                return datetime.max.date()
+
+        upcoming.sort(key=get_event_date)
+        return upcoming
+
+    # ---------- Event handlers ----------
+
     def back_to_calendar(self):
-        """Handle back to calendar button click"""
         if self.navigate_back_to_calendar:
             self.navigate_back_to_calendar()
         else:
             self._info("Navigation not configured")
 
     def filter_activities(self, filter_text):
-        """Filter activities table based on selected type"""
-        if hasattr(self, 'main_calendar'):
+        """Top-right filter: affects table and upcoming list."""
+        if hasattr(self, 'main_calendar') and self.main_calendar:
             filtered_events = self.main_calendar.filter_events(filter_text)
-            # Update both the table and the upcoming events list
             self.populate_table(filtered_events)
             self.populate_upcoming_events(filtered_events)
-    
+
     def on_upcoming_filter_changed(self, filter_text):
-        """Handle filter change in upcoming events list - FIXED to use filtered upcoming events"""
-        if hasattr(self, 'main_calendar'):
+        """Left-panel filter: affects only upcoming list."""
+        if hasattr(self, 'main_calendar') and self.main_calendar:
             filtered_events = self.main_calendar.filter_events(filter_text)
-            # Update only the upcoming events list (with date filtering)
             self.populate_upcoming_events(filtered_events)
 
-    # -------- UI helpers --------
+    # ---------- Helpers ----------
+
     def _info(self, msg):
         QMessageBox.information(self, "Info", str(msg))
 
