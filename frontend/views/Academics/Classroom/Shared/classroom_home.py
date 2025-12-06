@@ -127,8 +127,6 @@ class ClassroomHome(QtWidgets.QWidget):
             item = self.cards_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-<<<<<<< HEAD
-=======
     
     def resizeEvent(self, event):
         """Handle window resize to adjust card sizes"""
@@ -299,4 +297,3 @@ class FlowLayout(QtWidgets.QLayout):
         return y + lineHeight - rect.y()
     
     
->>>>>>> master
