@@ -179,10 +179,17 @@ INSTALLED_APPS = [
     'corsheaders',
     'apps.Users.apps.UsersConfig',
 
-    'apps.Academics.apps.AcademicsConfig',    
-    'apps.Appointments.apps.AppointmentsConfig', 
-    'apps.Calendar.apps.CalendarConfig',
-    'apps.Documents.apps.DocumentsConfig'
+    # 'apps.Academics.apps.AcademicsConfig',    
+    # 'apps.Appointments.apps.AppointmentsConfig', 
+    # 'apps.Calendar.apps.CalendarConfig',
+    # 'apps.Documents.apps.DocumentsConfig'
+    'apps.Documents.apps.DocumentsConfig',
+
+    "apps.Announcements",
+    "apps.Calendar",
+
+    "apps.Academics",
+    "apps.Appointments",
 ]
 
 MIDDLEWARE = [

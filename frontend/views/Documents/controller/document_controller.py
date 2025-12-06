@@ -62,9 +62,21 @@ class DocumentController:
         files = get_uploaded_files()
         
         # Filter based on role
-        if self.primary_role.lower() != 'admin':
-            # Non-admins only see their own files
+        if self.primary_role.lower() == 'admin':
+            # Admins see all files
+            pass
+        elif self.primary_role.lower() == 'faculty':
+            # Faculty see only their own files
             files = [f for f in files if f.get('uploader') == self.username]
+        elif self.primary_role.lower() in ['student', 'staff']:
+            # Students/staff see:
+            # 1. Approved files (for viewing/download)
+            # 2. Own files (their uploads waiting for approval)
+            files = [
+                f for f in files 
+                if f.get('approval_status') == 'approved' 
+                or f.get('uploader') == self.username
+            ]
         
         # Apply additional filters
         if filters:
@@ -102,7 +114,11 @@ class DocumentController:
         deleted = get_deleted_files()
         
         # Filter based on role
-        if self.primary_role.lower() != 'admin':
+        if self.primary_role.lower() == 'admin':
+            # Admins see all deleted files
+            pass
+        elif self.primary_role.lower() in ['faculty', 'staff', 'student']:
+            # Non-admins only see their own deleted files
             deleted = [f for f in deleted if f.get('uploader') == self.username]
         
         return deleted
@@ -396,6 +412,9 @@ class DocumentController:
             file_id = next_file_id
             data['next_file_id'] = next_file_id + 1
             
+            # Determine if file needs approval based on role
+            needs_approval = self.primary_role.lower() in ['student', 'staff']
+            
             # Create file metadata with file_id
             file_data = {
                 'file_id': file_id,  # CRITICAL: Unique file identifier
@@ -409,7 +428,11 @@ class DocumentController:
                 'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 'uploader': self.username,
                 'role': self.primary_role,
-                'is_deleted': False  # Track deletion status
+                'is_deleted': False,  # Track deletion status
+                'approval_status': 'pending' if needs_approval else 'approved',  # Auto-approve admin/faculty
+                'approved_by': None,
+                'approved_at': None,
+                'rejection_reason': None
             }
             
             if description:
@@ -1156,3 +1179,283 @@ class DocumentController:
                 
         except Exception as e:
             return False, f"Error updating file collection: {str(e)}"
+    
+    # ==================== APPROVAL WORKFLOW METHODS ====================
+    
+    def get_pending_approvals(self) -> List[Dict]:
+        """
+        Get all files waiting for approval.
+        
+        Only admins and faculty can see pending files.
+        
+        Returns:
+            list: List of files with approval_status='pending'
+        """
+        if self.primary_role.lower() not in ['admin', 'faculty']:
+            return []
+        
+        files = get_uploaded_files()
+        pending = [f for f in files if f.get('approval_status') == 'pending']
+        
+        # Sort by upload date (oldest first for review queue)
+        try:
+            pending.sort(key=lambda f: f.get('timestamp', ''), reverse=False)
+        except Exception as e:
+            print(f"Warning: Could not sort pending files: {e}")
+        
+        return pending
+    
+    def approve_file(self, file_id: int, approver_comments: str = None) -> Tuple[bool, str]:
+        """
+        Approve a pending file upload.
+        
+        Args:
+            file_id (int): Unique file ID (REQUIRED)
+            approver_comments (str, optional): Comments from approver
+            
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        try:
+            # Only admins and faculty can approve
+            if self.primary_role.lower() not in ['admin', 'faculty']:
+                return False, "You don't have permission to approve files"
+            
+            files_path = get_mock_data_path('files_data.json')
+            with open(files_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            all_files = data.get('files', [])
+            
+            # Find the file to approve by file_id
+            file_to_approve = None
+            file_index = None
+            for i, file_data in enumerate(all_files):
+                if file_data.get('is_deleted', False):
+                    continue
+                    
+                if file_data.get('file_id') == file_id:
+                    file_to_approve = file_data
+                    file_index = i
+                    break
+            
+            if file_to_approve and file_index is not None:
+                # Check current approval status
+                current_status = file_to_approve.get('approval_status')
+                
+                if current_status == 'approved':
+                    return False, f"File '{file_to_approve.get('filename')}' is already approved"
+                
+                # Update approval status
+                file_to_approve['approval_status'] = 'approved'
+                file_to_approve['approved_by'] = self.username
+                file_to_approve['approved_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                if approver_comments:
+                    file_to_approve['approver_comments'] = approver_comments
+                
+                # Clear rejection reason if any
+                file_to_approve.pop('rejection_reason', None)
+                
+                # Update the file in place
+                all_files[file_index] = file_to_approve
+                data['files'] = all_files
+                
+                with open(files_path, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+                
+                # Also update in collections
+                self._update_file_in_collections_by_id(file_id, file_to_approve)
+                
+                filename = file_to_approve.get('filename', 'Unknown')
+                return True, f"File '{filename}' (ID: {file_id}) approved successfully"
+            else:
+                return False, f"File with ID {file_id} not found"
+                
+        except Exception as e:
+            return False, f"Error approving file: {str(e)}"
+    
+    def reject_file(self, file_id: int, rejection_reason: str) -> Tuple[bool, str]:
+        """
+        Reject a pending file upload.
+        
+        Args:
+            file_id (int): Unique file ID (REQUIRED)
+            rejection_reason (str): Reason for rejection (REQUIRED)
+            
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        try:
+            # Only admins and faculty can reject
+            if self.primary_role.lower() not in ['admin', 'faculty']:
+                return False, "You don't have permission to reject files"
+            
+            if not rejection_reason or not rejection_reason.strip():
+                return False, "Rejection reason is required"
+            
+            files_path = get_mock_data_path('files_data.json')
+            with open(files_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            all_files = data.get('files', [])
+            
+            # Find the file to reject by file_id
+            file_to_reject = None
+            file_index = None
+            for i, file_data in enumerate(all_files):
+                if file_data.get('is_deleted', False):
+                    continue
+                    
+                if file_data.get('file_id') == file_id:
+                    file_to_reject = file_data
+                    file_index = i
+                    break
+            
+            if file_to_reject and file_index is not None:
+                # Check current approval status
+                current_status = file_to_reject.get('approval_status')
+                
+                if current_status == 'rejected':
+                    return False, f"File '{file_to_reject.get('filename')}' is already rejected"
+                
+                # Update approval status
+                file_to_reject['approval_status'] = 'rejected'
+                file_to_reject['rejected_by'] = self.username
+                file_to_reject['rejected_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                file_to_reject['rejection_reason'] = rejection_reason
+                
+                # Clear approval fields if any
+                file_to_reject.pop('approved_by', None)
+                file_to_reject.pop('approved_at', None)
+                file_to_reject.pop('approver_comments', None)
+                
+                # Update the file in place
+                all_files[file_index] = file_to_reject
+                data['files'] = all_files
+                
+                with open(files_path, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+                
+                # Also update in collections
+                self._update_file_in_collections_by_id(file_id, file_to_reject)
+                
+                filename = file_to_reject.get('filename', 'Unknown')
+                return True, f"File '{filename}' (ID: {file_id}) rejected"
+            else:
+                return False, f"File with ID {file_id} not found"
+                
+        except Exception as e:
+            return False, f"Error rejecting file: {str(e)}"
+    
+    def resubmit_file(self, file_id: int) -> Tuple[bool, str]:
+        """
+        Resubmit a rejected file for approval.
+        
+        Args:
+            file_id (int): Unique file ID (REQUIRED)
+            
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        try:
+            files_path = get_mock_data_path('files_data.json')
+            with open(files_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            all_files = data.get('files', [])
+            
+            # Find the file to resubmit by file_id
+            file_to_resubmit = None
+            file_index = None
+            for i, file_data in enumerate(all_files):
+                if file_data.get('is_deleted', False):
+                    continue
+                    
+                if file_data.get('file_id') == file_id:
+                    # Only owner can resubmit
+                    if file_data.get('uploader') != self.username:
+                        return False, "You can only resubmit your own files"
+                    
+                    file_to_resubmit = file_data
+                    file_index = i
+                    break
+            
+            if file_to_resubmit and file_index is not None:
+                # Check current approval status
+                current_status = file_to_resubmit.get('approval_status')
+                
+                if current_status != 'rejected':
+                    return False, f"File '{file_to_resubmit.get('filename')}' is not rejected (current status: {current_status})"
+                
+                # Update approval status to pending
+                file_to_resubmit['approval_status'] = 'pending'
+                file_to_resubmit['resubmitted_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Keep rejection history but mark as resubmitted
+                if 'rejection_reason' in file_to_resubmit:
+                    file_to_resubmit['previous_rejection_reason'] = file_to_resubmit['rejection_reason']
+                    file_to_resubmit.pop('rejection_reason')
+                
+                file_to_resubmit.pop('rejected_by', None)
+                file_to_resubmit.pop('rejected_at', None)
+                
+                # Update the file in place
+                all_files[file_index] = file_to_resubmit
+                data['files'] = all_files
+                
+                with open(files_path, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+                
+                # Also update in collections
+                self._update_file_in_collections_by_id(file_id, file_to_resubmit)
+                
+                filename = file_to_resubmit.get('filename', 'Unknown')
+                return True, f"File '{filename}' (ID: {file_id}) resubmitted for approval"
+            else:
+                return False, f"File with ID {file_id} not found"
+                
+        except Exception as e:
+            return False, f"Error resubmitting file: {str(e)}"
+    
+    def get_approval_stats(self) -> Dict:
+        """
+        Get statistics about file approvals.
+        
+        Returns:
+            dict: Statistics about pending, approved, rejected files
+        """
+        files = get_uploaded_files()
+        
+        stats = {
+            'total': len(files),
+            'pending': 0,
+            'approved': 0,
+            'rejected': 0,
+            'by_uploader': {}
+        }
+        
+        for file_data in files:
+            status = file_data.get('approval_status', 'approved')
+            uploader = file_data.get('uploader', 'Unknown')
+            
+            if status == 'pending':
+                stats['pending'] += 1
+            elif status == 'approved':
+                stats['approved'] += 1
+            elif status == 'rejected':
+                stats['rejected'] += 1
+            
+            # Track by uploader
+            if uploader not in stats['by_uploader']:
+                stats['by_uploader'][uploader] = {
+                    'total': 0,
+                    'pending': 0,
+                    'approved': 0,
+                    'rejected': 0
+                }
+            
+            stats['by_uploader'][uploader]['total'] += 1
+            stats['by_uploader'][uploader][status] += 1
+        
+        return stats

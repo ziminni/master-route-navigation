@@ -1,0 +1,121 @@
+{
+    "rubrics": {
+        "1": {
+            "midterm": {
+                "term_name": "Midterm",
+                "term_percentage": 33,
+                "components": [
+                    {
+                        "id": 1,
+                        "name": "Performance Task",
+                        "percentage": 20
+                    },
+                    {
+                        "id": 2,
+                        "name": "Quiz",
+                        "percentage": 30
+                    },
+                    {
+                        "id": 3,
+                        "name": "Exam",
+                        "percentage": 40
+                    },
+                    {
+                        "id": null,
+                        "name": "Special Child",
+                        "percentage": 10
+                    },
+                    {
+                        "id": null,
+                        "name": "New Component",
+                        "percentage": 0
+                    },
+                    {
+                        "id": null,
+                        "name": "New Component",
+                        "percentage": 0
+                    }
+                ],
+                "updated_at": "2025-12-03T21:26:01.935694",
+                "created_at": "2025-12-03T21:26:01.935694"
+            },
+            "finals": {
+                "term_name": "Final",
+                "term_percentage": 67,
+                "components": [
+                    {
+                        "id": 4,
+                        "name": "Performance Task",
+                        "percentage": 20
+                    },
+                    {
+                        "id": 5,
+                        "name": "Quiz",
+                        "percentage": 30
+                    },
+                    {
+                        "id": 6,
+                        "name": "Exam",
+                        "percentage": 30
+                    },
+                    {
+                        "id": null,
+                        "name": "Chilled",
+                        "percentage": 20
+                    }
+                ],
+                "updated_at": "2025-12-03T21:26:01.935694",
+                "created_at": "2025-12-03T21:26:01.935694"
+            }
+        },
+        "9": {
+            "midterm": {
+                "term_name": "Midterm",
+                "term_percentage": 33,
+                "components": [
+                    {
+                        "id": 1,
+                        "name": "Performance Task",
+                        "percentage": 40
+                    },
+                    {
+                        "id": 2,
+                        "name": "Quiz",
+                        "percentage": 30
+                    },
+                    {
+                        "id": 3,
+                        "name": "Exam",
+                        "percentage": 30
+                    }
+                ],
+                "updated_at": "2025-12-03T21:00:00.000000",
+                "created_at": "2025-12-03T21:00:00.000000"
+            },
+            "finals": {
+                "term_name": "Final",
+                "term_percentage": 67,
+                "components": [
+                    {
+                        "id": 4,
+                        "name": "Performance Task",
+                        "percentage": 40
+                    },
+                    {
+                        "id": 5,
+                        "name": "Quiz",
+                        "percentage": 30
+                    },
+                    {
+                        "id": 6,
+                        "name": "Exam",
+                        "percentage": 30
+                    }
+                ],
+                "updated_at": "2025-12-03T21:00:00.000000",
+                "created_at": "2025-12-03T21:00:00.000000"
+            }
+        }
+    },
+    "last_updated": "2025-12-03T21:26:01.935694"
+}

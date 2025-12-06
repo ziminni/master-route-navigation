@@ -1,24 +1,22 @@
 from django.db import models
-
-# Create your models here.
-from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
-# Create your models here.
 from apps.Users import models as user_model
-# from backend.apps.Announcements import models as announcement_model
+from apps.Announcements import models as announcement_model  # if you really use it
+
 
 class CalendarEventType(models.TextChoices):
-    ACADEMIC = 'acad', 'Academic'
-    ORGANIZATION = 'org', 'Organization'
-    OFFICIAL = 'official', 'Official University'
+    ACADEMIC = "acad", "Academic"
+    ORGANIZATION = "org", "Organization"
+    OFFICIAL = "official", "Official University"
+
 
 class CalendarEntry(models.Model):
-
+    # Generic link to the source object (event, announcement, etc.)
     source_ct = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     source_id = models.PositiveIntegerField()
-    source_object = GenericForeignKey('source_ct', 'source_id')
+    source_object = GenericForeignKey("source_ct", "source_id")
 
     title = models.CharField(max_length=120)
     start_at = models.DateTimeField(null=True, blank=True)
@@ -36,23 +34,30 @@ class CalendarEntry(models.Model):
     semester_id = models.IntegerField(null=True, blank=True)
 
     class Meta:
+        db_table = "calendar_entries"
         indexes = [
-            models.Index(fields=['start_at']),
-            models.Index(fields=['end_at']),
-            models.Index(fields=['section_id']),
-            models.Index(fields=['semester_id']),
-            models.Index(fields=['org_id']),
-            models.Index(fields=['is_public']),
+            models.Index(fields=["start_at"]),
+            models.Index(fields=["end_at"]),
+            models.Index(fields=["section_id"]),
+            models.Index(fields=["semester_id"]),
+            models.Index(fields=["org_id"]),
+            models.Index(fields=["is_public"]),
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=['source_ct', 'source_id','start_at','end_at'],
-                name='unique_source_calendar_entry'
+                fields=["source_ct", "source_id", "start_at", "end_at"],
+                name="unique_source_calendar_entry",
             )
         ]
 
+    def __str__(self):
+        return f"{self.title} ({self.start_at} – {self.end_at})"
+
+
 class CalendarLogs(models.Model):
-    event = models.ForeignKey(CalendarEntry, on_delete=models.CASCADE, related_name="logs")
+    event = models.ForeignKey(
+        CalendarEntry, on_delete=models.CASCADE, related_name="logs"
+    )
     action = models.CharField(max_length=50)
     performed_by = models.ForeignKey(user_model.BaseUser, on_delete=models.PROTECT)
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -60,10 +65,10 @@ class CalendarLogs(models.Model):
 
     class Meta:
         db_table = "calendar_logs"
-        ordering = ['-timestamp']
+        ordering = ["-timestamp"]
         indexes = [
-            models.Index(fields=['action']),
-            models.Index(fields=['timestamp']),
+            models.Index(fields=["action"]),
+            models.Index(fields=["timestamp"]),
         ]
 
     def __str__(self):
@@ -78,12 +83,14 @@ class Holiday(models.Model):
 
     class Meta:
         db_table = "holidays"
-        ordering = ['date']
+        ordering = ["date"]
         indexes = [
-            models.Index(fields=['date']),
+            models.Index(fields=["date"]),
         ]
         constraints = [
-            models.UniqueConstraint(fields=['name', 'date'], name='unique_holiday_per_date')
+            models.UniqueConstraint(
+                fields=["name", "date"], name="unique_holiday_per_date"
+            )
         ]
 
     def __str__(self):
