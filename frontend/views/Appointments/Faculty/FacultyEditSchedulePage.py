@@ -282,12 +282,13 @@ class FacultyEditSchedulePage_ui(QWidget):
         header_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(header_label)
 
-        # Day selection
+        # Day selection - IMPORTANT: Use the same order as grid headers
         day_layout = QtWidgets.QHBoxLayout()
         day_label = QtWidgets.QLabel("Day:")
         day_label.setStyleSheet("QLabel { font: 600 11pt 'Poppins'; color: #333; }")
         day_combo = QtWidgets.QComboBox()
-        day_combo.addItems(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+        # Order must match the grid headers: "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+        day_combo.addItems(["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"])
         day_layout.addWidget(day_label)
         day_layout.addWidget(day_combo)
         layout.addLayout(day_layout)
@@ -378,20 +379,55 @@ class FacultyEditSchedulePage_ui(QWidget):
 
     def _addTimeFrameToGrid(self, day, start_time_str, end_time_str, slot_duration):
         """Add a time frame to the grid visualization"""
-        # Convert day to column number
-        day_map = {"Sunday": 1, "Monday": 2, "Tuesday": 3, "Wednesday": 4, 
-                  "Thursday": 5, "Friday": 6, "Saturday": 7}
+        # Convert day to column number - FIXED: Use correct mapping based on grid headers
+        # Grid headers: ["Time", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        day_map = {
+            "Sunday": 1,    # Sun column
+            "Monday": 2,    # Mon column
+            "Tuesday": 3,   # Tue column
+            "Wednesday": 4, # Wed column
+            "Thursday": 5,  # Thu column
+            "Friday": 6,    # Fri column
+            "Saturday": 7   # Sat column
+        }
+        
         col = day_map.get(day)
         if not col:
+            QMessageBox.warning(self, "Error", f"Invalid day: {day}")
             return
 
         # Convert time strings to row numbers
         start_row = self._timeToRow(start_time_str)
         end_row = self._timeToRow(end_time_str)
         
-        if start_row is None or end_row is None or start_row >= end_row:
-            QMessageBox.warning(self, "Invalid Time", "Please check the start and end times.")
+        if start_row is None or end_row is None:
+            QMessageBox.warning(self, "Invalid Time", "Please check the time format.")
             return
+            
+        if start_row >= end_row:
+            QMessageBox.warning(self, "Invalid Time", "End time must be after start time.")
+            return
+
+        # Check for overlapping time frames on the same day
+        for existing_key in list(self.time_frames.keys()):
+            existing_day, existing_start, existing_end, existing_duration, existing_rule_id = existing_key
+            if existing_day == day and not (end_row <= existing_start or start_row >= existing_end):
+                # Overlap detected
+                reply = QMessageBox.question(
+                    self,
+                    "Overlap Detected",
+                    f"A time frame already exists on {day} from {self._getTimeFromRow(existing_start)} to {self._getTimeFromRow(existing_end)}.\n\nDo you want to replace it?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No
+                )
+                
+                if reply == QMessageBox.StandardButton.Yes:
+                    # Remove overlapping time frame
+                    for r in range(existing_start, existing_end):
+                        self._addEmptyCell(r, col)
+                    del self.time_frames[existing_key]
+                else:
+                    return
 
         # Store the time frame (rule_id will be None for new time frames)
         time_frame_key = (day, start_row, end_row, slot_duration, None)
@@ -423,7 +459,8 @@ class FacultyEditSchedulePage_ui(QWidget):
             row = total_minutes // 30
             
             return max(0, min(row, self.weeklyGridEdit.rowCount() - 1))
-        except:
+        except Exception as e:
+            logging.error(f"Error converting time '{time_str}' to row: {e}")
             return None
 
     def _colorTimeSlot(self, row, col, day, start_time, end_time, slot_duration, rule_id):
@@ -546,10 +583,15 @@ class FacultyEditSchedulePage_ui(QWidget):
             QMessageBox.critical(self, "Error", "Faculty ID not found.")
             return
 
-        # Map day names to Django format
+        # Map day names to Django format - FIXED: Use full day names to abbreviated
         day_map = {
-            "Monday": "MON", "Tuesday": "TUE", "Wednesday": "WED",
-            "Thursday": "THU", "Friday": "FRI", "Saturday": "SAT", "Sunday": "SUN"
+            "Sunday": "SUN", 
+            "Monday": "MON", 
+            "Tuesday": "TUE", 
+            "Wednesday": "WED",
+            "Thursday": "THU", 
+            "Friday": "FRI", 
+            "Saturday": "SAT"
         }
 
         success_count = 0
@@ -563,6 +605,7 @@ class FacultyEditSchedulePage_ui(QWidget):
             start_time = self._rowToTime(start_row)
             end_time = self._rowToTime(end_row)
             currentsemester = self.comboBox_3.currentIndex()
+            
             if start_time and end_time and day in day_map:
                 # Create availability rule data
                 rule_data = {
@@ -573,7 +616,7 @@ class FacultyEditSchedulePage_ui(QWidget):
                     "semester": currentsemester,
                     "slot_minutes": slot_duration
                 }
-                print(f"test rule: {rule_data}")
+                logging.debug(f"Saving rule: {rule_data}")
                 
                 # Send to API
                 result = self.crud.create_availability_rule(rule_data)
@@ -630,10 +673,26 @@ class FacultyEditSchedulePage_ui(QWidget):
         # Get existing availability rules
         rules = self.crud.get_availability_rules(faculty_id=self.faculty_id)
         
-        # Map Django day format to full day names
+        # Map Django day format to full day names - FIXED: Match the new order
         day_map = {
-            "MON": "Monday", "TUE": "Tuesday", "WED": "Wednesday",
-            "THU": "Thursday", "FRI": "Friday", "SAT": "Saturday", "SUN": "Sunday"
+            "SUN": "Sunday", 
+            "MON": "Monday", 
+            "TUE": "Tuesday", 
+            "WED": "Wednesday",
+            "THU": "Thursday", 
+            "FRI": "Friday", 
+            "SAT": "Saturday"
+        }
+        
+        # Map full day names to column numbers
+        day_to_col = {
+            "Sunday": 1,    # Sun column
+            "Monday": 2,    # Mon column
+            "Tuesday": 3,   # Tue column
+            "Wednesday": 4, # Wed column
+            "Thursday": 5,  # Thu column
+            "Friday": 6,    # Fri column
+            "Saturday": 7   # Sat column
         }
 
         for rule in rules:
@@ -656,7 +715,7 @@ class FacultyEditSchedulePage_ui(QWidget):
                 self.time_frames[time_frame_key] = True
 
                 # Visualize on grid
-                col = list(day_map.values()).index(day_full) + 1
+                col = day_to_col.get(day_full, 1)  # Default to column 1 if not found
                 for row in range(start_row, end_row):
                     self._colorTimeSlot(row, col, day_full, start_time, end_time, slot_duration, rule_id)
 
@@ -676,7 +735,8 @@ class FacultyEditSchedulePage_ui(QWidget):
             row = total_minutes // 30
             
             return max(0, min(row, self.weeklyGridEdit.rowCount() - 1))
-        except:
+        except Exception as e:
+            logging.error(f"Error converting time string '{time_str}' to row: {e}")
             return None
 
     def retranslateUi(self):
