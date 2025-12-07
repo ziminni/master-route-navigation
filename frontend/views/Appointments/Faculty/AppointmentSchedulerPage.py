@@ -130,22 +130,7 @@ class AppointmentSchedulerPage_ui(QWidget):
         header_layout.addWidget(self.Academics_5)
         header_layout.addStretch(1)
 
-        # Refresh button
-        self.refreshButton = QtWidgets.QPushButton("Refresh")
-        self.refreshButton.setFixedSize(80, 30)
-        self.refreshButton.setStyleSheet("""
-            QPushButton { 
-                background-color: #0a5a2f; 
-                color: white; 
-                border-radius: 4px; 
-                font: 10pt 'Poppins'; 
-            }
-            QPushButton:hover { 
-                background-color: #0c6b3a; 
-            }
-        """)
-        self.refreshButton.clicked.connect(self.refresh_schedule)
-        header_layout.addWidget(self.refreshButton)
+    
 
         self.delete_3 = QtWidgets.QPushButton()
         self.delete_3.setFixedSize(80, 30)
@@ -373,10 +358,19 @@ class AppointmentSchedulerPage_ui(QWidget):
             QMessageBox.warning(self, "Error", "Please select a faculty member.")
             return
 
-        # Get date and time from grid position
+        # Get date and time from grid position - FIXED date calculation
         selected_date = self.dateEdit.date()
-        day_offset = col - 1  # Column 1 is Sunday, 2 is Monday, etc.
-        target_date = selected_date.addDays(day_offset - selected_date.dayOfWeek() + 1)  # Adjust to get correct day
+        
+        # Calculate the correct date based on column
+        # Columns: 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat
+        # Get the Sunday of the current week
+        start_of_week = selected_date.addDays(-selected_date.dayOfWeek() + 1)  # Sunday
+        # Calculate target date: start_of_week + (col - 1) days
+        target_date = start_of_week.addDays(col - 1)
+        
+        logging.debug(f"Booking appointment - Column {col}, Selected date: {selected_date.toString('yyyy-MM-dd')}, "
+                     f"Start of week: {start_of_week.toString('yyyy-MM-dd')}, "
+                     f"Target date: {target_date.toString('yyyy-MM-dd')}")
         
         # Calculate time from row
         hour = row // 2
@@ -510,20 +504,47 @@ class AppointmentSchedulerPage_ui(QWidget):
                 w.setStyleSheet("QWidget { background: white; border: 1px solid #e0e0e0; }")
                 self.weeklyGrid.setCellWidget(r, c, w)
 
-        # Get the selected week (Monday to Sunday based on dateEdit)
+        # Get the selected week 
         selected_date = self.dateEdit.date()
-        start_of_week = selected_date.addDays(-(selected_date.dayOfWeek() - 1))  # First day of the week (Monday)
+        
+        # IMPORTANT FIX: Calculate week correctly
+        # QDate.dayOfWeek() returns 1=Monday, 7=Sunday
+        # We want to show Sunday as the first day of the week
+        current_day_of_week = selected_date.dayOfWeek()  # 1=Monday, 7=Sunday
+        
+        # Calculate the Sunday of the current week
+        if current_day_of_week == 7:  # Already Sunday
+            start_of_week = selected_date
+        else:
+            # Go back to get to Sunday
+            start_of_week = selected_date.addDays(-current_day_of_week)
         
         # Day mapping for columns (0: Time, 1: Sun, 2: Mon, ..., 7: Sat)
-        day_map = {1: "Sun", 2: "Mon", 3: "Tue", 4: "Wed", 5: "Thu", 6: "Fri", 7: "Sat"}
-        date_map = {}
+        day_map = {
+            1: "Sun", 
+            2: "Mon", 
+            3: "Tue", 
+            4: "Wed", 
+            5: "Thu", 
+            6: "Fri", 
+            7: "Sat"
+        }
         
-        # Map dates to columns
+        date_map = {}
+        day_names = {}
+        
+        # Map dates to columns - FIXED: Proper calculation
         for i in range(7):
             current_date = start_of_week.addDays(i)
             col = i + 1  # Columns 1-7 for Sun-Sat
             date_map[col] = current_date.toString("yyyy-MM-dd")
-            logging.debug(f"Column {col} -> Date {date_map[col]}")
+            
+            # Get day name for debugging
+            day_name = current_date.toString("ddd")
+            day_names[col] = day_name
+            
+            logging.debug(f"Column {col} ({day_map.get(col, 'Unknown')}) -> "
+                         f"Date {date_map[col]} ({day_name})")
 
         # Create time map for rows
         time_map = {}
@@ -533,94 +554,118 @@ class AppointmentSchedulerPage_ui(QWidget):
             time_key = f"{hour:02d}:{minute:02d}"
             time_map[time_key] = row
 
-        # Get available slots and appointments for each day
+        # Get availability rules for the faculty
+        try:
+            availability_rules = self.crud.get_availability_rules(faculty_id=self.current_faculty_id)
+            logging.debug(f"Found {len(availability_rules) if availability_rules else 0} availability rules")
+        except Exception as e:
+            logging.error(f"Error getting availability rules: {e}")
+            availability_rules = []
+
+        # Map day names to column numbers for availability rules
+        day_to_col = {
+            "SUN": 1, "MON": 2, "TUE": 3, "WED": 4,
+            "THU": 5, "FRI": 6, "SAT": 7
+        }
+
+        # Process each day/column
         for col, date_str in date_map.items():
-            logging.debug(f"Processing date {date_str} (column {col})")
+            logging.debug(f"Processing {day_names[col]} {date_str} (column {col})")
             
-            # Get available slots
-            try:
-                available_slots = self.crud.get_faculty_available_schedule(self.current_faculty_id, date_str)
-                logging.debug(f"Available slots for {date_str}: {len(available_slots) if available_slots else 0}")
-            except Exception as e:
-                logging.error(f"Error getting available slots for {date_str}: {e}")
-                available_slots = None
+            # Check availability rules for this day
+            day_name = day_names[col].upper()[:3]  # Get 3-letter day code
             
-            # Get appointments
+            # Filter availability rules for this day
+            day_rules = []
+            if availability_rules:
+                for rule in availability_rules:
+                    if rule.get('day_of_week') == day_name:
+                        day_rules.append(rule)
+            
+            if day_rules:
+                logging.debug(f"Found {len(day_rules)} availability rules for {day_name}")
+                
+                # Apply each availability rule
+                for rule in day_rules:
+                    start_time_str = rule.get('start_time', '')
+                    end_time_str = rule.get('end_time', '')
+                    
+                    if start_time_str and end_time_str:
+                        # Parse times
+                        try:
+                            start_hour, start_minute, _ = map(int, start_time_str.split(':'))
+                            end_hour, end_minute, _ = map(int, end_time_str.split(':'))
+                            
+                            # Calculate start and end rows
+                            start_total_minutes = start_hour * 60 + start_minute
+                            end_total_minutes = end_hour * 60 + end_minute
+                            
+                            start_row = start_total_minutes // 30
+                            end_row = end_total_minutes // 30
+                            
+                            # Mark available slots
+                            for row in range(start_row, end_row):
+                                if row < 48:  # Ensure within grid bounds
+                                    self._addWeeklySlot(row, col, "Available", None, True)
+                                    logging.debug(f"  Marked slot at row {row} ({start_total_minutes//60:02d}:{start_total_minutes%60:02d}) as available")
+                            
+                        except Exception as e:
+                            logging.error(f"Error parsing time for rule: {e}")
+            else:
+                logging.debug(f"No availability rules for {day_name}")
+
+            # Get appointments for this date
             try:
                 if self.primary_role == "faculty":
                     appointments = self.crud.get_faculty_appointments()
                 else:
                     appointments = self.crud.get_student_appointments()
-                logging.debug(f"Found {len(appointments) if appointments else 0} appointments")
-            except Exception as e:
-                logging.error(f"Error getting appointments: {e}")
-                appointments = []
-            
-            # Mark available slots
-            if available_slots:
-                for slot in available_slots:
-                    if isinstance(slot, dict):
-                        start_time_str = slot.get('start', '')
-                        if 'T' in start_time_str:
-                            # Extract HH:MM from ISO format
-                            try:
-                                start_time = start_time_str.split('T')[1][:5]
-                            except:
-                                start_time = start_time_str
-                        else:
-                            start_time = start_time_str[:5] if start_time_str else ''
+                
+                if appointments:
+                    for appt in appointments:
+                        # Handle both cases: faculty as ID or as dictionary
+                        faculty_value = appt.get('faculty')
                         
-                        if start_time and start_time in time_map:
-                            row = time_map[start_time]
-                            self._addWeeklySlot(row, col, "Available", None, True)
-            else:
-                logging.debug(f"No available slots for {date_str}")
-
-            # Mark appointments
-            if appointments:
-                for appt in appointments:
-                    # Handle both cases: faculty as ID or as dictionary
-                    faculty_value = appt.get('faculty')
-                    
-                    # Check if this appointment belongs to the current faculty
-                    if isinstance(faculty_value, dict):
-                        faculty_match = faculty_value.get('id') == self.current_faculty_id
-                    else:
-                        # faculty_value is likely an ID (integer)
-                        faculty_match = faculty_value == self.current_faculty_id
-                    
-                    if faculty_match:
-                        # Check date
-                        appt_date = appt.get('start_at', '').split('T')[0] if 'T' in appt.get('start_at', '') else appt.get('start_at', '')
-                        if appt_date == date_str:
-                            start_time = appt.get('start_at', '').split('T')[1][:5] if 'T' in appt.get('start_at', '') else appt.get('start_at', '')[:5]
-                            if start_time in time_map:
-                                row = time_map[start_time]
-                                status = appt.get('status', 'Pending')
-                                
-                                # Get user name
-                                if self.primary_role == "faculty":
-                                    student_info = appt.get('student', {})
-                                    if isinstance(student_info, dict):
-                                        user_info = student_info.get('user', {})
-                                        user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-                                        if not user_name:
-                                            user_name = user_info.get('username', 'Unknown')
+                        # Check if this appointment belongs to the current faculty
+                        if isinstance(faculty_value, dict):
+                            faculty_match = faculty_value.get('id') == self.current_faculty_id
+                        else:
+                            faculty_match = faculty_value == self.current_faculty_id
+                        
+                        if faculty_match:
+                            # Check date
+                            appt_date = appt.get('start_at', '').split('T')[0] if 'T' in appt.get('start_at', '') else appt.get('start_at', '')
+                            if appt_date == date_str:
+                                start_time = appt.get('start_at', '').split('T')[1][:5] if 'T' in appt.get('start_at', '') else appt.get('start_at', '')[:5]
+                                if start_time in time_map:
+                                    row = time_map[start_time]
+                                    status = appt.get('status', 'Pending')
+                                    
+                                    # Get user name
+                                    if self.primary_role == "faculty":
+                                        student_info = appt.get('student', {})
+                                        if isinstance(student_info, dict):
+                                            user_info = student_info.get('user', {})
+                                            user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+                                            if not user_name:
+                                                user_name = user_info.get('username', 'Unknown')
+                                        else:
+                                            user_name = "Unknown Student"
                                     else:
-                                        user_name = "Unknown Student"
-                                else:
-                                    faculty_info = appt.get('faculty', {})
-                                    if isinstance(faculty_info, dict):
-                                        user_info = faculty_info.get('user', {})
-                                        user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-                                        if not user_name:
-                                            user_name = user_info.get('username', 'Unknown')
-                                    else:
-                                        user_name = "Unknown Faculty"
-                                
-                                title = f"{status}: {user_name}"
-                                self._addWeeklySlot(row, col, title, appt.get('id'), False)
-                                logging.debug(f"Added appointment at {date_str} {start_time}: {title}")
+                                        faculty_info = appt.get('faculty', {})
+                                        if isinstance(faculty_info, dict):
+                                            user_info = faculty_info.get('user', {})
+                                            user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+                                            if not user_name:
+                                                user_name = user_info.get('username', 'Unknown')
+                                        else:
+                                            user_name = "Unknown Faculty"
+                                    
+                                    title = f"{status}: {user_name}"
+                                    self._addWeeklySlot(row, col, title, appt.get('id'), False)
+                                    logging.debug(f"Added appointment at {date_str} {start_time}: {title}")
+            except Exception as e:
+                logging.error(f"Error getting appointments for {date_str}: {e}")
 
     def _onFacultyChanged(self, index):
         """Handle faculty selection change"""
@@ -887,7 +932,6 @@ class AppointmentSchedulerPage_ui(QWidget):
     def retranslateUi(self):
         self.Academics_5.setText("Appointment Scheduler")
         self.label_92.setText("Weekly Schedule")
-        self.refreshButton.setText("Refresh")
         self.createschedule_2.setText("Create Schedule")
         self.delete_3.setText("Clear")
         self.comboBox_2.setItemText(0, "1st Semester 2025 - 2026")
