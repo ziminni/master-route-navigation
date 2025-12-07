@@ -136,6 +136,7 @@ class StudentAppointmentPage_ui(QWidget):
                     
                     # Get status with default
                     status = appointment.get('status', 'pending').upper()
+                    print(f"DEBUG: Appointment {appointment_id} status: {status}")
                     
                     # Get purpose/details
                     purpose = appointment.get('reason', 'No details provided')
@@ -176,7 +177,7 @@ class StudentAppointmentPage_ui(QWidget):
                     ]
                     self.rows.append(row_data)
                     successful_appointments += 1
-                    print(f"DEBUG: Successfully processed appointment {appointment_id}")
+                    print(f"DEBUG: Successfully processed appointment {appointment_id} with status {status}")
                     
                 except Exception as e:
                     failed_appointments += 1
@@ -404,22 +405,26 @@ class StudentAppointmentPage_ui(QWidget):
 
     def _makeActionsCell(self, status, row_index):
         """Create action buttons for the Actions column"""
+        print(f"DEBUG: Creating action cell for row {row_index} with status: {status}")
+        
         container = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(5, 5, 5, 5)  # Add some margins for visibility
         layout.setSpacing(8)
 
         def make_btn(text, bg, enabled=True):
             btn = QtWidgets.QPushButton(text, parent=container)
             btn.setMinimumHeight(28)
+            btn.setMinimumWidth(80)  # Ensure minimum width
             btn.setEnabled(enabled)
             btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {bg};
                     color: white;
                     border-radius: 6px;
-                    padding: 4px 10px;
+                    padding: 6px 12px;
                     font: 10pt 'Poppins';
+                    min-width: 80px;
                 }}
                 QPushButton:disabled {{
                     background-color: #bdbdbd;
@@ -434,10 +439,22 @@ class StudentAppointmentPage_ui(QWidget):
         # Cancel button for pending and approved appointments
         if status in ["PENDING", "APPROVED"]:
             cancel_btn = make_btn("Cancel", "#EB5757")
-            cancel_btn.clicked.connect(lambda: self._openCancelDialog(row_index))
+            cancel_btn.clicked.connect(lambda checked, idx=row_index: self._openCancelDialog(idx))
             layout.addWidget(cancel_btn)
+            print(f"DEBUG: Added Cancel button for row {row_index} with status {status}")
+        else:
+            print(f"DEBUG: No Cancel button for row {row_index} - status is {status}")
+            # Add a placeholder widget to show something is there
+            placeholder = QtWidgets.QLabel("No actions")
+            placeholder.setStyleSheet("QLabel { color: #888; font: 9pt 'Poppins'; }")
+            layout.addWidget(placeholder)
 
         layout.addStretch(1)
+        
+        # Ensure container is properly sized
+        container.setMinimumHeight(40)
+        container.setMinimumWidth(120)
+        
         return container
 
     def _showPurposeDetailsDialog(self, purpose_text, appointment_data):
@@ -805,7 +822,7 @@ class StudentAppointmentPage_ui(QWidget):
                 }
             """)
             btn_cancel.clicked.connect(dlg.reject)
-            btn_confirm.clicked.connect(lambda: self._handleCancelAppointment(dlg, appointment_id))
+            btn_confirm.clicked.connect(lambda: self._handleCancelAppointment(dlg, appointment_id, row_index))
             btn_layout.addWidget(btn_cancel)
             btn_layout.addStretch(1)
             btn_layout.addWidget(btn_confirm)
@@ -813,27 +830,47 @@ class StudentAppointmentPage_ui(QWidget):
 
             dlg.exec()
 
-    def _handleCancelAppointment(self, dialog, appointment_id):
+    def _handleCancelAppointment(self, dialog, appointment_id, row_index):
         """Handle appointment cancellation"""
         try:
             print("DEBUG: Canceling appointment ID:", appointment_id)
+            # Try different case variations for status
             result = self.appointment_crud.update_appointment(appointment_id, {
-                "status": "canceled",
+                "status": "CANCELED",
             })
+            
+            if not result:
+                # Try lowercase
+                result = self.appointment_crud.update_appointment(appointment_id, {
+                    "status": "canceled",
+                })
+            
             if result:
                 QMessageBox.information(self, "Success", "Appointment canceled successfully!")
-                self.load_appointments_data()
+                
+                # Update local data immediately
+                if 0 <= row_index < len(self.rows):
+                    self.rows[row_index][4] = "CANCELED"  # Update status
+                
+                # Refresh the table view
+                self._populateAppointmentsTable()
+                
+                # Also reload from server after a short delay
+                QtCore.QTimer.singleShot(500, self.load_appointments_data)
+                
                 dialog.accept()
             else:
-                QMessageBox.warning(self, "Error", "Failed to cancel appointment.")
+                QMessageBox.warning(self, "Error", "Failed to cancel appointment. Please try again.")
                 dialog.reject()
         except Exception as e:
+            print(f"ERROR in _handleCancelAppointment: {e}")
             QMessageBox.warning(self, "Error", f"Failed to cancel appointment: {str(e)}")
             dialog.reject()
 
-
     def _populateAppointmentsTable(self):
         """Update the table with appointment data"""
+        print(f"DEBUG: Populating table with {len(self.rows)} appointments")
+        
         status_colors = {
             "PENDING": "#F2994A",
             "RESCHEDULED": "#2F80ED",
@@ -847,16 +884,43 @@ class StudentAppointmentPage_ui(QWidget):
             self._showNoAppointmentsMessage()
             return
             
+        # Clear the table first
+        self.tableWidget_8.clearContents()
+        self.tableWidget_8.setRowCount(0)
         self.tableWidget_8.setRowCount(len(self.rows))
+        
         for r, row_data in enumerate(self.rows):
-            time_text, faculty, slot, purpose, status, appointment_id, student_id, schedule_entry, address, appointment_date, created_at, image_path = row_data
-            self.tableWidget_8.setItem(r, 0, QtWidgets.QTableWidgetItem(time_text))
-            self.tableWidget_8.setItem(r, 1, QtWidgets.QTableWidgetItem(faculty))
-            self.tableWidget_8.setItem(r, 2, QtWidgets.QTableWidgetItem(slot))
-            self.tableWidget_8.setCellWidget(r, 3, self._makePurposeViewCell(purpose, row_data))
-            self.tableWidget_8.setItem(r, 4, self._makeStatusItem(status, status_colors.get(status, "#333333")))
-            self.tableWidget_8.setCellWidget(r, 5, self._makeActionsCell(status, r))
-            self.tableWidget_8.setRowHeight(r, 60)
+            try:
+                time_text, faculty, slot, purpose, status, appointment_id, student_id, schedule_entry, address, appointment_date, created_at, image_path = row_data
+                
+                print(f"DEBUG: Processing row {r}: Appointment ID {appointment_id}, Status: {status}")
+                
+                # Set basic cell data
+                self.tableWidget_8.setItem(r, 0, QtWidgets.QTableWidgetItem(time_text))
+                self.tableWidget_8.setItem(r, 1, QtWidgets.QTableWidgetItem(faculty))
+                self.tableWidget_8.setItem(r, 2, QtWidgets.QTableWidgetItem(slot))
+                
+                # Create and set purpose view cell
+                purpose_cell = self._makePurposeViewCell(purpose, row_data)
+                self.tableWidget_8.setCellWidget(r, 3, purpose_cell)
+                
+                # Create and set status item
+                status_item = self._makeStatusItem(status, status_colors.get(status, "#333333"))
+                self.tableWidget_8.setItem(r, 4, status_item)
+                
+                # Create and set actions cell
+                actions_cell = self._makeActionsCell(status, r)
+                self.tableWidget_8.setCellWidget(r, 5, actions_cell)
+                
+                # Set row height
+                self.tableWidget_8.setRowHeight(r, 60)
+                
+                print(f"DEBUG: Successfully populated row {r}")
+                
+            except Exception as e:
+                print(f"ERROR populating row {r}: {e}")
+                import traceback
+                traceback.print_exc()
 
     def retranslateUi(self):
         """Set UI text"""

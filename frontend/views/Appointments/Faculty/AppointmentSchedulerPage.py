@@ -38,6 +38,19 @@ class AppointmentSchedulerPage_ui(QWidget):
         self.setFixedSize(1000, 550)
         self._initialize_user_data()
 
+    def get_student_name(self, student_id):
+        students = self.crud.get_students()
+        print(f"Students list: {students}")
+        for student in students:
+            print(f"{student}")
+            print("Hello Lord!")
+            if int(student["id"]) == int(student_id):
+                return {
+                    "name": student['full_name'],
+                    "email": student['user']['email']
+                    }
+            
+
     def showEvent(self, event):
         """Override showEvent to refresh data when page is shown"""
         super().showEvent(event)
@@ -722,15 +735,14 @@ class AppointmentSchedulerPage_ui(QWidget):
                 # For faculty view, show student info
                 student_info = appt.get('student', {})
                 if isinstance(student_info, dict):
-                    user_info = student_info.get('user', {})
-                    user_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-                    if not user_name:
-                        user_name = user_info.get('username', 'Unknown')
-                    user_email = user_info.get('email', 'N/A')
+                    print(f"student_info:{appt}")
+                    user_name = self.get_student_name(appt["student"])["name"]
+                    user_email = self.get_student_name(appt["student"])["email"]
                     user_role = "Student"
                 else:
-                    user_name = "Unknown Student"
-                    user_email = "N/A"
+                    print(f"student_info:{appt}")
+                    user_name = self.get_student_name(appt["student"])["name"]
+                    user_email = self.get_student_name(appt["student"])["email"]
                     user_role = "Student"
             else:
                 # For student view, show faculty info
@@ -751,7 +763,7 @@ class AppointmentSchedulerPage_ui(QWidget):
                 (f"{user_role}:", user_name),
                 ("Date:", start_time.split()[0] if ' ' in start_time else start_time),
                 ("Time:", f"{self.convert_time(start_time.split()[1][:5])} - {self.convert_time(end_time.split()[1][:5])}" if ' ' in start_time else "Unknown"),
-                ("Purpose:", appt.get('additional_details', 'N/A')),
+                ("Purpose:", appt.get('reason', 'N/A')),
                 ("Status:", appt.get('status', 'Pending').capitalize()),
                 ("Contact:", user_email)
             ]
