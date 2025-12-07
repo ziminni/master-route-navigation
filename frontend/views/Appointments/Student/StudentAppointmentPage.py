@@ -25,18 +25,35 @@ class StudentAppointmentPage_ui(QWidget):
         self.retranslateUi()
         self.load_appointments_data()  # Load initial data
 
-
-
     def get_faculty_name(self, faculty_id):
-        faculties = self.appointment_crud.get_faculties()
-        print(f"Faculties list: {faculties}")
-        for faculty in faculties:
-            print(f"{faculty}")
-            print("Hello Lord!")
-            if int(faculty["id"]) == int(faculty_id):
-                return faculty['full_name']
-
-    
+        """Safely get faculty name with error handling"""
+        try:
+            if faculty_id is None:
+                return "Unknown Faculty"
+            
+            faculties = self.appointment_crud.get_faculties()
+            print(f"DEBUG: Looking for faculty ID: {faculty_id}")
+            print(f"DEBUG: Available faculties: {faculties}")
+            
+            # Try different ways to match faculty
+            for faculty in faculties:
+                # Check if faculty dict has id
+                if isinstance(faculty, dict):
+                    # Try integer comparison
+                    if int(faculty.get("id", 0)) == int(faculty_id):
+                        return faculty.get('full_name', f"Faculty {faculty_id}")
+                    # Try string comparison
+                    elif str(faculty.get("id", "")) == str(faculty_id):
+                        return faculty.get('full_name', f"Faculty {faculty_id}")
+                # If faculty is just a string or has different structure
+                elif isinstance(faculty, str) and str(faculty_id) in faculty:
+                    return faculty
+            
+            return f"Faculty {faculty_id}"
+            
+        except Exception as e:
+            print(f"ERROR getting faculty name for ID {faculty_id}: {e}")
+            return f"Faculty {faculty_id}"
 
     def set_student_request_page(self, request_page):
         """Set the student request page and connect signals"""
@@ -48,11 +65,14 @@ class StudentAppointmentPage_ui(QWidget):
     def load_appointments_data(self):
         """Load appointments data from API for the current student"""
         self.rows.clear()
+        successful_appointments = 0
+        failed_appointments = 0
+        
         try:
             print(f"DEBUG: Loading appointments for student with token: {self.token[:20]}...")
             
             appointments = self.appointment_crud.get_student_appointments()
-            print(f"DEBUG: Retrieved appointments: {appointments}")
+            print(f"DEBUG: Retrieved {len(appointments) if appointments else 0} appointments")
             
             if not appointments:
                 print("DEBUG: No appointments found")
@@ -61,94 +81,125 @@ class StudentAppointmentPage_ui(QWidget):
                 return
             
             for appointment in appointments:
-                print(f"DEBUG: Processing appointment: {appointment}")
-                
-                # Extract basic appointment info
-                appointment_id = appointment.get('id')
-                student_id = appointment.get('student')
-                faculty_id = appointment.get('faculty')
-                faculty_name = self.get_faculty_name(faculty_id)
-                
-                # Format time
-                start_at = appointment.get('start_at', '')
-                end_at = appointment.get('end_at', '')
-                
-                # Parse datetime strings
-                time_display = ""
-                date_display = ""
-                
-                if start_at:
+                try:
+                    print(f"DEBUG: Processing appointment: {appointment}")
+                    
+                    # Extract basic appointment info with defaults
+                    appointment_id = appointment.get('id', 'N/A')
+                    student_id = appointment.get('student', 'N/A')
+                    faculty_id = appointment.get('faculty', 'N/A')
+                    
+                    # Safely get faculty name
                     try:
-                        # Handle ISO format with timezone
-                        start_dt_str = start_at.replace('Z', '') if 'Z' in start_at else start_at
-                        end_dt_str = end_at.replace('Z', '') if end_at and 'Z' in end_at else end_at
-                        
-                        start_dt = datetime.fromisoformat(start_dt_str)
-                        if end_dt_str:
-                            end_dt = datetime.fromisoformat(end_dt_str)
-                            time_display = f"{start_dt.strftime('%I:%M %p')} - {end_dt.strftime('%I:%M %p')}"
-                        else:
-                            time_display = start_dt.strftime('%I:%M %p')
-                        
-                        date_display = start_dt.strftime('%Y-%m-%d')
-                    except ValueError as e:
-                        print(f"DEBUG: Error parsing datetime: {e}")
-                        time_display = f"{start_at} - {end_at}" if end_at else start_at
-                        date_display = "Unknown Date"
-                else:
-                    time_display = "Time not specified"
-                    date_display = "Date not specified"
-                
-                # Get status
-                status = appointment.get('status', 'pending').upper()
-                
-                # Get purpose/details
-                purpose = appointment.get('reason', 'No details provided')
-                
-                # Get address/location
-                address = appointment.get('address', 'Not specified')
-                
-                # Get created at
-                created_at = appointment.get('created_at', '')
-                if created_at:
-                    try:
-                        created_dt_str = created_at.replace('Z', '') if 'Z' in created_at else created_at
-                        created_dt = datetime.fromisoformat(created_dt_str)
-                        created_at_display = created_dt.strftime('%Y-%m-%d %I:%M %p')
-                    except:
-                        created_at_display = created_at
-                else:
-                    created_at_display = "Unknown"
-                
-                # Create row data
-                row_data = [
-                    f"{date_display} {time_display}",  # Time
-                    faculty_name,  # Faculty
-                    time_display,  # Time slot
-                    purpose,  # Purpose/details
-                    status,  # Status
-                    appointment_id,  # Appointment ID (hidden)
-                    student_id,  # Student ID (hidden)
-                    faculty_id,  # Faculty ID (hidden)
-                    address,  # Address (hidden)
-                    date_display,  # Date only (hidden)
-                    created_at_display,  # Created at (hidden)
-                    appointment.get('image_path', ''),  # Image path (hidden)
-                ]
-                self.rows.append(row_data)
+                        faculty_name = self.get_faculty_name(faculty_id)
+                    except Exception as e:
+                        print(f"ERROR getting faculty name for appointment {appointment_id}: {e}")
+                        faculty_name = f"Faculty {faculty_id}"
+                    
+                    # Format time
+                    start_at = appointment.get('start_at', '')
+                    end_at = appointment.get('end_at', '')
+                    
+                    # Parse datetime strings with robust error handling
+                    time_display = ""
+                    date_display = ""
+                    
+                    if start_at:
+                        try:
+                            # Handle ISO format with timezone
+                            start_dt_str = start_at.replace('Z', '+00:00') if 'Z' in start_at else start_at
+                            if end_at:
+                                end_dt_str = end_at.replace('Z', '+00:00') if 'Z' in end_at else end_at
+                            
+                            # Parse with error handling
+                            try:
+                                start_dt = datetime.fromisoformat(start_dt_str)
+                                if end_at:
+                                    end_dt = datetime.fromisoformat(end_dt_str)
+                                    time_display = f"{start_dt.strftime('%I:%M %p')} - {end_dt.strftime('%I:%M %p')}"
+                                else:
+                                    time_display = start_dt.strftime('%I:%M %p')
+                                
+                                date_display = start_dt.strftime('%Y-%m-%d')
+                            except ValueError:
+                                # Fallback for different datetime formats
+                                time_display = f"{start_at} - {end_at}" if end_at else start_at
+                                date_display = "Unknown Date"
+                                
+                        except Exception as e:
+                            print(f"ERROR parsing datetime for appointment {appointment_id}: {e}")
+                            time_display = f"{start_at} - {end_at}" if end_at else start_at
+                            date_display = "Unknown Date"
+                    else:
+                        time_display = "Time not specified"
+                        date_display = "Date not specified"
+                    
+                    # Get status with default
+                    status = appointment.get('status', 'pending').upper()
+                    
+                    # Get purpose/details
+                    purpose = appointment.get('reason', 'No details provided')
+                    if not purpose:
+                        purpose = appointment.get('purpose', 'No details provided')
+                    if not purpose:
+                        purpose = 'No details provided'
+                    
+                    # Get address/location
+                    address = appointment.get('address', 'Not specified')
+                    
+                    # Get created at
+                    created_at = appointment.get('created_at', '')
+                    if created_at:
+                        try:
+                            created_dt_str = created_at.replace('Z', '+00:00') if 'Z' in created_at else created_at
+                            created_dt = datetime.fromisoformat(created_dt_str)
+                            created_at_display = created_dt.strftime('%Y-%m-%d %I:%M %p')
+                        except:
+                            created_at_display = created_at
+                    else:
+                        created_at_display = "Unknown"
+                    
+                    # Create row data
+                    row_data = [
+                        f"{date_display} {time_display}",  # Time
+                        faculty_name,  # Faculty
+                        time_display,  # Time slot
+                        purpose,  # Purpose/details
+                        status,  # Status
+                        appointment_id,  # Appointment ID (hidden)
+                        student_id,  # Student ID (hidden)
+                        faculty_id,  # Faculty ID (hidden)
+                        address,  # Address (hidden)
+                        date_display,  # Date only (hidden)
+                        created_at_display,  # Created at (hidden)
+                        appointment.get('image_path', ''),  # Image path (hidden)
+                    ]
+                    self.rows.append(row_data)
+                    successful_appointments += 1
+                    print(f"DEBUG: Successfully processed appointment {appointment_id}")
+                    
+                except Exception as e:
+                    failed_appointments += 1
+                    print(f"ERROR processing appointment {appointment.get('id', 'unknown')}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continue to next appointment instead of stopping
             
-            print(f"DEBUG: Processed {len(self.rows)} appointments")
+            print(f"DEBUG: Successfully processed {successful_appointments} appointments, failed: {failed_appointments}")
             
-            # Populate table with data
+            # Always populate the table, even if some appointments failed
             self._populateAppointmentsTable()
+            
+            if failed_appointments > 0:
+                print(f"WARNING: {failed_appointments} appointments had errors but table was populated with valid data")
 
         except Exception as e:
             print(f"ERROR: Error loading appointments data: {e}")
             import traceback
             traceback.print_exc()
             QMessageBox.warning(self, "Error", f"Failed to load appointments: {str(e)}")
-            # Show empty table
-            self._populateAppointmentsTable()
+            # Show empty table with error message
+            self._showErrorMessage()
 
     def _showNoAppointmentsMessage(self):
         """Show message when no appointments are found"""
@@ -166,6 +217,23 @@ class StudentAppointmentPage_ui(QWidget):
         font = QtGui.QFont("Poppins", 12)
         message_item.setFont(font)
         message_item.setForeground(QtGui.QColor("#666666"))
+
+    def _showErrorMessage(self):
+        """Show error message when loading fails"""
+        # Clear existing table
+        self.tableWidget_8.setRowCount(0)
+        
+        # Add a single row with error message
+        self.tableWidget_8.setRowCount(1)
+        error_item = QtWidgets.QTableWidgetItem("Error loading appointments. Please try again.")
+        error_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.tableWidget_8.setSpan(0, 0, 1, 6)  # Span across all columns
+        self.tableWidget_8.setItem(0, 0, error_item)
+        
+        # Style the message
+        font = QtGui.QFont("Poppins", 12)
+        error_item.setFont(font)
+        error_item.setForeground(QtGui.QColor("#EB5757"))
 
     def _setupAppointmentsPage(self):
         self.setObjectName("Appointments_2")
@@ -510,115 +578,7 @@ class StudentAppointmentPage_ui(QWidget):
         
         content_layout.addWidget(info_group)
         
-        # # Image View Section
-        # image_group = QtWidgets.QGroupBox("Supporting Documents")
-        # image_group.setStyleSheet("""
-        #     QGroupBox {
-        #         font: 600 12pt 'Poppins';
-        #         color: #084924;
-        #         border: 1px solid #e0e0e0;
-        #         border-radius: 8px;
-        #         margin-top: 12px;
-        #         padding-top: 12px;
-        #     }
-        #     QGroupBox::title {
-        #         subcontrol-origin: margin;
-        #         left: 12px;
-        #         padding: 0 8px 0 8px;
-        #     }
-        # """)
-        
-        # image_layout = QtWidgets.QVBoxLayout(image_group)
-        
-        # # Image display area
-        # self.image_display = QtWidgets.QLabel()
-        # self.image_display.setFixedSize(400, 200)
-        # self.image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        
-        # # Load image if available
-        # image_path = appointment_data[11]
-        # if image_path and os.path.exists(image_path):
-        #     pixmap = QtGui.QPixmap(image_path)
-        #     if not pixmap.isNull():
-        #         scaled_pixmap = pixmap.scaled(400, 200, 
-        #                                     QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-        #                                     QtCore.Qt.TransformationMode.SmoothTransformation)
-        #         self.image_display.setPixmap(scaled_pixmap)
-        #         self.image_display.setStyleSheet("""
-        #             QLabel {
-        #                 background-color: #f8f9fa;
-        #                 border: 2px solid #dee2e6;
-        #                 border-radius: 8px;
-        #             }
-        #         """)
-        #     else:
-        #         self.image_display.setText("Invalid image")
-        #         self.image_display.setStyleSheet("""
-        #             QLabel {
-        #                 background-color: #f8f9fa;
-        #                 border: 2px dashed #dee2e6;
-        #                 border-radius: 8px;
-        #                 color: #6c757d;
-        #                 font: 10pt 'Poppins';
-        #             }
-        #         """)
-        # else:
-        #     self.image_display.setText("No image available")
-        #     self.image_display.setStyleSheet("""
-        #         QLabel {
-        #             background-color: #f8f9fa;
-        #             border: 2px dashed #dee2e6;
-        #             border-radius: 8px;
-        #             color: #6c757d;
-        #             font: 10pt 'Poppins';
-        #         }
-        #     """)
-        
-        # # Image controls
-        # image_controls_layout = QtWidgets.QHBoxLayout()
-        
-        # upload_btn = QtWidgets.QPushButton("Upload Image")
-        # upload_btn.setFixedSize(120, 35)
-        # upload_btn.setStyleSheet("""
-        #     QPushButton {
-        #         background-color: #084924;
-        #         color: white;
-        #         border-radius: 6px;
-        #         font: 600 10pt 'Poppins';
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #0a5a2f;
-        #     }
-        # """)
-        # upload_btn.clicked.connect(lambda: self._uploadImage(appointment_data[5]))
-        
-        # view_btn = QtWidgets.QPushButton("View Full Size")
-        # view_btn.setFixedSize(120, 35)
-        # view_btn.setStyleSheet("""
-        #     QPushButton {
-        #         background-color: #2F80ED;
-        #         color: white;
-        #         border-radius: 6px;
-        #         font: 600 10pt 'Poppins';
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #2a75e0;
-        #     }
-        # """)
-        # view_btn.setEnabled(bool(image_path and os.path.exists(image_path)))
-        # view_btn.clicked.connect(lambda: self._viewImageFullscreen(image_path))
-        
-        # image_controls_layout.addWidget(upload_btn)
-        # image_controls_layout.addWidget(view_btn)
-        # image_controls_layout.addStretch(1)
-        
-        # image_layout.addWidget(self.image_display)
-        # image_layout.addLayout(image_controls_layout)
-        
-        # content_layout.addWidget(image_group)
-        
         # Purpose section
-        
         purpose_group = QtWidgets.QGroupBox("Purpose Details")
         purpose_group.setStyleSheet("""
             QGroupBox {
@@ -856,8 +816,9 @@ class StudentAppointmentPage_ui(QWidget):
     def _handleCancelAppointment(self, dialog, appointment_id):
         """Handle appointment cancellation"""
         try:
+            print("DEBUG: Canceling appointment ID:", appointment_id)
             result = self.appointment_crud.update_appointment(appointment_id, {
-                "status": "CANCELED"
+                "status": "canceled",
             })
             if result:
                 QMessageBox.information(self, "Success", "Appointment canceled successfully!")
@@ -870,6 +831,7 @@ class StudentAppointmentPage_ui(QWidget):
             QMessageBox.warning(self, "Error", f"Failed to cancel appointment: {str(e)}")
             dialog.reject()
 
+
     def _populateAppointmentsTable(self):
         """Update the table with appointment data"""
         status_colors = {
@@ -881,6 +843,10 @@ class StudentAppointmentPage_ui(QWidget):
             "COMPLETED": "#219653"
         }
 
+        if not self.rows:
+            self._showNoAppointmentsMessage()
+            return
+            
         self.tableWidget_8.setRowCount(len(self.rows))
         for r, row_data in enumerate(self.rows):
             time_text, faculty, slot, purpose, status, appointment_id, student_id, schedule_entry, address, appointment_date, created_at, image_path = row_data
