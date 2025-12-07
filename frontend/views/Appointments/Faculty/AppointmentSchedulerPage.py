@@ -666,7 +666,7 @@ class AppointmentSchedulerPage_ui(QWidget):
                                         else:
                                             user_name = "Unknown Faculty"
                                     
-                                    title = f"{status}: {user_name}"
+                                    title = f"{status.capitalize()} Appointment"
                                     self._addWeeklySlot(row, col, title, appt.get('id'), False)
                                     logging.debug(f"Added appointment at {date_str} {start_time}: {title}")
             except Exception as e:
