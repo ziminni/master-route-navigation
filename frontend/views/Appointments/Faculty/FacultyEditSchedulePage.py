@@ -130,27 +130,7 @@ class FacultyEditSchedulePage_ui(QWidget):
         self.addTimeFrameButton.clicked.connect(self._showAddTimeFrameDialog)
         controls_layout.addWidget(self.addTimeFrameButton)
 
-        # Clear All Button
-        self.clearAllButton = QtWidgets.QPushButton("Clear All")
-        self.clearAllButton.setFixedSize(100, 35)
-        self.clearAllButton.setStyleSheet("""
-            QPushButton { 
-                background-color: #dc3545; 
-                color: white; 
-                border-radius: 6px; 
-                font: 600 10pt 'Poppins'; 
-            }
-            QPushButton:hover { 
-                background-color: #c82333; 
-            }
-            QPushButton:disabled {
-                background-color: #cccccc;
-                color: #666666;
-            }
-        """)
-        self.clearAllButton.clicked.connect(self._clearAllTimeFrames)
-        self.clearAllButton.setEnabled(False)
-        controls_layout.addWidget(self.clearAllButton)
+       
 
         # Save Schedule Button
         self.saveButton = QtWidgets.QPushButton("Save Schedule")
@@ -656,7 +636,6 @@ class FacultyEditSchedulePage_ui(QWidget):
     def _updateButtonStates(self):
         """Update button states based on whether there are time frames"""
         has_time_frames = len(self.time_frames) > 0
-        self.clearAllButton.setEnabled(has_time_frames)
         self.saveButton.setEnabled(has_time_frames)
 
     def _populateEditWeeklyGrid(self):
@@ -743,5 +722,4 @@ class FacultyEditSchedulePage_ui(QWidget):
         self.RequestPage.setText("Edit Schedule")
         self.label_93.setText("Set Available Time Frames")
         self.addTimeFrameButton.setText("Add Time Frame")
-        self.clearAllButton.setText("Clear All")
         self.saveButton.setText("Save Schedule")

@@ -922,7 +922,7 @@ class AppointmentSchedulerPage_ui(QWidget):
             self._populateWeeklySchedule()  # Refresh the schedule
 
     def retranslateUi(self):
-        self.Academics_5.setText("Appointment Scheduler")
+        self.Academics_5.setText("Scheduler")
         self.label_92.setText("Weekly Schedule")
         self.createschedule_2.setText("Create Schedule")
         self.comboBox_2.setItemText(0, "1st Semester 2025 - 2026")
