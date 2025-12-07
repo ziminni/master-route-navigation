@@ -132,15 +132,7 @@ class AppointmentSchedulerPage_ui(QWidget):
 
     
 
-        self.delete_3 = QtWidgets.QPushButton()
-        self.delete_3.setFixedSize(80, 30)
-        self.delete_3.setStyleSheet("""
-            QPushButton { background-color: #EB5757; color: white; border-radius: 4px; font: 10pt 'Poppins'; }
-            QPushButton:hover { background-color: #d43f3f; }
-        """)
-        self.delete_3.clicked.connect(self._deleteSelectedSlots)
-        header_layout.addWidget(self.delete_3)
-
+       
         self.createschedule_2 = QtWidgets.QPushButton()
         self.createschedule_2.setFixedSize(120, 30)
         self.createschedule_2.setStyleSheet("""
@@ -933,7 +925,6 @@ class AppointmentSchedulerPage_ui(QWidget):
         self.Academics_5.setText("Appointment Scheduler")
         self.label_92.setText("Weekly Schedule")
         self.createschedule_2.setText("Create Schedule")
-        self.delete_3.setText("Clear")
         self.comboBox_2.setItemText(0, "1st Semester 2025 - 2026")
         self.comboBox_2.setItemText(1, "2nd Semester 2025 - 2026")
         self.comboBox_2.setItemText(2, "Summer 2026")
