@@ -629,7 +629,7 @@ class AddEvent(QWidget):
         start_qdatetime = QDateTime(start_date, start_qtime)
 
         # ISO 8601 string, e.g. 2025-06-02T09:00:00
-        date_time_str = start_qdatetime.toString(Qt.ISODate)
+        date_time_str = start_qdatetime.toString(Qt.DateFormat.ISODate)
 
         location = self.input_location.text().strip() or "N/A"
 

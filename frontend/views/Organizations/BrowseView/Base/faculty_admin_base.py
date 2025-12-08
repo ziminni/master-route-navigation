@@ -62,6 +62,7 @@ class FacultyAdminBase(OrganizationViewBase):
         filtered_college = [
             org for org in organizations 
             if not org.get("is_archived", False) and not org["is_branch"]
+            # if not org.get("is_archived", False) and not org.get("is_branch", False)
         ]
         
         for org in filtered_college:
