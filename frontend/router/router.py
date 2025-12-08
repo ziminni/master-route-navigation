@@ -88,6 +88,16 @@ class Router:
         return page_classes
 
     def _preload_pages(self):
+        # Log to file for debugging
+        import os
+        log_path = os.path.join(os.path.dirname(__file__), "router_debug.log")
+        with open(log_path, "a") as f:
+            f.write(f"\n{'='*80}\n")
+            f.write(f"_preload_pages called\n")
+            f.write(f"user_session = {self.user_session}\n")
+            f.write(f"profile_id in session = {self.user_session.get('profile_id')}\n")
+            f.write(f"{'='*80}\n")
+        
         # Default "Access Denied" page
         access_denied_widget = self._create_default_widget("Access Denied", "You do not have permission to view this page.")
         self.stack.addWidget(access_denied_widget)
@@ -108,13 +118,24 @@ class Router:
                     print(f"Router: Loading page {key} with access {access} for user_role {self.user_role}")
                     page_class = self._page_classes.get(key)
                     if page_class:
-                        # Pass user session data to dashboard initialization
-                        page = page_class(
-                            username=self.user_session.get("username", ""),
-                            roles=self.user_session.get("roles", []),
-                            primary_role=self.user_session.get("primary_role", ""),
-                            token=self.user_session.get("token", "")
-                        )
+                        # Pass user session data to page initialization
+                        # Try with profile_id first, fall back without it if not supported
+                        try:
+                            page = page_class(
+                                username=self.user_session.get("username", ""),
+                                roles=self.user_session.get("roles", []),
+                                primary_role=self.user_session.get("primary_role", ""),
+                                token=self.user_session.get("token", ""),
+                                profile_id=self.user_session.get("profile_id")
+                            )
+                        except TypeError:
+                            # Page class doesn't accept profile_id, try without it
+                            page = page_class(
+                                username=self.user_session.get("username", ""),
+                                roles=self.user_session.get("roles", []),
+                                primary_role=self.user_session.get("primary_role", ""),
+                                token=self.user_session.get("token", "")
+                            )
                     else:
                         page = self._create_default_widget(name, f"Page for {name}")
                     index = self.stack.addWidget(page)
@@ -133,12 +154,23 @@ class Router:
                             page_class = self._page_classes.get(mod_key)
                             if page_class:
                                 # Pass user session data to modulars
-                                page = page_class(
-                                    username=self.user_session.get("username", ""),
-                                    roles=self.user_session.get("roles", []),
-                                    primary_role=self.user_session.get("primary_role", ""),
-                                    token=self.user_session.get("token", "")
-                                )
+                                # Try with profile_id first, fall back without it if not supported
+                                try:
+                                    page = page_class(
+                                        username=self.user_session.get("username", ""),
+                                        roles=self.user_session.get("roles", []),
+                                        primary_role=self.user_session.get("primary_role", ""),
+                                        token=self.user_session.get("token", ""),
+                                        profile_id=self.user_session.get("profile_id")
+                                    )
+                                except TypeError:
+                                    # Page class doesn't accept profile_id, try without it
+                                    page = page_class(
+                                        username=self.user_session.get("username", ""),
+                                        roles=self.user_session.get("roles", []),
+                                        primary_role=self.user_session.get("primary_role", ""),
+                                        token=self.user_session.get("token", "")
+                                    )
                             else:
                                 page = self._create_default_widget(mod_name, f"Sub-page for {mod_name}")
                             index = self.stack.addWidget(page)
@@ -220,13 +252,58 @@ class Router:
         # if the widget emits login_successful(payload), rebuild pages
         if hasattr(login, "login_successful"):
             def _on_success(payload: dict):
-                user = payload.get("user", {})
+                import os
+                log_path = os.path.join(os.path.dirname(__file__), "router_debug.log")
+                with open(log_path, "a") as f:
+                    f.write(f"\n{'='*80}\n")
+                    f.write(f"_on_success called\n")
+                    f.write(f"payload type: {type(payload)}\n")
+                    f.write(f"payload has __dict__: {hasattr(payload, '__dict__')}\n")
+                    if hasattr(payload, '__dict__'):
+                        f.write(f"payload.__dict__: {payload.__dict__}\n")
+                    f.write(f"payload has profile_id attr: {hasattr(payload, 'profile_id')}\n")
+                    if hasattr(payload, 'profile_id'):
+                        f.write(f"payload.profile_id: {payload.profile_id}\n")
+                    f.write(f"{'='*80}\n")
+                
+                print(f"DEBUG Router: _on_success called with payload type={type(payload)}")
+                print(f"DEBUG Router: payload keys={payload.__dict__ if hasattr(payload, '__dict__') else 'N/A (dict)'}")
+                
+                # Handle both dict and LoginResult object
+                if hasattr(payload, 'profile_id'):
+                    # It's a LoginResult object
+                    print(f"DEBUG Router: payload is LoginResult object")
+                    profile_id = payload.profile_id
+                    username = payload.username
+                    roles = payload.roles
+                    primary_role = payload.primary_role
+                    token = payload.token
+                else:
+                    # It's a dict
+                    print(f"DEBUG Router: payload is dict")
+                    user = payload.get("user", {})
+                    profile_id = payload.get("profile_id")
+                    username = user.get("username") or payload.get("username", "")
+                    roles = payload.get("roles", [])
+                    primary_role = payload.get("primary_role") or user.get("primary_role", "")
+                    token = payload.get("access") or payload.get("access_token") or payload.get("token", "")
+                
+                with open(log_path, "a") as f:
+                    f.write(f"Extracted profile_id: {profile_id}\n")
+                    f.write(f"Extracted username: {username}\n")
+                    f.write(f"Extracted primary_role: {primary_role}\n")
+                
+                print(f"DEBUG Router: Extracted - profile_id={profile_id}, username={username}, primary_role={primary_role}")
+                
                 self.user_session = {
-                    "username": user.get("username") or payload.get("username", ""),
-                    "roles": payload.get("roles", []),
-                    "primary_role": payload.get("primary_role") or user.get("primary_role", ""),
-                    "token": payload.get("access") or payload.get("access_token") or payload.get("token", ""),
+                    "username": username,
+                    "roles": roles,
+                    "primary_role": primary_role,
+                    "token": token,
+                    "profile_id": profile_id,
                 }
+                print(f"DEBUG Router: user_session created with profile_id={self.user_session.get('profile_id')}")
+                
                 self.user_role = self.user_session.get("primary_role", "")
                 self.clear_pages()
                 self._preload_pages()

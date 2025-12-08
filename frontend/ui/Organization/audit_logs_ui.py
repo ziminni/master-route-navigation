@@ -35,6 +35,9 @@ class Ui_audit_logs_widget(object):
         font.setPointSize(30)
         font.setKerning(True)
         self.audit_logs_label.setFont(font)
+        self.audit_logs_label.setStyleSheet("QLabel {\n"
+"    color: #084924;\n"
+"};")
         self.audit_logs_label.setObjectName("audit_logs_label")
         self.audit_logs_header.addWidget(self.audit_logs_label)
         spacerItem = QtWidgets.QSpacerItem(332, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
@@ -60,9 +63,11 @@ class Ui_audit_logs_widget(object):
         self.audit_search_container.setObjectName("audit_search_container")
         self.horizontalLayout_9 = QtWidgets.QHBoxLayout(self.audit_search_container)
         self.horizontalLayout_9.setObjectName("horizontalLayout_9")
+        
         self.audit_line_edit = QtWidgets.QLineEdit(parent=self.audit_search_container)
         self.audit_line_edit.setObjectName("audit_line_edit")
         self.horizontalLayout_9.addWidget(self.audit_line_edit)
+        
         self.audit_search_btn = QtWidgets.QToolButton(parent=self.audit_search_container)
         self.audit_search_btn.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
         icon1 = QtGui.QIcon()
@@ -72,6 +77,7 @@ class Ui_audit_logs_widget(object):
         self.audit_search_btn.setObjectName("audit_search_btn")
         self.horizontalLayout_9.addWidget(self.audit_search_btn)
         self.audit_logs_header.addWidget(self.audit_search_container)
+        
         self.audit_back_btn = QtWidgets.QPushButton(parent=audit_logs_widget)
         self.audit_back_btn.setStyleSheet("QPushButton {\n"
 "    background-color: transparent;\n"
@@ -84,7 +90,17 @@ class Ui_audit_logs_widget(object):
         self.audit_back_btn.setObjectName("audit_back_btn")
         self.audit_logs_header.addWidget(self.audit_back_btn)
         self.verticalLayout.addLayout(self.audit_logs_header)
+        
         self.audit_table_container = QtWidgets.QFrame(parent=audit_logs_widget)
+        self.audit_table_container.setStyleSheet("QFrame {\n"
+"    background-color: white;\n"
+"    border-radius: 15px;\n"
+"}\n"
+"\n"
+"#audit_table_container {\n"
+"    border: 1px solid #ccc;\n"
+"    border-radius: 20px;\n"
+"};")
         self.audit_table_container.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
         self.audit_table_container.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
         self.audit_table_container.setObjectName("audit_table_container")
@@ -127,7 +143,19 @@ class Ui_audit_logs_widget(object):
         _translate = QtCore.QCoreApplication.translate
         audit_logs_widget.setWindowTitle(_translate("audit_logs_widget", "Form"))
         self.audit_logs_label.setText(_translate("audit_logs_widget", "Audit Logs"))
+        # FIX: Added Placeholder text
+        self.audit_line_edit.setPlaceholderText(_translate("audit_logs_widget", "Search actor, action, or organization..."))
         self.audit_search_btn.setText(_translate("audit_logs_widget", "..."))
         self.audit_search_btn.setShortcut(_translate("audit_logs_widget", "Return, Enter"))
         self.audit_back_btn.setShortcut(_translate("audit_logs_widget", "Esc"))
         self.table_header_label.setText(_translate("audit_logs_widget", "Organization Actions List"))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    audit_logs_widget = QtWidgets.QWidget()
+    ui = Ui_audit_logs_widget()
+    ui.setupUi(audit_logs_widget)
+    audit_logs_widget.show()
+    sys.exit(app.exec())

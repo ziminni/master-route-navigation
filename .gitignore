@@ -4,6 +4,16 @@ myenv/
 .vscode/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+
+frontend/assets/uploads/
+
+# SQLite database (development)
 db.sqlite3
 
 # Local static and media files (optional)

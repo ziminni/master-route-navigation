@@ -173,13 +173,19 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'django_filters',
-    'django_filters',
 
     # TODO: Add your apps here
     # CORS Headers - tried to fix backend conn, should work if front and back runs on different ports
     'corsheaders',
     'apps.Users.apps.UsersConfig',
     'apps.Documents.apps.DocumentsConfig',
+    'apps.Organizations.apps.OrganizationsConfig',
+    "apps.Announcements",
+    "apps.Calendar",
+
+    'apps.Academics.apps.AcademicsConfig',
+    'apps.Feedback.apps.FeedbackConfig',
+    'apps.House.apps.HouseConfig',
 
     'apps.Messaging.apps.MessagingConfig'
 ]
@@ -189,7 +195,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',  # Disabled for simple API testing
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -291,19 +297,19 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 #Added this lines
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
 }
 
 from datetime import timedelta
 
 # JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
@@ -324,7 +330,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Test Only (OTP Sending)
 import os
 
-EMAIL_BACKEND = 'django.config.mail.backends.smtp.EmailBackend'
 EMAIL_BACKEND = 'django.config.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587

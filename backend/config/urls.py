@@ -21,11 +21,20 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/users/', include('apps.Users.urls')), 
+    path('api/users/', include('apps.Users.urls')),
+    # config/urls.py (correct for your layout)
+    path("api/calendar/", include("apps.Calendar.urls")),
+
 
     # Documents
     path('api/documents/', include('apps.Documents.urls')),
 
+    path('api/users/', include('apps.Users.urls')),
+    path('api/organizations/', include('apps.Organizations.urls')),
+
+        # House and Feedback
+    path('api/feedback/', include('apps.Feedback.urls')),
+    path('', include('apps.House.urls')),
     path('api/users/', include('apps.Users.urls')),
     path("api/", include("apps.Messaging.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
