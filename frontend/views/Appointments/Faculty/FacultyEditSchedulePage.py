@@ -232,7 +232,7 @@ class FacultyEditSchedulePage_ui(QWidget):
             item.setForeground(QtGui.QBrush(QtGui.QColor("#6b6b6b")))
             item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.weeklyGridEdit.setItem(r, 0, item)
-            self.weeklyGridEdit.setRowHeight(r, 35)
+            self.weeklyGridEdit.setRowHeight(r, 100)
             for c in range(1, 8):
                 self._addEmptyCell(r, c)
 
@@ -467,7 +467,7 @@ class FacultyEditSchedulePage_ui(QWidget):
         """Color a time slot in the grid"""
         container = QtWidgets.QWidget()
         container.setStyleSheet("""
-            QWidget { 
+            QWidget {
                 background: #ffc000; 
                 border: 1px solid #e6ac00; 
                 border-radius: 4px; 

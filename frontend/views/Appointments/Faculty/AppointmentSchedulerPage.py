@@ -305,7 +305,7 @@ class AppointmentSchedulerPage_ui(QWidget):
             item.setForeground(QtGui.QBrush(QtGui.QColor("#6b6b6b")))
             item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.weeklyGrid.setItem(r, 0, item)
-            self.weeklyGrid.setRowHeight(r, 40)
+            self.weeklyGrid.setRowHeight(r, 100)
             for c in range(1, 8):
                 w = QtWidgets.QWidget()
                 w.setStyleSheet("QWidget { background: white; }")
