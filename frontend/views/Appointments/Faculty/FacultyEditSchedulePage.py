@@ -187,7 +187,7 @@ class FacultyEditSchedulePage_ui(QWidget):
 
         self.weeklyGridEdit = QtWidgets.QTableWidget()
         self.weeklyGridEdit.setColumnCount(8)
-        self.weeklyGridEdit.setRowCount(32)  # 8:00 AM to 12:00 AM with 30-min increments
+        self.weeklyGridEdit.setRowCount(34)  # Changed: 7:00 AM to 12:00 AM with 30-min increments (17 hours * 2 = 34 rows)
         self.weeklyGridEdit.setShowGrid(True)
         self.weeklyGridEdit.verticalHeader().setVisible(False)
         self.weeklyGridEdit.horizontalHeader().setVisible(True)
@@ -221,11 +221,13 @@ class FacultyEditSchedulePage_ui(QWidget):
         for c in range(1, 8):
             header.setSectionResizeMode(c, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
-        # Create time labels (8:00 AM to 12:00 AM with 30-min increments)
+        # Create time labels (7:00 AM to 12:00 AM with 30-min increments) - CHANGED
         times = []
-        for hour in range(8, 24):  # 8 AM to 12 AM
+        for hour in range(7, 24):  # 7 AM to 11 PM
             times.append(f"{hour % 12 or 12}:00 {'AM' if hour < 12 else 'PM'}")
             times.append(f"{hour % 12 or 12}:30 {'AM' if hour < 12 else 'PM'}")
+        # Add 12:00 AM
+        times.append("12:00 AM")
         
         for r, t in enumerate(times):
             item = QtWidgets.QTableWidgetItem(t)
@@ -298,7 +300,7 @@ class FacultyEditSchedulePage_ui(QWidget):
         start_time_label = QtWidgets.QLabel("Start Time:")
         start_time_label.setStyleSheet("QLabel { font: 600 11pt 'Poppins'; color: #333; }")
         start_time_edit = QTimeEdit()
-        start_time_edit.setTime(QTime(8, 0))  # Default to 8:00 AM
+        start_time_edit.setTime(QTime(7, 0))  # CHANGED: Default to 7:00 AM
         start_time_edit.setDisplayFormat("hh:mm AP")
         start_time_layout.addWidget(start_time_label)
         start_time_layout.addWidget(start_time_edit)
@@ -443,7 +445,7 @@ class FacultyEditSchedulePage_ui(QWidget):
     def _timeToRow(self, time_str):
         """Convert time string to row number"""
         try:
-            # Parse time string (e.g., "08:00 AM", "05:30 PM")
+            # Parse time string (e.g., "07:00 AM", "05:30 PM", "12:00 AM")
             time_part, period = time_str.split()
             hour, minute = map(int, time_part.split(':'))
             
@@ -453,8 +455,8 @@ class FacultyEditSchedulePage_ui(QWidget):
             elif period.upper() == "AM" and hour == 12:
                 hour = 0
             
-            # Calculate row (each row is 30 minutes starting from 8:00 AM)
-            base_hour = 8  # Grid starts at 8:00 AM
+            # Calculate row (each row is 30 minutes starting from 7:00 AM) - CHANGED
+            base_hour = 7  # CHANGED: Grid starts at 7:00 AM
             total_minutes = (hour - base_hour) * 60 + minute
             row = total_minutes // 30
             
@@ -526,7 +528,7 @@ class FacultyEditSchedulePage_ui(QWidget):
 
     def _getTimeFromRow(self, row):
         """Convert row number back to time string"""
-        base_hour = 8  # Grid starts at 8:00 AM
+        base_hour = 7  # CHANGED: Grid starts at 7:00 AM
         total_minutes = row * 30
         hour = base_hour + total_minutes // 60
         minute = total_minutes % 60
@@ -646,7 +648,7 @@ class FacultyEditSchedulePage_ui(QWidget):
 
     def _rowToTime(self, row):
         """Convert row number to time string (HH:MM:SS)"""
-        base_hour = 8  # Grid starts at 8:00 AM
+        base_hour = 7  # CHANGED: Grid starts at 7:00 AM
         total_minutes = row * 30
         hour = base_hour + total_minutes // 60
         minute = total_minutes % 60
@@ -724,13 +726,13 @@ class FacultyEditSchedulePage_ui(QWidget):
     def _timeStringToRow(self, time_str):
         """Convert time string (HH:MM:SS) to row number"""
         try:
-            # Parse time string (e.g., "08:00:00")
+            # Parse time string (e.g., "07:00:00")
             parts = time_str.split(':')
             hour = int(parts[0])
             minute = int(parts[1])
             
-            # Calculate row (each row is 30 minutes starting from 8:00 AM)
-            base_hour = 8  # Grid starts at 8:00 AM
+            # Calculate row (each row is 30 minutes starting from 7:00 AM) - CHANGED
+            base_hour = 7  # CHANGED: Grid starts at 7:00 AM
             total_minutes = (hour - base_hour) * 60 + minute
             row = total_minutes // 30
             

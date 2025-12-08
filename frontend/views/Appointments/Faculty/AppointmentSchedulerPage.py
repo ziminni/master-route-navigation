@@ -299,7 +299,7 @@ class AppointmentSchedulerPage_ui(QWidget):
 
         times = []
         # Generate times from 7:00 AM to 12:00 AM (midnight)
-        for hour in range(8, 24):  # 7:00 AM to 11:59 PM
+        for hour in range(7, 24):  # 7:00 AM to 11:59 PM
             # Convert to 12-hour format
             display_hour = hour if hour <= 12 else hour - 12
             if hour == 12:
