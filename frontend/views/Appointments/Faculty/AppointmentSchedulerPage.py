@@ -275,7 +275,8 @@ class AppointmentSchedulerPage_ui(QWidget):
 
         self.weeklyGrid = QtWidgets.QTableWidget()
         self.weeklyGrid.setColumnCount(8)
-        self.weeklyGrid.setRowCount(48)  # 12:00 AM to 12:00 PM with 30-min increments
+        # Changed row count from 48 to 34 (7:00 AM to 12:00 AM = 17 hours * 2 = 34 half-hour slots)
+        self.weeklyGrid.setRowCount(34)
         self.weeklyGrid.setShowGrid(True)
         self.weeklyGrid.verticalHeader().setVisible(True)
         self.weeklyGrid.horizontalHeader().setVisible(True)
@@ -297,9 +298,21 @@ class AppointmentSchedulerPage_ui(QWidget):
             header.setSectionResizeMode(c, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
         times = []
-        for hour in range(0, 24):  # 12:00 AM to 12:00 PM
-            times.append(f"{hour % 12 or 12}:00 {'AM' if hour < 12 else 'PM'}")
-            times.append(f"{hour % 12 or 12}:30 {'AM' if hour < 12 else 'PM'}")
+        # Generate times from 7:00 AM to 12:00 AM (midnight)
+        for hour in range(8, 24):  # 7:00 AM to 11:59 PM
+            # Convert to 12-hour format
+            display_hour = hour if hour <= 12 else hour - 12
+            if hour == 12:
+                period = "PM"
+            else:
+                period = "AM" if hour < 12 else "PM"
+            
+            times.append(f"{display_hour}:00 {period}")
+            times.append(f"{display_hour}:30 {period}")
+        
+        # Add 12:00 AM (midnight)
+        times.append("12:00 AM")
+        
         for r, t in enumerate(times):
             item = QtWidgets.QTableWidgetItem(t)
             item.setForeground(QtGui.QBrush(QtGui.QColor("#6b6b6b")))
@@ -377,9 +390,14 @@ class AppointmentSchedulerPage_ui(QWidget):
                      f"Start of week: {start_of_week.toString('yyyy-MM-dd')}, "
                      f"Target date: {target_date.toString('yyyy-MM-dd')}")
         
-        # Calculate time from row
-        hour = row // 2
+        # Calculate time from row - starting from 7:00 AM
+        hour = 7 + (row // 2)  # Starts at 7:00 AM
         minute = 30 if row % 2 else 0
+        
+        # Handle hour if it goes past 24
+        if hour >= 24:
+            hour = hour - 24
+            
         start_time = f"{hour:02d}:{minute:02d}"
         
         # Calculate end time (30 minutes later)
@@ -551,13 +569,20 @@ class AppointmentSchedulerPage_ui(QWidget):
             logging.debug(f"Column {col} ({day_map.get(col, 'Unknown')}) -> "
                          f"Date {date_map[col]} ({day_name})")
 
-        # Create time map for rows
+        # Create time map for rows (7:00 AM to 12:00 AM = 34 rows)
         time_map = {}
-        for row in range(48):  # 48 half-hour slots
-            hour = row // 2
+        for row in range(34):  # Changed from 48 to 34
+            # Calculate hour: starts at 7:00 AM, so hour = 7 + row//2
+            hour = 7 + (row // 2)
             minute = 30 if row % 2 else 0
+            
+            # Handle wrap-around after 12:00 PM
+            if hour >= 24:
+                hour = hour - 24
+            
             time_key = f"{hour:02d}:{minute:02d}"
             time_map[time_key] = row
+            logging.debug(f"Time map: row {row} -> {time_key}")
 
         # Get availability rules for the faculty
         try:
@@ -601,18 +626,26 @@ class AppointmentSchedulerPage_ui(QWidget):
                             start_hour, start_minute, _ = map(int, start_time_str.split(':'))
                             end_hour, end_minute, _ = map(int, end_time_str.split(':'))
                             
-                            # Calculate start and end rows
-                            start_total_minutes = start_hour * 60 + start_minute
-                            end_total_minutes = end_hour * 60 + end_minute
+                            # Convert time to row number (starting from 7:00 AM = row 0)
+                            def time_to_row(hour, minute):
+                                # Calculate minutes from 7:00 AM
+                                total_minutes = (hour * 60 + minute) - (7 * 60)  # Subtract 7:00 AM offset
+                                if total_minutes < 0:
+                                    total_minutes = 0
+                                return total_minutes // 30
                             
-                            start_row = start_total_minutes // 30
-                            end_row = end_total_minutes // 30
+                            start_row = time_to_row(start_hour, start_minute)
+                            end_row = time_to_row(end_hour, end_minute)
+                            
+                            # Ensure rows are within bounds
+                            start_row = max(0, min(start_row, 33))
+                            end_row = max(0, min(end_row, 34))
                             
                             # Mark available slots
                             for row in range(start_row, end_row):
-                                if row < 48:  # Ensure within grid bounds
+                                if row < 34:  # Ensure within grid bounds
                                     self._addWeeklySlot(row, col, "Available", None, True)
-                                    logging.debug(f"  Marked slot at row {row} ({start_total_minutes//60:02d}:{start_total_minutes%60:02d}) as available")
+                                    logging.debug(f"  Marked slot at row {row} as available")
                             
                         except Exception as e:
                             logging.error(f"Error parsing time for rule: {e}")
