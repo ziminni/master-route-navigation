@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/users/', include('apps.Users.urls')), 
+    path('api/users/', include('apps.Users.urls')),
     # config/urls.py (correct for your layout)
     path("api/calendar/", include("apps.Calendar.urls")),
 
@@ -31,4 +31,8 @@ urlpatterns = [
 
     path('api/users/', include('apps.Users.urls')),
     path('api/organizations/', include('apps.Organizations.urls')),
+
+        # House and Feedback
+    path('api/feedback/', include('apps.Feedback.urls')),
+    path('', include('apps.House.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
