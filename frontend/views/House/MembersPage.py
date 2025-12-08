@@ -34,15 +34,18 @@ def load_fonts():
             print(f"Failed to load {name} from {url}: {e}")
 
 class MembersPage(QWidget):
-    def __init__(self, username, roles, primary_role, token, house_name):
+    def __init__(self, username, roles, primary_role, token, house_name, house_id=None, api_base="http://127.0.0.1:8000"):
         super().__init__()
         self.setMinimumSize(600, 500)
+        self.token = token
+        self.house_id = house_id
+        self.api_base = api_base
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(32, 24, 32, 24)
         self.main_layout.setSpacing(20)
 
-        # Initialize controller
-        self.controller = HouseController(self)
+        # Initialize controller with API parameters
+        self.controller = HouseController(self, token=token, api_base=api_base, house_id=house_id)
         self.controller.members_updated.connect(self.update_member_grid)
 
         # Top area
@@ -131,8 +134,9 @@ class MembersPage(QWidget):
         self.grid.setContentsMargins(20, 20, 20, 20)
         self.grid.setHorizontalSpacing(20)
         self.grid.setVerticalSpacing(20)
-        self.grid.setColumnStretch(0, 1)
-        self.grid.setColumnStretch(1, 1)
+        self.grid.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.grid.setColumnStretch(0, 0)
+        self.grid.setColumnStretch(1, 0)
 
         # Initial population of the grid
         self.update_member_grid(self.controller.get_filtered_members())
@@ -272,11 +276,16 @@ class MembersPage(QWidget):
                 print(f"Avatar not found, using default: {full_avatar_path}")
             card = MemberCard(m["name"], m["role"], avatar_path=full_avatar_path)
             card.setMaximumWidth(306)
-            self.grid.addWidget(card, row, col)
+            self.grid.addWidget(card, row, col, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
             col += 1
             if col > 1:
                 col = 0
                 row += 1
+        
+        # Add stretch at the end to push cards to top-left
+        self.grid.setRowStretch(row + 1, 1)
+        self.grid.setColumnStretch(2, 1)
+        
         self.grid.update()
         self.scroll_content.update()
         self.scroll.update()

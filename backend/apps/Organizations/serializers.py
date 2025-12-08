@@ -1,0 +1,228 @@
+from rest_framework import serializers
+from .models import Organization, ApplicationDetails, MembershipApplication, Log, EventType, EventSchedule, Event, EventScheduleBlock, EventAttendance, EventApproval
+from apps.Users.models import StudentProfile, BaseUser, StudentProfile, FacultyProfile
+from apps.Academics.models import Semester
+
+
+class CurrentUserSerializer(serializers.ModelSerializer):
+    """Serializer for current user's basic info"""
+    full_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = BaseUser
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'full_name']
+    
+    def get_full_name(self, obj):
+        return obj.get_full_name()
+
+
+class OrganizationSerializer(serializers.ModelSerializer):
+    """Serializer for Organization model"""
+    main_org = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Organization.objects.all(), 
+        required=False,
+        allow_empty=True,
+        read_only=False
+    )
+    
+    class Meta:
+        model = Organization
+        fields = ['id', 'name', 'description', 'objectives', 'status', 'logo_path', 'created_at', 'org_level', 'main_org', 'is_archived', 'is_active']
+        read_only_fields = ['id', 'created_at']
+    
+    def create(self, validated_data):
+        """Create organization and corresponding ApplicationDetails entry"""
+        main_org = validated_data.pop('main_org', None)
+        
+        # Create the organization
+        organization = Organization.objects.create(**validated_data)
+        
+        # Set main_org relationships if provided
+        if main_org:
+            organization.main_org.set(main_org)
+        
+        # Determine if it's a branch or organization
+        org_type = "branch" if main_org else "organization"
+        
+        # Create ApplicationDetails entry
+        ApplicationDetails.objects.create(
+            title=organization.name,
+            description=f"An application for {organization.name}"
+        )
+        
+        return organization
+    
+    def update(self, instance, validated_data):
+        """Update organization including main_org relationships"""
+        main_org = validated_data.pop('main_org', None)
+        
+        # Update basic fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Update main_org ManyToMany relationship if provided
+        if main_org is not None:
+            instance.main_org.set(main_org)
+        
+        return instance
+    
+    def validate_name(self, value):
+        """Ensure organization name is not empty"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Organization name cannot be empty.")
+        return value.strip()
+    
+    def validate_org_level(self, value):
+        """Validate org_level is either 'col' or 'prog'"""
+        if value not in ['col', 'prog']:
+            raise serializers.ValidationError("org_level must be 'col' (College) or 'prog' (Program)")
+        return value
+
+
+class MembershipApplicationSerializer(serializers.ModelSerializer):
+    """Serializer for MembershipApplication model"""
+    user_id = serializers.PrimaryKeyRelatedField(queryset=StudentProfile.objects.all())
+    organization_id = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all())
+    application_details_id = serializers.PrimaryKeyRelatedField(queryset=ApplicationDetails.objects.all())
+    
+    # Read-only fields for display
+    student_name = serializers.CharField(source='user_id.user.get_full_name', read_only=True)
+    organization_name = serializers.CharField(source='organization_id.name', read_only=True)
+    
+    class Meta:
+        model = MembershipApplication
+        fields = ['id', 'user_id', 'organization_id', 'application_details_id', 'application_status', 'student_name', 'organization_name']
+        read_only_fields = ['id']
+    
+    def validate(self, data):
+        """Check if student has already applied or is already a member"""
+        user = data.get('user_id')
+        org = data.get('organization_id')
+        
+        # Check if already a member
+        from .models import OrganizationMembers
+        if OrganizationMembers.objects.filter(user_id=user, organization_id=org, status='active').exists():
+            raise serializers.ValidationError("You are already a member of this organization.")
+        
+        # Check if already has a pending application
+        if MembershipApplication.objects.filter(user_id=user, organization_id=org, application_status='pen').exists():
+            raise serializers.ValidationError("You already have a pending application for this organization.")
+        
+        return data
+
+
+class ApplicantSerializer(serializers.ModelSerializer):
+    """Serializer for viewing applicants with student details"""
+    student_id = serializers.IntegerField(source='user_id.id', read_only=True)
+    student_name = serializers.CharField(source='user_id.user.get_full_name', read_only=True)
+    student_username = serializers.CharField(source='user_id.user.username', read_only=True)
+    student_email = serializers.EmailField(source='user_id.user.email', read_only=True)
+    program = serializers.CharField(source='user_id.program', read_only=True)
+    year_level = serializers.IntegerField(source='user_id.year_level', read_only=True)
+    organization_name = serializers.CharField(source='organization_id.name', read_only=True)
+    
+    class Meta:
+        model = MembershipApplication
+        fields = ['id', 'student_id', 'student_name', 'student_username', 'student_email', 
+                  'program', 'year_level', 'organization_name', 'application_status']
+        read_only_fields = ['id']
+
+
+class LogSerializer(serializers.ModelSerializer):
+    """Serializer for Log model"""
+    action_display = serializers.CharField(source='get_action_display', read_only=True)
+    
+    class Meta:
+        model = Log
+        fields = ['id', 'user_id', 'action', 'action_display', 'target_id', 'target_type', 'date_created']
+        read_only_fields = ['id', 'date_created']
+
+
+
+class EventTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventType
+        fields = '__all__'
+
+class EventScheduleBlockSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventScheduleBlock
+        fields = ['id', 'name', 'description']
+
+class EventSerializer(serializers.ModelSerializer):
+    event_type_name = serializers.CharField(source='event_type.event_type', read_only=True)
+    schedule_block_name = serializers.CharField(source='event_schedule_block.name', read_only=True)
+    semester_info = serializers.CharField(source='sem_id.name', read_only=True)
+    
+    class Meta:
+        model = Event
+        fields = [
+            'id', 'event_schedule_block', 'event_type', 'sem_id', 'title', 'venue', 
+            'event_status', 'event_type_name', 'schedule_block_name', 'semester_info'
+        ]
+        read_only_fields = ('event_status',)  #control status via separate endpoints
+
+class EventScheduleSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source='user_id.get_full_name', read_only=True)
+    event_title = serializers.CharField(source='event_id.title', read_only=True)
+    schedule_block_name = serializers.CharField(source='event_schedule_block_id.name', read_only=True)
+    
+    class Meta:
+        model = EventSchedule
+        fields = '__all__'
+
+class EventAttendanceSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source='student_id.get_full_name', read_only=True)
+    event_title = serializers.CharField(source='event_id.title', read_only=True)
+    
+    class Meta:
+        model = EventAttendance
+        fields = '__all__'
+
+class EventApprovalSerializer(serializers.ModelSerializer):
+    approver_name = serializers.CharField(source='approver_id.get_full_name', read_only=True)
+    event_title = serializers.CharField(source='event_id.title', read_only=True)
+    
+    class Meta:
+        model = EventApproval
+        fields = '__all__'
+
+# Additional serializers for nested representations if needed
+class EventDetailSerializer(EventSerializer):
+    """Extended serializer for detailed event view with nested relationships"""
+    schedules = EventScheduleSerializer(many=True, read_only=True, source='eventschedule_set')
+    approvals = EventApprovalSerializer(many=True, read_only=True, source='eventapproval_set')
+    attendance = EventAttendanceSerializer(many=True, read_only=True, source='eventattendance_set')
+    
+    class Meta(EventSerializer.Meta):
+        fields = EventSerializer.Meta.fields + ['schedules', 'approvals', 'attendance']
+
+class EventScheduleBlockDetailSerializer(EventScheduleBlockSerializer):
+    """Extended serializer for schedule block with nested events"""
+    events = EventSerializer(many=True, read_only=True, source='event_set')
+    
+    class Meta(EventScheduleBlockSerializer.Meta):
+        fields = EventScheduleBlockSerializer.Meta.fields + ['events']
+
+# Specialized serializers for specific operations
+class EventStatusUpdateSerializer(serializers.ModelSerializer):
+    """Serializer specifically for updating event status"""
+    class Meta:
+        model = Event
+        fields = ['event_status']
+
+class EventApprovalCreateSerializer(serializers.ModelSerializer):
+    """Serializer specifically for creating event approvals with validation"""
+    
+    def validate(self, data):
+        # Ensure an event can only be approved once
+        event = data.get('event_id')
+        if EventApproval.objects.filter(event_id=event).exists():
+            raise serializers.ValidationError("This event has already been approved.")
+        return data
+    
+    class Meta:
+        model = EventApproval
+        fields = '__all__'

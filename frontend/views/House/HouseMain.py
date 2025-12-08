@@ -1,12 +1,13 @@
 import sys
 import os
 import json
+import requests
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
 if project_root not in sys.path:
     sys.path.append(project_root)
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QStackedWidget, QHBoxLayout, QPushButton, QLabel
 from PyQt6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QRect
-from PyQt6.QtGui import QFont, QFontDatabase
+from PyQt6.QtGui import QFont, QFontDatabase, QFontMetrics
 import urllib.request
 
 from .HousesPage import HousesPage, HouseCard
@@ -51,6 +52,24 @@ except ImportError:
 
 from .LeaderboardPage import LeaderboardPage
 
+try:
+    from .admin.HouseManager import HouseManager
+except ImportError:
+    class HouseManager(QWidget):
+        def __init__(self, token=None, api_base=None, parent=None):
+            super().__init__(parent)
+            layout = QVBoxLayout(self)
+            layout.addWidget(QLabel("House Manager (missing module)"))
+
+try:
+    from .admin.AdminCreateHousePage import AdminCreateHousePage
+except Exception:
+    class AdminCreateHousePage(QWidget):
+        def __init__(self, token=None, api_base=None, parent=None):
+            super().__init__(parent)
+            layout = QVBoxLayout(self)
+            layout.addWidget(QLabel("Admin Create House (missing module)"))
+
 
 class NavigationBar(QWidget):
     def __init__(self, parent=None):
@@ -78,11 +97,19 @@ class NavigationBar(QWidget):
 
         active_tab = navdata.get("active", "Overview")
         self.nav_buttons = {}
+        # Calculate button widths based on text content
+        temp_font = QFont("Poppins", 18, QFont.Weight.Normal)
+        temp_metrics = QFontMetrics(temp_font)
+        
         for tab in navdata.get("tabs", []):
             btn = QPushButton(tab)
             btn.setCheckable(True)
             btn.setChecked(tab == active_tab)
             btn.setObjectName("navButton")
+            # Calculate width needed for text + padding
+            text_width = temp_metrics.horizontalAdvance(tab)
+            btn.setMinimumWidth(text_width + 20)  # Add 20px padding
+            btn.setMaximumWidth(text_width + 20)
             self.nav_buttons[tab] = btn
             nav_row.addWidget(btn)
 
@@ -114,11 +141,11 @@ class NavigationBar(QWidget):
             }
         """)
         self.nav_highlight.hide()
+        self._current_anim = None  # Track current animation
 
         # Apply styles
         self.setStyleSheet("""
             QPushButton#navButton {
-                width: 111px;
                 height: 31px;
                 font-family: 'Poppins';
                 font-weight: 310;
@@ -147,15 +174,33 @@ class NavigationBar(QWidget):
             self.nav_highlight.show()
             self.nav_highlight.raise_()
 
+        active_button = None
         for name, btn in self.nav_buttons.items():
             is_active = (name == tab_name)
             btn.setChecked(is_active)
             if is_active:
-                self._animate_underline(btn)
+                active_button = btn
+        
+        if active_button:
+            # Use QTimer.singleShot to ensure layout is complete before animating
+            from PyQt6.QtCore import QTimer
+            # Capture active_button in a default argument to avoid closure issues
+            QTimer.singleShot(10, lambda btn=active_button: self._animate_underline(btn))
 
     def _animate_underline(self, active_button):
+        # Ensure the widget is properly laid out before calculating positions
+        if not self.isVisible():
+            return
+        
+        # Force layout update to ensure accurate positions
+        self.update()
+        QWidget.repaint(self)
+        
         # Get button position relative to the main NavigationBar
-        btn_pos = active_button.mapTo(self, active_button.rect().topLeft())
+        # Use mapToGlobal then mapFromGlobal for more accurate positioning
+        btn_global_pos = active_button.mapToGlobal(active_button.rect().topLeft())
+        btn_pos = self.mapFromGlobal(btn_global_pos)
+        
         metrics = active_button.fontMetrics()
         text_width = metrics.horizontalAdvance(active_button.text())
         
@@ -164,8 +209,13 @@ class NavigationBar(QWidget):
         underline_y = container_bottom - 8
         
         # Calculate x position to center under the text
+        # Account for button padding/margins
         text_x = btn_pos.x() + (active_button.width() - text_width) / 2
 
+        # Stop any existing animation
+        if hasattr(self, '_current_anim') and self._current_anim:
+            self._current_anim.stop()
+        
         # Create animation
         anim = QPropertyAnimation(self.nav_highlight, b"geometry")
         anim.setDuration(250)
@@ -178,6 +228,7 @@ class NavigationBar(QWidget):
         ))
         anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
         anim.start()
+        self._current_anim = anim  # Store reference to prevent garbage collection
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -189,7 +240,10 @@ class NavigationBar(QWidget):
                     active_button = btn
                     break
             if active_button:
-                self._animate_underline(active_button)
+                # Delay to ensure layout is updated
+                from PyQt6.QtCore import QTimer
+                # Capture active_button in a default argument to avoid closure issues
+                QTimer.singleShot(10, lambda btn=active_button: self._animate_underline(btn))
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -242,6 +296,23 @@ class HouseMain(QWidget):
         self.houses_page = HousesPage(username, roles, primary_role, token)
         self.stack.addWidget(self.houses_page)
 
+        # Check if user is admin and show HouseManager instead
+        is_admin = False
+        if isinstance(self.roles, (list, tuple)):
+            is_admin = any((str(r).lower() == "admin") for r in self.roles)
+        if not is_admin and isinstance(self.primary_role, str):
+            is_admin = (self.primary_role.lower() == "admin")
+
+        if is_admin:
+            try:
+                self.house_manager = HouseManager(token=self.token, api_base="http://127.0.0.1:8000", parent=self)
+                self.house_manager.stacked_widget = self.stack  # Pass the stacked widget reference
+                self.stack.addWidget(self.house_manager)
+                self.stack.setCurrentWidget(self.house_manager)
+                self.nav_bar.setVisible(False)
+            except Exception as e:
+                print(f"Failed to load HouseManager: {e}")
+
         # Add widgets to layout
         self.layout.addWidget(self.nav_bar)
         self.layout.addWidget(self.stack)
@@ -249,9 +320,31 @@ class HouseMain(QWidget):
         # Connect signals
         self.houses_page.house_clicked.connect(self.handle_house_click)
 
+    def get_house_id_by_name(self, house_name):
+        """Fetch house ID from API by house name."""
+        try:
+            headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+            response = requests.get("http://127.0.0.1:8000/api/house/houses/", headers=headers)
+            if response.status_code == 200:
+                houses = response.json()
+                if isinstance(houses, dict) and "results" in houses:
+                    houses = houses["results"]
+                for house in houses:
+                    if house.get("name") == house_name:
+                        return house.get("id")
+        except Exception as e:
+            print(f"Error fetching house ID: {e}")
+        return None
+
     def handle_house_click(self, house_name):
         self.current_house = house_name
+        self.current_house_id = self.get_house_id_by_name(house_name)
+        self.api_base = "http://127.0.0.1:8000"
+        
         self.nav_bar.setVisible(True)
+        # Force layout update before navigating
+        self.nav_bar.update()
+        QWidget.repaint(self.nav_bar)
 
         # Clear previous pages
         while self.stack.count() > 1:
@@ -259,13 +352,13 @@ class HouseMain(QWidget):
             self.stack.removeWidget(widget)
             widget.deleteLater()
 
-        # Initialize pages
+        # Initialize pages with house_id and api_base
         self.pages = {
             "Overview": OverviewPage(self.username, self.roles, self.primary_role, self.token, house_name),
-            "Events": EventsPage(self.username, self.roles, self.primary_role, self.token, house_name),
-            "Members": MembersPage(self.username, self.roles, self.primary_role, self.token, house_name),
-            "History": HistoryPage(self.username, self.roles, self.primary_role, self.token, house_name),
-            "Leaderboards": LeaderboardPage(self.username, self.roles, self.primary_role, self.token, house_name),
+            "Events": EventsPage(self.username, self.roles, self.primary_role, self.token, house_name, house_id=self.current_house_id, api_base=self.api_base),
+            "Members": MembersPage(self.username, self.roles, self.primary_role, self.token, house_name, house_id=self.current_house_id, api_base=self.api_base),
+            "History": HistoryPage(self.username, self.roles, self.primary_role, self.token, house_name, house_id=self.current_house_id, api_base=self.api_base),
+            "Leaderboards": LeaderboardPage(self.username, self.roles, self.primary_role, self.token, house_name, house_id=self.current_house_id, api_base=self.api_base),
         }
 
         # Add pages to stack

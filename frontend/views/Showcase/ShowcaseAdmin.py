@@ -2,38 +2,34 @@
 from __future__ import annotations
 import os, warnings
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap, QColor, QPainter, QFont, QCursor
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QLineEdit,
-    QScrollArea, QFrame, QSizePolicy, QSpacerItem, QGraphicsDropShadowEffect, QStackedWidget
+    QScrollArea, QFrame, QSizePolicy, QGraphicsDropShadowEffect,
+    QStackedWidget, QGridLayout
 )
 
-# DB helper
+# DB helper (bootstrap is handled inside DBHelper now)
 try:
-    from .db.ShowcaseDBHelper import ensure_bootstrap, list_showcase_cards
+    from .db.ShowcaseDBHelper import list_showcase_cards
 except Exception:
-    from db.ShowcaseDBHelper import ensure_bootstrap, list_showcase_cards
+    from db.ShowcaseDBHelper import list_showcase_cards
 
 warnings.filterwarnings("ignore", message="sipPyTypeDict", category=DeprecationWarning)
 
-# preview dialog
+# preview / dialogs
 try:
     from .ShowcasePreview import ShowcasePreviewDialog
 except Exception:
     from ShowcasePreview import ShowcasePreviewDialog
 
 try:
-    from .ShowcaseAdminApproval import ShowcaseAdminApprovalPage
-except Exception:
-    from ShowcaseAdminApproval import ShowcaseAdminApprovalPage  # fallback
-
-try:
     from .ShowcaseAdminEdit import ShowcaseAdminEditDialog
 except Exception:
-    from ShowcaseAdminEdit import ShowcaseAdminEditDialog 
+    from ShowcaseAdminEdit import ShowcaseAdminEditDialog
 
 # ---------- Theme ----------
 GREEN   = "#146c43"
@@ -64,125 +60,276 @@ def _icon(fname: str) -> QIcon:
     return QIcon(str(p)) if p.exists() else QIcon()
 
 def _placeholder_pixmap(size: QSize, label: str = "image") -> QPixmap:
-    pm = QPixmap(size); pm.fill(QColor("#d1d5db"))
-    p = QPainter(pm); p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-    p.setPen(QColor("#9ca3af")); p.setBrush(QColor("#e5e7eb"))
+    pm = QPixmap(size)
+    pm.fill(QColor("#d1d5db"))
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    p.setPen(QColor("#9ca3af"))
+    p.setBrush(QColor("#e5e7eb"))
     p.drawRoundedRect(0, 0, size.width(), size.height(), 12, 12)
-    f = QFont(); f.setPointSize(14); f.setBold(True)
-    p.setFont(f); p.setPen(QColor("#6b7280"))
-    p.drawText(pm.rect(), Qt.AlignmentFlag.AlignCenter, label.upper()); p.end()
+    f = QFont()
+    f.setPointSize(14)
+    f.setBold(True)
+    p.setFont(f)
+    p.setPen(QColor("#6b7280"))
+    p.drawText(pm.rect(), Qt.AlignmentFlag.AlignCenter, label.upper())
+    p.end()
     return pm
+
+# simple in-memory cache: (path, w, h) -> scaled pixmap
+_IMAGE_CACHE: dict[Tuple[str, int, int], QPixmap] = {}
 
 def _load_image(fname: str | None, w: int, h: int) -> QPixmap:
     if fname:
         p = (IMG_DIR / fname) if not Path(fname).exists() else Path(fname)
         if p.exists():
-            pm = QPixmap(str(p))
-            if not pm.isNull():
-                return pm.scaled(w, h, Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                                 Qt.TransformationMode.SmoothTransformation)
+            key = (str(p), w, h)
+            pm = _IMAGE_CACHE.get(key)
+            if pm is not None and not pm.isNull():
+                return pm
+            base = QPixmap(str(p))
+            if not base.isNull():
+                pm = base.scaled(
+                    w, h,
+                    Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                    Qt.TransformationMode.FastTransformation,
+                )
+                _IMAGE_CACHE[key] = pm
+                return pm
     return _placeholder_pixmap(QSize(w, h), "image")
 
-def _add_shadow(w: QWidget, alpha: int = 35, blur: int = 24):
+def _add_shadow(w: QWidget, alpha: int = 24, blur: int = 18):
     eff = QGraphicsDropShadowEffect(w)
-    c = QColor("#000"); c.setAlpha(alpha)
-    eff.setColor(c); eff.setBlurRadius(blur); eff.setOffset(0, 4)
+    c = QColor("#000")
+    c.setAlpha(alpha)
+    eff.setColor(c)
+    eff.setBlurRadius(blur)
+    eff.setOffset(0, 3)
     w.setGraphicsEffect(eff)
 
 # ---------- Card widgets ----------
 class LargeCard(QFrame):
     clicked = pyqtSignal()
 
+    THUMB_ONE_COL = 260   # thumb height when card is wide (1 column)
+    THUMB_TWO_COL = 210   # thumb height when card is narrow (2 columns)
+
     def __init__(self, payload: Dict, parent: QWidget | None = None):
         super().__init__(parent)
         self.payload = payload
         self._src = payload.get("image")
-        self.setObjectName("LargeCard")
-        self.setStyleSheet(f"""
-            QFrame#LargeCard {{ background:{CARD_BG}; border:1px solid {BORDER}; border-radius:12px; }}
-            QLabel[role="title"] {{ color:{GREEN}; font-size:18px; font-weight:700; }}
-            QLabel[role="blurb"] {{ color:{MUTED}; font-size:13px; }}
-            QLabel[role="meta"]  {{ color:{MUTED}; font-size:12px; }}
-            QLabel[role="by"]    {{ color:{MUTED}; font-size:12px; }}
-            QPushButton[role="more"] {{ border:none; background:transparent; padding:6px; border-radius:8px; }}
-            QPushButton[role="more"]:hover {{ background:#eef2f7; }}
-            QLabel[role="chip"] {{ background:#ecfdf5; color:{GREEN}; border:1px solid #c7f0df; border-radius:10px; padding:2px 8px; font-size:11px; }}
-        """)
-        v = QVBoxLayout(self); v.setContentsMargins(0,0,0,0); v.setSpacing(0)
+        self._thumb_h = self.THUMB_ONE_COL
 
+        self.setObjectName("LargeCard")
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+
+        self.setStyleSheet(f"""
+            QFrame#LargeCard {{
+                background:{CARD_BG};
+                border:1px solid {BORDER};
+                border-radius:12px;
+            }}
+            QLabel[role="title"] {{
+                color:{GREEN};
+                font-size:18px;
+                font-weight:700;
+            }}
+            QLabel[role="blurb"] {{
+                color:{MUTED};
+                font-size:13px;
+            }}
+            QLabel[role="meta"] {{
+                color:{MUTED};
+                font-size:12px;
+            }}
+            QLabel[role="by"] {{
+                color:{MUTED};
+                font-size:12px;
+            }}
+            QLabel[role="chip"] {{
+                background:#ecfdf5;
+                color:{GREEN};
+                border:1px solid #c7f0df;
+                border-radius:10px;
+                padding:2px 8px;
+                font-size:11px;
+            }}
+            QLabel[role="pill-cat"] {{
+                background:#eff6ff;
+                color:{GREEN};
+                padding:4px 10px;
+                border-radius:8px;
+                font-size:11px;
+            }}
+            QLabel[role="pill-ctx"] {{
+                background:#f5f3ff;
+                color:{GREEN};
+                padding:4px 10px;
+                border-radius:8px;
+                font-size:11px;
+            }}
+            QLabel[role="pill-img"] {{
+                background:#ecfdf5;
+                color:{GREEN};
+                padding:4px 10px;
+                border-radius:8px;
+                font-size:11px;
+            }}
+            QPushButton[role="more"] {{
+                background:transparent;
+                border:none;
+                padding:2px 6px;
+                border-radius:10px;
+                color:{MUTED};
+            }}
+            QPushButton[role="more"]:hover {{
+                background:#f3f4f6;
+            }}
+        """)
+
+        # ---- outer layout ----
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        # thumbnail
         self.img = QLabel(self)
-        self.img.setMinimumHeight(220); self.img.setMaximumHeight(220)
         self.img.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.img.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
-        self.img.setScaledContents(True)
-        v.addWidget(self.img)
+        self.img.setScaledContents(False)  # keep aspect; pixmap is cropped (zoom-to-fit)
+        self.img.setMinimumHeight(self._thumb_h)
+        self.img.setMaximumHeight(self._thumb_h)
+        outer.addWidget(self.img)
 
-        body = QFrame(self); body.setObjectName("CardBody")
-        body.setStyleSheet("QFrame#CardBody{background:white; border-bottom-left-radius:12px; border-bottom-right-radius:12px;}")
-        v2 = QVBoxLayout(body); v2.setContentsMargins(16, 12, 12, 12); v2.setSpacing(8)
+        # body
+        body = QFrame(self)
+        body.setObjectName("CardBody")
+        body.setStyleSheet(
+            "QFrame#CardBody { background:white; "
+            "border-bottom-left-radius:12px; border-bottom-right-radius:12px; }"
+        )
+        v2 = QVBoxLayout(body)
+        v2.setContentsMargins(16, 12, 16, 12)
+        v2.setSpacing(6)
 
-        # title row
-        title_row = QHBoxLayout(); title_row.setSpacing(8)
-        self.title_lbl = QLabel(payload.get("title","")); self.title_lbl.setProperty("role", "title")
+        # title + status chip + 3-dot button
+        title_row = QHBoxLayout()
+        title_row.setSpacing(8)
+
+        self.title_lbl = QLabel(payload.get("title", ""))
+        self.title_lbl.setProperty("role", "title")
+        self.title_lbl.setWordWrap(True)
         title_row.addWidget(self.title_lbl, 1)
 
-        self.status_chip = QLabel(payload.get("status") or ""); self.status_chip.setProperty("role","chip")
-        if not self.status_chip.text(): self.status_chip.hide()
+        self.status_chip = QLabel(payload.get("status") or "")
+        self.status_chip.setProperty("role", "chip")
+        self.status_chip.setVisible(bool(self.status_chip.text()))
         title_row.addWidget(self.status_chip, 0, Qt.AlignmentFlag.AlignRight)
+
+        self.more = QPushButton("⋮")
+        self.more.setProperty("role", "more")
+        self.more.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.more.setFixedWidth(22)
+        title_row.addWidget(self.more, 0, Qt.AlignmentFlag.AlignRight)
+
         v2.addLayout(title_row)
 
-        # by + posted
-        meta_row = QHBoxLayout(); meta_row.setSpacing(8)
+        # meta row
+        meta_row = QHBoxLayout()
+        meta_row.setSpacing(8)
         by = payload.get("author_display")
-        self.by_lbl = QLabel(f"by {by}" if by else ""); self.by_lbl.setProperty("role","by")
-        if not by: self.by_lbl.hide()
-        meta_row.addWidget(self.by_lbl, 0)
+        self.by_lbl = QLabel(f"by {by}" if by else "")
+        self.by_lbl.setProperty("role", "by")
+        self.by_lbl.setVisible(bool(by))
+        if by:
+            meta_row.addWidget(self.by_lbl, 0)
 
         posted = payload.get("posted_ago") or ""
-        self.posted_lbl = QLabel(posted); self.posted_lbl.setProperty("role","meta")
-        if posted: meta_row.addWidget(QLabel("•")); meta_row.addWidget(self.posted_lbl, 0)
+        if posted:
+            if by:
+                dot = QLabel("•")
+                dot.setProperty("role", "meta")
+                meta_row.addWidget(dot, 0)
+            self.posted_lbl = QLabel(posted)
+            self.posted_lbl.setProperty("role", "meta")
+            meta_row.addWidget(self.posted_lbl, 0)
+
         meta_row.addStretch(1)
         v2.addLayout(meta_row)
 
         # blurb
-        self.blurb_lbl = QLabel(payload.get("blurb","")); self.blurb_lbl.setWordWrap(True); self.blurb_lbl.setProperty("role","blurb")
+        self.blurb_lbl = QLabel(payload.get("blurb", ""))
+        self.blurb_lbl.setWordWrap(True)
+        self.blurb_lbl.setProperty("role", "blurb")
+        self.blurb_lbl.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum
+        )
         v2.addWidget(self.blurb_lbl)
 
-        # category • context • images_count
-        info_row = QHBoxLayout(); info_row.setSpacing(8)
-        cat = payload.get("category"); ctx = payload.get("context"); nimg = payload.get("images_count", 0)
-        self.cat_lbl = QLabel(cat or ""); self.cat_lbl.setProperty("role","meta")
-        if cat: info_row.addWidget(self.cat_lbl, 0)
-        if cat and ctx: info_row.addWidget(QLabel("•"))
-        self.ctx_lbl = QLabel(ctx or ""); self.ctx_lbl.setProperty("role","meta")
-        if ctx: info_row.addWidget(self.ctx_lbl, 0)
-        if cat or ctx: info_row.addWidget(QLabel("•"))
-        self.imgs_lbl = QLabel(f"{nimg} image{'s' if nimg!=1 else ''}"); self.imgs_lbl.setProperty("role","meta")
-        info_row.addWidget(self.imgs_lbl, 0); info_row.addStretch(1)
-        v2.addLayout(info_row)
+        # chips row (category / context / images)
+        chips_row = QHBoxLayout()
+        chips_row.setSpacing(6)
 
-        # actions
-        act_row = QHBoxLayout(); act_row.addStretch(1)
-        self.more = QPushButton(); self.more.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.more.setToolTip("Edit/Update"); self.more.setProperty("role","more")
-        ic = _icon("dot.png"); self.more.setIcon(ic if not ic.isNull() else QIcon()); self.more.setFixedSize(32,32)
-        act_row.addWidget(self.more, 0, Qt.AlignmentFlag.AlignTop)
-        v2.addLayout(act_row)
+        cat = payload.get("category")
+        ctx = payload.get("context")
+        nimg = payload.get("images_count", 0)
 
-        v.addWidget(body)
-        self.update_image(); _add_shadow(self)
+        if cat:
+            cat_lbl = QLabel(str(cat))
+            cat_lbl.setProperty("role", "pill-cat")
+            chips_row.addWidget(cat_lbl, 0)
 
-    def update_image(self):
-        w = max(600, self.width() or 600)
-        self.img.setPixmap(_load_image(self._src, w, self.img.height()))
+        if ctx:
+            ctx_lbl = QLabel(str(ctx))
+            ctx_lbl.setProperty("role", "pill-ctx")
+            chips_row.addWidget(ctx_lbl, 0)
 
-    def resizeEvent(self, e): super().resizeEvent(e); self.update_image()
+        img_lbl = QLabel(f"{nimg} image{'s' if nimg != 1 else ''}")
+        img_lbl.setProperty("role", "pill-img")
+        chips_row.addWidget(img_lbl, 0)
+
+        chips_row.addStretch(1)
+        v2.addLayout(chips_row)
+
+        outer.addWidget(body)
+        _add_shadow(self, alpha=30, blur=22)
+
+        # lock height to content
+        self.adjustSize()
+        self.setFixedHeight(self.sizeHint().height())
+
+        self._update_thumb_height()
+        self._update_pixmap()
+
+    # ----- sizing / image helpers -----
+    def _update_thumb_height(self):
+        w = max(1, self.width())
+        target = self.THUMB_TWO_COL if w < 620 else self.THUMB_ONE_COL
+        if target != self._thumb_h:
+            self._thumb_h = target
+            self.img.setMinimumHeight(target)
+            self.img.setMaximumHeight(target)
+
+    def _update_pixmap(self):
+        w = max(1, self.img.width() or self.width() or 600)
+        h = max(1, self.img.height() or self._thumb_h)
+        self.img.setPixmap(_load_image(self._src, w, h))
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._update_thumb_height()
+        self._update_pixmap()
+
     def mouseReleaseEvent(self, e):
-        if e.button() == Qt.MouseButton.LeftButton: self.clicked.emit()
+        if e.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
         super().mouseReleaseEvent(e)
+
 
 class SmallCard(QFrame):
     clicked = pyqtSignal()
+
+    SIDE_THUMB_HEIGHT = 180  # more room for sidebar thumbnails
 
     def __init__(self, payload: Dict, parent: QWidget | None = None):
         super().__init__(parent)
@@ -190,75 +337,139 @@ class SmallCard(QFrame):
         self._src = payload.get("image")
         self.setObjectName("SmallCard")
         self.setStyleSheet(f"""
-            QFrame#SmallCard {{ background:{CARD_BG}; border:1px solid {BORDER}; border-radius:12px; }}
-            QLabel[role="title"] {{ color:{GREEN}; font-size:16px; font-weight:700; }}
-            QLabel[role="blurb"] {{ color:{MUTED}; font-size:12px; }}
-            QLabel[role="meta"]  {{ color:{MUTED}; font-size:11px; }}
-            QPushButton[role="more"] {{ border:none; background:transparent; padding:4px; border-radius:8px; }}
-            QPushButton[role="more"]:hover {{ background:#eef2f7; }}
+            QFrame#SmallCard {{
+                background:{CARD_BG};
+                border:1px solid {BORDER};
+                border-radius:12px;
+            }}
+            QLabel[role="title"] {{
+                color:{GREEN};
+                font-size:15px;
+                font-weight:600;
+            }}
+            QLabel[role="blurb"] {{
+                color:{MUTED};
+                font-size:12px;
+            }}
+            QLabel[role="meta"] {{
+                color:{MUTED};
+                font-size:11px;
+            }}
         """)
-        v = QVBoxLayout(self); v.setContentsMargins(0,0,0,0); v.setSpacing(0)
-        self.img = QLabel(self); self.img.setFixedHeight(150); self.img.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.img.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed); self.img.setScaledContents(True)
+        v = QVBoxLayout(self)
+        v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(0)
+
+        self.img = QLabel(self)
+        self.img.setFixedHeight(self.SIDE_THUMB_HEIGHT)
+        self.img.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.img.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         v.addWidget(self.img)
 
-        body = QFrame(self); body.setObjectName("CardBody")
-        body.setStyleSheet("QFrame#CardBody{background:white; border-bottom-left-radius:12px; border-bottom-right-radius:12px;}")
-        hb = QVBoxLayout(body); hb.setContentsMargins(14, 10, 10, 10); hb.setSpacing(6)
+        body = QFrame(self)
+        body.setObjectName("CardBody")
+        body.setStyleSheet(
+            "QFrame#CardBody{background:white; "
+            "border-bottom-left-radius:12px; border-bottom-right-radius:12px;}"
+        )
+        hb = QVBoxLayout(body)
+        hb.setContentsMargins(14, 10, 10, 10)
+        hb.setSpacing(6)
 
-        self.title_lbl = QLabel(payload.get("title","")); self.title_lbl.setProperty("role","title")
-        self.blurb_lbl = QLabel(payload.get("blurb","")); self.blurb_lbl.setWordWrap(True); self.blurb_lbl.setProperty("role","blurb")
-        self.meta_lbl  = QLabel(payload.get("posted_ago","")); self.meta_lbl.setProperty("role","meta")
+        self.title_lbl = QLabel(payload.get("title", ""))
+        self.title_lbl.setProperty("role", "title")
+        self.blurb_lbl = QLabel(payload.get("blurb", ""))
+        self.blurb_lbl.setWordWrap(True)
+        self.blurb_lbl.setProperty("role", "blurb")
+        self.meta_lbl = QLabel(payload.get("posted_ago", ""))
+        self.meta_lbl.setProperty("role", "meta")
 
-        hb.addWidget(self.title_lbl); hb.addWidget(self.blurb_lbl); hb.addWidget(self.meta_lbl)
+        hb.addWidget(self.title_lbl)
+        hb.addWidget(self.blurb_lbl)
+        hb.addWidget(self.meta_lbl)
         v.addWidget(body)
 
-        self.update_image(); _add_shadow(self, blur=18)
+        self.update_image()
+        _add_shadow(self, alpha=20, blur=14)
 
     def update_image(self):
-        w = max(300, self.width() or 300)
-        self.img.setPixmap(_load_image(self._src, w, self.img.height()))
+        w = max(1, self.img.width() or self.width() or 1)
+        h = max(1, self.img.height() or self.SIDE_THUMB_HEIGHT)
+        self.img.setPixmap(_load_image(self._src, w, h))
 
-    def resizeEvent(self, e): super().resizeEvent(e); self.update_image()
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self.update_image()
+
     def mouseReleaseEvent(self, e):
-        if e.button() == Qt.MouseButton.LeftButton: self.clicked.emit()
+        if e.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
         super().mouseReleaseEvent(e)
 
 # ---------- Sidebar scroller ----------
 class SidebarScroller(QFrame):
-    def __init__(self, title: str, parent: QWidget | None = None, on_open=None):
+    def __init__(
+        self,
+        title: str,
+        parent: QWidget | None = None,
+        on_open=None,
+        fixed_height: int | None = SIDECARD_VIEWPORT_H,
+    ):
         super().__init__(parent)
         self.on_open = on_open
         self.items_all: List[Dict] = []
         self.setObjectName("SidebarScroller")
         self.setStyleSheet(f"""
-            QFrame#SidebarScroller {{ background:transparent; border:1px solid {GREEN}; border-radius:8px; }}
-            QLabel[role="section"] {{ color:{MUTED}; font-size:12px; padding:10px 10px 0 10px; }}
+            QFrame#SidebarScroller {{
+                background:transparent;
+                border:1px solid {GREEN};
+                border-radius:8px;
+            }}
+            QLabel[role="section"] {{
+                color:{MUTED};
+                font-size:12px;
+                padding:10px 10px 0 10px;
+            }}
         """)
-        v = QVBoxLayout(self); v.setContentsMargins(10,6,10,10); v.setSpacing(10)
-        cap = QLabel(f"{title}:"); cap.setProperty("role","section"); v.addWidget(cap)
+        v = QVBoxLayout(self)
+        v.setContentsMargins(10, 6, 10, 10)
+        v.setSpacing(10)
+        cap = QLabel(f"{title}:")
+        cap.setProperty("role", "section")
+        v.addWidget(cap)
 
         self.scroll = QScrollArea(self)
-        self.scroll.setWidgetResizable(True); self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.scroll.setFixedHeight(SIDECARD_VIEWPORT_H); v.addWidget(self.scroll)
 
-        self.container = QWidget(); self.scroll.setWidget(self.container)
-        self.list_layout = QVBoxLayout(self.container); self.list_layout.setContentsMargins(0,0,0,0)
-        self.list_layout.setSpacing(10); self.list_layout.addStretch(1)
+        if fixed_height is not None:
+            self.scroll.setFixedHeight(fixed_height)
+
+        v.addWidget(self.scroll)
+
+        self.container = QWidget()
+        self.scroll.setWidget(self.container)
+        self.list_layout = QVBoxLayout(self.container)
+        self.list_layout.setContentsMargins(0, 0, 0, 0)
+        self.list_layout.setSpacing(10)
+        self.list_layout.addStretch(1)
 
     def set_items(self, items: List[Dict], all_items: List[Dict] | None = None):
         self.items_all = all_items or items
         while self.list_layout.count() > 1:
             it = self.list_layout.takeAt(0)
-            if it.widget(): it.widget().deleteLater()
+            if it.widget():
+                it.widget().deleteLater()
         for it in items[:3]:
             card = SmallCard(it)
             idx = self.items_all.index(it) if it in self.items_all else 0
             if callable(self.on_open):
-                card.clicked.connect(lambda i=idx, arr=self.items_all: self.on_open(arr, i))
-            self.list_layout.insertWidget(self.list_layout.count()-1, card)
+                card.clicked.connect(
+                    lambda i=idx, arr=self.items_all: self.on_open(arr, i)
+                )
+            self.list_layout.insertWidget(self.list_layout.count() - 1, card)
 
 # ---------- Top bar ----------
 class TopBar(QFrame):
@@ -269,201 +480,358 @@ class TopBar(QFrame):
         self.setObjectName("TopBar")
         self.setStyleSheet(f"""
             QFrame#TopBar {{ background:{BG}; }}
-            QLabel[role="title"] {{ color:{TEXT}; font-size:26px; font-weight:600; }}
-            QLineEdit[role="search"] {{ background:white; border:1px solid {BORDER}; border-radius:18px;
-                padding:8px 36px 8px 12px; color:{TEXT}; selection-background-color:{GREEN}; }}
-            QPushButton[role="nav"], QPushButton[role="searchbtn"] {{ background:transparent; border:none; padding:6px; border-radius:8px; }}
-            QPushButton[role="nav"]:hover, QPushButton[role="searchbtn"]:hover {{ background:#e9ecef; }}
-            QPushButton[role="req"] {{ background:{GREEN}; color:white; border:none; padding:6px 14px; border-radius:8px; }}
+            QLabel[role="title"] {{
+                color:{TEXT};
+                font-size:26px;
+                font-weight:600;
+            }}
+            QLineEdit[role="search"] {{
+                background:white;
+                border:1px solid {BORDER};
+                border-radius:18px;
+                padding:8px 36px 8px 12px;
+                color:{TEXT};
+                selection-background-color:{GREEN};
+            }}
+            QPushButton[role="nav"], QPushButton[role="searchbtn"] {{
+                background:transparent;
+                border:none;
+                padding:6px;
+                border-radius:8px;
+            }}
+            QPushButton[role="nav"]:hover, QPushButton[role="searchbtn"]:hover {{
+                background:#e9ecef;
+            }}
+            QPushButton[role="req"] {{
+                background:{GREEN};
+                color:white;
+                border:none;
+                padding:6px 14px;
+                border-radius:8px;
+            }}
         """)
-        h = QHBoxLayout(self); h.setContentsMargins(12,8,12,4); h.setSpacing(10)
+        h = QHBoxLayout(self)
+        h.setContentsMargins(12, 8, 12, 4)
+        h.setSpacing(10)
 
-        self.menu_btn = QPushButton(); self.menu_btn.setIcon(_icon("icon_menu.png")); self.menu_btn.setProperty("role","nav")
-        self.menu_btn.setFixedSize(32,32); h.addWidget(self.menu_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.menu_btn = QPushButton()
+        self.menu_btn.setIcon(_icon("icon_menu.png"))
+        self.menu_btn.setProperty("role", "nav")
+        self.menu_btn.setFixedSize(32, 32)
+        h.addWidget(self.menu_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
-        title = QLabel("Project and Competition Showcase"); title.setProperty("role","title")
+        title = QLabel("Project and Competition Showcase")
+        title.setProperty("role", "title")
         h.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
 
         h.addStretch(1)
 
         search_holder = QWidget()
-        shl = QHBoxLayout(search_holder); shl.setContentsMargins(0,0,0,0); shl.setSpacing(0)
+        shl = QHBoxLayout(search_holder)
+        shl.setContentsMargins(0, 0, 0, 0)
+        shl.setSpacing(0)
 
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search")
-        self.search.setProperty("role","search")
+        self.search.setProperty("role", "search")
         self.search.setFixedWidth(280)
-        self.search.returnPressed.connect(lambda: self.search_requested.emit(self.search.text().strip()))
+        self.search.returnPressed.connect(
+            lambda: self.search_requested.emit(self.search.text().strip())
+        )
 
         self.search_btn = QPushButton()
         self.search_btn.setIcon(_icon("icon_search.png"))
-        self.search_btn.setProperty("role","searchbtn")
-        self.search_btn.setFixedSize(32,32)
-        self.search_btn.clicked.connect(lambda: self.search_requested.emit(self.search.text().strip()))
+        self.search_btn.setProperty("role", "searchbtn")
+        self.search_btn.setFixedSize(32, 32)
+        self.search_btn.clicked.connect(
+            lambda: self.search_requested.emit(self.search.text().strip())
+        )
 
-        shl.addWidget(self.search); shl.addWidget(self.search_btn)
+        shl.addWidget(self.search)
+        shl.addWidget(self.search_btn)
         h.addWidget(search_holder, 0, Qt.AlignmentFlag.AlignVCenter)
 
-        self.req_btn = QPushButton("Requests"); self.req_btn.setProperty("role","req")
-        self.req_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor)); h.addWidget(self.req_btn, 0, Qt.AlignmentFlag.AlignRight)
+        self.req_btn = QPushButton("Requests")
+        self.req_btn.setProperty("role", "req")
+        self.req_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        h.addWidget(self.req_btn, 0, Qt.AlignmentFlag.AlignRight)
 
 # ---------- Segmented tabs ----------
 class TabsBar(QFrame):
     changed = pyqtSignal(str)
 
     def __init__(self, parent: QWidget | None = None):
-        super().__init__(parent); self.cur = "project"
+        super().__init__(parent)
+        self.cur = "project"
         self.setObjectName("TabsBar")
         self.setStyleSheet(f"""
             QFrame#TabsBar {{ background:{BG}; }}
-            QPushButton[role="seg"] {{ border:1px solid {BORDER}; background:white; color:{TEXT};
-                padding:6px 14px; border-radius:18px; min-width:100px; }}
+            QPushButton[role="seg"] {{
+                border:1px solid {BORDER};
+                background:white;
+                color:{TEXT};
+                padding:6px 14px;
+                border-radius:18px;
+                min-width:100px;
+            }}
         """)
-        h = QHBoxLayout(self); h.setContentsMargins(12,0,12,8); h.setSpacing(10)
+        h = QHBoxLayout(self)
+        h.setContentsMargins(12, 0, 12, 8)
+        h.setSpacing(10)
 
-        seg_wrap = QWidget(); seg = QHBoxLayout(seg_wrap); seg.setContentsMargins(0,0,0,0); seg.setSpacing(0)
-        self.btn_project = QPushButton("Project"); self.btn_project.setProperty("role","seg")
-        self.btn_comp    = QPushButton("Competition"); self.btn_comp.setProperty("role","seg")
+        seg_wrap = QWidget()
+        seg = QHBoxLayout(seg_wrap)
+        seg.setContentsMargins(0, 0, 0, 0)
+        seg.setSpacing(0)
+        self.btn_project = QPushButton("Project")
+        self.btn_project.setProperty("role", "seg")
+        self.btn_comp = QPushButton("Competition")
+        self.btn_comp.setProperty("role", "seg")
         self.btn_project.clicked.connect(lambda: self._set_tab("project"))
         self.btn_comp.clicked.connect(lambda: self._set_tab("competition"))
-        seg.addWidget(self.btn_project); seg.addWidget(self.btn_comp); h.addWidget(seg_wrap, 0, Qt.AlignmentFlag.AlignLeft)
-        h.addStretch(1); self._refresh()
+        seg.addWidget(self.btn_project)
+        seg.addWidget(self.btn_comp)
+        h.addWidget(seg_wrap, 0, Qt.AlignmentFlag.AlignLeft)
+        h.addStretch(1)
+        self._refresh()
 
     def _set_tab(self, name: str):
-        if name == self.cur: return
-        self.cur = name; self._refresh(); self.changed.emit(self.cur)
+        if name == self.cur:
+            return
+        self.cur = name
+        self._refresh()
+        self.changed.emit(self.cur)
 
     def _refresh(self):
         def style(active: bool):
-            return f"QPushButton{{border:1px solid {'#146c43' if active else BORDER}; background:{'#146c43' if active else 'white'}; color:{'white' if active else TEXT}; padding:6px 14px; border-radius:18px;}}"
+            return (
+                "QPushButton{border:1px solid "
+                f"{'#146c43' if active else BORDER}; "
+                f"background:{'#146c43' if active else 'white'}; "
+                f"color:{'white' if active else TEXT}; "
+                "padding:6px 14px; border-radius:18px;}"
+            )
+
         self.btn_project.setStyleSheet(style(self.cur == "project"))
         self.btn_comp.setStyleSheet(style(self.cur == "competition"))
 
 # ---------- Page ----------
 class ShowcaseAdminPage(QWidget):
-    """Pulls data from SQLite via DBHelper. Renders posted_ago, status, author, category, context, images_count."""
-    def __init__(self,
-                 username: str | None = None,
-                 roles: List[str] | None = None,
-                 primary_role: str | None = None,
-                 token: str | None = None,
-                 parent: QWidget | None = None):
+    def __init__(
+        self,
+        username: str | None = None,
+        roles: List[str] | None = None,
+        primary_role: str | None = None,
+        token: str | None = None,
+        parent: QWidget | None = None,
+    ):
         super().__init__(parent)
-        # session context from wrapper or standalone run
         self.username = username or ""
         self.roles = roles or []
         self.primary_role = primary_role or ""
         self.token = token or ""
         self.headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
-        ensure_bootstrap()  # make sure DB and seeds exist
-
 
         self.setObjectName("ShowcaseAdminPage")
         self.setStyleSheet(f"QWidget#ShowcaseAdminPage {{ background:{BG}; }}")
-        root = QVBoxLayout(self); root.setContentsMargins(8,8,8,8); root.setSpacing(6)
 
-        self.top = TopBar(self); self.top.search_requested.connect(self._on_search)
-        self.top.req_btn.clicked.connect(self._open_requests)
+        # Outer stack: main view + approval view (like AnnouncementAdmin)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        self.stack = QStackedWidget(self)
+        outer.addWidget(self.stack)
+
+        # ----- main page -----
+        self.pageMain = QWidget()
+        root = QVBoxLayout(self.pageMain)
+        root.setContentsMargins(8, 8, 8, 8)
+        root.setSpacing(6)
+
+        self.top = TopBar(self.pageMain)
+        self.top.search_requested.connect(self._on_search)
+        self.top.req_btn.clicked.connect(self._on_requests)
         root.addWidget(self.top)
 
-        self.tabs = TabsBar(self); self.tabs.changed.connect(self._on_tab_changed)
+        self.tabs = TabsBar(self.pageMain)
+        self.tabs.changed.connect(self._on_tab_changed)
         root.addWidget(self.tabs)
 
-        central = QFrame(self); ch = QHBoxLayout(central); ch.setContentsMargins(10,2,10,10); ch.setSpacing(14); root.addWidget(central, 1)
+        central = QFrame(self.pageMain)
+        ch = QHBoxLayout(central)
+        ch.setContentsMargins(10, 2, 10, 10)
+        ch.setSpacing(14)
+        root.addWidget(central, 1)
 
         self.left_scroll = QScrollArea(central)
-        self.left_scroll.setWidgetResizable(True); self.left_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.left_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.left_scroll.setWidgetResizable(True)
+        self.left_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.left_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        # keep cards pinned to the top-left of the viewport
+        self.left_scroll.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+        )
         ch.addWidget(self.left_scroll, 1)
 
-        self.left_container = QWidget(); self.left_scroll.setWidget(self.left_container)
-        self.left_col = QVBoxLayout(self.left_container); self.left_col.setSpacing(16); self.left_col.setContentsMargins(0,0,0,0)
+        self.left_container = QWidget()
+        self.left_scroll.setWidget(self.left_container)
+        self.left_col = QGridLayout(self.left_container)
+        self.left_col.setSpacing(16)
+        self.left_col.setContentsMargins(0, 0, 0, 0)
+        self.card_columns = 1
 
-        right_wrap = QWidget(); right_wrap.setFixedWidth(320)
-        rv = QVBoxLayout(right_wrap); rv.setContentsMargins(0,0,0,0); rv.setSpacing(14); ch.addWidget(right_wrap, 0)
-        self.featured = SidebarScroller("Featured", right_wrap, on_open=self._open_preview)
-        self.popular  = SidebarScroller("Popular",  right_wrap, on_open=self._open_preview)
-        rv.addWidget(self.featured); rv.addWidget(self.popular); rv.addStretch(1)
+        right_wrap = QWidget()
+        right_wrap.setFixedWidth(320)
+        rv = QVBoxLayout(right_wrap)
+        rv.setContentsMargins(0, 0, 0, 0)
+        rv.setSpacing(14)
+        ch.addWidget(right_wrap, 0)
 
+        self.featured = SidebarScroller(
+            "Featured", right_wrap, on_open=self._open_preview,
+            fixed_height=SIDECARD_VIEWPORT_H,
+        )
+        self.popular = SidebarScroller(
+            "Popular", right_wrap, on_open=self._open_preview,
+            fixed_height=None,
+        )
+
+        rv.addWidget(self.featured)
+        rv.addWidget(self.popular, 1)
+
+        self.stack.addWidget(self.pageMain)
+
+        # state
         self.cur_kind = "project"
-        self.cur_query = None
-        self.data: Dict[str, List[Dict]] = {"project": [], "competition": []}           # filtered for main list
-        self.sidebar_source: Dict[str, List[Dict]] = {"project": [], "competition": []}  # unfiltered for Featured/Popular
+        self.cur_query: str | None = None
+        self.data: Dict[str, List[Dict]] = {"project": [], "competition": []}
+        self.sidebar_source: Dict[str, List[Dict]] = {
+            "project": [],
+            "competition": [],
+        }
         self._reload()
 
+    # ----- layout helpers -----
+    def _compute_columns(self) -> int:
+        avail = max(1, self.left_scroll.viewport().width())
+        min_card_width = 520
+        cols = max(1, min(2, avail // min_card_width))
+        return cols
+
+    def _maybe_reflow_cards(self):
+        new_cols = self._compute_columns()
+        if new_cols != getattr(self, "card_columns", 1):
+            self.card_columns = new_cols
+            self._populate_lists(self.cur_kind)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._maybe_reflow_cards()
+
+    # ----- dialogs / edit page -----
     def _open_edit(self, kind: str, item: Dict):
-        from PyQt6.QtCore import Qt
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout
-        dlg = QDialog(self, Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
-        dlg.setModal(True)
-        dlg.setObjectName("editOverlay")
-        dlg.setStyleSheet("QDialog#editOverlay{background:white; border:1px solid #146c43; border-radius:12px;}")
-        lay = QVBoxLayout(dlg); lay.setContentsMargins(0,0,0,0)
-        page = ShowcaseAdminEditDialog(kind, int(item.get("id")))
-        lay.addWidget(page)
-        # overlay sizing
-        g = self.rect(); top_left = self.mapToGlobal(g.topLeft())
-        dlg.setGeometry(top_left.x()+24, top_left.y()+24, g.width()-48, g.height()-48)
-        if dlg.exec():
-            self._reload()
-    
-    def _open_requests(self):
-        from PyQt6.QtCore import Qt, QRect
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout
+        # push edit page onto the same stack as main + approval
+        from PyQt6.QtWidgets import QWidget  # only for type hints
 
-        dlg = QDialog(self, Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
-        dlg.setModal(True)
-        dlg.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
-        dlg.setObjectName("approvalOverlay")
-        dlg.setStyleSheet("""
-            QDialog#approvalOverlay { background: white; border: 1px solid #146c43; border-radius: 12px; }
-        """)
+        page = ShowcaseAdminEditDialog(kind, int(item.get("id")), parent=self)
+        page.back_requested.connect(lambda p=page: self._close_edit(p))
+        page.saved.connect(self._reload)
+        page.deleted.connect(self._reload)
 
-        lay = QVBoxLayout(dlg)
-        lay.setContentsMargins(0, 0, 0, 0)
-        page = ShowcaseAdminApprovalPage(dlg)
-        lay.addWidget(page)
+        self.stack.addWidget(page)
+        self.stack.setCurrentWidget(page)
 
-        # size and position: overlay current admin page
-        g = self.rect()
-        top_left = self.mapToGlobal(g.topLeft())
-        dlg.setGeometry(top_left.x() + 12, top_left.y() + 12, g.width() - 24, g.height() - 24)
+    def _close_edit(self, page: QWidget):
+        self.stack.setCurrentWidget(self.pageMain)
+        self.stack.removeWidget(page)
+        page.deleteLater()
 
-        dlg.exec()
-        # refresh main admin page after approvals
+    # ----- approval page (stacked, non-modal) -----
+    def _on_requests(self) -> None:
+        # lazy import to avoid circular issues when run as script or package
+        try:
+            from .ShowcaseAdminApproval import ShowcaseAdminApprovalPage  # type: ignore
+        except Exception:
+            from ShowcaseAdminApproval import ShowcaseAdminApprovalPage  # type: ignore
+
+        if not hasattr(self, "pageApproval"):
+            self.pageApproval = ShowcaseAdminApprovalPage(self)
+            # hook its back signal to return to main view
+            if hasattr(self.pageApproval, "back_requested"):
+                self.pageApproval.back_requested.connect(self._close_requests)
+            self.stack.addWidget(self.pageApproval)
+
+        self.stack.setCurrentWidget(self.pageApproval)
+
+    def _close_requests(self) -> None:
+        # go back to main list view and drop approval page
+        self.stack.setCurrentWidget(self.pageMain)
+        if hasattr(self, "pageApproval"):
+            w = self.pageApproval
+            self.stack.removeWidget(w)
+            w.deleteLater()
+            delattr(self, "pageApproval")
+        # refresh cards to reflect approvals
         try:
             self._reload()
+            self._maybe_reflow_cards()
         except Exception:
             pass
 
     # ----- data -----
     def _reload(self):
-        # unfiltered source for sidebars
-        self.sidebar_source[self.cur_kind] = list_showcase_cards(kind=self.cur_kind, q=None, status=None, limit=100)
-        # filtered list for main column
-        self.data[self.cur_kind] = list_showcase_cards(kind=self.cur_kind, q=self.cur_query, status=None, limit=100)
+        all_items = list_showcase_cards(
+            kind=self.cur_kind, q=None, status=None, limit=100
+        )
+        self.sidebar_source[self.cur_kind] = all_items
+
+        if self.cur_query:
+            q = self.cur_query.lower()
+            filtered = [
+                it for it in all_items
+                if q in (it.get("title") or "").lower()
+                or q in (it.get("blurb") or "").lower()
+                or q in (it.get("author_display") or "").lower()
+            ]
+        else:
+            filtered = all_items
+
+        self.data[self.cur_kind] = filtered
         self._populate_lists(self.cur_kind)
 
     # ----- UI population -----
     def _populate_lists(self, kind: str):
         while self.left_col.count():
             it = self.left_col.takeAt(0)
-            if it.widget(): it.widget().deleteLater()
+            if it.widget():
+                it.widget().deleteLater()
 
         items = self.data.get(kind, [])
+        cols = getattr(self, "card_columns", 1) or 1
+        row = 0
+        col = 0
 
         for idx, it in enumerate(items):
             card = LargeCard(it)
             card.clicked.connect(lambda i=idx, arr=items: self._open_preview(arr, i))
-            # wire the "…" button to open the editor
             if hasattr(card, "more"):
-                card.more.clicked.connect(lambda _=False, item=it, k=kind: self._open_edit(k, item))
-            self.left_col.addWidget(card)
-        self.left_col.addItem(QSpacerItem(0, 8, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+                card.more.clicked.connect(
+                    lambda _checked=False, item=it, k=kind: self._open_edit(k, item)
+                )
+            self.left_col.addWidget(card, row, col)
+            col += 1
+            if col >= cols:
+                col = 0
+                row += 1
 
         src = self.sidebar_source.get(kind, items)
         self.featured.set_items(src[:3], all_items=src)
-        self.popular.set_items(src[2:5] if len(src) >= 5 else src[:3], all_items=src)
+        self.popular.set_items(
+            src[2:5] if len(src) >= 5 else src[:3], all_items=src
+        )
 
     # ----- interactions -----
     def _open_preview(self, items: List[Dict], start_index: int):
@@ -473,18 +841,19 @@ class ShowcaseAdminPage(QWidget):
     def _on_tab_changed(self, name: str):
         self.cur_kind = name
         self._reload()
+        self._maybe_reflow_cards()
 
     def _on_search(self, text: str):
         self.cur_query = text or None
         self._reload()
+        self._maybe_reflow_cards()
 
 # ---------- Demo launcher ----------
 if __name__ == "__main__":
     import sys
+
     app = QApplication(sys.argv)
-    stacked = QStackedWidget()
-    page = ShowcaseAdminPage()
-    stacked.addWidget(page)
-    stacked.resize(980, 680)
-    stacked.show()
+    w = ShowcaseAdminPage()
+    w.resize(980, 680)
+    w.show()
     sys.exit(app.exec())

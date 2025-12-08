@@ -18,10 +18,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/users/', include('apps.Users.urls')), 
+    path('api/users/', include('apps.Users.urls')),
     # config/urls.py (correct for your layout)
     path("api/calendar/", include("apps.Calendar.urls")),
     path('api/appointments/', include('apps.Appointments.urls')),
@@ -29,4 +33,16 @@ urlpatterns = [
     # Documents
     path('api/documents/', include('apps.Documents.urls')),
 
+    path('api/users/', include('apps.Users.urls')),
+    path('api/organizations/', include('apps.Organizations.urls')),
+
+        # House and Feedback
+    path('api/feedback/', include('apps.Feedback.urls')),
+    path('', include('apps.House.urls')),
+
+    path('api/showcase/', include('apps.Showcase.urls')),
+    path("api/showcase/", include("apps.Showcase.api_urls")),
+
+    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

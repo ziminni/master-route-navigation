@@ -1,0 +1,68 @@
+
+================================================================================
+STUDENT __INIT__ CALLED
+  student_name=Marcus
+  user_id parameter=None (type=<class 'NoneType'>)
+  user_id from QSettings=None (type=<class 'NoneType'>)
+  FINAL self.user_id=None (type=<class 'NoneType'>)
+================================================================================
+
+================================================================================
+STUDENT __INIT__ CALLED
+  student_name=Marcus
+  user_id parameter=None (type=<class 'NoneType'>)
+  user_id from QSettings=None (type=<class 'NoneType'>)
+  FINAL self.user_id=None (type=<class 'NoneType'>)
+================================================================================
+
+================================================================================
+STUDENT __INIT__ CALLED
+  student_name=Marcus
+  user_id parameter=None (type=<class 'NoneType'>)
+  user_id from QSettings=None (type=<class 'NoneType'>)
+  FINAL self.user_id=None (type=<class 'NoneType'>)
+================================================================================
+
+================================================================================
+STUDENT __INIT__ CALLED
+  student_name=Marcus
+  user_id parameter=None (type=<class 'NoneType'>)
+  user_id from QSettings=None (type=<class 'NoneType'>)
+  FINAL self.user_id=None (type=<class 'NoneType'>)
+================================================================================
+
+================================================================================
+STUDENT __INIT__ CALLED
+  student_name=Marcus
+  user_id parameter=None (type=<class 'NoneType'>)
+  user_id from QSettings=None (type=<class 'NoneType'>)
+  FINAL self.user_id=None (type=<class 'NoneType'>)
+================================================================================
+
+================================================================================
+STUDENT __INIT__ CALLED
+  student_name=Marcus
+  user_id parameter=1 (type=<class 'int'>)
+  FINAL self.user_id=1 (type=<class 'int'>)
+================================================================================
+
+================================================================================
+STUDENT __INIT__ CALLED
+  student_name=Marcus
+  user_id parameter=1 (type=<class 'int'>)
+  FINAL self.user_id=1 (type=<class 'int'>)
+================================================================================
+
+================================================================================
+STUDENT __INIT__ CALLED
+  student_name=Marcus
+  user_id parameter=1 (type=<class 'int'>)
+  FINAL self.user_id=1 (type=<class 'int'>)
+================================================================================
+
+================================================================================
+STUDENT __INIT__ CALLED
+  student_name=Marcus
+  user_id parameter=1 (type=<class 'int'>)
+  FINAL self.user_id=1 (type=<class 'int'>)
+================================================================================

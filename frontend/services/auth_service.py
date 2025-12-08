@@ -22,7 +22,10 @@ class AuthService:
                 token = body.get("access") or body.get("access_token")
                 roles = body.get("roles", [])
                 primary_role = body.get("primary_role")
-                return LoginResult(True, username=username, token=token, roles=roles, primary_role=primary_role)
+                profile_id = body.get("profile_id")
+                print(f"DEBUG AuthService: Login successful - profile_id={profile_id}, primary_role={primary_role}, username={username}")
+                print(f"DEBUG AuthService: Full response body: {body}")
+                return LoginResult(True, username=username, token=token, roles=roles, primary_role=primary_role, profile_id=profile_id)
 
             # explicit handling
             if resp.status_code == 401:
@@ -76,11 +79,12 @@ class AuthService:
 
 
 class LoginResult:
-    def __init__(self, ok, username=None, token=None, roles=None, primary_role=None, error=None):
+    def __init__(self, ok, username=None, token=None, roles=None, primary_role=None, profile_id=None, error=None):
         self.ok = ok
         self.username = username
         self.token = token
         self.roles = roles or []
         self.primary_role = primary_role
+        self.profile_id = profile_id
         self.error = error
 
