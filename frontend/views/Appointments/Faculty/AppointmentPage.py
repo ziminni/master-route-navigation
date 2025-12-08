@@ -259,7 +259,7 @@ class AppointmentPage_ui(QWidget):
         self.tableWidget_8.setColumnWidth(2, 220)  # Slot
         self.tableWidget_8.setColumnWidth(3, 250)  # Purpose
         self.tableWidget_8.setColumnWidth(4, 120)  # Status
-        self.tableWidget_8.setColumnWidth(5, 150)  # Actions
+        self.tableWidget_8.setColumnWidth(5, 500)  # Actions
         
         # Header styling
         header = self.tableWidget_8.horizontalHeader()
@@ -311,7 +311,7 @@ class AppointmentPage_ui(QWidget):
         self.tableWidget_8.setColumnWidth(2, int(width * 0.30))  # Slot
         self.tableWidget_8.setColumnWidth(3, int(width * 0.30))  # Purpose
         self.tableWidget_8.setColumnWidth(4, int(width * 0.25))  # Status
-        self.tableWidget_8.setColumnWidth(5, int(width * 0.25))  # Actions
+        self.tableWidget_8.setColumnWidth(5, int(width * 0.40))  # Actions
         super().resizeEvent(event)
 
     def goBackPage(self):
@@ -477,7 +477,7 @@ class AppointmentPage_ui(QWidget):
             ("Date & Time:", appointment_data[0] if len(appointment_data) > 0 else "Unknown"),
             ("Duration:", "30 minutes"),
             ("Status:", appointment_data[4] if len(appointment_data) > 4 else "Unknown"),
-            ("Address:", appointment_data[8] if len(appointment_data) > 8 else "Not specified"),
+            ("Address:", "https://meet.google.com/mat-ucvx-iak"),
             ("Created At:", appointment_data[10] if len(appointment_data) > 10 else "Unknown"),
         ]
         
@@ -777,10 +777,16 @@ class AppointmentPage_ui(QWidget):
         elif status == "approved":
             reschedule_btn = make_btn("Reschedule", "#2F80ED")
             cancel_btn = make_btn("Cancel", "#EB5757")
+            complete_btn = make_btn("Complete", "#219653")  # ADDED: Complete button
             reschedule_btn.clicked.connect(lambda: self._openReschedulePage(appointment_id))
             cancel_btn.clicked.connect(lambda: self._openCancelDialog(row_index, status, appointment_id))
+            complete_btn.clicked.connect(lambda: self._openCompleteDialog(row_index, appointment_id))  # ADDED: Connect complete button
             layout.addWidget(reschedule_btn)
             layout.addWidget(cancel_btn)
+            layout.addWidget(complete_btn)  # ADDED: Add complete button to layout
+        elif status == "completed":  # ADDED: Handle completed status
+            # For completed appointments, show only view option
+            layout.addStretch(1)
         elif status in ["canceled", "denied"]:
             # No actions for canceled or denied appointments
             layout.addStretch(1)
@@ -798,6 +804,107 @@ class AppointmentPage_ui(QWidget):
             return f"#{darkened[0]:02x}{darkened[1]:02x}{darkened[2]:02x}"
         except:
             return hex_color
+
+    def _openCompleteDialog(self, row_index, appointment_id):
+        """Open dialog to mark appointment as completed."""
+        # Get appointment data first
+        appointment_data = None
+        for row in self.rows:
+            if row[5] == appointment_id:  # appointment_id is at index 5
+                appointment_data = row
+                break
+        
+        if not appointment_data:
+            QMessageBox.warning(self, "Error", "Appointment data not found")
+            return
+
+        dlg = QtWidgets.QDialog(self)
+        dlg.setWindowTitle("Mark as Completed")
+        dlg.setModal(True)
+        dlg.setFixedSize(400, 300)
+        dlg.setStyleSheet("background-color: white;")
+        
+        layout = QtWidgets.QVBoxLayout(dlg)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
+
+        # Title
+        title = QtWidgets.QLabel("Mark Appointment as Completed")
+        title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("QLabel { color: #2b2b2b; font: 600 12pt 'Poppins'; margin-bottom: 10px; }")
+        layout.addWidget(title)
+
+        # Confirmation message
+        student_name = appointment_data[1] if len(appointment_data) > 1 else "the student"
+        message = QtWidgets.QLabel(f"Are you sure you want to mark this appointment with {student_name} as completed?")
+        message.setWordWrap(True)
+        message.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        message.setStyleSheet("QLabel { color: #666666; font: 10pt 'Poppins'; line-height: 1.4; }")
+        layout.addWidget(message)
+
+
+        layout.addStretch(1)
+
+        # Buttons layout
+        btn_layout = QtWidgets.QHBoxLayout()
+        btn_cancel = QtWidgets.QPushButton("Cancel")
+        btn_complete = QtWidgets.QPushButton("Mark as Completed")
+        
+        # Button styles
+        btn_style = """
+            QPushButton {
+                border-radius: 6px;
+                padding: 10px 24px;
+                font: 10pt 'Poppins';
+                min-width: 80px;
+            }
+        """
+        
+        btn_cancel.setStyleSheet(btn_style + """
+            QPushButton {
+                background: #f5f5f5;
+                color: #2b2b2b;
+                border: 1px solid #e0e0e0;
+            }
+            QPushButton:hover {
+                background: #e8e8e8;
+            }
+        """)
+        
+        btn_complete.setStyleSheet(btn_style + """
+            QPushButton {
+                background: #219653;
+                color: white;
+                border: none;
+            }
+            QPushButton:hover {
+                background: #1e8749;
+            }
+        """)
+        
+        btn_cancel.clicked.connect(dlg.reject)
+        
+        def _complete_clicked():
+            try:
+               
+                result = self.crud.update_appointment(appointment_id, {"status": "completed"})
+                if result:
+                    self._refreshAppointments()
+                    QMessageBox.information(self, "Success", "Appointment marked as completed successfully!")
+                    dlg.accept()
+                else:
+                    QMessageBox.warning(self, "Error", "You can only complete your appointment after it ends.")
+            except Exception as e:
+                QMessageBox.warning(self, "Error", "You can only complete your appointment after it ends.")
+        
+        btn_complete.clicked.connect(_complete_clicked)
+        
+        btn_layout.addWidget(btn_cancel)
+        btn_layout.addStretch(1)
+        btn_layout.addWidget(btn_complete)
+        layout.addLayout(btn_layout)
+
+        dlg.exec()
 
     def _openReschedulePage(self, appointment_id):
         """Open the reschedule page for the selected appointment."""
@@ -1224,7 +1331,8 @@ class AppointmentPage_ui(QWidget):
                 "rescheduled": "#2F80ED",
                 "canceled": "#EB5757",
                 "approved": "#219653",
-                "denied": "#EB5757"
+                "denied": "#EB5757",
+                "completed": "#219653"  # ADDED: Completed status color
             }
 
             for row, appointment in enumerate(appointments):

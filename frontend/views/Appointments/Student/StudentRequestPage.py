@@ -1106,45 +1106,45 @@ class StudentRequestPage_ui(QWidget):
         reason_layout.addWidget(self.reason_text_edit)
         layout.addWidget(reason_group)
         
-        # Meeting Location
-        location_group = QtWidgets.QGroupBox("Meeting Location")
-        location_group.setStyleSheet("""
-            QGroupBox {
-                font: 600 12pt 'Poppins';
-                color: #084924;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                margin-top: 12px;
-                padding-top: 12px;
-            }
-        """)
+        # # Meeting Location
+        # location_group = QtWidgets.QGroupBox("Meeting Location")
+        # location_group.setStyleSheet("""
+        #     QGroupBox {
+        #         font: 600 12pt 'Poppins';
+        #         color: #084924;
+        #         border: 1px solid #e0e0e0;
+        #         border-radius: 8px;
+        #         margin-top: 12px;
+        #         padding-top: 12px;
+        #     }
+        # """)
         
-        location_layout = QtWidgets.QVBoxLayout(location_group)
+        # location_layout = QtWidgets.QVBoxLayout(location_group)
         
-        self.location_combo = QtWidgets.QComboBox()
-        self.location_combo.addItems([
-            "Faculty Office",
-            "Online Meeting",
-            "Classroom",
-            "Laboratory",
-            "Library",
-            "Conference Room",
-            "Other (specify in purpose)"
-        ])
-        self.location_combo.setStyleSheet("""
-            QComboBox {
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                padding: 8px;
-                font: 11pt 'Poppins';
-                background-color: #fafafa;
-            }
-            QComboBox:focus {
-                border: 1px solid #084924;
-            }
-        """)
-        location_layout.addWidget(self.location_combo)
-        layout.addWidget(location_group)
+        # self.location_combo = QtWidgets.QComboBox()
+        # self.location_combo.addItems([
+        #     "Faculty Office",
+        #     "Online Meeting",
+        #     "Classroom",
+        #     "Laboratory",
+        #     "Library",
+        #     "Conference Room",
+        #     "Other (specify in purpose)"
+        # ])
+        # self.location_combo.setStyleSheet("""
+        #     QComboBox {
+        #         border: 1px solid #e0e0e0;
+        #         border-radius: 6px;
+        #         padding: 8px;
+        #         font: 11pt 'Poppins';
+        #         background-color: #fafafa;
+        #     }
+        #     QComboBox:focus {
+        #         border: 1px solid #084924;
+        #     }
+        # """)
+        # location_layout.addWidget(self.location_combo)
+        # layout.addWidget(location_group)
         
         # # Document Upload Section
         # documents_group = QtWidgets.QGroupBox("Supporting Documents (Optional)")

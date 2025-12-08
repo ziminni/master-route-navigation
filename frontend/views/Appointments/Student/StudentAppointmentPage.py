@@ -580,7 +580,7 @@ class StudentAppointmentPage_ui(QWidget):
             ("Faculty:", appointment_data[1]),
             ("Time Slot:", appointment_data[2]),
             ("Status:", appointment_data[4]),
-            ("Address:", appointment_data[8] or "Not specified"),
+            ("Address:", "https://meet.google.com/mat-ucvx-iak"),
             ("Created At:", appointment_data[10] or "Unknown"),
         ]
         
