@@ -179,7 +179,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'apps.Users.apps.UsersConfig',
     'apps.Documents.apps.DocumentsConfig',
-    'apps.Organizations.apps.OrganizationsConfig'
+    'apps.Organizations.apps.OrganizationsConfig',
+    "apps.Announcements",
+    "apps.Calendar",
 ]
 
 MIDDLEWARE = [
@@ -282,7 +284,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 #Added this lines
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],

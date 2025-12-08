@@ -71,6 +71,52 @@
       "content": "[New Inquiry] asdadas: asdasdas",
       "timestamp": "2025-10-16T12:11:17.061542",
       "status": "unread"
+    },
+    {
+      "conversation_id": 2,
+      "sender_id": 2,
+      "content": "[New Inquiry] fhb: rvvfv",
+      "timestamp": "2025-12-01T10:48:38.294383",
+      "status": "unread"
+    },
+    {
+      "sender_id": 2,
+      "receiver_id": 1,
+      "conversation_id": 2,
+      "content": "rvrvvrvv",
+      "message_type": "general",
+      "priority": "normal",
+      "status": "sent",
+      "is_read": false,
+      "id": 1,
+      "created_at": "2025-12-01T10:48:42.805809",
+      "updated_at": "2025-12-01T10:48:42.805809"
+    },
+    {
+      "sender_id": 2,
+      "receiver_id": 3,
+      "conversation_id": 1,
+      "content": "rfvvrf",
+      "message_type": "general",
+      "priority": "normal",
+      "status": "sent",
+      "is_read": false,
+      "id": 2,
+      "created_at": "2025-12-01T10:48:47.879890",
+      "updated_at": "2025-12-01T10:48:47.879890"
+    },
+    {
+      "sender_id": 2,
+      "receiver_id": 4,
+      "conversation_id": 3,
+      "content": "rvtvtvtv",
+      "message_type": "general",
+      "priority": "normal",
+      "status": "sent",
+      "is_read": false,
+      "id": 3,
+      "created_at": "2025-12-01T10:48:51.061988",
+      "updated_at": "2025-12-01T10:48:51.061988"
     }
   ],
   "inquiries": [
@@ -112,6 +158,19 @@
       "created_at": "2025-10-16T12:11:17.061542",
       "updated_at": "2025-10-16T12:11:17.061567",
       "conversation_id": 3
+    },
+    {
+      "student_id": 2,
+      "admin_id": 1,
+      "inquiry_type": "general",
+      "subject": "fhb",
+      "description": "rvvfv",
+      "priority": "high",
+      "status": "pending",
+      "id": 4,
+      "created_at": "2025-12-01T10:48:38.294383",
+      "updated_at": "2025-12-01T10:48:38.294383",
+      "conversation_id": 2
     }
   ],
   "notifications": [],

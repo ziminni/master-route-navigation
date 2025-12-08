@@ -29,7 +29,7 @@ class FileDetailsDialog(QDialog):
         super().__init__(parent)
         self.setModal(True)
         self.setWindowTitle("File Details")
-        self.setFixedSize(450, 600)
+        self.setFixedSize(500, 750)
         
         self.file_data = file_data or {}
         self.controller = controller
@@ -64,20 +64,82 @@ class FileDetailsDialog(QDialog):
         filename_layout.addWidget(filename_label)
         main_layout.addLayout(filename_layout)
         
-        # ========== ACTION BUTTONS (Edit/Delete or Restore) ==========
+        # ========== ACTION BUTTONS (Download, Edit/Restore, Delete) ==========
         action_layout = QHBoxLayout()
         action_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        action_layout.setSpacing(10)
+        
+        # Download button (always visible)
+        download_btn = QPushButton("Download")
+        download_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #007bff;
+                color: white;
+                font-weight: bold;
+                padding: 8px 16px;
+                border: none;
+                border-radius: 6px;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #0056b3;
+            }
+        """)
+        download_btn.clicked.connect(self.handle_download)
+        action_layout.addWidget(download_btn)
         
         if self.is_deleted:
-            restore_btn = QPushButton("Restore File")
+            restore_btn = QPushButton("Restore")
+            restore_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #28a745;
+                    color: white;
+                    font-weight: bold;
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 6px;
+                    min-width: 100px;
+                }
+                QPushButton:hover {
+                    background-color: #218838;
+                }
+            """)
             restore_btn.clicked.connect(self.handle_restore)
             action_layout.addWidget(restore_btn)
         else:
-            edit_btn = QPushButton("Edit File")
-            edit_btn.clicked.connect(self.handle_edit_save)
-            action_layout.addWidget(edit_btn)
+            self.edit_btn = QPushButton("Edit")
+            self.edit_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #ffc107;
+                    color: #212529;
+                    font-weight: bold;
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 6px;
+                    min-width: 100px;
+                }
+                QPushButton:hover {
+                    background-color: #e0a800;
+                }
+            """)
+            self.edit_btn.clicked.connect(self.handle_edit_save)
+            action_layout.addWidget(self.edit_btn)
         
-        delete_btn = QPushButton("Delete File")
+        delete_btn = QPushButton("Delete")
+        delete_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                font-weight: bold;
+                padding: 8px 16px;
+                border: none;
+                border-radius: 6px;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """)
         delete_btn.clicked.connect(self.handle_delete)
         action_layout.addWidget(delete_btn)
         
@@ -85,57 +147,119 @@ class FileDetailsDialog(QDialog):
         
         # ========== DETAILS SECTION ==========
         details_frame = QFrame()
+        details_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+            }
+        """)
+        details_frame.setMinimumHeight(280)
         details_layout = QVBoxLayout()
+        details_layout.setSpacing(12)
         
         # Details header
         details_header = QLabel("Details")
         details_header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        details_header.setStyleSheet("color: #495057; background: transparent; border: none; padding: 0;")
         details_layout.addWidget(details_header)
+        
+        # Style for labels and inputs
+        label_style = "color: #6c757d; font-weight: bold; min-width: 120px; background: transparent; border: none; padding: 0; font-size: 13px;"
+        input_style = """
+            QLineEdit {
+                background-color: white;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 8px 12px;
+                min-height: 20px;
+            }
+            QLineEdit:read-only {
+                background-color: #e9ecef;
+                color: #495057;
+            }
+            QLineEdit:focus {
+                border-color: #80bdff;
+                outline: none;
+            }
+        """
+        combo_style = """
+            QComboBox {
+                background-color: white;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 8px 12px;
+                min-height: 20px;
+            }
+            QComboBox:disabled {
+                background-color: #e9ecef;
+                color: #6c757d;
+            }
+        """
         
         # Filename field (editable)
         filename_row = QHBoxLayout()
-        filename_row.addWidget(QLabel("Filename"))
+        filename_lbl = QLabel("Filename")
+        filename_lbl.setStyleSheet(label_style)
+        filename_row.addWidget(filename_lbl)
         self.filename_input = QLineEdit(self.file_data.get('filename', ''))
+        self.filename_input.setStyleSheet(input_style)
         self.filename_input.setReadOnly(True)  # Start as read-only
         filename_row.addWidget(self.filename_input)
         details_layout.addLayout(filename_row)
         
         # Date Uploaded
         date_row = QHBoxLayout()
-        date_row.addWidget(QLabel("Date Uploaded"))
+        date_lbl = QLabel("Date Uploaded")
+        date_lbl.setStyleSheet(label_style)
+        date_row.addWidget(date_lbl)
         date_label = QLabel(self.file_data.get('uploaded_date', self.file_data.get('time', 'N/A')))
+        date_label.setStyleSheet("background: transparent; border: none; padding: 5px 0; color: #495057; font-size: 13px;")
         date_row.addWidget(date_label)
         date_row.addStretch()
         details_layout.addLayout(date_row)
         
         # Time Uploaded
         time_row = QHBoxLayout()
-        time_row.addWidget(QLabel("Time Uploaded"))
+        time_lbl = QLabel("Time Uploaded")
+        time_lbl.setStyleSheet(label_style)
+        time_row.addWidget(time_lbl)
         time_label = QLabel(self.file_data.get('uploaded_time', self._extract_time()))
+        time_label.setStyleSheet("background: transparent; border: none; padding: 5px 0; color: #495057; font-size: 13px;")
         time_row.addWidget(time_label)
         time_row.addStretch()
         details_layout.addLayout(time_row)
         
         # Type (Extension)
         type_row = QHBoxLayout()
-        type_row.addWidget(QLabel("Type"))
+        type_lbl = QLabel("Type")
+        type_lbl.setStyleSheet(label_style)
+        type_row.addWidget(type_lbl)
         type_label = QLabel(self.file_data.get('extension', 'N/A'))
+        type_label.setStyleSheet("background: transparent; border: none; padding: 5px 0; color: #495057; font-size: 13px;")
         type_row.addWidget(type_label)
         type_row.addStretch()
         details_layout.addLayout(type_row)
         
         # Category (editable)
         category_row = QHBoxLayout()
-        category_row.addWidget(QLabel("Category"))
+        category_lbl = QLabel("Category")
+        category_lbl.setStyleSheet(label_style)
+        category_row.addWidget(category_lbl)
         self.category_input = QLineEdit(self.file_data.get('category', 'N/A'))
+        self.category_input.setStyleSheet(input_style)
         self.category_input.setReadOnly(True)  # Start as read-only
         category_row.addWidget(self.category_input)
         details_layout.addLayout(category_row)
         
         # Collection (editable dropdown)
         collection_row = QHBoxLayout()
-        collection_row.addWidget(QLabel("Collection"))
+        collection_lbl = QLabel("Collection")
+        collection_lbl.setStyleSheet(label_style)
+        collection_row.addWidget(collection_lbl)
         self.collection_combo = QComboBox()
+        self.collection_combo.setStyleSheet(combo_style)
         self.collection_combo.setEnabled(False)  # Start as disabled
         self._load_collections()
         collection_row.addWidget(self.collection_combo)
@@ -164,15 +288,40 @@ class FileDetailsDialog(QDialog):
         
         # ========== DESCRIPTION SECTION ==========
         description_frame = QFrame()
+        description_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+            }
+        """)
         description_layout = QVBoxLayout()
+        description_layout.setSpacing(10)
         
         # Description header
         description_header = QLabel("Description")
         description_header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        description_header.setStyleSheet("color: #495057; background: transparent; border: none; padding: 0;")
         description_layout.addWidget(description_header)
         
         # Description text area (editable)
         self.description_text = QTextEdit()
+        self.description_text.setStyleSheet("""
+            QTextEdit {
+                background-color: white;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 8px;
+                color: #495057;
+            }
+            QTextEdit:read-only {
+                background-color: #e9ecef;
+            }
+            QTextEdit:focus {
+                border-color: #80bdff;
+            }
+        """)
         self.description_text.setPlaceholderText("No description provided...")
         self.description_text.setPlainText(self.file_data.get('description', ''))
         self.description_text.setReadOnly(True)  # Start as read-only
@@ -184,6 +333,19 @@ class FileDetailsDialog(QDialog):
         
         # ========== CLOSE BUTTON ==========
         close_btn = QPushButton("Close")
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                font-weight: bold;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
         close_btn.clicked.connect(self.accept)
         main_layout.addWidget(close_btn)
         
@@ -258,9 +420,8 @@ class FileDetailsDialog(QDialog):
             self.description_text.setReadOnly(False)
             
             # Change button text
-            sender = self.sender()
-            if sender:
-                sender.setText("Save Changes")
+            if hasattr(self, 'edit_btn'):
+                self.edit_btn.setText("Save Changes")
         else:
             # Save changes
             self.save_changes()
@@ -357,9 +518,8 @@ class FileDetailsDialog(QDialog):
             self.description_text.setReadOnly(True)
             
             # Change button text back
-            sender = self.sender()
-            if sender:
-                sender.setText("Edit File")
+            if hasattr(self, 'edit_btn'):
+                self.edit_btn.setText("Edit")
         else:
             QMessageBox.warning(self, "Error", message or "Failed to update file details")
     
@@ -447,3 +607,13 @@ class FileDetailsDialog(QDialog):
                     self.accept()  # Close dialog
                 else:
                     QMessageBox.warning(self, "Error", message)
+    
+    def handle_download(self):
+        """Handle download button click"""
+        filename = self.file_data.get('filename', 'Unknown')
+        print(f"Download file: {filename}")
+        QMessageBox.information(
+            self, 
+            "Download", 
+            f"Downloading '{filename}'...\n\n(Download functionality to be implemented)"
+        )

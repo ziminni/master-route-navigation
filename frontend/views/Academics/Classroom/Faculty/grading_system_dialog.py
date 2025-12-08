@@ -371,12 +371,19 @@ class GradingSystemDialog(QDialog):
     """Main dialog for configuring the grading system - FIXED: Proper sizing and scrolling"""
     rubric_saved = pyqtSignal(dict)
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, class_id: int = None):
         super().__init__(parent)
+        self.class_id = class_id
         self.model = GradingSystemModel()
-        self.controller = GradingSystemController(self.model)
+        self.controller = GradingSystemController(self.model, class_id=class_id)
         self.setup_ui()
         self.connect_signals()
+        self.load_initial_data()
+    
+    def set_class_id(self, class_id: int):
+        """Set the class ID and reload rubrics from backend"""
+        self.class_id = class_id
+        self.controller.set_class_id(class_id)
         self.load_initial_data()
     
     def setup_ui(self):
@@ -560,9 +567,9 @@ class GradingSystemDialog(QDialog):
 # INTEGRATION FUNCTIONS
 # ============================================================================
 
-def show_grading_dialog(parent_window):
+def show_grading_dialog(parent_window, class_id: int = None):
     """Show the grading system dialog"""
-    dialog = GradingSystemDialog(parent_window)
+    dialog = GradingSystemDialog(parent_window, class_id=class_id)
     dialog.rubric_saved.connect(lambda data: on_rubric_saved(parent_window, data))
     result = dialog.exec()
     return dialog
@@ -573,25 +580,34 @@ def on_rubric_saved(main_window, rubric_data):
     print("=" * 60)
     print("RUBRIC SAVED SUCCESSFULLY")
     print("=" * 60)
+    print(f"[INFO] Rubric data: {rubric_data}")
     
     if hasattr(main_window, 'grade_model'):
         # Update the grade model with new rubric configuration
         main_window.grade_model.update_rubric_config(rubric_data)
+        
+        # Reload rubric from backend to ensure consistency
+        main_window.grade_model._load_rubric_from_backend()
         
         # Trigger table rebuild through controller
         # This will cause columns_changed signal to emit
         print("[INFO] Table will rebuild with new rubric configuration")
 
 
-def connect_grading_button(main_window, grading_label):
+def connect_grading_button(main_window, grading_label, class_id: int = None):
     """
     Make the grading system label/button clickable.
     
     Usage in MainWindow.__init__:
-        connect_grading_button(self, self.grading_label)
+        connect_grading_button(self, self.grading_label, class_id=1)
+    
+    Args:
+        main_window: The parent window
+        grading_label: The QLabel to make clickable
+        class_id: The class ID to pass to the grading dialog
     """
     def on_label_click(event):
-        show_grading_dialog(main_window)
+        show_grading_dialog(main_window, class_id=class_id)
     
     grading_label.mousePressEvent = on_label_click
     grading_label.setCursor(Qt.CursorShape.PointingHandCursor)

@@ -7,8 +7,8 @@ class PostController:
     def __init__(self, post_service: Optional[PostService] = None, 
                  topic_service: Optional[TopicService] = None):
         """Initialize with dependency injection support"""
-        self.post_service = post_service or PostService("services/Academics/data/classroom_data.json")
-        self.topic_service = topic_service or TopicService("services/Academics/data/classroom_data.json")
+        self.post_service = post_service or PostService("frontend/services/Academics/data/classroom_data.json")
+        self.topic_service = topic_service or TopicService("frontend/services/Academics/data/classroom_data.json")
         self.current_class_id = None
         self.current_filters = {"filter_type": None, "topic_name": None}
 

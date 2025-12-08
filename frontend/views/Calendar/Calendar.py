@@ -1,21 +1,26 @@
-# Calendar.py LAYOUT FOR THE CALENDAR with Search Integration
+from datetime import datetime
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget,
-    QPushButton, QComboBox, QLineEdit, QListWidget, QCalendarWidget
+    QPushButton, QLineEdit, QListWidget, QGridLayout, QCalendarWidget,
+    QComboBox
 )
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
+
 from .DayView import DayView
-from datetime import datetime
-from .AdminActivities import AdminActivities
-from .StudentActivities import StudentActivities
-from .Staff_FacultyActivities import StaffFacultyActivities
-from .AddEvent import AddEvent
-from .EditEvent import EditEvent
+from .role.AdminActivities import AdminActivities
+from .role.StudentActivities import StudentActivities
+from .role.Staff_FacultyActivities import StaffFacultyActivities
+from .CRUD.AddEvent import AddEvent
+from .CRUD.EditEvent import EditEvent
+from .CRUD.SearchView import SearchView
+from .helper.EventCalendarWidget import EventCalendarWidget
+
 
 class Calendar(QWidget):
     """Main calendar layout with all views"""
-    
+
     def __init__(self, username, roles, primary_role, token):
         super().__init__()
         self.username = username
@@ -23,25 +28,26 @@ class Calendar(QWidget):
         self.primary_role = primary_role
         self.token = token
         self.current_view = "Month"
-        
-        # Callback for navigating to activities (will be set by MainCalendar.py)
-        self.navigate_to_activities = None
-        self.navigate_to_search = None  # NEW: Navigation callback for search
-        
-        # Store events list widget reference
-        self.month_events_list = None
 
-        # Initialize main layout
+        # These will be set from MainCalendar
+        self.navigate_to_activities = None
+        self.navigate_to_search = None
+        # set this externally so on_month_filter_changed can call filter_events()
+        self.main_calendar = None
+
+        self.month_events_list = None
+        self.upcoming_events_visible = True
+        self.all_events = []
+
         main_layout = QVBoxLayout(self)
-        
-        # Stacked widget for different views
+
         self.stacked_widget = QStackedWidget()
-        
-        # Setup calendar views
+
+        # Views
         self.setup_month_view()
         self.setup_day_view()
-        
-        # Setup activities widget based on role
+
+        # Activities widget based on role
         role_lower = primary_role.lower()
         if role_lower == "admin":
             self.activities_widget = AdminActivities(username, roles, primary_role, token)
@@ -53,78 +59,76 @@ class Calendar(QWidget):
             self.activities_widget = self._create_default_widget(
                 "Invalid Role", f"No activities available for role: {primary_role}"
             )
-        
-        # Create add/edit event widgets (admin only)
+
+        # Add/Edit event widgets
         if role_lower == "admin":
             self.add_event_widget = AddEvent(username, roles, primary_role, token)
             self.edit_event_widget = EditEvent(username, roles, primary_role, token)
         else:
             self.add_event_widget = None
             self.edit_event_widget = None
-        
-        # Add all widgets to stack
-        self.stacked_widget.addWidget(self.month_view_container)    # Index 0
-        self.stacked_widget.addWidget(self.day_view_container)      # Index 1
-        self.stacked_widget.addWidget(self.activities_widget)       # Index 2
+
+        # Stack indices:
+        # 0 - Month, 1 - Day, 2 - Activities, 3 - Add Event, 4 - Edit Event
+        self.stacked_widget.addWidget(self.month_view_container)
+        self.stacked_widget.addWidget(self.day_view_container)
+        self.stacked_widget.addWidget(self.activities_widget)
         if self.add_event_widget:
-            self.stacked_widget.addWidget(self.add_event_widget)    # Index 3
+            self.stacked_widget.addWidget(self.add_event_widget)
         if self.edit_event_widget:
-            self.stacked_widget.addWidget(self.edit_event_widget)   # Index 4
-        
+            self.stacked_widget.addWidget(self.edit_event_widget)
+
         main_layout.addWidget(self.stacked_widget)
-        
-        # Setup navigation and signals
+
         self.setup_navigation()
         self.connect_signals()
-        
-        # Start with month view
+
         self.show_month_view()
 
+    # ---------- Month view ----------
+
     def setup_month_view(self):
-        """Setup month calendar view with controls and upcoming events"""
+        """Setup month calendar view with controls and upcoming events."""
         self.month_view_container = QWidget()
         container_layout = QVBoxLayout(self.month_view_container)
         container_layout.setContentsMargins(10, 10, 10, 10)
         container_layout.setSpacing(15)
-        
-        # Controls (View selector, Activities button, Search)
+
+        # Top controls
         self.setup_controls(container_layout)
-        
-        # Content area with upcoming events and calendar
-        content_layout = QHBoxLayout()
-        
-        # Upcoming events panel
+
+        # Content: left upcoming panel, right calendar
+        self.content_layout = QHBoxLayout()
+
         self.month_upcoming_panel = self.create_upcoming_events_panel()
-        
-        # Calendar widget - using QCalendarWidget instead of circular import
         self.calendar_widget = self.create_calendar_grid()
-        
-        content_layout.addWidget(self.month_upcoming_panel)
-        content_layout.addWidget(self.calendar_widget)
-        
-        container_layout.addLayout(content_layout)
+
+        self.content_layout.addWidget(self.month_upcoming_panel)
+        self.content_layout.addWidget(self.calendar_widget)
+
+        container_layout.addLayout(self.content_layout)
 
     def create_calendar_grid(self):
-        """Create the actual calendar grid widget"""
+        """Create calendar grid widget with styled QCalendarWidget."""
         calendar_container = QWidget()
         calendar_layout = QVBoxLayout(calendar_container)
         calendar_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Calendar widget
-        self.calendar = QCalendarWidget()
+
+        self.calendar = EventCalendarWidget()
         self.calendar.setNavigationBarVisible(True)
         self.calendar.setGridVisible(True)
-        self.calendar.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
-        
+        self.calendar.setVerticalHeaderFormat(
+            QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader
+        )
+
+        self.calendar.clicked.connect(self.on_calendar_date_clicked)
+
         self.calendar.setStyleSheet("""
-            /* Navigation bar at the top */
             QCalendarWidget QWidget#qt_calendar_navigationbar {
                 background-color: #084924;
                 min-height: 50px;
                 padding: 5px;
             }
-            
-            /* Month/Year navigation buttons */
             QCalendarWidget QToolButton {
                 color: white;
                 background-color: #084924;
@@ -136,29 +140,22 @@ class Calendar(QWidget):
                 min-width: 40px;
                 min-height: 40px;
             }
-            
             QCalendarWidget QToolButton:hover {
                 background-color: #FDC601;
                 color: #084924;
             }
-            
             QCalendarWidget QToolButton:pressed {
                 background-color: #d4a000;
             }
-            
-            /* Month dropdown menu */
             QCalendarWidget QMenu {
                 background-color: white;
                 color: #084924;
                 border: 1px solid #ddd;
             }
-            
             QCalendarWidget QMenu::item:selected {
                 background-color: #FDC601;
                 color: white;
             }
-            
-            /* Year spinbox */
             QCalendarWidget QSpinBox {
                 color: white;
                 background-color: #084924;
@@ -172,7 +169,6 @@ class Calendar(QWidget):
                 min-width: 80px;
                 min-height: 35px;
             }
-            
             QCalendarWidget QSpinBox::up-button {
                 subcontrol-origin: border;
                 subcontrol-position: top right;
@@ -181,7 +177,6 @@ class Calendar(QWidget):
                 width: 20px;
                 border-top-right-radius: 3px;
             }
-            
             QCalendarWidget QSpinBox::down-button {
                 subcontrol-origin: border;
                 subcontrol-position: bottom right;
@@ -190,15 +185,12 @@ class Calendar(QWidget):
                 width: 20px;
                 border-bottom-right-radius: 3px;
             }
-            
             QCalendarWidget QSpinBox::up-button:hover {
                 background-color: #d4a000;
             }
-            
             QCalendarWidget QSpinBox::down-button:hover {
                 background-color: #d4a000;
             }
-            
             QCalendarWidget QSpinBox::up-arrow {
                 image: none;
                 border-left: 5px solid transparent;
@@ -207,7 +199,6 @@ class Calendar(QWidget):
                 width: 0px;
                 height: 0px;
             }
-            
             QCalendarWidget QSpinBox::down-arrow {
                 image: none;
                 border-left: 5px solid transparent;
@@ -216,8 +207,6 @@ class Calendar(QWidget):
                 width: 0px;
                 height: 0px;
             }
-            
-            /* Calendar table */
             QCalendarWidget QTableView {
                 background-color: white;
                 selection-background-color: #FDC601;
@@ -225,55 +214,52 @@ class Calendar(QWidget):
                 border: 1px solid #ddd;
                 font-size: 13px;
             }
-            
             QCalendarWidget QAbstractItemView:enabled {
                 color: #084924;
                 background-color: white;
             }
-            
             QCalendarWidget QAbstractItemView:disabled {
                 color: #999;
             }
-            
-            /* Day of week header */
             QCalendarWidget QWidget {
                 alternate-background-color: #f8f9fa;
             }
         """)
+
         calendar_layout.addWidget(self.calendar)
-        
         return calendar_container
 
     def setup_controls(self, layout):
-        """Setup controls section"""
+        """Setup controls section (panel toggle, activities, search)."""
         controls_layout = QHBoxLayout()
-        
-        # View selector
-        view_label = QLabel("View:")
-        view_label.setStyleSheet("font-weight: bold; color: #084924; font-size: 14px;")
-        
-        self.combo_view = QComboBox()
-        self.combo_view.setMinimumWidth(100)
-        self.combo_view.addItems(["Month", "Day"])
-        self.combo_view.setStyleSheet("""
-            QComboBox {
-                padding: 8px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                background-color: white;
+
+        # Toggle upcoming
+        self.btn_toggle_upcoming = QPushButton("◀ Hide Panel")
+        self.btn_toggle_upcoming.setStyleSheet("""
+            QPushButton {
+                background-color: #084924;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 6px;
+                font-weight: bold;
                 font-size: 12px;
+                min-width: 100px;
             }
-            QComboBox:hover {
-                border-color: #FDC601;
+            QPushButton:hover {
+                background-color: #FDC601;
+                color: #084924;
+            }
+            QPushButton:pressed {
+                background-color: #d4a000;
             }
         """)
-        self.combo_view.currentTextChanged.connect(self.on_view_changed)
-        
-        controls_layout.addWidget(view_label)
-        controls_layout.addWidget(self.combo_view)
+        self.btn_toggle_upcoming.clicked.connect(self.toggle_upcoming_events)
+        controls_layout.addWidget(self.btn_toggle_upcoming)
+
         controls_layout.addStretch()
-        
-        # View Activities button
+
+        # View activities
         self.btn_view_activities = QPushButton("View Activities")
         button_style = """
             QPushButton {
@@ -297,7 +283,7 @@ class Calendar(QWidget):
         self.btn_view_activities.setStyleSheet(button_style)
         self.btn_view_activities.clicked.connect(self.show_activities)
         controls_layout.addWidget(self.btn_view_activities)
-        
+
         # Search bar
         self.search_bar = QLineEdit()
         self.search_bar.setFixedWidth(200)
@@ -314,11 +300,10 @@ class Calendar(QWidget):
                 border-color: #FDC601;
             }
         """)
-        # UPDATED: Connect Enter key to trigger search with query
         self.search_bar.returnPressed.connect(self.on_search_triggered)
         controls_layout.addWidget(self.search_bar)
-        
-        # UPDATED: Search button
+
+        # Search button
         self.btn_search = QPushButton("🔍")
         self.btn_search.setStyleSheet("""
             QPushButton {
@@ -339,29 +324,41 @@ class Calendar(QWidget):
         """)
         self.btn_search.clicked.connect(self.on_search_triggered)
         controls_layout.addWidget(self.btn_search)
-        
+
         layout.addLayout(controls_layout)
 
+    def toggle_upcoming_events(self):
+        """Toggle visibility of upcoming events panel."""
+        if self.upcoming_events_visible:
+            self.month_upcoming_panel.setVisible(False)
+            self.btn_toggle_upcoming.setText("▶ Show Panel")
+        else:
+            self.month_upcoming_panel.setVisible(True)
+            self.btn_toggle_upcoming.setText("◀ Hide Panel")
+        self.upcoming_events_visible = not self.upcoming_events_visible
+
+    # ---------- Day view ----------
+
     def setup_day_view(self):
-        """Setup day view"""
-        self.day_view_container = DayView(self.username, self.roles, self.primary_role, self.token)
-        # Set navigation callbacks
+        self.day_view_container = DayView(
+            self.username, self.roles, self.primary_role, self.token
+        )
         self.day_view_container.navigate_back_to_calendar = self.show_month_view
         self.day_view_container.navigate_to_activities = self.show_activities
         self.day_view_container.navigate_to_search = self.on_search_triggered
-        
+
+    # ---------- Upcoming panel + legend ----------
 
     def create_upcoming_events_panel(self):
-        """Create upcoming events panel"""
+        """Create upcoming events panel with 2x2 legend layout."""
         panel = QWidget()
         panel.setMinimumWidth(300)
         panel.setMaximumWidth(400)
         panel.setStyleSheet("background-color: white;")
-        
+
         panel_layout = QVBoxLayout(panel)
         panel_layout.setContentsMargins(10, 10, 10, 10)
-        
-        # Frame
+
         frame = QWidget()
         frame.setStyleSheet("""
             QWidget {
@@ -372,20 +369,21 @@ class Calendar(QWidget):
             }
         """)
         frame_layout = QVBoxLayout(frame)
-        
-        # Title
+
         title = QLabel("Upcoming Events")
         title.setStyleSheet("""
-            font-size: 18px; 
-            font-weight: bold; 
-            color: #084924; 
+            font-size: 18px;
+            font-weight: bold;
+            color: #084924;
             padding: 10px;
         """)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         frame_layout.addWidget(title)
-        
-        # Legend
-        legend_layout = QHBoxLayout()
+
+        legend_grid = QGridLayout()
+        legend_grid.setSpacing(8)
+        legend_grid.setContentsMargins(5, 5, 5, 5)
+
         legend_style = """
             QLabel {
                 padding: 5px 8px;
@@ -396,13 +394,24 @@ class Calendar(QWidget):
                 font-weight: 500;
             }
         """
-        for text in ["🟢 Academic", "🔵 Organizational", "🟠 Deadlines", "🔴 Holidays"]:
-            label = QLabel(text)
-            label.setStyleSheet(legend_style)
-            legend_layout.addWidget(label)
-        frame_layout.addLayout(legend_layout)
-        
-        # Filter
+
+        label_academic = QLabel("🟢 Academic")
+        label_academic.setStyleSheet(legend_style)
+        label_org = QLabel("🔵 Organizational")
+        label_org.setStyleSheet(legend_style)
+        label_deadline = QLabel("🟠 Deadlines")
+        label_deadline.setStyleSheet(legend_style)
+        label_holiday = QLabel("🔴 Holidays")
+        label_holiday.setStyleSheet(legend_style)
+
+        legend_grid.addWidget(label_academic, 0, 0)
+        legend_grid.addWidget(label_org, 0, 1)
+        legend_grid.addWidget(label_deadline, 1, 0)
+        legend_grid.addWidget(label_holiday, 1, 1)
+
+        frame_layout.addLayout(legend_grid)
+
+        # Filter combo
         self.month_filter_combo = QComboBox()
         self.month_filter_combo.setStyleSheet("""
             QComboBox {
@@ -424,11 +433,11 @@ class Calendar(QWidget):
             "Academic Activities",
             "Organizational Activities",
             "Deadlines",
-            "Holidays"
+            "Holidays",
         ])
         self.month_filter_combo.currentTextChanged.connect(self.on_month_filter_changed)
         frame_layout.addWidget(self.month_filter_combo)
-        
+
         # Events list
         self.month_events_list = QListWidget()
         self.month_events_list.setMinimumHeight(400)
@@ -455,206 +464,218 @@ class Calendar(QWidget):
                 border-radius: 4px;
             }
         """)
-        
         frame_layout.addWidget(self.month_events_list)
+
         panel_layout.addWidget(frame)
-        
         return panel
 
+    # ---------- Navigation / callbacks ----------
+
     def setup_navigation(self):
-        """Setup navigation callbacks"""
-        if hasattr(self.activities_widget, 'navigate_back_to_calendar'):
+        if hasattr(self.activities_widget, "navigate_back_to_calendar"):
             self.activities_widget.navigate_back_to_calendar = self.show_month_view
-        
+
         role_lower = self.primary_role.lower()
         if role_lower == "admin":
-            if hasattr(self.activities_widget, 'btn_add_event'):
+            if hasattr(self.activities_widget, "btn_add_event"):
                 try:
                     self.activities_widget.btn_add_event.clicked.disconnect()
-                except:
-                    pass  # No existing connection
+                except Exception:
+                    pass
                 self.activities_widget.btn_add_event.clicked.connect(self.show_add_event)
-            
-            if hasattr(self.activities_widget, 'navigate_to_edit_event'):
+
+            if hasattr(self.activities_widget, "navigate_to_edit_event"):
                 self.activities_widget.navigate_to_edit_event = self.show_edit_event
-            
+
             if self.add_event_widget:
                 self.add_event_widget.navigate_back_to_activities = self.show_activities
-            
+
             if self.edit_event_widget:
                 self.edit_event_widget.navigate_back_to_activities = self.show_activities
 
     def connect_signals(self):
-        """Connect signals"""
+        """Reserved for future signals."""
         pass
 
-    def on_view_changed(self, view_type):
-        """Handle view change from dropdown"""
-        self.current_view = view_type
-        if view_type == "Month":
-            self.show_month_view()
-        elif view_type == "Day":
-            self.show_day_view()
-    
+    # ---------- Search ----------
+
     def on_search_triggered(self, query=None):
-        """Handle search button click or Enter press - transfer query to SearchView"""
+        """Send search query to SearchView via MainCalendar."""
         if query is None:
             query = self.search_bar.text().strip()
-        
-        if self.navigate_to_search:
-            # Pass the search query to the navigation callback
+        if self.navigate_to_search and query:
             self.navigate_to_search(query)
 
+    # ---------- View switches ----------
+
     def show_month_view(self):
-        """Show month calendar view"""
         self.stacked_widget.setCurrentIndex(0)
         self.current_view = "Month"
-        # Update combo box without triggering signal
-        if hasattr(self, 'combo_view'):
-            self.combo_view.blockSignals(True)
-            self.combo_view.setCurrentText("Month")
-            self.combo_view.blockSignals(False)
-        
-        # Also update the day view combo box if needed
-        if hasattr(self, 'day_view_container') and hasattr(self.day_view_container, 'combo_view'):
-            self.day_view_container.combo_view.blockSignals(True)
-            self.day_view_container.combo_view.setCurrentText("Month")
-            self.day_view_container.combo_view.blockSignals(False)
 
     def show_day_view(self):
-        """Show day view"""
         self.stacked_widget.setCurrentIndex(1)
         self.current_view = "Day"
-        # Update the month view combo box without triggering signal
-        if hasattr(self, 'combo_view'):
-            self.combo_view.blockSignals(True)
-            self.combo_view.setCurrentText("Day")
-            self.combo_view.blockSignals(False)
-        
-        # Also update the day view combo box
-        if hasattr(self, 'day_view_container') and hasattr(self.day_view_container, 'combo_view'):
-            self.day_view_container.combo_view.blockSignals(True)
-            self.day_view_container.combo_view.setCurrentText("Day")
-            self.day_view_container.combo_view.blockSignals(False)
 
     def show_activities(self):
-        """Show activities view"""
         if self.navigate_to_activities:
             self.navigate_to_activities()
 
     def show_add_event(self):
-        """Show add event view"""
         if self.add_event_widget:
             self.stacked_widget.setCurrentIndex(3)
 
     def show_edit_event(self, event_data=None):
-        """Show edit event view"""
         if self.edit_event_widget:
             if event_data:
                 self.edit_event_widget.event_data = event_data
                 self.edit_event_widget.load_event_data()
             self.stacked_widget.setCurrentIndex(4)
-    
+
+    # ---------- Calendar interaction ----------
+
+    def on_calendar_date_clicked(self, qdate):
+        """When a date is clicked in month view, open DayView for that date."""
+        if not hasattr(self, "day_view_container"):
+            return
+
+        selected_date = qdate.toPyDate()
+
+        if hasattr(self.day_view_container, "set_current_date"):
+            self.day_view_container.set_current_date(selected_date)
+
+        if hasattr(self.day_view_container, "load_events"):
+            self.day_view_container.load_events(self.all_events)
+
+        self.show_day_view()
+
+    # ---------- Events loading/filtering ----------
+
     def load_events(self, events):
-        """Load events from MainCalendar into month view and day view - FIXED VERSION"""
-        # Load into month view upcoming events panel
+        """Load events into month view, calendar indicators, and day view."""
+        self.all_events = events
+
+        if hasattr(self, "calendar"):
+            self.calendar.set_events(events)
+
         if self.month_events_list is not None:
             self.month_events_list.clear()
             type_icons = {
                 "Academic": "🟢",
                 "Organizational": "🔵",
                 "Deadline": "🟠",
-                "Holiday": "🔴"
+                "Holiday": "🔴",
             }
-            
-            # Filter and sort upcoming events
+
             upcoming_events = self._filter_upcoming_events(events)
-            
             for event in upcoming_events:
-                icon = type_icons.get(event["type"], "⚪")
-                event_text = f"{icon} {event['event']}\n    {event['date_time'].replace(chr(10), ' - ')}"
+                icon = type_icons.get(event.get("type"), "⚪")
+                date_display = self._format_date_time_for_list(
+                    event.get("date_time", "")
+                )
+                event_text = f"{icon} {event.get('event', '')}\n    {date_display}"
                 self.month_events_list.addItem(event_text)
-        
-        # Load into day view
-        if hasattr(self, 'day_view_container') and hasattr(self.day_view_container, 'load_events'):
+
+        if hasattr(self, "day_view_container") and hasattr(self.day_view_container, "load_events"):
             self.day_view_container.load_events(events)
 
+    def _parse_event_date(self, date_time_str):
+        """
+        Parse event date from either:
+        - legacy 'MM/DD/YYYY\\nHH:MM AM' format, or
+        - ISO datetime 'YYYY-MM-DDTHH:MM:SS[+offset]'.
+        """
+        if not date_time_str:
+            raise ValueError("Empty date string")
+
+        # Legacy format with newline
+        if "\n" in date_time_str:
+            date_part = date_time_str.split("\n")[0].strip()
+            return datetime.strptime(date_part, "%m/%d/%Y").date()
+
+        # Try ISO 8601
+        try:
+            normalized = date_time_str.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(normalized)
+            return dt.date()
+        except ValueError:
+            # Fallback: plain MM/DD/YYYY
+            return datetime.strptime(date_time_str.strip(), "%m/%d/%Y").date()
+
+    def _format_date_time_for_list(self, date_time_str):
+        """
+        Return a nice 'MM/DD/YYYY - HH:MM AM' string for the upcoming list.
+        Handles both legacy and ISO strings.
+        """
+        if not date_time_str:
+            return "Unknown date"
+
+        # Legacy "MM/DD/YYYY\\n9:00 AM"
+        if "\n" in date_time_str:
+            return date_time_str.replace("\n", " - ").strip()
+
+        # ISO string
+        try:
+            normalized = date_time_str.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(normalized)
+            return dt.strftime("%m/%d/%Y - %I:%M %p")
+        except ValueError:
+            return date_time_str
+
     def _filter_upcoming_events(self, events):
-        """
-        Filter events to show only upcoming events (today onwards) and sort by date.
-        Events that ended before today are excluded.
-        
-        Returns:
-            list: Sorted list of upcoming events (nearest date first)
-        """
+        """Filter to events from today onward, sorted by date."""
         today = datetime.now().date()
         upcoming = []
-        
+
         for event in events:
-            # Parse the date_time field
-            date_str = event.get('date_time', '')
-            
+            date_str = event.get("date_time", "")
             try:
-                # Split by newline to get just the date part
-                if '\n' in date_str:
-                    date_part = date_str.split('\n')[0].strip()  # "10/2/2025"
-                else:
-                    date_part = date_str.strip()
-                
-                # Parse the date in MM/DD/YYYY format
-                event_date = datetime.strptime(date_part, "%m/%d/%Y").date()
-                
-                # Include event if date is today or in the future
+                event_date = self._parse_event_date(date_str)
                 if event_date >= today:
                     upcoming.append(event)
-                    
-            except (ValueError, IndexError) as e:
-                # If date parsing fails, print warning and skip
-                print(f"Warning: Could not parse date for event '{event.get('event', 'Unknown')}': {date_str}")
+            except Exception:
+                print(
+                    f"Warning: Could not parse date for event "
+                    f"'{event.get('event', 'Unknown')}': {date_str}"
+                )
                 continue
-        
-        # Sort by date (earliest first)
-        def get_event_date(event):
-            """Extract date from event for sorting"""
-            date_str = event.get('date_time', '')
+
+        def get_event_date(ev):
+            ds = ev.get("date_time", "")
             try:
-                if '\n' in date_str:
-                    date_part = date_str.split('\n')[0].strip()
-                else:
-                    date_part = date_str.strip()
-                
-                return datetime.strptime(date_part, "%m/%d/%Y").date()
-            except:
-                return datetime.max.date()  # Put unparseable dates at the end
-        
+                return self._parse_event_date(ds)
+            except Exception:
+                return datetime.max.date()
+
         upcoming.sort(key=get_event_date)
-        
         return upcoming
 
     def on_month_filter_changed(self, filter_text):
-        """Handle filter change in month view upcoming events - FIXED VERSION"""
-        if hasattr(self, 'main_calendar'):
-            filtered_events = self.main_calendar.filter_events(filter_text)
-            
-            # Apply upcoming events filter and sorting
-            upcoming_events = self._filter_upcoming_events(filtered_events)
-            
-            # Update the month view upcoming events list
-            if self.month_events_list is not None:
-                self.month_events_list.clear()
-                type_icons = {
-                    "Academic": "🟢",
-                    "Organizational": "🔵",
-                    "Deadline": "🟠",
-                    "Holiday": "🔴"
-                }
-                for event in upcoming_events:
-                    icon = type_icons.get(event["type"], "⚪")
-                    event_text = f"{icon} {event['event']}\n    {event['date_time'].replace(chr(10), ' - ')}"
-                    self.month_events_list.addItem(event_text)
+        """Handle filter change for upcoming events panel."""
+        if not hasattr(self, "main_calendar") or self.main_calendar is None:
+            return
+
+        filtered_events = self.main_calendar.filter_events(filter_text)
+        upcoming_events = self._filter_upcoming_events(filtered_events)
+
+        if self.month_events_list is not None:
+            self.month_events_list.clear()
+            type_icons = {
+                "Academic": "🟢",
+                "Organizational": "🔵",
+                "Deadline": "🟠",
+                "Holiday": "🔴",
+            }
+            for event in upcoming_events:
+                icon = type_icons.get(event.get("type"), "⚪")
+                date_display = self._format_date_time_for_list(
+                    event.get("date_time", "")
+                )
+                event_text = f"{icon} {event.get('event', '')}\n    {date_display}"
+                self.month_events_list.addItem(event_text)
+
+    # ---------- Fallback widget ----------
 
     def _create_default_widget(self, title, desc):
-        """Create fallback widget"""
         widget = QWidget()
         layout = QVBoxLayout()
         title_label = QLabel(title)

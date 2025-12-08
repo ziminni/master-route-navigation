@@ -5,7 +5,7 @@ Modal popup for creating new document collections.
 """
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QPushButton, QLineEdit, QMessageBox)
+                             QPushButton, QLineEdit, QMessageBox, QWidget)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from ...utils.icon_utils import IconLoader
@@ -34,7 +34,7 @@ class AddCollectionDialog(QDialog):
         super().__init__(parent)
         self.setModal(True)  # Block interaction with parent window
         self.setWindowTitle("Create Collection")
-        self.setFixedSize(400, 550)
+        self.setFixedSize(500, 600)
         
         self.init_ui()
     
@@ -48,7 +48,7 @@ class AddCollectionDialog(QDialog):
         title_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         title_label = QLabel("Create New Collection")
-        title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #212529; padding: 10px 0;")
         title_layout.addWidget(title_label)
         main_layout.addLayout(title_layout)
         
@@ -64,47 +64,98 @@ class AddCollectionDialog(QDialog):
         icon_layout.addWidget(folder_icon)
         main_layout.addLayout(icon_layout)
         
+        # ========== FORM FIELDS FRAME ==========
+        form_frame = QWidget()
+        form_frame.setStyleSheet("""
+            QWidget {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 20px;
+            }
+        """)
+        form_layout = QVBoxLayout()
+        form_layout.setSpacing(15)
+        
+        # Style for labels and inputs
+        label_style = "color: #495057; font-weight: bold; font-size: 14px; background: transparent; border: none; padding: 0;"
+        input_style = """
+            QLineEdit {
+                background-color: white;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 10px 12px;
+                min-height: 20px;
+                font-size: 13px;
+            }
+            QLineEdit:focus {
+                border-color: #80bdff;
+                outline: none;
+            }
+        """
+        
         # ========== COLLECTION NAME INPUT ==========
         name_label = QLabel("Collection Name:")
-        main_layout.addWidget(name_label)
+        name_label.setStyleSheet(label_style)
+        form_layout.addWidget(name_label)
         
         self.name_input = QLineEdit()
+        self.name_input.setStyleSheet(input_style)
         self.name_input.setPlaceholderText("Enter collection name...")
-        self.name_input.setMinimumHeight(35)
-        main_layout.addWidget(self.name_input)
+        form_layout.addWidget(self.name_input)
         
         # ========== DESCRIPTION (Optional) ==========
         desc_label = QLabel("Description (Optional):")
-        main_layout.addWidget(desc_label)
+        desc_label.setStyleSheet(label_style)
+        form_layout.addWidget(desc_label)
         
         self.description_input = QLineEdit()
+        self.description_input.setStyleSheet(input_style)
         self.description_input.setPlaceholderText("Enter description...")
-        self.description_input.setMinimumHeight(35)
-        main_layout.addWidget(self.description_input)
+        form_layout.addWidget(self.description_input)
+        
+        form_frame.setLayout(form_layout)
+        main_layout.addWidget(form_frame)
         
         main_layout.addStretch()
         
         # ========== BUTTONS ==========
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
         
         cancel_btn = QPushButton("Cancel")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                font-weight: bold;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 6px;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
         cancel_btn.clicked.connect(self.reject)
         
         create_btn = QPushButton("Create Collection")
-        create_btn.clicked.connect(self.handle_create)
         create_btn.setStyleSheet("""
             QPushButton {
-                background-color: #0078d4;
+                background-color: #28a745;
                 color: white;
                 font-weight: bold;
-                padding: 8px 16px;
+                padding: 10px 20px;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
+                min-width: 140px;
             }
             QPushButton:hover {
-                background-color: #106ebe;
+                background-color: #218838;
             }
         """)
+        create_btn.clicked.connect(self.handle_create)
         
         button_layout.addStretch()
         button_layout.addWidget(cancel_btn)

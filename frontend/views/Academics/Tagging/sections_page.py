@@ -13,6 +13,7 @@ from PyQt6.QtGui import QFont
 from frontend.services.Academics.model.Academics.Tagging.section_table_model import SectionsTableModel
 from frontend.views.Academics.Tagging.create_section_dialog import CreateSectionDialog
 from frontend.controller.Academics.Tagging.sections_controller import SectionsController
+from frontend.controller.Academics.controller_manager import ControllerManager
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +33,15 @@ class SectionsPage(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.controller = SectionsController(parent_widget=self) 
+        # Use shared controller instance via ControllerManager
+        manager = ControllerManager()
+        self.controller = manager.get_sections_controller()
         self.model = SectionsTableModel()
         self.controller.set_model(self.model)
+        
+        # Connect to signals to refresh when sections are archived/unarchived
+        self.controller.section_unarchived.connect(self.on_section_unarchived)
+        self.controller.section_archived.connect(self.on_section_archived)
         
         self.init_ui()
         self.controller.load_sections()
@@ -137,7 +144,7 @@ class SectionsPage(QWidget):
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)  # Actions column (now index 8)
-        self.table.setColumnWidth(8, 150)  # Actions
+        self.table.setColumnWidth(8, 250)  # Actions - wider to fit all buttons
         self.table.setColumnWidth(0, 60)   # No.
         self.table.setColumnWidth(1, 80)   # Section
         self.table.setColumnWidth(2, 200)  # Program
@@ -159,6 +166,7 @@ class SectionsPage(QWidget):
         Connect page signals to its appropriate slots.
         """
         self.add_btn.clicked.connect(self.handle_add)
+        self.archive_btn.clicked.connect(self.handle_archive_all)
 
         # Connect model signals to refresh action buttons
         self.model.rowsInserted.connect(self._on_rows_changed)
@@ -175,7 +183,7 @@ class SectionsPage(QWidget):
             row: Row index to create buttons for
 
         Returns:
-            QWidget containing edit and delete buttons
+            QWidget containing edit, delete, and archive buttons
         """
         button_widget = QWidget()
         button_layout = QHBoxLayout(button_widget)
@@ -218,8 +226,27 @@ class SectionsPage(QWidget):
         """)
         delete_btn.clicked.connect(lambda checked, btn=delete_btn: self._handle_delete_clicked(btn))
 
+        # Archive button
+        archive_btn = QPushButton("Archive")
+        archive_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 12px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
+        archive_btn.clicked.connect(lambda checked, btn=archive_btn: self._handle_archive_clicked(btn))
+
         button_layout.addWidget(edit_btn)
         button_layout.addWidget(delete_btn)
+        button_layout.addWidget(archive_btn)
         button_layout.addStretch()
 
         return button_widget
@@ -254,6 +281,21 @@ class SectionsPage(QWidget):
                 self.handle_delete(row)
                 return
 
+    def _handle_archive_clicked(self, button: QPushButton) -> None:
+        """
+        Handle archive button click by finding the row from the button's position.
+
+        Args:
+            button: The archive button that was clicked
+        """
+        # Find which row this button belongs to
+        for row in range(self.model.rowCount()):
+            index = self.model.index(row, 8)
+            widget = self.table.indexWidget(index)
+            if widget and button in widget.findChildren(QPushButton):
+                self.handle_archive(row)
+                return
+
     def _on_rows_changed(self):
         """
         Called when rows are inserted into the model.
@@ -268,6 +310,24 @@ class SectionsPage(QWidget):
         for row in range(self.model.rowCount()):
             button_widget = self._create_action_buttons(row)
             self.table.setIndexWidget(self.model.index(row, 8), button_widget)
+    
+    def on_section_unarchived(self, section_data):
+        """
+        Called when a section is unarchived from the archived sections page.
+        Refreshes the view to show the unarchived section.
+        """
+        logger.info(f"[SectionsPage] Section unarchived, refreshing view")
+        self.controller.load_sections()
+        self._refresh_all_buttons()
+
+    def on_section_archived(self, section_id):
+        """
+        Called when a section is archived from this page.
+        Refreshes the view to remove the archived section.
+        """
+        logger.info(f"[SectionsPage] Section {section_id} archived, refreshing view")
+        self.controller.load_sections()
+        self._refresh_all_buttons()
 
     def load_sections(self):
         pass 
@@ -442,6 +502,88 @@ class SectionsPage(QWidget):
         """
         button_widget = self._create_action_buttons(row)
         self.table.setIndexWidget(self.model.index(row, 8), button_widget)
+
+    def handle_archive(self, row: int) -> None:
+        """
+        Handle archive button click for a specific row.
+
+        Args:
+            row: Row index in the table
+        """
+        try:
+            from PyQt6.QtWidgets import QMessageBox
+
+            section_id = self.model.get_section_id(row)
+            section_data = self.controller.get_section_by_id(section_id)
+
+            if not section_data:
+                logger.error(f"Section data not found for row {row}")
+                return
+
+            # Confirmation dialog
+            reply = QMessageBox.question(
+                self,
+                "Confirm Archive",
+                f"Are you sure you want to archive section '{section_data['section']}'?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.Yes:
+                success, error_message = self.controller.handle_archive_section(section_id)
+
+                if not success:
+                    QMessageBox.warning(
+                        self,
+                        "Archive Failed",
+                        error_message or "Failed to archive the section."
+                    )
+                else:
+                    QMessageBox.information(
+                        self,
+                        "Success",
+                        "Section archived successfully!",
+                        QMessageBox.StandardButton.Ok
+                    )
+
+        except Exception as e:
+            logger.exception(f"Error archiving section at row {row}: {e}")
+
+    def handle_archive_all(self) -> None:
+        """
+        Handle archive all button click.
+        """
+        try:
+            from PyQt6.QtWidgets import QMessageBox
+
+            # Confirmation dialog
+            reply = QMessageBox.question(
+                self,
+                "Confirm Archive All",
+                "Are you sure you want to archive all sections?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.Yes:
+                success, error_message = self.controller.handle_archive_all_sections()
+
+                if not success:
+                    QMessageBox.warning(
+                        self,
+                        "Archive Failed",
+                        error_message or "Failed to archive all sections."
+                    )
+                else:
+                    QMessageBox.information(
+                        self,
+                        "Success",
+                        "All sections archived successfully!",
+                        QMessageBox.StandardButton.Ok
+                    )
+
+        except Exception as e:
+            logger.exception(f"Error archiving all sections: {e}")
 
     def handle_refresh(self):
         pass 

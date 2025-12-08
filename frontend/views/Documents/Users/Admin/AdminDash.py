@@ -174,7 +174,7 @@ class AdminDash(QWidget):
 """)
         
         upload_link = QPushButton("File Upload Requests")
-        upload_link.clicked.connect(lambda: print("File Upload Requests clicked"))
+        upload_link.clicked.connect(self.handle_file_upload_requests)
         upload_link.setStyleSheet("""
     QPushButton {
         border: none;
@@ -1184,6 +1184,38 @@ class AdminDash(QWidget):
         print("All collection counts refreshed.")
         
         
+    def handle_file_upload_requests(self):
+        """Open the file upload approval view"""
+        print("File Upload Requests clicked - Opening approval view")
+        from ...Shared.Views.approval_view import ApprovalView
+        approval_view = ApprovalView(
+            self.username, 
+            self.roles, 
+            self.primary_role, 
+            self.token,
+            stack=self.stack
+        )
+        approval_view.file_approved.connect(self.on_file_approved)
+        approval_view.file_rejected.connect(self.on_file_rejected)
+        self.stack.addWidget(approval_view)
+        self.stack.setCurrentWidget(approval_view)
+    
+    def on_file_approved(self, file_data):
+        """Handle file approved event"""
+        print(f"File approved: {file_data}")
+        # Refresh files table to show updated approval status
+        self.refresh_files_table()
+        # Update collection counts if needed
+        collection_id = file_data.get('collection_id')
+        if collection_id is not None:
+            self.update_collection_file_count(collection_id)
+    
+    def on_file_rejected(self, file_data):
+        """Handle file rejected event"""
+        print(f"File rejected: {file_data}")
+        # Refresh files table to show updated approval status
+        self.refresh_files_table()
+    
     def refresh_storage_chart(self):
         """
         refresh the storage chart with updated data from the controller

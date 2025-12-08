@@ -213,7 +213,8 @@ class ClassroomMain(QWidget):
         SIGNAL: ClassroomView.navigate_to_form → ClassroomMain.show_form
         DATA FLOW: form_type (str) and class data (dict) passed to form
         """
-        print(f"📝 NAVIGATION: Classroom → {form_type.capitalize()} Form ({cls['title']})")
+        print(f"📝 NAVIGATION: Classroom → {form_type.capitalize()} Form")
+        print(f"📝 Class received: id={cls.get('id')}, title={cls.get('title')}")
         
         # Clean up any existing form view
         if self.current_form_view:
@@ -252,6 +253,10 @@ class ClassroomMain(QWidget):
         if hasattr(self.current_form_view, 'material_created'):
             self.current_form_view.material_created.connect(self.refresh_classroom_views)
         
+        # Connect assessment_created signal to refresh views and grades
+        if hasattr(self.current_form_view, 'assessment_created'):
+            self.current_form_view.assessment_created.connect(self.on_assessment_created)
+        
         # Add form to stacked widget and show it
         self.stacked_widget.addWidget(self.current_form_view)
         self.stacked_widget.setCurrentWidget(self.current_form_view)
@@ -261,6 +266,25 @@ class ClassroomMain(QWidget):
         if self.current_classroom_view:
             self.current_classroom_view.stream_view.refresh_posts()
             self.current_classroom_view.classworks_view.refresh_posts()
+
+    def on_assessment_created(self, assessment_data):
+        """
+        Handle new assessment creation - refresh views and grades table.
+        SIGNAL: AssessmentForm.assessment_created → ClassroomMain.on_assessment_created
+        """
+        print(f"📋 Assessment created: {assessment_data.get('title', 'Unknown')}")
+        
+        # Refresh stream and classworks views
+        self.refresh_classroom_views()
+        
+        # Refresh the grades view if it exists to show new assessment column
+        if self.current_classroom_view and hasattr(self.current_classroom_view, 'grades_view'):
+            grades_view = self.current_classroom_view.grades_view
+            if hasattr(grades_view, 'refresh_data'):
+                grades_view.refresh_data()
+            elif hasattr(grades_view, 'load_data'):
+                grades_view.load_data()
+            print("📊 Grades table refreshed with new assessment")
 
     def return_to_classroom_from_form(self):
         """
