@@ -77,7 +77,7 @@
           "name": "Membership",
           "function": "()",
           "path": "",
-          "access": ["student", "admin"],
+          "access": [],
           "modulars":[]
         },
         {
@@ -148,25 +148,8 @@
           "path": "views.Messaging.launcher",
           "access": ["student","faculty","admin"],
           "modulars":[]
-        },
-        {
-          "id": 16,
-          "name": "Student Services",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
-        },
-        {
-          "id": 17,
-          "name": "Help",
-          "function": "()",
-          "path": "",
-          "access": ["student","admin"],
-          "modulars":[]
         }
       ]
     }
-
   ]
 }

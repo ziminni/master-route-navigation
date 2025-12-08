@@ -11,6 +11,7 @@ __pycache__/
 *$py.class
 venv/
 
+
 frontend/assets/uploads/
 
 # SQLite database (development)
