@@ -48,3 +48,5 @@ frontend/views/Documents/FileStorage/**/*
 frontend/views/Documents/Mock/*.json
 
 services/
+
+frontend/router/router_debug.log
