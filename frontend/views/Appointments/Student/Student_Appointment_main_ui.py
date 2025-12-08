@@ -19,60 +19,17 @@ class Student_Ui_MainWindow(QWidget):
         self.setMinimumSize(1200, 600)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        # Initialize pages
-        self.AppointmentPage = StudentAppointmentPage_ui(self.username, self.roles, self.primary_role, self.token)
-        self.AppointmentBrowseFacultyPage = StudentBrowseFaculty_ui(self.username, self.roles, self.primary_role, self.token)
-        self.StudentRequestPage = StudentRequestPage_ui(self.username, self.roles, self.primary_role, self.token)
-        self.StudentEditSchedulePage = StudentEditSchedulePage_ui(self.username, self.roles, self.primary_role, self.token)
-
-        # Connect signals
-        self.AppointmentPage.go_to_AppointmentSchedulerPage.connect(self.changetoAppointmentScheduler)
-        self.AppointmentBrowseFacultyPage.go_to_RequestPage.connect(self.changetoRequestPage)
-        self.AppointmentBrowseFacultyPage.back.connect(self.backclicked)
-        self.StudentEditSchedulePage.back.connect(self.backclicked)
-        self.StudentRequestPage.back.connect(self.backclicked)
+        # Initialize pages - REMOVE DUPLICATE INITIALIZATION
+        self.student_appointment_page = StudentAppointmentPage_ui(self.username, self.roles, self.primary_role, self.token)
+        self.student_browse_faculty_page = StudentBrowseFaculty_ui(self.username, self.roles, self.primary_role, self.token)
+        self.student_request_page = StudentRequestPage_ui(self.username, self.roles, self.primary_role, self.token)
+        self.student_edit_schedule_page = StudentEditSchedulePage_ui(self.username, self.roles, self.primary_role, self.token)
 
         # Initialize the UI
         self.setupUi(self)
 
-        self.setup_navigation()
-        
         print(f"Ui_MainWindow: Initialized for user {username} with role {primary_role}")
-        # In your main window class
-    def setup_navigation(self):
-        # Create pages
-        self.student_appointment_page = StudentAppointmentPage_ui(
-            self.username, self.roles, self.primary_role, self.token
-        )
-        self.student_request_page = StudentRequestPage_ui(
-            self.username, self.roles, self.primary_role, self.token
-        )
-        
-        # Connect signals
-        self.student_appointment_page.go_to_AppointmentSchedulerPage.connect(
-            lambda: self.show_student_request_page()
-        )
-        
-        self.student_request_page.back.connect(
-            lambda: self.show_student_appointments_page()
-        )
-        
-        # Connect the refresh signal
-        self.student_request_page.backrefreshdata.connect(
-            self.student_appointment_page.refresh_appointments_data
-        )
-        
-        # Add to stacked widget
-        self.stackedWidget.addWidget(self.student_appointment_page)
-        self.stackedWidget.addWidget(self.student_request_page)
 
-    def show_student_appointments_page(self):
-        self.stackedWidget.setCurrentWidget(self.student_appointment_page)
-
-    def show_student_request_page(self, faculty_data=None):
-        if faculty_data:
-            self.student_request_page.set_faculty_data(faculty_data)
-        self.stackedWidget.setCurrentWidget(self.student_request_page)
     def setupUi(self, MainWindow):
         self._setupCentralWidget(MainWindow)
         self.stackedWidget.setCurrentIndex(0)
@@ -89,6 +46,23 @@ class Student_Ui_MainWindow(QWidget):
         self.main_layout.setObjectName("main_layout")
         
         self._setupStackedWidget()
+        self._setupSignalConnections()  # ADD THIS LINE
+
+    def _setupSignalConnections(self):
+        """Setup all signal connections"""
+        # Connect signals from browse faculty page
+        self.student_browse_faculty_page.go_to_RequestPage.connect(self.changetoRequestPage)
+        self.student_browse_faculty_page.back.connect(self.backclicked)
+        
+        # Connect signals from request page
+        self.student_request_page.back.connect(self.backclicked)
+        self.student_request_page.backrefreshdata.connect(self.student_appointment_page.refresh_appointments_data)
+        
+        # Connect signals from edit schedule page
+        self.student_edit_schedule_page.back.connect(self.backclicked)
+        
+        # Connect signals from appointment page
+        self.student_appointment_page.go_to_AppointmentSchedulerPage.connect(self.changetoAppointmentScheduler)
 
     def _setupStackedWidget(self):
         self.widget = QtWidgets.QWidget(parent=self.centralwidget)
@@ -111,10 +85,11 @@ class Student_Ui_MainWindow(QWidget):
         self.stackedWidget.setObjectName("stackedWidget")
         self.stackedWidget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
-        self.stackedWidget.addWidget(self.AppointmentPage)
-        self.stackedWidget.addWidget(self.AppointmentBrowseFacultyPage)
-        self.stackedWidget.addWidget(self.StudentRequestPage)
-        self.stackedWidget.addWidget(self.StudentEditSchedulePage)
+        # Add pages to stacked widget
+        self.stackedWidget.addWidget(self.student_appointment_page)
+        self.stackedWidget.addWidget(self.student_browse_faculty_page)
+        self.stackedWidget.addWidget(self.student_request_page)
+        self.stackedWidget.addWidget(self.student_edit_schedule_page)
         
         self.content_layout.addWidget(self.stackedWidget, 0, 0)
         self.content_layout.setRowStretch(0, 1)
@@ -129,27 +104,44 @@ class Student_Ui_MainWindow(QWidget):
             self.stackedWidget.setCurrentIndex(self.currentPage)
 
     def changetoAppointmentScheduler(self):
+        """Navigate to browse faculty page"""
         self.currentPage = 1
         self.backIndexList.append(1)
         self.stackedWidget.setCurrentIndex(1)
 
     def changetoReschedule(self):
+        """Navigate to reschedule page"""
         self.currentPage = 2
         self.backIndexList.append(2)
         self.stackedWidget.setCurrentIndex(2)
 
     def changetoRequestPage(self, faculty_data):
+        """Navigate to request page with faculty data"""
+        print(f"DEBUG: changetoRequestPage called with faculty_data: {faculty_data}")
+        
+        if not faculty_data:
+            print("ERROR: No faculty data provided!")
+            return
+            
         self.currentPage = 2
         self.backIndexList.append(2)
-        self.StudentRequestPage.set_faculty_data(faculty_data)
+        
+        # Set the faculty data on the request page
+        self.student_request_page.set_faculty_data(faculty_data)
+        
+        # Set the current page
         self.stackedWidget.setCurrentIndex(2)
+        
+        print(f"DEBUG: Navigated to request page for faculty: {faculty_data.get('name', 'Unknown')}")
 
     def changetoEditschedule(self):
+        """Navigate to edit schedule page"""
         self.currentPage = 3
         self.backIndexList.append(3)
         self.stackedWidget.setCurrentIndex(3)
 
     def backclicked(self):
+        """Handle back button navigation"""
         if len(self.backIndexList) > 1:
             self.backIndexList.pop()
         self.currentPage = self.backIndexList[-1]
@@ -165,14 +157,12 @@ class Student_Ui_MainWindow(QWidget):
         self.widget.updateGeometry()
         self.stackedWidget.updateGeometry()
         
-        # Notify child widgets of resize (if they implement resizeEvent)
+        # Notify child widgets of resize
         current_widget = self.stackedWidget.currentWidget()
         if hasattr(current_widget, 'resizeEvent'):
             current_widget.resizeEvent(event)
         
-        # Debug output for size verification
         print(f"Window size: {event.size().width()}x{event.size().height()}")
-        print(f"Stacked widget size: {self.stackedWidget.width()}x{self.stackedWidget.height()}")
 
 if __name__ == "__main__":
     import sys

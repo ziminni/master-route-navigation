@@ -177,6 +177,11 @@ INSTALLED_APPS = [
     # CORS Headers - tried to fix backend conn, should work if front and back runs on different ports
     'corsheaders',
     'apps.Users.apps.UsersConfig',
+
+    # 'apps.Academics.apps.AcademicsConfig',    
+    # 'apps.Appointments.apps.AppointmentsConfig', 
+    # 'apps.Calendar.apps.CalendarConfig',
+    # 'apps.Documents.apps.DocumentsConfig'
     'apps.Documents.apps.DocumentsConfig',
     'apps.Organizations.apps.OrganizationsConfig',
     "apps.Announcements",
@@ -188,6 +193,7 @@ INSTALLED_APPS = [
 
     'apps.Messaging.apps.MessagingConfig',
     "apps.Showcase.apps.ShowcaseConfig",
+    "apps.Appointments.apps.AppointmentsConfig",
 ]
 
 MIDDLEWARE = [
