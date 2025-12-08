@@ -182,6 +182,11 @@ INSTALLED_APPS = [
 
     "apps.Announcements",
     "apps.Calendar",
+
+    'apps.Academics.apps.AcademicsConfig',
+    'apps.Feedback.apps.FeedbackConfig',
+    'apps.House.apps.HouseConfig',
+    'apps.Organizations.apps.OrganizationsConfig'
 ]
 
 MIDDLEWARE = [
