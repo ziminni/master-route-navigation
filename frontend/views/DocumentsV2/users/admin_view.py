@@ -692,7 +692,6 @@ class AdminDocumentView(DocumentsV2View):
         from ..dialogs import MoveFolderDialog
         
         dialog = MoveFolderDialog(
-            self.folders,
             self.categories,
             self.document_service,
             self

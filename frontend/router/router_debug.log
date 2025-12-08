@@ -202,3 +202,39 @@ _preload_pages called
 user_session = {'username': 'Kim', 'roles': ['faculty'], 'primary_role': 'faculty', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY1MjY2NzU5LCJpYXQiOjE3NjUxODAzNTksImp0aSI6ImQwZWE3Mzc4OGYzYTRjMjliMWI3M2UwN2ZkOTNhY2NhIiwidXNlcl9pZCI6IjQifQ.9SlABLyTCTD_jaVMtImt9kD-8D6f3GyFq_ERPF-50vY'}
 profile_id in session = None
 ================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY1MjY3MjY1LCJpYXQiOjE3NjUxODA4NjUsImp0aSI6IjE2N2Y5N2U0MjY4NzQ1NmFhNTA4MDY3YmMxZTIyNjMxIiwidXNlcl9pZCI6IjEifQ.t7LYlUOHBRA2B1cgqf5VKnsG3-uM_tjjboO7lw5Tu78'}
+profile_id in session = None
+================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY1MjY3NDE5LCJpYXQiOjE3NjUxODEwMTksImp0aSI6IjdlZWQyMWIyZjIzODRkNjA5YTg5OGJkNjJiZDdmMmY4IiwidXNlcl9pZCI6IjEifQ.FOQaQTQPvo290fjAonBgbEKOQjJLnjQ1Q3dIZZBEkO4'}
+profile_id in session = None
+================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY1MjY3NDk5LCJpYXQiOjE3NjUxODEwOTksImp0aSI6ImEyNjk2M2RiMmFmYjRkYzg5NzkzMThhM2RiMTc2YzRlIiwidXNlcl9pZCI6IjEifQ.kS5kpPm4RfWvsmuG4tCx_TNWUmdYdG7z1nHPTPd0BX0'}
+profile_id in session = None
+================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY1MjY3NTUxLCJpYXQiOjE3NjUxODExNTEsImp0aSI6ImUxNzYwNWE3N2FjMjQ1MTNhMGE5NGI0ZmJiMDg1YTVkIiwidXNlcl9pZCI6IjEifQ.29DPsDoZHiuzDk_ekkuy0p-Sm1n5C1o20OnocJuPcak'}
+profile_id in session = None
+================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY1MjY3NjEyLCJpYXQiOjE3NjUxODEyMTIsImp0aSI6ImE2OTAzZWUwY2E3NTQ2ZTFhOTkyZTAxY2ZlMjYxOTc1IiwidXNlcl9pZCI6IjEifQ.RTjAOIaiYbeycs8UvYK3Lu-xpr4MGF-G6wg1NeoCh3E'}
+profile_id in session = None
+================================================================================
+
+================================================================================
+_preload_pages called
+user_session = {'username': 'admin', 'roles': ['admin'], 'primary_role': 'admin', 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY1MjY4MTI0LCJpYXQiOjE3NjUxODE3MjQsImp0aSI6IjkxNGExOWU0ZGJkNDRlOGVhNDRjYjkxOGQzMTE2ZDkyIiwidXNlcl9pZCI6IjEifQ.USZ_qTZNDDb4dVz38o3BG8pW2Tdd8DizEEmKLJB2YNk'}
+profile_id in session = None
+================================================================================
