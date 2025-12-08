@@ -255,7 +255,7 @@ class CreateSectionDialog(QDialog):
             if not section.isalpha() or len(section) != 2:
                 if len(section) == 2 and section[1] != "X":
                     return False, "Section field must follow format (e.g.,'A', 'Ax', 'B', 'Bx')."
-                return False, "Section field must follow format (e.g.,'A', 'Ax', 'B', 'Bx')."
+                # return False, "Section field must follow format (e.g.,'A', 'Ax', 'B', 'Bx')."
         elif remarks == "Petition":
             # Assume petition section names are 'PS99', 'PS100', etc.
             valid_start = section[0:2]

@@ -1,32 +1,38 @@
-import os
-import json
+# frontend/views/Progress/Student/subjectsenrolled.py
+import threading
+import traceback
+import requests
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView
 )
-from PyQt6.QtCore import Qt, QFileSystemWatcher
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QColor, QBrush, QFont
 
 
 class SubjectsEnrolledWidget(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.subjects_data = {}
-        self.current_semester = None
-        self.file_watcher = QFileSystemWatcher(self)
+    """
+    Thread-safe SubjectsEnrolledWidget. Worker emits 'subjects_loaded' (payload)
+    and 'subjects_loaded_done' when finished loading so parent can react.
+    """
+    subjects_loaded = pyqtSignal(dict)       # emits backend payload dict
+    subjects_loaded_done = pyqtSignal()      # signals that loading & initial set up are done
 
-        # JSON path
-        self.file_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "data", "student_enrolledSubjects.json"
-        )
+    def __init__(self, token=None, api_base="http://127.0.0.1:8000"):
+        super().__init__()
+        self.token = token or ""
+        self.api_base = api_base.rstrip("/")
+
+        self.subjects_data = {}
+        self.semester_list = []
+        self.current_semester = None
 
         self.init_ui()
-        self.load_subjects_from_file()
 
-        # Watch file for changes
-        if os.path.exists(self.file_path):
-            self.file_watcher.addPath(self.file_path)
-            self.file_watcher.fileChanged.connect(self.on_file_changed)
+        # connect signal then start worker
+        self.subjects_loaded.connect(self._on_subjects_loaded_slot)
+        self.load_subjects_from_backend_async()
 
     # ---------------------------------------------------------
     def init_ui(self):
@@ -34,21 +40,18 @@ class SubjectsEnrolledWidget(QWidget):
         layout.setContentsMargins(12, 12, 12, 0)
         layout.setSpacing(0)
 
-        # Create table
         self.table = QTableWidget()
-        self.table.setObjectName("gradesTable")  # Match QSS
+        self.table.setObjectName("gradesTable")
         headers = ["No.", "Subject Code", "Description", "Units", "Schedule", "Room", "Instructor"]
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
 
-        # Table configuration
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setAlternatingRowColors(True)
-        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setWordWrap(True)
 
-        # Column widths: 0 = stretch
         widths = [50, 120, 0, 60, 0, 120, 0]
         header = self.table.horizontalHeader()
         for i, w in enumerate(widths):
@@ -61,32 +64,63 @@ class SubjectsEnrolledWidget(QWidget):
         layout.addWidget(self.table)
 
     # ---------------------------------------------------------
-    def load_subjects_from_file(self):
-        """Load all subjects from JSON"""
-        if not os.path.exists(self.file_path):
-            print(f"⚠️ File not found: {self.file_path}")
-            return
+    def _build_headers(self):
+        token = (self.token or "").strip()
+        if not token:
+            return {}
+        if token.startswith("Bearer ") or token.startswith("Token "):
+            return {"Authorization": token}
+        if len(token) > 40:
+            return {"Authorization": f"Bearer {token}"}
+        return {"Authorization": f"Token {token}"}
 
-        try:
-            with open(self.file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+    # ---------------------------------------------------------
+    def load_subjects_from_backend_async(self):
+        """GET /api/progress/student/subjects/"""
+        url = f"{self.api_base}/api/progress/student/subjects/"
+        headers = self._build_headers()
 
-            # Handle both structures: with or without 'semesters'
-            self.subjects_data = data.get("semesters", data)
-            self.semester_list = list(self.subjects_data.keys())
+        def fetch():
+            try:
+                r = requests.get(url, headers=headers, timeout=15)
+                try:
+                    data = r.json() if r.status_code == 200 else r.json()
+                except Exception:
+                    data = {}
+                # emit to main thread with payload
+                self.subjects_loaded.emit(data if isinstance(data, dict) else {})
+            except Exception:
+                traceback.print_exc()
+                self.subjects_loaded.emit({})
 
-            # Default to the latest semester
-            if self.semester_list:
-                self.current_semester = self.semester_list[-1]
-                self.load_semester_data(self.current_semester)
+        threading.Thread(target=fetch, daemon=True).start()
 
-        except Exception as e:
-            print(f"❌ Error reading enrolledSubjects.json: {e}")
+    # ---------------------------------------------------------
+    @pyqtSlot(dict)
+    def _on_subjects_loaded_slot(self, data):
+        # Normalize payload
+        if isinstance(data, dict) and "semesters" in data:
+            self.subjects_data = data.get("semesters", {}) or {}
+        else:
+            self.subjects_data = {}
+
+        self.semester_list = list(self.subjects_data.keys())
+        if self.semester_list:
+            # default to first semester immediately so UI is populated
+            self.current_semester = self.semester_list[0]
+            self.load_semester_data(self.current_semester)
+
+        # notify parent / listeners that subjects have loaded and initial semester set
+        self.subjects_loaded_done.emit()
 
     # ---------------------------------------------------------
     def load_semester_data(self, semester):
-        """Load and display subjects for a specific semester"""
-        semester_data = self.subjects_data.get(semester, {})
+        if not semester:
+            return
+
+        resolved = self._resolve_semester_key(semester)
+        semester_data = self.subjects_data.get(resolved, {}) if resolved else {}
+
         subjects = semester_data.get("subjects", [])
 
         self.clear_subjects()
@@ -103,21 +137,34 @@ class SubjectsEnrolledWidget(QWidget):
             )
 
         self.table.resizeRowsToContents()
-        print(f"📘 Loaded {len(subjects)} subjects for {semester}")
+
+    
+    # ---------------------------------------------------------
+    def _resolve_semester_key(self, semester):
+        # exact match
+        if semester in self.subjects_data:
+            return semester
+
+        # backend subjects format uses "YYYY-YYYY first", while grades uses "YYYY-YYYY – first"
+        # remove dash if needed
+        cleaned = semester.replace(" – ", " ").replace("–", " ")
+        for key in self.subjects_data.keys():
+            key_clean = key.replace(" – ", " ").replace("–", " ")
+            if key_clean.strip().lower() == cleaned.strip().lower():
+                return key
+
+        # fallback: try suffix/prefix contains
+        for key in self.subjects_data.keys():
+            if key in semester or semester in key:
+                return key
+
+        return None
+
 
     # ---------------------------------------------------------
     def set_semester(self, semester):
-        """Used by GradesWidget combo to update subjects"""
         self.current_semester = semester
         self.load_semester_data(semester)
-
-    # ---------------------------------------------------------
-    def on_file_changed(self, path):
-        """Reload table when JSON changes"""
-        print(f"🔄 Detected change in {path}, reloading...")
-        self.load_subjects_from_file()
-        if os.path.exists(self.file_path) and self.file_path not in self.file_watcher.files():
-            self.file_watcher.addPath(self.file_path)
 
     # ---------------------------------------------------------
     def add_subject_entry(self, number, code, description, units, schedule, room, instructor):
@@ -129,11 +176,9 @@ class SubjectsEnrolledWidget(QWidget):
             item = QTableWidgetItem(val)
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            font = QFont("Poppins", 9)
-            item.setFont(font)
+            item.setFont(QFont("Poppins", 9))
 
-            # Grey out empty cells
-            if val.strip() == "":
+            if str(val).strip() == "":
                 item.setForeground(QBrush(QColor("#888888")))
 
             self.table.setItem(row, col, item)

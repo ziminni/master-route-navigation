@@ -1,65 +1,76 @@
-import os
-import json
-import matplotlib
-matplotlib.use('QtAgg')
+# frontend/views/Progress/Student/degreeprogress.py
+import threading
+import traceback
+import requests
+
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
+    QTableWidgetItem, QHeaderView, QAbstractItemView, QLabel
+)
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QFont, QColor
+
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.patches import Circle, Wedge
-import seaborn as sns
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-    QHeaderView, QAbstractItemView
-)
-from PyQt6.QtCore import Qt, QFileSystemWatcher
-from PyQt6.QtGui import QFont
-import pandas as pd
+import numpy as np
 
 
 class DegreeProgressWidget(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.progress_data = {}
-        self.subjects_data = []
-        self.all_semesters_data = {}
-        self.current_semester = None
-        self.category_totals = {}
-        self.file_watcher = QFileSystemWatcher(self)
+    """
+    Thread-safe: background fetch emits 'degree_loaded' and UI updates run in main thread.
+    """
+    degree_loaded = pyqtSignal(dict)  # emits backend payload dict
 
-        # File path for JSON
-        self.subjects_file_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            "data", "student_degreeProgress.json"
-        )
+    def __init__(self, token=None, api_base="http://127.0.0.1:8000"):
+        super().__init__()
+        self.token = token or ""
+        self.api_base = api_base.rstrip("/")
+
+        # data containers
+        self.all_semesters_data = {}
+        self.category_totals = {}
+        self.category_progress = {}  # Use backend-provided progress percentages
+        self.current_semester = None
 
         self.init_ui()
-        self.load_subjects_from_file()
 
-        # Watch file for live reload
-        if os.path.exists(self.subjects_file_path):
-            self.file_watcher.addPath(self.subjects_file_path)
-        self.file_watcher.fileChanged.connect(self.on_file_changed)
+        # connect signal then start worker
+        self.degree_loaded.connect(self._on_degree_progress_loaded_slot)
+        self.load_degree_progress_from_backend_async()
 
     # ---------------------------------------------------------
     def init_ui(self):
-        """Initialize the UI layout"""
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(20)
         main_layout.setContentsMargins(12, 12, 12, 12)
 
-        # --- Table ---
+        # Header with progress summary
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 10)
+        
+        self.summary_label = QLabel("Overall Progress: --")
+        summary_font = QFont()
+        summary_font.setPointSize(12)
+        summary_font.setBold(True)
+        self.summary_label.setFont(summary_font)
+        
+        header_layout.addWidget(self.summary_label)
+        header_layout.addStretch()
+        main_layout.addWidget(header_widget)
+
         self.table = self.create_table()
         main_layout.addWidget(self.table)
 
-        # --- Charts ---
         charts_layout = QHBoxLayout()
         charts_layout.setSpacing(5)
 
-        # Circular chart (left)
+        # left donut - overall progress
         self.circular_canvas = FigureCanvas(plt.Figure(figsize=(3, 3)))
         self.circular_ax = self.circular_canvas.figure.add_subplot(111)
         charts_layout.addWidget(self.circular_canvas, stretch=1)
 
-        # Bar charts (right)
+        # right bars - category progress
         self.bar_canvas = FigureCanvas(plt.Figure(figsize=(4, 2)))
         self.bar_ax = self.bar_canvas.figure.add_subplot(111)
         charts_layout.addWidget(self.bar_canvas, stretch=2)
@@ -69,23 +80,31 @@ class DegreeProgressWidget(QWidget):
 
     # ---------------------------------------------------------
     def create_table(self):
-        """Create and configure the subjects table"""
         table = QTableWidget()
         table.setObjectName("degreeProgressTable")
 
-        headers = ["No", "Subject Code", "Description", "Units", "Year & Term", "Grades", "Pre-Requisites"]
+        headers = ["No", "Subject Code", "Description", "Units", "Year & Term", "Midterm", "Finals", "Status"]
         table.setColumnCount(len(headers))
         table.setHorizontalHeaderLabels(headers)
         table.verticalHeader().setVisible(False)
         table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        table.setAlternatingRowColors(False)
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.setAlternatingRowColors(True)
+        
+        # Set alternating row colors
+        table.setStyleSheet("""
+            QTableWidget {
+                alternate-background-color: #f5f5f5;
+            }
+            QTableWidget::item {
+                padding: 5px;
+            }
+        """)
 
-        # Column widths
-        widths = [50, 120, 0, 80, 180, 80, 120]
+        widths = [40, 100, 200, 60, 120, 70, 70, 80]
         header = table.horizontalHeader()
         for i, w in enumerate(widths):
-            if w == 0:
+            if w == 200:  # Description column is stretchable
                 header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
             else:
                 header.setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)
@@ -94,46 +113,111 @@ class DegreeProgressWidget(QWidget):
         return table
 
     # ---------------------------------------------------------
-    def load_subjects_from_file(self):
-        """Load the degree progress data from JSON"""
-        if not os.path.exists(self.subjects_file_path):
-            print(f"⚠️ File not found: {self.subjects_file_path}")
-            return
+    def _build_headers(self):
+        token = (self.token or "").strip()
+        if not token:
+            return {}
+        if token.startswith("Bearer ") or token.startswith("Token "):
+            return {"Authorization": token}
+        if len(token) > 40:
+            return {"Authorization": f"Bearer {token}"}
+        return {"Authorization": f"Token {token}"}
 
-        try:
-            with open(self.subjects_file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+    # ---------------------------------------------------------
+    def load_degree_progress_from_backend_async(self):
+        """GET /api/progress/student/degreeprogress/"""
+        url = f"{self.api_base}/api/progress/student/degreeprogress/"
+        headers = self._build_headers()
 
-            self.all_semesters_data = data.get("semesters", {})
-            self.category_totals = data.get("category_totals", {})
+        def fetch():
+            try:
+                r = requests.get(url, headers=headers, timeout=15)
+                if r.status_code == 200:
+                    data = r.json()
+                    self.degree_loaded.emit(data)
+                else:
+                    self.degree_loaded.emit({})
+            except Exception:
+                traceback.print_exc()
+                self.degree_loaded.emit({})
 
-            if self.all_semesters_data:
-                # Default to the latest semester
-                self.current_semester = list(self.all_semesters_data.keys())[-1]
+        threading.Thread(target=fetch, daemon=True).start()
+        
+    # ---------------------------------------------------------
+    @pyqtSlot(dict)
+    def _on_degree_progress_loaded_slot(self, data):
+        """
+        Runs on main thread. Safe to update widgets here.
+        """
+        if isinstance(data, dict):
+            self.all_semesters_data = data.get("semesters", {}) or {}
+            self.category_totals = data.get("category_totals", {}) or {}
+            self.category_progress = data.get("category_progress", {}) or {}
+        else:
+            self.all_semesters_data = {}
+            self.category_totals = {}
+            self.category_progress = {}
+
+        if self.all_semesters_data:
+            # Get the most recent semester
+            semesters = list(self.all_semesters_data.keys())
+            # Try to sort chronologically (most recent first)
+            try:
+                # Simple sorting - assumes format like "2024-2025 – first"
+                semesters.sort(key=lambda x: x.split(' – ')[0] if ' – ' in x else x, reverse=True)
+            except:
+                pass
+            
+            if semesters:
+                self.current_semester = semesters[0]
                 self.load_semester_data(self.current_semester)
-
-        except Exception as e:
-            print(f"❌ Error reading student_degreeProgress.json: {e}")
+        
+        # Update charts with backend-provided progress data
+        self._update_charts()
 
     # ---------------------------------------------------------
     def load_semester_data(self, semester):
-        """Display semester subjects and update progress"""
-        semester_data = self.all_semesters_data.get(semester, {})
-        subjects = semester_data.get("subjects", [])
+        sem_data = self.all_semesters_data.get(semester, {})
+        subjects = sem_data.get("subjects", [])
         self.table.setRowCount(0)
 
-        for subj in subjects:
+        for subj_idx, subj in enumerate(subjects, start=1):
             row = self.table.rowCount()
             self.table.insertRow(row)
 
+            # Get grades - handle both dict and string formats
+            grades = subj.get("grades", {})
+            if isinstance(grades, dict):
+                midterm = grades.get("midterm", "")
+                finals = grades.get("finals", "")
+                
+                # Determine status based on final grade
+                status = ""
+                try:
+                    final_grade = float(finals) if finals else None
+                    if final_grade is not None:
+                        if final_grade <= 3.0:
+                            status = "PASSED"
+                        elif final_grade <= 4.0:
+                            status = "CONDITIONAL"
+                        else:
+                            status = "FAILED"
+                except:
+                    status = ""
+            else:
+                midterm = ""
+                finals = str(grades) if grades else ""
+                status = ""
+
             items = [
-                str(subj.get("no", "")),
+                str(subj_idx),
                 subj.get("subject_code", ""),
                 subj.get("description", ""),
                 str(subj.get("units", "")),
-                subj.get("year_term", ""),
-                str(subj.get("grades", "")),
-                subj.get("pre_requisites", "")
+                subj.get("year_term", semester),  # Use semester if year_term not provided
+                str(midterm),
+                str(finals),
+                status
             ]
 
             for col, val in enumerate(items):
@@ -141,127 +225,136 @@ class DegreeProgressWidget(QWidget):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 item.setFont(QFont("Poppins", 9))
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                
+                # Color code the status column
+                if col == 7:  # Status column
+                    if val == "PASSED":
+                        item.setBackground(QColor(220, 255, 220))  # Light green
+                    elif val == "FAILED":
+                        item.setBackground(QColor(255, 220, 220))  # Light red
+                    elif val == "CONDITIONAL":
+                        item.setBackground(QColor(255, 255, 200))  # Light yellow
+                
                 self.table.setItem(row, col, item)
 
         self.table.resizeRowsToContents()
 
-        # Update charts using all subjects
-        all_subjects = []
-        for sem_data in self.all_semesters_data.values():
-            all_subjects.extend(sem_data.get("subjects", []))
-
-        self.calculate_progress_from_subjects(all_subjects)
-
-        print(f"📘 Degree Progress loaded for {semester}")
-
     # ---------------------------------------------------------
     def set_semester(self, semester):
-        """Sync semester from GradesWidget"""
-        if not semester or semester not in self.all_semesters_data:
+        """
+        Called by parent GradesWidget when semester changes.
+        """
+        if not semester:
             return
         self.current_semester = semester
         self.load_semester_data(semester)
+        
+        # Also update summary label
+        if self.category_progress:
+            overall = sum(self.category_progress.values()) / len(self.category_progress) if self.category_progress else 0
+            self.summary_label.setText(f"Overall Progress: {overall:.1f}%")
 
     # ---------------------------------------------------------
-    def on_file_changed(self, path):
-        """Reload JSON if it changes"""
-        print(f"🔄 Detected change in {path}, reloading...")
-        if path == self.subjects_file_path:
-            self.load_subjects_from_file()
-        if os.path.exists(self.subjects_file_path):
-            if self.subjects_file_path not in self.file_watcher.files():
-                self.file_watcher.addPath(self.subjects_file_path)
+    def _update_charts(self):
+        """Update both charts with backend-provided progress data"""
+        self._plot_circular()
+        self._plot_bars()
+        
+        # Update summary label
+        if self.category_progress:
+            overall = sum(self.category_progress.values()) / len(self.category_progress) if self.category_progress else 0
+            self.summary_label.setText(f"Overall Progress: {overall:.1f}%")
+        else:
+            self.summary_label.setText("Overall Progress: --")
 
-    # ---------------------------------------------------------
-    def calculate_progress_from_subjects(self, subjects):
-        """Compute progress per category and overall"""
-        category_counts = {}
-        for subj in subjects:
-            category = subj.get("category", "")
-            if category:
-                category_counts[category] = category_counts.get(category, 0) + 1
-
-        total_completed = sum(category_counts.values())
-        total_required = sum(self.category_totals.values())
-        overall_progress = int((total_completed / total_required * 100)) if total_required > 0 else 0
-
-        categories = []
-        for name, total in self.category_totals.items():
-            completed = category_counts.get(name, 0)
-            percent = int((completed / total * 100)) if total > 0 else 0
-            categories.append({
-                "name": name,
-                "completed": completed,
-                "total": total,
-                "percentage": percent
-            })
-
-        self.progress_data = {
-            "overall_progress": overall_progress,
-            "categories": categories
-        }
-        self.update_charts()
-
-    # ---------------------------------------------------------
-    def update_charts(self):
-        self.plot_circular_progress()
-        self.plot_horizontal_bars()
-
-    def plot_circular_progress(self):
-        """Draw donut chart"""
+    def _plot_circular(self):
+        """Plot donut chart for overall progress"""
         self.circular_ax.clear()
-        overall = self.progress_data.get("overall_progress", 0)
-
-        sizes = [overall, 100 - overall]
-        colors = ['#2c5530', '#E8E8E8']
-
-        self.circular_ax.pie(
+        
+        # Calculate overall progress from category progress
+        overall = 0
+        if self.category_progress:
+            overall = sum(self.category_progress.values()) / len(self.category_progress)
+        
+        sizes = [overall, max(0, 100 - overall)]
+        colors = ['#4CAF50', '#E0E0E0']  # Green for progress, gray for remaining
+        
+        # FIXED: In newer matplotlib, pie() returns only wedges, texts
+        wedges, texts = self.circular_ax.pie(
             sizes,
             colors=colors,
             startangle=90,
             counterclock=False,
             wedgeprops=dict(width=0.3, edgecolor='white', linewidth=2)
         )
-        self.circular_ax.text(0, 0, f"{overall}%", ha='center', va='center',
-                              fontsize=20, fontweight='bold', color='#2c5530')
-        self.circular_ax.text(0, -0.25, 'Degree Progress', ha='center',
-                              va='center', fontsize=7, color='#666666')
-
+        
+        # Center text
+        self.circular_ax.text(0, 0, f"{overall:.0f}%", 
+                             ha='center', va='center',
+                             fontsize=20, fontweight='bold',
+                             color='#333333')
+        
         self.circular_ax.set_aspect('equal')
+        self.circular_ax.set_title("Overall Progress", fontsize=10, fontweight='bold', pad=10)
         self.circular_canvas.draw()
 
-    def plot_horizontal_bars(self):
-        """Draw horizontal category bars"""
+    # ---------------------------------------------------------
+    def _plot_bars(self):
+        """Plot horizontal bar chart for category progress"""
         self.bar_ax.clear()
-        categories = self.progress_data.get("categories", [])
-        if not categories:
+        
+        if not self.category_progress:
+            self.bar_ax.text(0.5, 0.5, 'No progress data',
+                            ha='center', va='center', transform=self.bar_ax.transAxes,
+                            fontsize=12, color='gray')
+            self.bar_canvas.draw()
             return
-
-        names = [c["name"] for c in categories][::-1]
-        percents = [c["percentage"] for c in categories][::-1]
-        labels = [f"{c['completed']} of {c['total']} Progress" for c in categories][::-1]
-
-        sns.set_style("whitegrid")
-        y_pos = range(len(names))
-
-        self.bar_ax.barh(y_pos, percents, color='#2c5530', height=0.6)
-        self.bar_ax.barh(y_pos, [100 - p for p in percents], left=percents,
-                         color='#E8E8E8', height=0.6)
-
-        for i, (pct, label) in enumerate(zip(percents, labels)):
-            self.bar_ax.text(pct / 2, i, f"{int(pct)}%", ha='center', va='center',
-                             fontsize=6, fontweight='bold', color='white')
-            self.bar_ax.text(2, i - 0.35, label, ha='left', va='center',
-                             fontsize=5, color='#666666')
-
+        
+        # Prepare data for bar chart
+        categories = list(self.category_progress.keys())
+        progress_values = list(self.category_progress.values())
+        
+        # Get total required for each category
+        totals = [self.category_totals.get(cat, 0) for cat in categories]
+        
+        # Create horizontal bars
+        y_pos = np.arange(len(categories))
+        
+        # Plot bars
+        bars = self.bar_ax.barh(y_pos, progress_values, height=0.6, color='#3498db')
+        
+        # Add value labels on bars
+        for i, (pct, total) in enumerate(zip(progress_values, totals)):
+            # Calculate completed count
+            completed = int(total * pct / 100) if pct > 0 else 0
+            
+            # Add percentage label inside bar
+            if pct > 20:  # Only put label inside if bar is wide enough
+                self.bar_ax.text(pct / 2, i, f"{pct:.0f}%", 
+                               ha='center', va='center', 
+                               fontsize=9, fontweight='bold', color='white')
+            
+            # Add count label at the end
+            self.bar_ax.text(pct + 1, i, f"{completed}/{total}", 
+                           ha='left', va='center', 
+                           fontsize=8, color='#333333')
+        
+        # Set y-axis labels
         self.bar_ax.set_yticks(y_pos)
-        self.bar_ax.set_yticklabels(names, fontsize=7, fontweight='bold')
+        self.bar_ax.set_yticklabels(categories, fontsize=9)
+        
+        # Set x-axis limits and labels
         self.bar_ax.set_xlim(0, 100)
-        self.bar_ax.set_xticks([])
-        self.bar_ax.spines['top'].set_visible(False)
-        self.bar_ax.spines['right'].set_visible(False)
-        self.bar_ax.spines['bottom'].set_visible(False)
-        self.bar_ax.spines['left'].set_visible(False)
-        self.bar_ax.grid(False)
+        self.bar_ax.set_xlabel("Progress (%)", fontsize=9)
+        
+        # Add grid
+        self.bar_ax.grid(True, axis='x', linestyle='--', alpha=0.3)
+        
+        self.bar_ax.set_title("Category Progress", fontsize=10, fontweight='bold', pad=10)
         self.bar_canvas.figure.tight_layout()
         self.bar_canvas.draw()
+
+    # ---------------------------------------------------------
+    def refresh_data(self):
+        """Public method to refresh degree progress data"""
+        self.load_degree_progress_from_backend_async()
