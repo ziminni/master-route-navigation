@@ -5,6 +5,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QMessageBox, QFileDialog
 from .appointment_crud import appointment_crud
 from .FacultyReschedulePage import FacultyReschedulePage_ui
+from ..api_client import APIClient
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,41 +21,124 @@ class AppointmentPage_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-        self.crud = appointment_crud()
-        self.faculty_id = self._get_faculty_id()
+        
+        # Initialize APIClient with token
+        self.crud = APIClient(token=token)
+        
+        # Test authentication immediately
+        print(f"DEBUG: Initializing AppointmentPage for user: {username}")
+        print(f"DEBUG: Token: {token[:20]}...")
+        print(f"DEBUG: Testing authentication...")
+        
+        # Test if we can get faculty appointments
+        self.test_api_connection()
+        
         self.rows = []  # Store appointment data for easy access
         self.selected_appointment_id = None  # Track selected appointment for rescheduling
-        logging.debug(f"Initialized AppointmentPage_ui with username: {self.username}, faculty_id: {self.faculty_id}")
         
-        # Create sample data if no appointments exist
-        self._ensure_sample_data()
-        logging.debug(f"Sample data ensured for faculty_id: {self.faculty_id}")
+        # Don't create sample data automatically - just check if we can get real data
+        self._check_initial_data()
         self.setFixedSize(1000, 550)
         self._setupAppointmentsPage()
         self.retranslateUi()
 
-    def _get_faculty_id(self):
-        """Get faculty ID based on username."""
-        faculty = self.crud.get_faculty_by_username(self.username)
-        if faculty:
-            logging.debug(f"Found faculty: {faculty['name']} with ID: {faculty['id']}")
-            return faculty["id"]
-        else:
-            # If no faculty found, create one for testing
-            logging.warning(f"No faculty found for username: {self.username}, creating sample faculty")
-            new_faculty = self.crud.create_faculty(self.username, f"{self.username}@school.edu", "Sample Department")
-            if new_faculty:
-                return new_faculty["id"]
-            else:
-                logging.error("Failed to create sample faculty")
-                return 1  # Fallback ID
 
-    def _ensure_sample_data(self):
-        """Ensure there is sample data for testing."""
-        appointments = self.crud.get_faculty_appointments(self.faculty_id)
-        if not appointments:
-            logging.info("No appointments found, creating sample data")
-            self.crud.create_sample_data()
+    def get_student_name(self, student_id):
+        students = self.crud.get_students()
+        print(f"Students list: {students}")
+        for student in students:
+            print(f"{student}")
+            print("Hello Lord!")
+            if int(student["id"]) == int(student_id):
+                return student['full_name']
+            
+
+    def test_api_connection(self):
+        """Test API connection and authentication"""
+        try:
+            print(f"DEBUG: Testing API connection with token: {self.token[:20]}...")
+            print(f"DEBUG: Base URL in APIClient: {self.crud.base_url if hasattr(self.crud, 'base_url') else 'Not set'}")
+            
+            # First, try to get the faculty ID
+            faculty_id = self.get_faculty_id()
+            print(f"DEBUG: Faculty ID retrieved: {faculty_id}")
+            
+            # Test getting appointments directly
+            print(f"DEBUG: Testing get_faculty_appointments()...")
+            appointments = self.crud.get_faculty_appointments()
+            print(f"DEBUG: Appointments response type: {type(appointments)}")
+            print(f"DEBUG: Appointments response: {appointments}")
+            
+            if appointments is None:
+                print("ERROR: get_faculty_appointments() returned None - likely authentication or connection issue")
+            elif isinstance(appointments, list):
+                print(f"DEBUG: Successfully retrieved {len(appointments)} appointments")
+            else:
+                print(f"DEBUG: Unexpected response type: {type(appointments)}")
+                
+        except Exception as e:
+            print(f"ERROR: Failed to test API connection: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def get_faculty_id(self):
+        """Fetch faculty ID based on the username."""
+        try:
+            print(f"DEBUG: Getting faculty ID for username: {self.username}")
+            profiles = self.crud.get_faculties()
+            print(f"DEBUG: Faculty profiles fetched: {profiles}")
+            
+            if profiles is None:
+                print("ERROR: get_faculties() returned None")
+                return None
+                
+            if not isinstance(profiles, list):
+                print(f"ERROR: get_faculties() returned non-list: {type(profiles)}")
+                return None
+                
+            for profile in profiles:
+                print(f"DEBUG: Checking profile: {profile}")
+                # Check if profile has the expected structure
+                if isinstance(profile, dict):
+                    user_info = profile.get('user', {})
+                    if isinstance(user_info, dict):
+                        first_name = user_info.get('first_name', '')
+                        print(f"DEBUG: Found user with first_name: {first_name}")
+                        if first_name == self.username:
+                            faculty_id = profile.get('id')
+                            print(f"DEBUG: Found faculty ID: {faculty_id} for user {self.username}")
+                            return faculty_id
+                    else:
+                        print(f"DEBUG: User info is not a dict: {user_info}")
+                else:
+                    print(f"DEBUG: Profile is not a dict: {profile}")
+                    
+            print(f"WARNING: No faculty profile found for username: {self.username}")
+            return None
+            
+        except Exception as e:
+            print(f"ERROR: Failed to get faculty ID: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def _check_initial_data(self):
+        """Check if we can get initial appointments data."""
+        try:
+            print("DEBUG: Checking initial appointments data...")
+            appointments = self.crud.get_faculty_appointments()
+            print(f"DEBUG: Initial appointments check: {appointments}")
+            
+            if appointments is None:
+                print("WARNING: Could not retrieve appointments - API may be down or authentication failed")
+                # Show a message to the user
+                QMessageBox.warning(self, "Connection Error", 
+                                  "Could not connect to the server. Please check your internet connection and try again.")
+            elif isinstance(appointments, list) and len(appointments) == 0:
+                print("INFO: No appointments found for this faculty")
+                
+        except Exception as e:
+            print(f"ERROR: Failed to check initial data: {e}")
 
     def _setupAppointmentsPage(self):
         self.setObjectName("Appointments_2")
@@ -175,7 +259,7 @@ class AppointmentPage_ui(QWidget):
         self.tableWidget_8.setColumnWidth(2, 220)  # Slot
         self.tableWidget_8.setColumnWidth(3, 250)  # Purpose
         self.tableWidget_8.setColumnWidth(4, 120)  # Status
-        self.tableWidget_8.setColumnWidth(5, 150)  # Actions
+        self.tableWidget_8.setColumnWidth(5, 500)  # Actions
         
         # Header styling
         header = self.tableWidget_8.horizontalHeader()
@@ -227,7 +311,7 @@ class AppointmentPage_ui(QWidget):
         self.tableWidget_8.setColumnWidth(2, int(width * 0.30))  # Slot
         self.tableWidget_8.setColumnWidth(3, int(width * 0.30))  # Purpose
         self.tableWidget_8.setColumnWidth(4, int(width * 0.25))  # Status
-        self.tableWidget_8.setColumnWidth(5, int(width * 0.25))  # Actions
+        self.tableWidget_8.setColumnWidth(5, int(width * 0.40))  # Actions
         super().resizeEvent(event)
 
     def goBackPage(self):
@@ -387,21 +471,14 @@ class AppointmentPage_ui(QWidget):
         info_layout.setVerticalSpacing(8)
         info_layout.setHorizontalSpacing(20)
         
-        # Get student info
-        student_info = self.crud.list_students()
-        student_data = next((s for s in student_info if s.get('id') == appointment_data[6]), {})
-        
         # Prepare appointment data
         appointment_info = [
-            ("Student:", student_data.get('name', 'Unknown')),
-            ("Date & Time:", appointment_data[0]),
+            ("Student:", appointment_data[1] if len(appointment_data) > 1 else "Unknown"),
+            ("Date & Time:", appointment_data[0] if len(appointment_data) > 0 else "Unknown"),
             ("Duration:", "30 minutes"),
-            ("Status:", appointment_data[4]),
-            ("Course:", student_data.get('course', 'Unknown')),
-            ("Year Level:", student_data.get('year_level', 'Unknown')),
-            ("Contact Email:", student_data.get('email', 'Unknown')),
-            ("Address:", appointment_data[8] or "Not specified"),
-            ("Created At:", appointment_data[10] or "Unknown"),
+            ("Status:", appointment_data[4] if len(appointment_data) > 4 else "Unknown"),
+            ("Address:", "https://meet.google.com/mat-ucvx-iak"),
+            ("Created At:", appointment_data[10] if len(appointment_data) > 10 else "Unknown"),
         ]
         
         for label, value in appointment_info:
@@ -415,102 +492,102 @@ class AppointmentPage_ui(QWidget):
         
         content_layout.addWidget(info_group)
         
-        # Image View Section
-        image_path = appointment_data[11]  # image_path is at index 11
-        image_group = QtWidgets.QGroupBox("Supporting Documents")
-        image_group.setStyleSheet("""
-            QGroupBox {
-                font: 600 12pt 'Poppins';
-                color: #084924;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                margin-top: 12px;
-                padding-top: 12px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 12px;
-                padding: 0 8px 0 8px;
-            }
-        """)
+        # # Image View Section
+        # image_path = appointment_data[11] if len(appointment_data) > 11 else None  # image_path is at index 11
+        # image_group = QtWidgets.QGroupBox("Supporting Documents")
+        # image_group.setStyleSheet("""
+        #     QGroupBox {
+        #         font: 600 12pt 'Poppins';
+        #         color: #084924;
+        #         border: 1px solid #e0e0e0;
+        #         border-radius: 8px;
+        #         margin-top: 12px;
+        #         padding-top: 12px;
+        #     }
+        #     QGroupBox::title {
+        #         subcontrol-origin: margin;
+        #         left: 12px;
+        #         padding: 0 8px 0 8px;
+        #     }
+        # """)
         
-        image_layout = QtWidgets.QVBoxLayout(image_group)
+        # image_layout = QtWidgets.QVBoxLayout(image_group)
         
-        # Image display area
-        image_display = QtWidgets.QLabel()
-        image_display.setFixedSize(400, 200)
-        image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        # # Image display area
+        # image_display = QtWidgets.QLabel()
+        # image_display.setFixedSize(400, 200)
+        # image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         
-        # Load image if available
-        if image_path and image_path != "None" and image_path.strip() and os.path.exists(image_path):
-            pixmap = QtGui.QPixmap(image_path)
-            if not pixmap.isNull():
-                scaled_pixmap = pixmap.scaled(400, 200, 
-                                            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                                            QtCore.Qt.TransformationMode.SmoothTransformation)
-                image_display.setPixmap(scaled_pixmap)
-                image_display.setStyleSheet("""
-                    QLabel {
-                        background-color: #f8f9fa;
-                        border: 2px solid #dee2e6;
-                        border-radius: 8px;
-                    }
-                """)
+        # # Load image if available
+        # if image_path and image_path != "None" and image_path.strip() and os.path.exists(image_path):
+        #     pixmap = QtGui.QPixmap(image_path)
+        #     if not pixmap.isNull():
+        #         scaled_pixmap = pixmap.scaled(400, 200, 
+        #                                     QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+        #                                     QtCore.Qt.TransformationMode.SmoothTransformation)
+        #         image_display.setPixmap(scaled_pixmap)
+        #         image_display.setStyleSheet("""
+        #             QLabel {
+        #                 background-color: #f8f9fa;
+        #                 border: 2px solid #dee2e6;
+        #                 border-radius: 8px;
+        #             }
+        #         """)
                 
-                # Make image clickable for fullscreen view
-                image_display.mousePressEvent = lambda event, path=image_path: self._viewImageFullscreen(path)
-                image_display.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
-                image_display.setToolTip("Click to view full size")
-            else:
-                image_display.setText("Invalid image")
-                image_display.setStyleSheet("""
-                    QLabel {
-                        background-color: #f8f9fa;
-                        border: 2px dashed #dee2e6;
-                        border-radius: 8px;
-                        color: #6c757d;
-                        font: 10pt 'Poppins';
-                    }
-                """)
-        else:
-            image_display.setText("No image available")
-            image_display.setStyleSheet("""
-                QLabel {
-                    background-color: #f8f9fa;
-                    border: 2px dashed #dee2e6;
-                    border-radius: 8px;
-                    color: #6c757d;
-                    font: 10pt 'Poppins';
-                }
-            """)
+        #         # Make image clickable for fullscreen view
+        #         image_display.mousePressEvent = lambda event, path=image_path: self._viewImageFullscreen(path)
+        #         image_display.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
+        #         image_display.setToolTip("Click to view full size")
+        #     else:
+        #         image_display.setText("Invalid image")
+        #         image_display.setStyleSheet("""
+        #             QLabel {
+        #                 background-color: #f8f9fa;
+        #                 border: 2px dashed #dee2e6;
+        #                 border-radius: 8px;
+        #                 color: #6c757d;
+        #                 font: 10pt 'Poppins';
+        #             }
+        #         """)
+        # else:
+        #     image_display.setText("No image available")
+        #     image_display.setStyleSheet("""
+        #         QLabel {
+        #             background-color: #f8f9fa;
+        #             border: 2px dashed #dee2e6;
+        #             border-radius: 8px;
+        #             color: #6c757d;
+        #             font: 10pt 'Poppins';
+        #         }
+        #     """)
         
-        # Image controls
-        image_controls_layout = QtWidgets.QHBoxLayout()
+        # # Image controls
+        # image_controls_layout = QtWidgets.QHBoxLayout()
         
-        view_btn = QtWidgets.QPushButton("View Full Size")
-        view_btn.setFixedSize(120, 35)
-        view_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2F80ED;
-                color: white;
-                border-radius: 6px;
-                font: 600 10pt 'Poppins';
-            }
-            QPushButton:hover {
-                background-color: #2a75e0;
-            }
-        """)
-        view_btn.setEnabled(bool(image_path and image_path != "None" and image_path.strip() and os.path.exists(image_path)))
-        view_btn.clicked.connect(lambda: self._viewImageFullscreen(image_path))
+        # view_btn = QtWidgets.QPushButton("View Full Size")
+        # view_btn.setFixedSize(120, 35)
+        # view_btn.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #2F80ED;
+        #         color: white;
+        #         border-radius: 6px;
+        #         font: 600 10pt 'Poppins';
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #2a75e0;
+        #     }
+        # """)
+        # view_btn.setEnabled(bool(image_path and image_path != "None" and image_path.strip() and os.path.exists(image_path)))
+        # view_btn.clicked.connect(lambda: self._viewImageFullscreen(image_path))
         
-        image_controls_layout.addStretch(1)
-        image_controls_layout.addWidget(view_btn)
-        image_controls_layout.addStretch(1)
+        # image_controls_layout.addStretch(1)
+        # image_controls_layout.addWidget(view_btn)
+        # image_controls_layout.addStretch(1)
         
-        image_layout.addWidget(image_display)
-        image_layout.addLayout(image_controls_layout)
+        # image_layout.addWidget(image_display)
+        # image_layout.addLayout(image_controls_layout)
         
-        content_layout.addWidget(image_group)
+        # content_layout.addWidget(image_group)
         
         # Purpose section
         purpose_group = QtWidgets.QGroupBox("Purpose Details")
@@ -700,10 +777,16 @@ class AppointmentPage_ui(QWidget):
         elif status == "approved":
             reschedule_btn = make_btn("Reschedule", "#2F80ED")
             cancel_btn = make_btn("Cancel", "#EB5757")
+            complete_btn = make_btn("Complete", "#219653")  # ADDED: Complete button
             reschedule_btn.clicked.connect(lambda: self._openReschedulePage(appointment_id))
             cancel_btn.clicked.connect(lambda: self._openCancelDialog(row_index, status, appointment_id))
+            complete_btn.clicked.connect(lambda: self._openCompleteDialog(row_index, appointment_id))  # ADDED: Connect complete button
             layout.addWidget(reschedule_btn)
             layout.addWidget(cancel_btn)
+            layout.addWidget(complete_btn)  # ADDED: Add complete button to layout
+        elif status == "completed":  # ADDED: Handle completed status
+            # For completed appointments, show only view option
+            layout.addStretch(1)
         elif status in ["canceled", "denied"]:
             # No actions for canceled or denied appointments
             layout.addStretch(1)
@@ -722,6 +805,107 @@ class AppointmentPage_ui(QWidget):
         except:
             return hex_color
 
+    def _openCompleteDialog(self, row_index, appointment_id):
+        """Open dialog to mark appointment as completed."""
+        # Get appointment data first
+        appointment_data = None
+        for row in self.rows:
+            if row[5] == appointment_id:  # appointment_id is at index 5
+                appointment_data = row
+                break
+        
+        if not appointment_data:
+            QMessageBox.warning(self, "Error", "Appointment data not found")
+            return
+
+        dlg = QtWidgets.QDialog(self)
+        dlg.setWindowTitle("Mark as Completed")
+        dlg.setModal(True)
+        dlg.setFixedSize(400, 300)
+        dlg.setStyleSheet("background-color: white;")
+        
+        layout = QtWidgets.QVBoxLayout(dlg)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
+
+        # Title
+        title = QtWidgets.QLabel("Mark Appointment as Completed")
+        title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("QLabel { color: #2b2b2b; font: 600 12pt 'Poppins'; margin-bottom: 10px; }")
+        layout.addWidget(title)
+
+        # Confirmation message
+        student_name = appointment_data[1] if len(appointment_data) > 1 else "the student"
+        message = QtWidgets.QLabel(f"Are you sure you want to mark this appointment with {student_name} as completed?")
+        message.setWordWrap(True)
+        message.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        message.setStyleSheet("QLabel { color: #666666; font: 10pt 'Poppins'; line-height: 1.4; }")
+        layout.addWidget(message)
+
+
+        layout.addStretch(1)
+
+        # Buttons layout
+        btn_layout = QtWidgets.QHBoxLayout()
+        btn_cancel = QtWidgets.QPushButton("Cancel")
+        btn_complete = QtWidgets.QPushButton("Mark as Completed")
+        
+        # Button styles
+        btn_style = """
+            QPushButton {
+                border-radius: 6px;
+                padding: 10px 24px;
+                font: 10pt 'Poppins';
+                min-width: 80px;
+            }
+        """
+        
+        btn_cancel.setStyleSheet(btn_style + """
+            QPushButton {
+                background: #f5f5f5;
+                color: #2b2b2b;
+                border: 1px solid #e0e0e0;
+            }
+            QPushButton:hover {
+                background: #e8e8e8;
+            }
+        """)
+        
+        btn_complete.setStyleSheet(btn_style + """
+            QPushButton {
+                background: #219653;
+                color: white;
+                border: none;
+            }
+            QPushButton:hover {
+                background: #1e8749;
+            }
+        """)
+        
+        btn_cancel.clicked.connect(dlg.reject)
+        
+        def _complete_clicked():
+            try:
+               
+                result = self.crud.update_appointment(appointment_id, {"status": "completed"})
+                if result:
+                    self._refreshAppointments()
+                    QMessageBox.information(self, "Success", "Appointment marked as completed successfully!")
+                    dlg.accept()
+                else:
+                    QMessageBox.warning(self, "Error", "You can only complete your appointment after it ends.")
+            except Exception as e:
+                QMessageBox.warning(self, "Error", "You can only complete your appointment after it ends.")
+        
+        btn_complete.clicked.connect(_complete_clicked)
+        
+        btn_layout.addWidget(btn_cancel)
+        btn_layout.addStretch(1)
+        btn_layout.addWidget(btn_complete)
+        layout.addLayout(btn_layout)
+
+        dlg.exec()
+
     def _openReschedulePage(self, appointment_id):
         """Open the reschedule page for the selected appointment."""
         try:
@@ -738,8 +922,6 @@ class AppointmentPage_ui(QWidget):
                 self.token,
                 appointment_id
             )
-            
-        
             
             if self.reschedule_page.selected_appointment_id:
                 # Connect the back signal from reschedule page
@@ -880,10 +1062,6 @@ class AppointmentPage_ui(QWidget):
         
         location_layout.addWidget(self.location_input)
         layout.addLayout(location_layout)
-
-        # Online meeting link preview (if online is selected)
-        self.link_preview_layout = QtWidgets.QVBoxLayout()
-        self.link_preview_layout.setSpacing(8)
 
         layout.addStretch(1)
 
@@ -1104,13 +1282,36 @@ class AppointmentPage_ui(QWidget):
     def _populateAppointmentsTable(self):
         """Populate the appointments table with faculty appointments."""
         try:
-            logging.debug(f"Populating appointments table for faculty_id: {self.faculty_id}")
+            print("DEBUG: Starting to populate appointments table...")
             
             # Get appointments
-            appointments = self.crud.get_faculty_appointments(self.faculty_id)
-            logging.debug(f"Found {len(appointments)} appointments")
+            appointments = self.crud.get_faculty_appointments()
+            print(f"DEBUG: Appointments response: {appointments}")
+            print(f"DEBUG: Appointments type: {type(appointments)}")
             
-            if not appointments:
+            if appointments is None:
+                print("ERROR: get_faculty_appointments() returned None")
+                self.tableWidget_8.setRowCount(1)
+                error_item = QtWidgets.QTableWidgetItem("Error: Could not connect to server. Please check your connection.")
+                error_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                error_item.setFont(QtGui.QFont("Poppins", 10))
+                self.tableWidget_8.setItem(0, 0, error_item)
+                self.tableWidget_8.setSpan(0, 0, 1, 6)
+                return
+                
+            if not isinstance(appointments, list):
+                print(f"ERROR: get_faculty_appointments() returned non-list: {type(appointments)}")
+                self.tableWidget_8.setRowCount(1)
+                error_item = QtWidgets.QTableWidgetItem("Error: Invalid data received from server.")
+                error_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                error_item.setFont(QtGui.QFont("Poppins", 10))
+                self.tableWidget_8.setItem(0, 0, error_item)
+                self.tableWidget_8.setSpan(0, 0, 1, 6)
+                return
+            
+            print(f"DEBUG: Found {len(appointments)} appointments")
+            
+            if len(appointments) == 0:
                 logging.info("No appointments found")
                 self.tableWidget_8.setRowCount(1)
                 placeholder_item = QtWidgets.QTableWidgetItem("No appointments available")
@@ -1130,55 +1331,72 @@ class AppointmentPage_ui(QWidget):
                 "rescheduled": "#2F80ED",
                 "canceled": "#EB5757",
                 "approved": "#219653",
-                "denied": "#EB5757"
+                "denied": "#EB5757",
+                "completed": "#219653"  # ADDED: Completed status color
             }
-
-            # Get additional data
-            students = self.crud.list_students()
-            entries = self.crud.entries_db.read_all()
 
             for row, appointment in enumerate(appointments):
                 try:
-                    # Get student info
-                    student = None
-                    for s in students:
-                        if s.get("id") == appointment.get("student_id"):
-                            student = s
-                            break
-
-                    # Get schedule entry info
-                    entry = None
-                    for e in entries:
-                        if e.get("id") == appointment.get("appointment_schedule_entry_id"):
-                            entry = e
-                            break
-
-                    # Handle missing student or entry data
-                    if student is None:
-                        student_name = "Unknown Student"
-                    else:
-                        student_name = student.get("name", "Unknown")
-
-                    if entry is None:
-                        time_text = "Unknown Time"
-                        slot_text = "Unknown Slot"
-                    else:
-                        time_text = f"{appointment.get('appointment_date', 'Unknown')} {entry.get('start_time', '')}"
-                        slot_text = f"{entry.get('start_time', '')} - {entry.get('end_time', '')}"
-
+                    print(f"DEBUG: Processing appointment {row}: {appointment}")
+                    
+                    # Get student info - check different possible field names
+                    student_name = self.get_student_name(appointment["student"])
+                    student_info = None
+                    
+                    # # Try different possible field names for student info
+                    # if "student" in appointment and isinstance(appointment["student"], dict):
+                    #     student_info = appointment["student"]
+                    # elif "student_name" in appointment:
+                    #     student_name = appointment["student_name"]
+                    # elif "student_first_name" in appointment and "student_last_name" in appointment:
+                    #     student_name = f"{appointment['student_first_name']} {appointment['student_last_name']}"
+                    
+                    # # If we have a student dict, extract name
+                    # if student_info:
+                    #     if "first_name" in student_info and "last_name" in student_info:
+                    #         student_name = f"{student_info['first_name']} {student_info['last_name']}"
+                    #     elif "name" in student_info:
+                    #         student_name = student_info["name"]
+                    #     elif "username" in student_info:
+                    #         student_name = student_info["username"]
+                    
+                    # Get time information
+                    time_text = "Unknown Time"
+                    slot_text = "Unknown Slot"
+                    
+                    if "start_at" in appointment and appointment["start_at"]:
+                        try:
+                            # Parse ISO format datetime
+                            start_dt = datetime.fromisoformat(appointment["start_at"].replace('Z', '+00:00'))
+                            if "end_at" in appointment and appointment["end_at"]:
+                                end_dt = datetime.fromisoformat(appointment["end_at"].replace('Z', '+00:00'))
+                                time_text = start_dt.strftime("%Y-%m-%d %I:%M %p")
+                                slot_text = f"{start_dt.strftime('%I:%M %p')} - {end_dt.strftime('%I:%M %p')}"
+                            else:
+                                time_text = start_dt.strftime("%Y-%m-%d %I:%M %p")
+                                slot_text = start_dt.strftime("%I:%M %p")
+                        except Exception as e:
+                            print(f"DEBUG: Error parsing datetime: {e}")
+                            time_text = appointment.get("appointment_date", "Unknown Date")
+                    
                     status = appointment.get("status", "pending")
+                    
+                    # Get additional details
+                    purpose = appointment.get('reason', 'No details')
+                    if not purpose or purpose.strip() == "":
+                        purpose = "No details provided"
                     
                     # Store row data for later use
                     row_data = (
                         time_text,  # 0: time_text
                         student_name,  # 1: student_name
                         slot_text,  # 2: slot_text
-                        appointment.get('additional_details', 'No details'),  # 3: purpose
+                        purpose,  # 3: purpose
                         status.upper(),  # 4: status
-                        appointment["id"],  # 5: appointment_id
+                        appointment.get("id", "Unknown"),  # 5: appointment_id
                         appointment.get("student_id"),  # 6: student_id
-                        appointment.get("appointment_schedule_entry_id"),  # 7: schedule_entry_id
-                        appointment.get("address"),  # 8: address
+                        appointment.get("faculty_id"),  # 7: faculty_id
+                        appointment.get("address", ""),  # 8: address
                         appointment.get("appointment_date"),  # 9: appointment_date
                         appointment.get("created_at"),  # 10: created_at
                         appointment.get("image_path")  # 11: image_path
@@ -1193,23 +1411,28 @@ class AppointmentPage_ui(QWidget):
                     self.tableWidget_8.setItem(row, 0, time_item)
                     self.tableWidget_8.setItem(row, 1, student_item)
                     self.tableWidget_8.setItem(row, 2, slot_item)
-                    self.tableWidget_8.setCellWidget(row, 3, self._makePurposeViewCell(appointment["id"]))
-                    self.tableWidget_8.setItem(row, 4, self._makeStatusItem(status.upper(), status_colors.get(status, "#333333")))
-                    self.tableWidget_8.setCellWidget(row, 5, self._makeActionsCell(status, row, appointment["id"]))
+                    self.tableWidget_8.setCellWidget(row, 3, self._makePurposeViewCell(appointment.get("id", "Unknown")))
+                    self.tableWidget_8.setItem(row, 4, self._makeStatusItem(status.upper(), status_colors.get(status.lower(), "#333333")))
+                    self.tableWidget_8.setCellWidget(row, 5, self._makeActionsCell(status.lower(), row, appointment.get("id", "Unknown")))
                     self.tableWidget_8.setRowHeight(row, 60)
 
                 except Exception as e:
                     logging.error(f"Error processing appointment row {row}: {str(e)}")
-                    error_item = QtWidgets.QTableWidgetItem(f"Error: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    error_item = QtWidgets.QTableWidgetItem(f"Error: {str(e)[:50]}...")
                     self.tableWidget_8.setItem(row, 0, error_item)
                     continue
                     
+            print("DEBUG: Successfully populated appointments table")
             logging.debug("Successfully populated appointments table")
             
         except Exception as e:
             logging.error(f"Error populating appointments table: {str(e)}")
+            import traceback
+            traceback.print_exc()
             self.tableWidget_8.setRowCount(1)
-            error_item = QtWidgets.QTableWidgetItem(f"Error loading appointments: {str(e)}")
+            error_item = QtWidgets.QTableWidgetItem(f"Error loading appointments: {str(e)[:100]}...")
             error_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             error_item.setFont(QtGui.QFont("Poppins", 10))
             self.tableWidget_8.setItem(0, 0, error_item)

@@ -1,8 +1,8 @@
+# StudentAppointmentPage_ui.py
 from datetime import datetime
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QMessageBox, QFileDialog
-from .appointment_crud import appointment_crud
-from .StudentRequestPage import StudentRequestPage_ui
+from ..api_client import APIClient
 import logging
 import os
 
@@ -17,7 +17,7 @@ class StudentAppointmentPage_ui(QWidget):
         self.roles = roles
         self.primary_role = primary_role
         self.token = token
-        self.Appointment_crud = appointment_crud()
+        self.appointment_crud = APIClient(token=token)
         self.rows = []
         self.student_request_page = None
         self.setFixedSize(1000, 550)
@@ -25,214 +25,216 @@ class StudentAppointmentPage_ui(QWidget):
         self.retranslateUi()
         self.load_appointments_data()  # Load initial data
 
+    def get_faculty_name(self, faculty_id):
+        """Safely get faculty name with error handling"""
+        try:
+            if faculty_id is None:
+                return "Unknown Faculty"
+            
+            faculties = self.appointment_crud.get_faculties()
+            print(f"DEBUG: Looking for faculty ID: {faculty_id}")
+            print(f"DEBUG: Available faculties: {faculties}")
+            
+            # Try different ways to match faculty
+            for faculty in faculties:
+                # Check if faculty dict has id
+                if isinstance(faculty, dict):
+                    # Try integer comparison
+                    if int(faculty.get("id", 0)) == int(faculty_id):
+                        return faculty.get('full_name', f"Faculty {faculty_id}")
+                    # Try string comparison
+                    elif str(faculty.get("id", "")) == str(faculty_id):
+                        return faculty.get('full_name', f"Faculty {faculty_id}")
+                # If faculty is just a string or has different structure
+                elif isinstance(faculty, str) and str(faculty_id) in faculty:
+                    return faculty
+            
+            return f"Faculty {faculty_id}"
+            
+        except Exception as e:
+            print(f"ERROR getting faculty name for ID {faculty_id}: {e}")
+            return f"Faculty {faculty_id}"
+
     def set_student_request_page(self, request_page):
         """Set the student request page and connect signals"""
         self.student_request_page = request_page
         # Connect the refresh signal from request page
-        self.student_request_page.backrefreshdata.connect(self.refresh_appointments_data)
+        if hasattr(self.student_request_page, 'backrefreshdata'):
+            self.student_request_page.backrefreshdata.connect(self.refresh_appointments_data)
 
     def load_appointments_data(self):
-        """Load appointments data from JSON database for the current student"""
+        """Load appointments data from API for the current student"""
         self.rows.clear()
+        successful_appointments = 0
+        failed_appointments = 0
+        
         try:
-            # Get student ID based on username/email
-            students = self.Appointment_crud.list_students()
-            current_student_id = None
-            current_student_name = None
-
-            # Find the current student
-            for student in students:
-                if student.get('email') == self.username or student.get('name') == self.username:
-                    current_student_id = student.get('id')
-                    current_student_name = student.get('name', self.username)
-                    break
-
-            if current_student_id is None:
-                print(f"Student not found for username: {self.username}")
-                current_student_id = self.Appointment_crud.create_student(
-                    name=self.username,
-                    email=self.username,
-                    course="Unknown Course",
-                    year_level="Unknown Year"
-                )
-                current_student_name = self.username
-
-            # Get appointments for this student
-            appointments = self.Appointment_crud.get_student_appointments(current_student_id)
-            self.rows = []
-
+            print(f"DEBUG: Loading appointments for student with token: {self.token[:20]}...")
+            
+            appointments = self.appointment_crud.get_student_appointments()
+            print(f"DEBUG: Retrieved {len(appointments) if appointments else 0} appointments")
+            
+            if not appointments:
+                print("DEBUG: No appointments found")
+                # Show message in UI
+                self._showNoAppointmentsMessage()
+                return
+            
             for appointment in appointments:
-                # Get schedule entry details
-                schedule_entry_id = appointment.get('appointment_schedule_entry_id')
-                schedule_entry = None
-                if schedule_entry_id:
-                    schedule_entry = self.Appointment_crud.entries_db.read_by_id(schedule_entry_id)
-
-                # Get faculty details
-                faculty_name = "Unknown Faculty"
-                if schedule_entry:
-                    block_id = schedule_entry.get('schedule_block_entry_id')
-                    if block_id:
-                        block = self.Appointment_crud.blocks_db.read_by_id(block_id)
-                        if block:
-                            faculty_id = block.get('faculty_id')
-                            if faculty_id:
-                                faculty = self.Appointment_crud.faculty_db.read_by_id(faculty_id)
-                                if faculty:
-                                    faculty_name = faculty.get('name', 'Unknown Faculty')
-
-                # Format time slot
-                time_slot = "Unknown Time"
-                if schedule_entry:
-                    start_time = schedule_entry.get('start_time', '')
-                    end_time = schedule_entry.get('end_time', '')
-                    day = schedule_entry.get('day_of_week', '')
-                    time_slot = f"{day} {start_time} - {end_time}"
-
-                # Format appointment date
-                appointment_date = appointment.get('appointment_date', '')
-                time_text = appointment_date
-                if appointment_date and schedule_entry:
+                try:
+                    print(f"DEBUG: Processing appointment: {appointment}")
+                    
+                    # Extract basic appointment info with defaults
+                    appointment_id = appointment.get('id', 'N/A')
+                    student_id = appointment.get('student', 'N/A')
+                    faculty_id = appointment.get('faculty', 'N/A')
+                    
+                    # Safely get faculty name
                     try:
-                        dt = datetime.strptime(appointment_date, '%Y-%m-%d')
-                        time_text = f"{dt.strftime('%Y-%m-%d')} {schedule_entry.get('start_time', '')}"
-                    except ValueError:
-                        pass
-
-                # Create row data
-                row_data = [
-                    time_text,
-                    faculty_name,
-                    time_slot,
-                    appointment.get('additional_details', 'No details'),
-                    appointment.get('status', 'pending').upper(),
-                    appointment.get('id'),  # Store appointment ID
-                    appointment.get('student_id'),
-                    schedule_entry_id,
-                    appointment.get('address'),
-                    appointment_date,
-                    appointment.get('created_at'),
-                    appointment.get('image_path'),
-                ]
-                self.rows.append(row_data)
-
-            # Populate table with data
+                        faculty_name = self.get_faculty_name(faculty_id)
+                    except Exception as e:
+                        print(f"ERROR getting faculty name for appointment {appointment_id}: {e}")
+                        faculty_name = f"Faculty {faculty_id}"
+                    
+                    # Format time
+                    start_at = appointment.get('start_at', '')
+                    end_at = appointment.get('end_at', '')
+                    
+                    # Parse datetime strings with robust error handling
+                    time_display = ""
+                    date_display = ""
+                    
+                    if start_at:
+                        try:
+                            # Handle ISO format with timezone
+                            start_dt_str = start_at.replace('Z', '+00:00') if 'Z' in start_at else start_at
+                            if end_at:
+                                end_dt_str = end_at.replace('Z', '+00:00') if 'Z' in end_at else end_at
+                            
+                            # Parse with error handling
+                            try:
+                                start_dt = datetime.fromisoformat(start_dt_str)
+                                if end_at:
+                                    end_dt = datetime.fromisoformat(end_dt_str)
+                                    time_display = f"{start_dt.strftime('%I:%M %p')} - {end_dt.strftime('%I:%M %p')}"
+                                else:
+                                    time_display = start_dt.strftime('%I:%M %p')
+                                
+                                date_display = start_dt.strftime('%Y-%m-%d')
+                            except ValueError:
+                                # Fallback for different datetime formats
+                                time_display = f"{start_at} - {end_at}" if end_at else start_at
+                                date_display = "Unknown Date"
+                                
+                        except Exception as e:
+                            print(f"ERROR parsing datetime for appointment {appointment_id}: {e}")
+                            time_display = f"{start_at} - {end_at}" if end_at else start_at
+                            date_display = "Unknown Date"
+                    else:
+                        time_display = "Time not specified"
+                        date_display = "Date not specified"
+                    
+                    # Get status with default
+                    status = appointment.get('status', 'pending').upper()
+                    print(f"DEBUG: Appointment {appointment_id} status: {status}")
+                    
+                    # Get purpose/details
+                    purpose = appointment.get('reason', 'No details provided')
+                    if not purpose:
+                        purpose = appointment.get('purpose', 'No details provided')
+                    if not purpose:
+                        purpose = 'No details provided'
+                    
+                    # Get address/location
+                    address = appointment.get('address', 'Not specified')
+                    
+                    # Get created at
+                    created_at = appointment.get('created_at', '')
+                    if created_at:
+                        try:
+                            created_dt_str = created_at.replace('Z', '+00:00') if 'Z' in created_at else created_at
+                            created_dt = datetime.fromisoformat(created_dt_str)
+                            created_at_display = created_dt.strftime('%Y-%m-%d %I:%M %p')
+                        except:
+                            created_at_display = created_at
+                    else:
+                        created_at_display = "Unknown"
+                    
+                    # Create row data
+                    row_data = [
+                        f"{date_display} {time_display}",  # Time
+                        faculty_name,  # Faculty
+                        time_display,  # Time slot
+                        purpose,  # Purpose/details
+                        status,  # Status
+                        appointment_id,  # Appointment ID (hidden)
+                        student_id,  # Student ID (hidden)
+                        faculty_id,  # Faculty ID (hidden)
+                        address,  # Address (hidden)
+                        date_display,  # Date only (hidden)
+                        created_at_display,  # Created at (hidden)
+                        appointment.get('image_path', ''),  # Image path (hidden)
+                    ]
+                    self.rows.append(row_data)
+                    successful_appointments += 1
+                    print(f"DEBUG: Successfully processed appointment {appointment_id} with status {status}")
+                    
+                except Exception as e:
+                    failed_appointments += 1
+                    print(f"ERROR processing appointment {appointment.get('id', 'unknown')}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continue to next appointment instead of stopping
+            
+            print(f"DEBUG: Successfully processed {successful_appointments} appointments, failed: {failed_appointments}")
+            
+            # Always populate the table, even if some appointments failed
             self._populateAppointmentsTable()
+            
+            if failed_appointments > 0:
+                print(f"WARNING: {failed_appointments} appointments had errors but table was populated with valid data")
 
         except Exception as e:
-            print(f"Error loading appointments data: {e}")
+            print(f"ERROR: Error loading appointments data: {e}")
+            import traceback
+            traceback.print_exc()
             QMessageBox.warning(self, "Error", f"Failed to load appointments: {str(e)}")
-            # Fallback to sample data
-            self._populateAppointmentsTable()
+            # Show empty table with error message
+            self._showErrorMessage()
 
-    def create_sample_data(self):
-        """Create sample data for testing purposes"""
-        try:
-            # Create sample faculty if none exist
-            faculty_list = self.Appointment_crud.list_faculty()
-            if not faculty_list:
-                self.Appointment_crud.create_faculty("Dr. Smith", "smith@university.edu", "Computer Science")
-                self.Appointment_crud.create_faculty("Prof. Johnson", "johnson@university.edu", "Mathematics")
-                self.Appointment_crud.create_faculty("Dr. Brown", "brown@university.edu", "Physics")
+    def _showNoAppointmentsMessage(self):
+        """Show message when no appointments are found"""
+        # Clear existing table
+        self.tableWidget_8.setRowCount(0)
+        
+        # Add a single row with message
+        self.tableWidget_8.setRowCount(1)
+        message_item = QtWidgets.QTableWidgetItem("No appointments found. Click 'Browse Faculty' to schedule one.")
+        message_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.tableWidget_8.setSpan(0, 0, 1, 6)  # Span across all columns
+        self.tableWidget_8.setItem(0, 0, message_item)
+        
+        # Style the message
+        font = QtGui.QFont("Poppins", 12)
+        message_item.setFont(font)
+        message_item.setForeground(QtGui.QColor("#666666"))
 
-            # Create current student if not exists
-            students = self.Appointment_crud.list_students()
-            current_student_exists = any(student.get('email') == self.username for student in students)
-
-            if not current_student_exists:
-                self.Appointment_crud.create_student(
-                    name="John Doe",
-                    email=self.username,
-                    course="Computer Science",
-                    year_level="3rd Year"
-                )
-
-            # Create sample schedule blocks
-            faculty1_id = 1
-            time_slots = [
-                {"start": "09:00", "end": "09:30", "day": "Monday"},
-                {"start": "10:00", "end": "10:30", "day": "Tuesday"},
-                {"start": "11:00", "end": "11:30", "day": "Wednesday"},
-            ]
-            self.Appointment_crud.plot_schedule(faculty1_id, time_slots)
-
-            # Create sample appointments
-            student_id = self.get_current_student_id()
-            if student_id:
-                entries = self.Appointment_crud.entries_db.read_all()
-                if entries:
-                    self.Appointment_crud.create_appointment(
-                        student_id=student_id,
-                        schedule_entry_id=entries[0]['id'],
-                        details="Project consultation about final year project",
-                        address="Room 305, CS Building",
-                        date_str="2025-08-21",
-                        image_path="Uploads/project_docs.png"
-                    )
-                    self.Appointment_crud.create_appointment(
-                        student_id=student_id,
-                        schedule_entry_id=entries[1]['id'],
-                        details="Thesis proposal discussion and feedback",
-                        address="Room 205, Math Building",
-                        date_str="2025-08-22",
-                        image_path=""
-                    )
-                    appointments = self.Appointment_crud.appointments_db.read_all()
-                    if len(appointments) > 1:
-                        self.Appointment_crud.update_appointment(appointments[1]['id'], {
-                            "status": "approved",
-                            "updated_at": str(datetime.now())
-                        })
-                    if len(appointments) > 2:
-                        self.Appointment_crud.update_appointment(appointments[2]['id'], {
-                            "status": "canceled",
-                            "updated_at": str(datetime.now())
-                        })
-
-            # Reload data
-            self.load_appointments_data()
-            QMessageBox.information(self, "Success", "Sample data created successfully!")
-
-        except Exception as e:
-            print(f"Error creating sample data: {e}")
-            QMessageBox.warning(self, "Error", f"Failed to create sample data: {str(e)}")
-
-    def get_current_student_id(self):
-        """Get the current student's ID"""
-        students = self.Appointment_crud.list_students()
-        for student in students:
-            if student.get('email') == self.username or student.get('name') == self.username:
-                return student.get('id')
-        return None
-
-    def cancel_appointment(self, appointment_data):
-        """Cancel an appointment"""
-        try:
-            if appointment_data:
-                result = self.Appointment_crud.update_appointment(appointment_data[2], {
-                    "student_id": appointment_data[3],
-                    "appointment_schedule_entry_id": appointment_data[4],
-                    "additional_details": appointment_data[0],
-                    "address": appointment_data[5],
-                    "status": "canceled",
-                    "appointment_date": appointment_data[6],
-                    "created_at": appointment_data[7],
-                    "updated_at": str(datetime.now()),
-                    "image_path": appointment_data[8],
-                })
-                if result:
-                    print(f"Result: {result}")
-                    self.load_appointments_data()
-                    QMessageBox.information(self, "Success", "Appointment canceled successfully!")
-                    return True
-                else:
-                    QMessageBox.warning(self, "Error", "Failed to cancel appointment.")
-                    return False
-            return False
-        except Exception as e:
-            print(f"Error canceling appointment: {e}")
-            QMessageBox.warning(self, "Error", f"Failed to cancel appointment: {str(e)}")
-            return False
+    def _showErrorMessage(self):
+        """Show error message when loading fails"""
+        # Clear existing table
+        self.tableWidget_8.setRowCount(0)
+        
+        # Add a single row with error message
+        self.tableWidget_8.setRowCount(1)
+        error_item = QtWidgets.QTableWidgetItem("Error loading appointments. Please try again.")
+        error_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.tableWidget_8.setSpan(0, 0, 1, 6)  # Span across all columns
+        self.tableWidget_8.setItem(0, 0, error_item)
+        
+        # Style the message
+        font = QtGui.QFont("Poppins", 12)
+        error_item.setFont(font)
+        error_item.setForeground(QtGui.QColor("#EB5757"))
 
     def _setupAppointmentsPage(self):
         self.setObjectName("Appointments_2")
@@ -403,22 +405,26 @@ class StudentAppointmentPage_ui(QWidget):
 
     def _makeActionsCell(self, status, row_index):
         """Create action buttons for the Actions column"""
+        print(f"DEBUG: Creating action cell for row {row_index} with status: {status}")
+        
         container = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(5, 5, 5, 5)  # Add some margins for visibility
         layout.setSpacing(8)
 
         def make_btn(text, bg, enabled=True):
             btn = QtWidgets.QPushButton(text, parent=container)
             btn.setMinimumHeight(28)
+            btn.setMinimumWidth(80)  # Ensure minimum width
             btn.setEnabled(enabled)
             btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {bg};
                     color: white;
                     border-radius: 6px;
-                    padding: 4px 10px;
+                    padding: 6px 12px;
                     font: 10pt 'Poppins';
+                    min-width: 80px;
                 }}
                 QPushButton:disabled {{
                     background-color: #bdbdbd;
@@ -433,13 +439,27 @@ class StudentAppointmentPage_ui(QWidget):
         # Cancel button for pending and approved appointments
         if status in ["PENDING", "APPROVED"]:
             cancel_btn = make_btn("Cancel", "#EB5757")
-            cancel_btn.clicked.connect(lambda: self._openCancelDialog(row_index))
+            cancel_btn.clicked.connect(lambda checked, idx=row_index: self._openCancelDialog(idx))
             layout.addWidget(cancel_btn)
+            print(f"DEBUG: Added Cancel button for row {row_index} with status {status}")
+        else:
+            print(f"DEBUG: No Cancel button for row {row_index} - status is {status}")
+            # Add a placeholder widget to show something is there
+            placeholder = QtWidgets.QLabel("No actions")
+            placeholder.setStyleSheet("QLabel { color: #888; font: 9pt 'Poppins'; }")
+            layout.addWidget(placeholder)
 
         layout.addStretch(1)
+        
+        # Ensure container is properly sized
+        container.setMinimumHeight(40)
+        container.setMinimumWidth(120)
+        
         return container
 
     def _showPurposeDetailsDialog(self, purpose_text, appointment_data):
+        print(f"DEBUG: Showing purpose details dialog for appointment: {appointment_data}")
+        print(f"DEBUG: Purpose text: {purpose_text}")
         """Show an enhanced dialog with purpose details and appointment info"""
         dialog = QtWidgets.QDialog()
         dialog.setWindowTitle("Appointment Details")
@@ -554,20 +574,13 @@ class StudentAppointmentPage_ui(QWidget):
         info_layout.setVerticalSpacing(8)
         info_layout.setHorizontalSpacing(20)
         
-        # Extract student info
-        student_info = self.Appointment_crud.list_students()
-        student_data = next((s for s in student_info if s.get('id') == appointment_data[6]), {})
-        
         # Prepare appointment data
         appointment_info = [
-            ("Student:", student_data.get('name', 'Unknown')),
             ("Date & Time:", appointment_data[0]),
-            ("Duration:", "30 minutes"),  # Assuming default duration
+            ("Faculty:", appointment_data[1]),
+            ("Time Slot:", appointment_data[2]),
             ("Status:", appointment_data[4]),
-            ("Course:", student_data.get('course', 'Unknown')),
-            ("Year Level:", student_data.get('year_level', 'Unknown')),
-            ("Contact Email:", student_data.get('email', 'Unknown')),
-            ("Address:", appointment_data[8] or "Not specified"),
+            ("Address:", "https://meet.google.com/mat-ucvx-iak"),
             ("Created At:", appointment_data[10] or "Unknown"),
         ]
         
@@ -581,115 +594,6 @@ class StudentAppointmentPage_ui(QWidget):
             info_layout.addRow(label_widget, value_widget)
         
         content_layout.addWidget(info_group)
-        
-        # Image View Section
-        image_group = QtWidgets.QGroupBox("Supporting Documents")
-        image_group.setStyleSheet("""
-            QGroupBox {
-                font: 600 12pt 'Poppins';
-                color: #084924;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                margin-top: 12px;
-                padding-top: 12px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 12px;
-                padding: 0 8px 0 8px;
-            }
-        """)
-        
-        image_layout = QtWidgets.QVBoxLayout(image_group)
-        
-        # Image display area
-        self.image_display = QtWidgets.QLabel()
-        self.image_display.setFixedSize(400, 200)
-        self.image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        
-        # Load image if available
-        image_path = appointment_data[11]
-        print(appointment_data)
-        print(image_path)
-        if image_path and os.path.exists(image_path):
-            pixmap = QtGui.QPixmap(image_path)
-            if not pixmap.isNull():
-                scaled_pixmap = pixmap.scaled(400, 200, 
-                                            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                                            QtCore.Qt.TransformationMode.SmoothTransformation)
-                self.image_display.setPixmap(scaled_pixmap)
-                self.image_display.setStyleSheet("""
-                    QLabel {
-                        background-color: #f8f9fa;
-                        border: 2px solid #dee2e6;
-                        border-radius: 8px;
-                    }
-                """)
-            else:
-                self.image_display.setText("Invalid image")
-                self.image_display.setStyleSheet("""
-                    QLabel {
-                        background-color: #f8f9fa;
-                        border: 2px dashed #dee2e6;
-                        border-radius: 8px;
-                        color: #6c757d;
-                        font: 10pt 'Poppins';
-                    }
-                """)
-        else:
-            self.image_display.setText("No image available")
-            self.image_display.setStyleSheet("""
-                QLabel {
-                    background-color: #f8f9fa;
-                    border: 2px dashed #dee2e6;
-                    border-radius: 8px;
-                    color: #6c757d;
-                    font: 10pt 'Poppins';
-                }
-            """)
-        
-        # Image controls
-        image_controls_layout = QtWidgets.QHBoxLayout()
-        
-        upload_btn = QtWidgets.QPushButton("Upload Image")
-        upload_btn.setFixedSize(120, 35)
-        upload_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #084924;
-                color: white;
-                border-radius: 6px;
-                font: 600 10pt 'Poppins';
-            }
-            QPushButton:hover {
-                background-color: #0a5a2f;
-            }
-        """)
-        upload_btn.clicked.connect(lambda: self._uploadImage(appointment_data[5]))
-        
-        view_btn = QtWidgets.QPushButton("View Full Size")
-        view_btn.setFixedSize(120, 35)
-        view_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2F80ED;
-                color: white;
-                border-radius: 6px;
-                font: 600 10pt 'Poppins';
-            }
-            QPushButton:hover {
-                background-color: #2a75e0;
-            }
-        """)
-        view_btn.setEnabled(bool(image_path and os.path.exists(image_path)))
-        view_btn.clicked.connect(lambda: self._viewImageFullscreen(image_path))
-        
-        image_controls_layout.addWidget(upload_btn)
-        image_controls_layout.addWidget(view_btn)
-        image_controls_layout.addStretch(1)
-        
-        image_layout.addWidget(self.image_display)
-        image_layout.addLayout(image_controls_layout)
-        
-        content_layout.addWidget(image_group)
         
         # Purpose section
         purpose_group = QtWidgets.QGroupBox("Purpose Details")
@@ -794,12 +698,14 @@ class StudentAppointmentPage_ui(QWidget):
                 if selected_files:
                     image_path = selected_files[0]
                     # Update appointment with new image path
-                    self.Appointment_crud.update_appointment(appointment_id, {
+                    result = self.appointment_crud.update_appointment(appointment_id, {
                         "image_path": image_path,
-                        "updated_at": str(datetime.now())
                     })
-                    self.load_appointments_data()
-                    QMessageBox.information(self, "Success", "Image uploaded successfully!")
+                    if result:
+                        self.load_appointments_data()
+                        QMessageBox.information(self, "Success", "Image uploaded successfully!")
+                    else:
+                        QMessageBox.warning(self, "Error", "Failed to upload image")
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to upload image: {str(e)}")
 
@@ -868,7 +774,9 @@ class StudentAppointmentPage_ui(QWidget):
     def _openCancelDialog(self, row_index):
         """Open confirmation dialog for canceling an appointment"""
         if 0 <= row_index < len(self.rows):
-            appointment_data = self.rows[row_index][3:]
+            appointment_data = self.rows[row_index]
+            appointment_id = appointment_data[5]  # Get appointment ID
+            
             dlg = QtWidgets.QDialog(self)
             dlg.setWindowTitle("Cancel Appointment")
             dlg.setModal(True)
@@ -878,8 +786,9 @@ class StudentAppointmentPage_ui(QWidget):
             layout.setContentsMargins(24, 24, 24, 24)
             layout.setSpacing(20)
 
-            title = QtWidgets.QLabel("Are you sure you want to cancel this \nappointment?")
+            title = QtWidgets.QLabel("Are you sure you want to cancel this appointment?")
             title.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+            title.setWordWrap(True)
             title.setStyleSheet("QLabel { color: #2b2b2b; font: 600 12pt 'Poppins'; }")
             layout.addWidget(title)
 
@@ -913,7 +822,7 @@ class StudentAppointmentPage_ui(QWidget):
                 }
             """)
             btn_cancel.clicked.connect(dlg.reject)
-            btn_confirm.clicked.connect(lambda: self._handleCancelAppointment(dlg, appointment_data))
+            btn_confirm.clicked.connect(lambda: self._handleCancelAppointment(dlg, appointment_id, row_index))
             btn_layout.addWidget(btn_cancel)
             btn_layout.addStretch(1)
             btn_layout.addWidget(btn_confirm)
@@ -921,15 +830,47 @@ class StudentAppointmentPage_ui(QWidget):
 
             dlg.exec()
 
-    def _handleCancelAppointment(self, dialog, appointment_data):
+    def _handleCancelAppointment(self, dialog, appointment_id, row_index):
         """Handle appointment cancellation"""
-        if self.cancel_appointment(appointment_data):
-            dialog.accept()
-        else:
+        try:
+            print("DEBUG: Canceling appointment ID:", appointment_id)
+            # Try different case variations for status
+            result = self.appointment_crud.update_appointment(appointment_id, {
+                "status": "CANCELED",
+            })
+            
+            if not result:
+                # Try lowercase
+                result = self.appointment_crud.update_appointment(appointment_id, {
+                    "status": "canceled",
+                })
+            
+            if result:
+                QMessageBox.information(self, "Success", "Appointment canceled successfully!")
+                
+                # Update local data immediately
+                if 0 <= row_index < len(self.rows):
+                    self.rows[row_index][4] = "CANCELED"  # Update status
+                
+                # Refresh the table view
+                self._populateAppointmentsTable()
+                
+                # Also reload from server after a short delay
+                QtCore.QTimer.singleShot(500, self.load_appointments_data)
+                
+                dialog.accept()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to cancel appointment. Please try again.")
+                dialog.reject()
+        except Exception as e:
+            print(f"ERROR in _handleCancelAppointment: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to cancel appointment: {str(e)}")
             dialog.reject()
 
     def _populateAppointmentsTable(self):
         """Update the table with appointment data"""
+        print(f"DEBUG: Populating table with {len(self.rows)} appointments")
+        
         status_colors = {
             "PENDING": "#F2994A",
             "RESCHEDULED": "#2F80ED",
@@ -939,16 +880,47 @@ class StudentAppointmentPage_ui(QWidget):
             "COMPLETED": "#219653"
         }
 
+        if not self.rows:
+            self._showNoAppointmentsMessage()
+            return
+            
+        # Clear the table first
+        self.tableWidget_8.clearContents()
+        self.tableWidget_8.setRowCount(0)
         self.tableWidget_8.setRowCount(len(self.rows))
+        
         for r, row_data in enumerate(self.rows):
-            time_text, faculty, slot, purpose, status, appointment_id, student_id, schedule_entry, address, appointment_date, created_at, image_path = row_data
-            self.tableWidget_8.setItem(r, 0, QtWidgets.QTableWidgetItem(time_text))
-            self.tableWidget_8.setItem(r, 1, QtWidgets.QTableWidgetItem(faculty))
-            self.tableWidget_8.setItem(r, 2, QtWidgets.QTableWidgetItem(slot))
-            self.tableWidget_8.setCellWidget(r, 3, self._makePurposeViewCell(purpose, row_data))
-            self.tableWidget_8.setItem(r, 4, self._makeStatusItem(status, status_colors.get(status, "#333333")))
-            self.tableWidget_8.setCellWidget(r, 5, self._makeActionsCell(status, r))
-            self.tableWidget_8.setRowHeight(r, 60)
+            try:
+                time_text, faculty, slot, purpose, status, appointment_id, student_id, schedule_entry, address, appointment_date, created_at, image_path = row_data
+                
+                print(f"DEBUG: Processing row {r}: Appointment ID {appointment_id}, Status: {status}")
+                
+                # Set basic cell data
+                self.tableWidget_8.setItem(r, 0, QtWidgets.QTableWidgetItem(time_text))
+                self.tableWidget_8.setItem(r, 1, QtWidgets.QTableWidgetItem(faculty))
+                self.tableWidget_8.setItem(r, 2, QtWidgets.QTableWidgetItem(slot))
+                
+                # Create and set purpose view cell
+                purpose_cell = self._makePurposeViewCell(purpose, row_data)
+                self.tableWidget_8.setCellWidget(r, 3, purpose_cell)
+                
+                # Create and set status item
+                status_item = self._makeStatusItem(status, status_colors.get(status, "#333333"))
+                self.tableWidget_8.setItem(r, 4, status_item)
+                
+                # Create and set actions cell
+                actions_cell = self._makeActionsCell(status, r)
+                self.tableWidget_8.setCellWidget(r, 5, actions_cell)
+                
+                # Set row height
+                self.tableWidget_8.setRowHeight(r, 60)
+                
+                print(f"DEBUG: Successfully populated row {r}")
+                
+            except Exception as e:
+                print(f"ERROR populating row {r}: {e}")
+                import traceback
+                traceback.print_exc()
 
     def retranslateUi(self):
         """Set UI text"""
@@ -964,21 +936,8 @@ class StudentAppointmentPage_ui(QWidget):
         """Refresh the appointments data - called when returning from request page"""
         print("Refreshing appointments data...")
         self.load_appointments_data()
-        QMessageBox.information(self, "Success", "Appointments data refreshed!")
 
     def showEvent(self, event):
         """Override showEvent to refresh data when the page is shown"""
         super().showEvent(event)
         self.load_appointments_data()
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    student_appointment = StudentAppointmentPage_ui(
-        "john.doe@student.edu",
-        ["student"],
-        "student",
-        "sample_token"
-    )
-    student_appointment.show()
-    sys.exit(app.exec())

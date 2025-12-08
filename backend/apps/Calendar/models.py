@@ -26,7 +26,6 @@ class CalendarEntry(models.Model):
 
     is_public = models.BooleanField(default=True)
     tags = models.JSONField(default=list, blank=True)
-
     # Org events only
     org_status = models.CharField(max_length=10, blank=True)
 
@@ -74,7 +73,6 @@ class CalendarLogs(models.Model):
 
     def __str__(self):
         return f"Log for {self.event.title} at {self.timestamp}"
-
 
 class Holiday(models.Model):
     name = models.CharField(max_length=100)

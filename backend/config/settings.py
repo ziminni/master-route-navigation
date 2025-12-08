@@ -177,6 +177,11 @@ INSTALLED_APPS = [
     # CORS Headers - tried to fix backend conn, should work if front and back runs on different ports
     'corsheaders',
     'apps.Users.apps.UsersConfig',
+
+    # 'apps.Academics.apps.AcademicsConfig',    
+    # 'apps.Appointments.apps.AppointmentsConfig', 
+    # 'apps.Calendar.apps.CalendarConfig',
+    # 'apps.Documents.apps.DocumentsConfig'
     'apps.Documents.apps.DocumentsConfig',
     'apps.Organizations.apps.OrganizationsConfig',
     "apps.Announcements",
@@ -184,7 +189,10 @@ INSTALLED_APPS = [
     'apps.Academics.apps.AcademicsConfig',
     'apps.Feedback.apps.FeedbackConfig',
     'apps.House.apps.HouseConfig',
+
+    'apps.Messaging.apps.MessagingConfig',
     "apps.Showcase.apps.ShowcaseConfig",
+    "apps.Appointments.apps.AppointmentsConfig",
     "apps.Progress.apps.ProgressConfig",
 ]
 
@@ -218,7 +226,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
+# Channels: in‑memory channel layer for dev
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -329,3 +344,4 @@ EMAIL_HOST_USER = 'janmarcpulmones24@gmail.com'      # your@gmail.com
 EMAIL_HOST_PASSWORD = 'sopg utsv eizo jocd'#  16-char app pw
 DEFAULT_FROM_EMAIL = f"CISC Hub <{EMAIL_HOST_USER}>"
 EMAIL_TIMEOUT = 10
+

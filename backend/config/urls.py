@@ -28,8 +28,8 @@ urlpatterns = [
     path('api/users/', include('apps.Users.urls')),
     # config/urls.py (correct for your layout)
     path("api/calendar/", include("apps.Calendar.urls")),
-
-
+    path('api/appointments/', include('apps.Appointments.urls')),
+    path('api/academics/', include('apps.Academics.urls')),
     # Documents
     path('api/documents/', include('apps.Documents.urls')),
 
@@ -39,6 +39,8 @@ urlpatterns = [
         # House and Feedback
     path('api/feedback/', include('apps.Feedback.urls')),
     path('', include('apps.House.urls')),
+    path('api/users/', include('apps.Users.urls')),
+    path("api/", include("apps.Messaging.urls")),
 
     path('api/showcase/', include('apps.Showcase.urls')),
     path("api/showcase/", include("apps.Showcase.api_urls")),

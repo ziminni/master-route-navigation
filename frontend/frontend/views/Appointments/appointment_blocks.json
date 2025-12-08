@@ -1,0 +1,12 @@
+[
+  {
+    "faculty_id": 11,
+    "is_available": true,
+    "id": 1
+  },
+  {
+    "faculty_id": 1,
+    "is_available": true,
+    "id": 2
+  }
+]
