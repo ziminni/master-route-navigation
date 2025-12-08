@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'org_main.ui'
+# Form implementation generated from reading ui file 'ui/Organization/org_main.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -7,7 +7,7 @@
 
 
 from PyQt6 import QtCore, QtGui, QtWidgets
-from . import resources_rc
+
 
 class Ui_Widget(object):
     def setupUi(self, Widget):
@@ -56,23 +56,6 @@ class Ui_Widget(object):
         self.horizontalLayout_2.addWidget(self.header_label)
         spacerItem = QtWidgets.QSpacerItem(332, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem)
-        self.comboBox = QtWidgets.QComboBox(parent=self.landing_page)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(10)
-        self.comboBox.setFont(font)
-        self.comboBox.setStyleSheet("QComboBox {\n"
-"    border: none;\n"
-"    border-radius: 8px;\n"
-"    padding: 5px;\n"
-"    background-color: #084924;\n"
-"    color: white;\n"
-"    padding-left: 10px;\n"
-"};")
-        self.comboBox.setObjectName("comboBox")
-        self.comboBox.addItem("")
-        self.comboBox.addItem("")
-        self.horizontalLayout_2.addWidget(self.comboBox)
         self.frame = QtWidgets.QFrame(parent=self.landing_page)
         self.frame.setMinimumSize(QtCore.QSize(0, 0))
         self.frame.setMaximumSize(QtCore.QSize(16777215, 40))
@@ -506,6 +489,7 @@ class Ui_Widget(object):
         self.line_6.setObjectName("line_6")
         self.verticalLayout.addWidget(self.line_6)
         self.org_type = QtWidgets.QLabel(parent=self.scroll_area_contents_2)
+        self.org_type.setVisible(True)
         self.org_type.setMaximumSize(QtCore.QSize(300, 16777215))
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -965,15 +949,14 @@ class Ui_Widget(object):
         _translate = QtCore.QCoreApplication.translate
         Widget.setWindowTitle(_translate("Widget", "Widget"))
         self.header_label.setText(_translate("Widget", "Organization"))
-        self.comboBox.setItemText(0, _translate("Widget", "Organizations"))
-        self.comboBox.setItemText(1, _translate("Widget", "Branches"))
+        self.search_line.setPlaceholderText(_translate("Widget", "Search..."))
         self.search_btn.setText(_translate("Widget", "..."))
         self.search_btn.setShortcut(_translate("Widget", "Return, Enter"))
         self.joined_label.setText(_translate("Widget", "Joined Organization(s)"))
         self.college_label.setText(_translate("Widget", "College Organization(s)"))
         self.header_label_2.setText(_translate("Widget", "Organization"))
         self.back_btn.setShortcut(_translate("Widget", "Esc"))
-        self.header.setText(_translate("Widget", "Organization Details"))
+        self.header.setText(_translate("Widget", "Details"))
         self.status_btn.setText(_translate("Widget", "Active"))
         self.logo.setText(_translate("Widget", "Logo"))
         self.org_name.setText(_translate("Widget", "OrgName"))
@@ -984,13 +967,24 @@ class Ui_Widget(object):
         self.obj_label.setText(_translate("Widget", "ObjectivesContent"))
         self.branch_btn.setText(_translate("Widget", "Branches"))
         self.obj_label_2.setText(_translate("Widget", "BranchList"))
-        self.header_2.setText(_translate("Widget", "Organization Officers"))
+        self.header_2.setText(_translate("Widget", "Officers"))
         self.view_members_btn.setText(_translate("Widget", "View Members"))
         self.label.setText(_translate("Widget", "Semester"))
         self.officer_history_dp.setItemText(0, _translate("Widget", "Officer History"))
         self.header_3.setText(_translate("Widget", "Upcoming Events"))
         self.header_label_3.setText(_translate("Widget", "Organization"))
+        self.search_line_3.setPlaceholderText(_translate("Widget", "Search..."))
         self.search_btn_3.setText(_translate("Widget", "..."))
         self.search_btn_3.setShortcut(_translate("Widget", "Return, Enter"))
         self.back_btn_member.setShortcut(_translate("Widget", "Esc"))
         self.label_2.setText(_translate("Widget", "Member List"))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    Widget = QtWidgets.QWidget()
+    ui = Ui_Widget()
+    ui.setupUi(Widget)
+    Widget.show()
+    sys.exit(app.exec())

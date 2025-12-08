@@ -36,6 +36,9 @@ class Ui_generate_reports_widget(object):
         font.setPointSize(30)
         font.setKerning(True)
         self.header_laberl_reports.setFont(font)
+        self.header_laberl_reports.setStyleSheet("QLabel {\n"
+"    color: #084924;\n"
+"};")
         self.header_laberl_reports.setObjectName("header_laberl_reports")
         self.generate_reports_header.addWidget(self.header_laberl_reports)
         spacerItem = QtWidgets.QSpacerItem(332, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
@@ -54,10 +57,12 @@ class Ui_generate_reports_widget(object):
         self.verticalLayout_4.addLayout(self.generate_reports_header)
         self.main_container = QtWidgets.QFrame(parent=generate_reports_widget)
         self.main_container.setStyleSheet("QFrame {\n"
+"    background-color: white;\n"
+"    border-radius: 15px;\n"
 "}\n"
 "\n"
 "#main_container {\n"
-"    background-color: white;\n"
+"    border: 1px solid #ccc;\n"
 "    border-radius: 20px;\n"
 "};")
         self.main_container.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
@@ -111,12 +116,11 @@ class Ui_generate_reports_widget(object):
         font = QtGui.QFont()
         font.setFamily("Arial")
         self.select_org_dd.setFont(font)
+        self.select_org_dd.setCurrentText("")
         self.select_org_dd.setObjectName("select_org_dd")
-        self.select_org_dd.addItem("")
         self.horizontalLayout.addWidget(self.select_org_dd, 0, QtCore.Qt.AlignmentFlag.AlignTop)
         self.report_type_dd = QtWidgets.QComboBox(parent=self.first_row_dropdown)
         self.report_type_dd.setObjectName("report_type_dd")
-        self.report_type_dd.addItem("")
         self.report_type_dd.addItem("")
         self.report_type_dd.addItem("")
         self.report_type_dd.addItem("")
@@ -202,6 +206,11 @@ class Ui_generate_reports_widget(object):
         self.preview_label.setObjectName("preview_label")
         self.verticalLayout_2.addWidget(self.preview_label)
         self.preview_frame = QtWidgets.QFrame(parent=self.preview_container)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.preview_frame.sizePolicy().hasHeightForWidth())
+        self.preview_frame.setSizePolicy(sizePolicy)
         self.preview_frame.setMinimumSize(QtCore.QSize(500, 550))
         self.preview_frame.setStyleSheet("QFrame {\n"
 "    background-color: white;\n"
@@ -225,16 +234,23 @@ class Ui_generate_reports_widget(object):
         self.header_laberl_reports.setText(_translate("generate_reports_widget", "Generate Reports"))
         self.back_btn_reports.setShortcut(_translate("generate_reports_widget", "Esc"))
         self.options_laberl.setText(_translate("generate_reports_widget", "Options"))
-        self.select_org_dd.setCurrentText(_translate("generate_reports_widget", "Select Organizaiton"))
-        self.select_org_dd.setItemText(0, _translate("generate_reports_widget", "Select Organizaiton"))
-        self.report_type_dd.setCurrentText(_translate("generate_reports_widget", "Event History  (Default)"))
-        self.report_type_dd.setItemText(0, _translate("generate_reports_widget", "Event History  (Default)"))
-        self.report_type_dd.setItemText(1, _translate("generate_reports_widget", "Membership"))
-        self.report_type_dd.setItemText(2, _translate("generate_reports_widget", "Officer List"))
-        self.report_type_dd.setItemText(3, _translate("generate_reports_widget", "Summary"))
+        self.report_type_dd.setCurrentText(_translate("generate_reports_widget", "Membership"))
+        self.report_type_dd.setItemText(0, _translate("generate_reports_widget", "Membership"))
+        self.report_type_dd.setItemText(1, _translate("generate_reports_widget", "Officer List"))
+        self.report_type_dd.setItemText(2, _translate("generate_reports_widget", "Summary"))
         self.pushButton.setText(_translate("generate_reports_widget", "Start Date"))
         self.pushButton_2.setText(_translate("generate_reports_widget", "End Date"))
         self.generate_report_btn.setText(_translate("generate_reports_widget", "Generate Report"))
         self.download_pdf_btn.setText(_translate("generate_reports_widget", "Download PDF"))
         self.download_excel_btn.setText(_translate("generate_reports_widget", "Download Excel"))
         self.preview_label.setText(_translate("generate_reports_widget", "Report Preview"))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    generate_reports_widget = QtWidgets.QWidget()
+    ui = Ui_generate_reports_widget()
+    ui.setupUi(generate_reports_widget)
+    generate_reports_widget.show()
+    sys.exit(app.exec())

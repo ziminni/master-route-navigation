@@ -10,6 +10,7 @@ from .category_dialog import CategoryDialog
 from .approval_dialog import ApprovalDialog
 from .download_dialog import DownloadDialog
 from .move_dialog import MoveDialog
+from .move_folder_dialog import MoveFolderDialog
 from .rename_dialog import RenameDialog
 
-__all__ = ['UploadDialog', 'FolderDialog', 'CategoryDialog', 'ApprovalDialog', 'DownloadDialog', 'MoveDialog', 'RenameDialog']
+__all__ = ['UploadDialog', 'FolderDialog', 'CategoryDialog', 'ApprovalDialog', 'DownloadDialog', 'MoveDialog', 'MoveFolderDialog', 'RenameDialog']
