@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UserLoginAPIView, PromoteToOfficerAPIView, DemoteOfficerAPIView, UserViewSet, DemoteRegistrarAPIView, PromoteRegistrarAPIView, MeView, EducationViewSet, ExperienceViewSet, SkillViewSet, InterestViewSet
+from .views import UserLoginAPIView, PromoteToOfficerAPIView, DemoteOfficerAPIView, UserViewSet, DemoteRegistrarAPIView, PromoteRegistrarAPIView, MeView, UserListView, EducationViewSet, ExperienceViewSet, SkillViewSet, InterestViewSet
 from .views import PasswordOTPRequestView, PasswordOTPVerifyView, PasswordResetConfirmView
 
 router = DefaultRouter()
@@ -12,6 +12,7 @@ router.register(r"", UserViewSet, basename="user")
 
 urlpatterns = [
     # Points to UserLoginAPI, to handle authentication
+    path("list/", UserListView.as_view(), name="users-list"),
     path("me/", MeView.as_view(), name="users-me"),
     path('login/api/', UserLoginAPIView.as_view(), name='user-login'),
     path("roles/org-officer/<int:user_id>/promote/", PromoteToOfficerAPIView.as_view()),

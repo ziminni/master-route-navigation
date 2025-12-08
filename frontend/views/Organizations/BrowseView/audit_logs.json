@@ -1,0 +1,634 @@
+[
+    {
+        "timestamp": "2025-10-26T21:04:16.793260",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Yuri Salise",
+        "details": "Officer details updated. Set position to: Member."
+    },
+    {
+        "timestamp": "2025-10-28T15:50:17.917509",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Officer details updated. Set position to: Member."
+    },
+    {
+        "timestamp": "2025-10-28T15:50:24.094759",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position changed from 'Member' to 'Vice - External Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T15:50:30.506371",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Officer details updated. Set position to: Treasurer."
+    },
+    {
+        "timestamp": "2025-10-28T15:50:39.301096",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Officer details updated. Set position to: Secretary."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:05.753629",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Officer details updated. Set position to: Treasurer."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:08.842544",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Officer details updated. Set position to: Member."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:16.866274",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position changed from 'Member' to 'Treasurer'."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:23.635467",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position changed from 'Treasurer' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:27.422766",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position changed from 'Chairperson' to 'Treasurer'."
+    },
+    {
+        "timestamp": "2025-10-28T15:59:48.692224",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Officer details updated. Set position to: Chairperson."
+    },
+    {
+        "timestamp": "2025-10-28T16:05:10.273291",
+        "actor": "Kim",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Officer details updated. Set position to: Treasurer."
+    },
+    {
+        "timestamp": "2025-10-28T16:08:45.208480",
+        "actor": "admin",
+        "action": "ACCEPT_APPLICANT",
+        "organization": "CISCO",
+        "subject": "Marcus",
+        "details": null
+    },
+    {
+        "timestamp": "2025-10-28T16:08:53.650506",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Marcus",
+        "details": "Position changed from 'Member' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T16:09:02.512911",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Marcus",
+        "details": "Position changed from 'Chairperson' to 'Vice - External Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T18:26:07.297681",
+        "actor": "Kim",
+        "action": "ACCEPT_APPLICANT",
+        "organization": "Robotics Club",
+        "subject": "Marcus",
+        "details": null
+    },
+    {
+        "timestamp": "2025-10-28T18:27:33.982700",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "Robotics Club",
+        "subject": "Marcus",
+        "details": "Position changed from 'Member' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T19:54:14.484022",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "Robotics Club",
+        "subject": "Marcus",
+        "details": "Officer details updated. Set position to: Chairperson."
+    },
+    {
+        "timestamp": "2025-10-28T19:54:26.423094",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "Robotics Club",
+        "subject": "Marcus",
+        "details": "Officer details updated. Set position to: Chairperson."
+    },
+    {
+        "timestamp": "2025-10-28T19:55:06.409354",
+        "actor": "admin",
+        "action": "KICK_MEMBER",
+        "organization": "Robotics Club",
+        "subject": "Marcus",
+        "details": "User was an officer: True"
+    },
+    {
+        "timestamp": "2025-10-28T19:55:08.683856",
+        "actor": "admin",
+        "action": "KICK_MEMBER",
+        "organization": "Robotics Club",
+        "subject": "Ruben, Stephen Joseph",
+        "details": "User was an officer: True"
+    },
+    {
+        "timestamp": "2025-10-28T19:57:07.476821",
+        "actor": "Kim",
+        "action": "ACCEPT_APPLICANT",
+        "organization": "Just Bingo Plus my Location Sir",
+        "subject": "Marcus",
+        "details": null
+    },
+    {
+        "timestamp": "2025-10-28T19:57:17.174228",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "Just Bingo Plus my Location Sir",
+        "subject": "Marcus",
+        "details": "Position changed from 'Member' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-10-28T20:01:30.695231",
+        "actor": "Kim",
+        "action": "ACCEPT_APPLICANT",
+        "organization": "Chess Club",
+        "subject": "Marcus",
+        "details": null
+    },
+    {
+        "timestamp": "2025-10-28T20:01:44.015082",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "Chess Club",
+        "subject": "Marcus",
+        "details": "Position changed from 'Member' to 'Treasurer'."
+    },
+    {
+        "timestamp": "2025-11-27T13:04:25.766152",
+        "actor": "Kim",
+        "action": "EDIT_ORGANIZATION",
+        "organization": "Mechanics Branch",
+        "subject": "Mechanics Branch",
+        "details": "Org details updated."
+    },
+    {
+        "timestamp": "2025-11-27T14:05:30.994731",
+        "actor": "admin",
+        "action": "ARCHIVE_ORG",
+        "organization": "Chess Club",
+        "subject": "Chess Club",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T14:05:37.707213",
+        "actor": "admin",
+        "action": "ARCHIVE_ORG",
+        "organization": "CISCO",
+        "subject": "CISCO",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T16:40:59.455976",
+        "actor": "admin",
+        "action": "ARCHIVE_BRANCH",
+        "organization": "CISCO",
+        "subject": "IT Branch",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T16:41:04.841168",
+        "actor": "admin",
+        "action": "ARCHIVE_BRANCH",
+        "organization": "CISCO",
+        "subject": "CS Branch",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T16:41:15.385968",
+        "actor": "admin",
+        "action": "ARCHIVE_BRANCH",
+        "organization": "Robotics Club",
+        "subject": "Programming Branch",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T16:41:23.677607",
+        "actor": "admin",
+        "action": "ARCHIVE_BRANCH",
+        "organization": "Chess Club",
+        "subject": "Beginner Branch",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-27T17:02:00.995530",
+        "actor": "admin",
+        "action": "RESTORE_ORG",
+        "organization": "CISCO",
+        "subject": "CISCO",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-29T23:39:17.502654",
+        "actor": "admin",
+        "action": "RESTORE_BRANCH",
+        "organization": "CISCO",
+        "subject": "IT Branch",
+        "details": null
+    },
+    {
+        "timestamp": "2025-11-29T23:58:46.574221",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Officer details updated. Position changed from 'Vice - Internal Chairperson' to 'Member'."
+    },
+    {
+        "timestamp": "2025-11-30T00:11:07.584364",
+        "actor": "Kim",
+        "action": "ASSIGN_ADVISER",
+        "organization": "CISCO",
+        "subject": "Prof. Maria Santos",
+        "details": "Adviser changed from 'Kim' to 'Prof. Maria Santos'"
+    },
+    {
+        "timestamp": "2025-11-30T00:58:25.152918",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "admin",
+        "details": "Position changed from 'Member' to 'Member'."
+    },
+    {
+        "timestamp": "2025-11-30T00:58:32.697029",
+        "actor": "Kim",
+        "action": "KICK_MEMBER",
+        "organization": "CISCO",
+        "subject": "admin",
+        "details": "User was an officer: True"
+    },
+    {
+        "timestamp": "2025-11-30T00:58:36.649737",
+        "actor": "Kim",
+        "action": "KICK_MEMBER",
+        "organization": "CISCO",
+        "subject": "Yuri Salise",
+        "details": "User was an officer: False"
+    },
+    {
+        "timestamp": "2025-11-30T18:07:32.580149",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Officer details updated. Position changed from 'Vice - Internal Chairperson' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-11-30T18:07:32.722962",
+        "actor": "admin",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T18:21:34.931945",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Officer details updated. Position changed from 'Vice - Internal Chairperson' to 'Chairperson'."
+    },
+    {
+        "timestamp": "2025-11-30T18:21:42.979737",
+        "actor": "admin",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Officer details updated. Position changed from 'Chairperson' to 'Vice - Internal Chairperson'."
+    },
+    {
+        "timestamp": "2025-11-30T18:59:55.261609",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T20:00:29.383203",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T20:00:46.568335",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T20:17:34.034977",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T20:35:00.354865",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T20:59:37.339342",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T21:15:30.343887",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T21:15:47.614677",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:01.606484",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:11.327316",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:18.882307",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:30.784710",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:37.382253",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T22:05:46.801027",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position \u2192 Treasurer"
+    },
+    {
+        "timestamp": "2025-11-30T22:17:18.988371",
+        "actor": "Kim",
+        "action": "EDIT_MEMBER",
+        "organization": "CISCO",
+        "subject": "Yuri Salise",
+        "details": "Position changed from 'Member' to 'Secretary'."
+    },
+    {
+        "timestamp": "2025-11-30T23:12:01.638412",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Member"
+    },
+    {
+        "timestamp": "2025-11-30T23:12:14.065870",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-11-30T23:39:25.829490",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Pescasio, Jacob Hermon",
+        "details": "Position \u2192 Member"
+    },
+    {
+        "timestamp": "2025-11-30T23:39:43.662610",
+        "actor": "Marcus",
+        "action": "UPDATE_OFFICER",
+        "organization": "CISCO",
+        "subject": "Unajan, Vianca Louise",
+        "details": "Position \u2192 Member"
+    },
+    {
+        "timestamp": "2025-12-01T00:03:38.457093",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Yuri Salise",
+        "details": "Position \u2192 Chairperson"
+    },
+    {
+        "timestamp": "2025-12-01T00:03:40.698821",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position \u2192 Vice - Internal Chairperson"
+    },
+    {
+        "timestamp": "2025-12-01T00:09:02.951717",
+        "actor": "Marcus",
+        "action": "APPROVE_OFFICER_CHANGE",
+        "organization": "CISCO",
+        "subject": "Okit, Maki Auri",
+        "details": "Position \u2192 Member"
+    },
+    {
+        "timestamp": "2025-12-01T01:58:19.113176",
+        "actor": "admin",
+        "action": "EDIT_ORGANIZATION",
+        "organization": "org name",
+        "subject": "org name",
+        "details": "Org details updated."
+    },
+    {
+        "timestamp": "2025-12-01T19:59:57.719672",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Member' to 'Vice President - Internal'."
+    },
+    {
+        "timestamp": "2025-12-01T20:21:11.335154",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Member' to 'Vice President - Internal'."
+    },
+    {
+        "timestamp": "2025-12-01T21:08:12.541048",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Vice President - Internal' to 'President'."
+    },
+    {
+        "timestamp": "2025-12-01T21:08:43.469353",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'President' to 'Secretary'."
+    },
+    {
+        "timestamp": "2025-12-01T21:12:30.233620",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Secretary' to 'President'."
+    },
+    {
+        "timestamp": "2025-12-01T21:15:59.322029",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'President' to 'Secretary'."
+    },
+    {
+        "timestamp": "2025-12-01T21:18:49.687372",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Member' to 'President'."
+    },
+    {
+        "timestamp": "2025-12-01T21:19:07.085417",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'President' to 'Vice President - Internal'."
+    },
+    {
+        "timestamp": "2025-12-01T21:24:11.742848",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Vice President - Internal' to 'Treasurer'."
+    },
+    {
+        "timestamp": "2025-12-01T21:27:39.149621",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Treasurer' to 'President'."
+    },
+    {
+        "timestamp": "2025-12-01T21:33:46.289438",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Member' to 'President'."
+    },
+    {
+        "timestamp": "2025-12-02T22:25:21.446113",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'President' to 'Secretary'."
+    },
+    {
+        "timestamp": "2025-12-02T23:25:25.950725",
+        "actor": "admin",
+        "action": "EDIT_MEMBER",
+        "organization": "nurse",
+        "subject": "Marcus Mercer",
+        "details": "Position changed from 'Member' to 'President'."
+    }
+]

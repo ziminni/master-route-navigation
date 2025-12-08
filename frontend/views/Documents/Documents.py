@@ -1,7 +1,8 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt6.QtGui import QFont
 from .Users.Admin.AdminDash import AdminDash
-from .Users.Non_Admin.Dash import UserDash
+from .Users.Student.StudentDash import StudentDash
+from .Users.Faculty.FacultyDash import FacultyDash
 from .utils.role_utils import RoleRouter
 from .Mock.initializer import initialize_documents_data
 
@@ -33,9 +34,9 @@ class DocumentsView(QWidget):
         dashboard = RoleRouter.route_to_dashboard(
             username, roles, primary_role, token,
             admin_dashboard=AdminDash,
-            faculty_dashboard=UserDash,
-            staff_dashboard=UserDash,
-            student_dashboard=UserDash,
+            faculty_dashboard=FacultyDash,
+            staff_dashboard=None,
+            student_dashboard=StudentDash,
             default_dashboard=self._create_default_dashboard,
         )
         

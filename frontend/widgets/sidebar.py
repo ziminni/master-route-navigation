@@ -6,7 +6,7 @@ from utils.db_helper import get_all_parents, get_main_by_parent, get_modular_by_
 
 class CollapsibleSection(QFrame):
     def __init__(self, icon, text, router, user_role, parent_sidebar=None,
-                 sub_indent=20, sub_spacing=2, sub_button_padding=8):
+                sub_indent=20, sub_spacing=2, sub_button_padding=8):
         super().__init__()
         self.router = router
         self.user_role = user_role
@@ -52,7 +52,7 @@ class CollapsibleSection(QFrame):
                 for main_id, main_name, _, access, _ in mains:
                     # Check if user_role is in access (string or list)
                     if (isinstance(access, str) and (access == self.user_role or self.user_role == "super_admin")) or \
-                       (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
+                        (isinstance(access, list) and (self.user_role in access or self.user_role == "super_admin")):
                         print(f"CollapsibleSection: Adding main '{main_name}' (ID: {main_id}) to section '{text}'")
 
                         # Container for the sub-item row

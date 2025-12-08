@@ -43,6 +43,7 @@ class ClassroomClassworks(QWidget):
         self.ui = Ui_ClassroomClassworksContent()
         self.ui.setupUi(self)
         self.cls = cls
+        print(f"[ClassroomClassworks] Initialized with cls: id={cls.get('id') if cls else None}, title={cls.get('title') if cls else None}")
         self.post_controller = post_controller
         self.post_controller.set_class(cls["id"])
         self.topic_widgets = []
@@ -343,6 +344,7 @@ class ClassroomClassworks(QWidget):
 
     def navigate_to_create_form(self, form_type):
         """Navigate to the appropriate creation form"""
+        print(f"[ClassroomClassworks] Emitting navigate_to_form: form_type={form_type}, cls id={self.cls.get('id') if self.cls else None}")
         self.navigate_to_form.emit(form_type, self.cls)
         print(f"Requesting {form_type} form for class: {self.cls.get('title', 'Unknown')}")
 

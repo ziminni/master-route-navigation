@@ -1,7 +1,7 @@
 """
 Faculty Grades View - Full grade management interface
 Features: bulk input, draft/upload status, expandable columns, grading system management
-UPDATED: Now connected to actual users and persistent storage
+UPDATED: Now connected to enrollment service and backend
 """
 import os
 import sys
@@ -34,7 +34,7 @@ except ImportError:
 try:
     from frontend.views.Academics.Classroom.Faculty.grading_system_dialog import connect_grading_button
 except ImportError:
-    def connect_grading_button(window, label):
+    def connect_grading_button(window, label, class_id=None):
         label.setEnabled(False)
         print("Warning: grading_system_dialog.py not found")
 
@@ -72,23 +72,29 @@ class FacultyGradesView(QWidget):
     def load_students_data(self):
         """
         Flexible student loading with multiple strategies:
-        1. Try Django API (if available)
-        2. Try JSON file (development/fallback)
-        3. Use sample data (ultimate fallback)
+        1. Try enrollment service (backend)
+        2. Try Django API (if available)
+        3. Try JSON file (development/fallback)
+        4. Use sample data (ultimate fallback)
         """
         print(f"[FACULTY GRADES] Starting flexible data load for class {self.cls.get('id')}")
         
-        # Strategy 1: Try Django API (future implementation)
+        # Strategy 1: Try enrollment service (new backend)
+        if self._try_load_from_enrollment():
+            print("[FACULTY GRADES] Successfully loaded from enrollment service")
+            return
+        
+        # Strategy 2: Try Django API (future implementation)
         if self.token and self._try_load_from_api():
             print("[FACULTY GRADES] Successfully loaded from Django API")
             return
         
-        # Strategy 2: Try JSON file
+        # Strategy 3: Try JSON file
         if self._try_load_from_json():
             print("[FACULTY GRADES] Successfully loaded from JSON file")
             return
         
-        # Strategy 3: Sample data (ultimate fallback)
+        # Strategy 4: Sample data (ultimate fallback)
         print("[FACULTY GRADES] Using sample data (fallback)")
         self.grade_model.load_sample_data()
         
@@ -96,6 +102,15 @@ class FacultyGradesView(QWidget):
         print(f"[FACULTY GRADES] Loaded {len(self.grade_model.students)} students:")
         for student in self.grade_model.students:
             print(f"  - {student['name']} (ID: {student['id']}, Username: {student.get('username', 'N/A')})")
+    
+    def _try_load_from_enrollment(self):
+        """Try to load students from enrollment service"""
+        try:
+            if self.grade_model.load_students_from_enrollment():
+                return len(self.grade_model.students) > 0
+        except Exception as e:
+            print(f"[FACULTY GRADES] Enrollment service load failed: {e}")
+        return False
     
     def _try_load_from_api(self):
         """Try to load students from Django API"""
@@ -167,28 +182,6 @@ class FacultyGradesView(QWidget):
         """Create header with faculty controls"""
         header_layout = QHBoxLayout()
         
-        self.rubrics_combo = QComboBox()
-        self.rubrics_combo.addItems(["Overall Lecture", "Performance Task", "Quiz", "Exam"])
-        self.rubrics_combo.setFixedWidth(150)
-        self.rubrics_combo.setStyleSheet("""
-            QComboBox {
-                padding: 8px;
-                border: 2px solid #E0E0E0;
-                border-radius: 5px;
-                font-size: 12px;
-                color: #084924;
-                background-color: white;
-                font-weight: bold;
-            }
-            QComboBox:focus {
-                border: 2px solid #084924;
-            }
-            QComboBox QAbstractItemView {
-                background-color: white;
-                color: #084924;
-                selection-background-color: #E8F5E8;
-            }
-        """)
         
         spacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         
@@ -207,30 +200,24 @@ class FacultyGradesView(QWidget):
             }
         """)
         self.grading_label.setCursor(Qt.CursorShape.PointingHandCursor)
-        connect_grading_button(self, self.grading_label)
         
-        download_button = QPushButton("📥 Download")
-        download_button.setStyleSheet("""
-            QPushButton {
-                background-color: #084924;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 8px 16px;
-                font-weight: bold;
-                font-size: 12px;
-            }
-            QPushButton:hover {
-                background-color: #0A5A2A;
-            }
-        """)
+        # Pass class_id to grading dialog
+        class_id = self.cls.get('id', 1)
+        connect_grading_button(self, self.grading_label, class_id=class_id)
         
-        header_layout.addWidget(self.rubrics_combo)
+
         header_layout.addItem(spacer)
         header_layout.addWidget(self.grading_label)
-        header_layout.addWidget(download_button)
         
         return header_layout
+    
+    def refresh_data(self):
+        """Refresh the grades table data - reload assessments and rebuild columns"""
+        print("[FACULTY GRADES] Refreshing data - reloading assessments...")
+        # Force the grade model to reload data from services
+        # The get_component_items_with_scores will re-fetch from assessment service
+        self.rebuild_table()
+        print("[FACULTY GRADES] Data refresh complete")
     
     def rebuild_table(self):
         """Rebuild table structure"""
@@ -268,7 +255,7 @@ class FacultyGradesView(QWidget):
                 state_key = f'{comp_key}_midterm_expanded'
                 if self.grade_model.get_column_state(state_key):
                     type_key = self.grade_model.get_component_type_key(comp_name, 'midterm')
-                    sub_items = self.grade_model.get_component_items_with_scores(type_key)
+                    sub_items = self.grade_model.get_component_items_with_scores(type_key, term='midterm', component_name=comp_name)
                     
                     for item in sub_items:
                         item_name = item['name']
@@ -307,7 +294,7 @@ class FacultyGradesView(QWidget):
                 state_key = f'{comp_key}_finalterm_expanded'
                 if self.grade_model.get_column_state(state_key):
                     type_key = self.grade_model.get_component_type_key(comp_name, 'finalterm')
-                    sub_items = self.grade_model.get_component_items_with_scores(type_key)
+                    sub_items = self.grade_model.get_component_items_with_scores(type_key, term='finalterm', component_name=comp_name)
                     
                     for item in sub_items:
                         item_name = item['name']

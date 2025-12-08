@@ -177,6 +177,15 @@ INSTALLED_APPS = [
     # CORS Headers - tried to fix backend conn, should work if front and back runs on different ports
     'corsheaders',
     'apps.Users.apps.UsersConfig',
+    'apps.Documents.apps.DocumentsConfig',
+    'apps.Organizations.apps.OrganizationsConfig',
+    "apps.Announcements",
+    "apps.Calendar",
+
+    'apps.Academics.apps.AcademicsConfig',
+    'apps.Feedback.apps.FeedbackConfig',
+    'apps.House.apps.HouseConfig',
+    "apps.Showcase.apps.ShowcaseConfig",
 ]
 
 MIDDLEWARE = [
@@ -184,7 +193,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',  # Disabled for simple API testing
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -208,7 +217,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
@@ -279,12 +288,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 #Added this lines
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
 }
 
 from datetime import timedelta

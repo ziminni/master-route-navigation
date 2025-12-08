@@ -1,4 +1,3 @@
-# views/Showcase/db/ShowcaseDBInitialize.py
 from __future__ import annotations
 import sqlite3
 from pathlib import Path
@@ -8,12 +7,14 @@ from datetime import datetime
 def db_path() -> Path:
     return Path(__file__).resolve().parent / "showcase.db"
 
-# ---------- connect ----------
+
+# ---------- connect (internal) ----------
 def _conn() -> sqlite3.Connection:
     con = sqlite3.connect(str(db_path()))
     con.execute("PRAGMA foreign_keys = ON")
     con.row_factory = sqlite3.Row
     return con
+
 
 # ---------- schema ----------
 SCHEMA_DDL: list[str] = [
@@ -166,22 +167,32 @@ SCHEMA_DDL: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_competition_media_map_media ON competition_media_map(media_id)",
 ]
 
+
 # ---------- seed ----------
 def _is_empty(con: sqlite3.Connection, table: str) -> bool:
     return con.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone() is None
 
+
 def _now_ts() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 
 def _seed(con: sqlite3.Connection) -> None:
     if _is_empty(con, "auth_user"):
         con.executemany(
             "INSERT INTO auth_user (username, email) VALUES (?,?)",
-            [("alice","alice@example.com"), ("bob","bob@example.com"), ("carol","carol@example.com")],
+            [
+                ("alice", "alice@example.com"),
+                ("bob", "bob@example.com"),
+                ("carol", "carol@example.com"),
+            ],
         )
 
     if _is_empty(con, "project_tags"):
-        con.executemany("INSERT INTO project_tags (name) VALUES (?)", [("AI",), ("IoT",), ("Education",)])
+        con.executemany(
+            "INSERT INTO project_tags (name) VALUES (?)",
+            [("AI",), ("IoT",), ("Education",)],
+        )
 
     if _is_empty(con, "projects"):
         con.executemany(
@@ -191,29 +202,68 @@ def _seed(con: sqlite3.Connection) -> None:
             VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """,
             [
-                ("Smart Bin", "An IoT waste-segregation bin.", 1, "pending", 1, _now_ts(), _now_ts(), "capstone", "hardware", "https://example.com/smart-bin", "Alice, Bob"),
-                ("Study Buddy", "A student helper app.", 2, "approved", 1, _now_ts(), _now_ts(), "software", "mobile", "https://example.com/study-buddy", "Carol"),
+                (
+                    "Smart Bin",
+                    "An IoT waste-segregation bin.",
+                    1,
+                    "pending",
+                    1,
+                    _now_ts(),
+                    _now_ts(),
+                    "capstone",
+                    "hardware",
+                    "https://example.com/smart-bin",
+                    "Alice, Bob",
+                ),
+                (
+                    "Study Buddy",
+                    "A student helper app.",
+                    2,
+                    "approved",
+                    1,
+                    _now_ts(),
+                    _now_ts(),
+                    "software",
+                    "mobile",
+                    "https://example.com/study-buddy",
+                    "Carol",
+                ),
             ],
         )
 
     if _is_empty(con, "project_members"):
         con.executemany(
             "INSERT INTO project_members (project_id, user_id, role, contributions) VALUES (?,?,?,?)",
-            [(1,1,"Leader","Design, Assembly"), (1,2,"Developer","Firmware, Cloud"), (2,3,"Solo","Android app")],
+            [
+                (1, 1, "Leader", "Design, Assembly"),
+                (1, 2, "Developer", "Firmware, Cloud"),
+                (2, 3, "Solo", "Android app"),
+            ],
         )
 
     if _is_empty(con, "project_tag_map"):
-        con.executemany("INSERT OR IGNORE INTO project_tag_map (project_id, tag_id) VALUES (?,?)", [(1,2),(1,3),(2,1)])
+        con.executemany(
+            "INSERT OR IGNORE INTO project_tag_map (project_id, tag_id) VALUES (?,?)",
+            [(1, 2), (1, 3), (2, 1)],
+        )
 
     # --- sample images in assets/images ---
     if _is_empty(con, "media"):
         rows = []
         for i in range(1, 8):
             rel = f"assets/images/{i}.jpg"
-            rows.append((
-                "image", rel, "image/jpeg", None, None,
-                f"Sample {i}", f"Sample image {i}", ((i - 1) % 3) + 1  # rotate uploaded_by 1..3
-            ))
+            rows.append(
+                (
+                    "image",
+                    rel,
+                    "image/jpeg",
+                    None,
+                    None,
+                    f"Sample {i}",
+                    f"Sample image {i}",
+                    ((i - 1) % 3) + 1,  # rotate uploaded_by 1..3
+                )
+            )
         con.executemany(
             """
             INSERT INTO media (media_type, path_or_url, mime_type, size_bytes, checksum, caption, alt_text, uploaded_by)
@@ -242,9 +292,19 @@ def _seed(con: sqlite3.Connection) -> None:
               (name, organizer, start_date, end_date, description, event_type, external_url, submitted_by, status, is_public, publish_at)
             VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """,
-            ("TechFest 2025", "CMU", "2025-03-01", "2025-03-03",
-             "Annual technology fair.", "expo", "https://example.com/techfest",
-             1, "published", 1, _now_ts()),
+            (
+                "TechFest 2025",
+                "CMU",
+                "2025-03-01",
+                "2025-03-03",
+                "Annual technology fair.",
+                "expo",
+                "https://example.com/techfest",
+                1,
+                "published",
+                1,
+                _now_ts(),
+            ),
         )
 
     if _is_empty(con, "competition_media_map"):
@@ -263,20 +323,43 @@ def _seed(con: sqlite3.Connection) -> None:
               (competition_id, achievement_title, result_recognition, specific_awards, notes, awarded_at)
             VALUES (?,?,?,?,?,?)
             """,
-            (1, "Best IoT Demo", "Champion", "Gold Medal", "Clean presentation", "2025-03-03"),
+            (
+                1,
+                "Best IoT Demo",
+                "Champion",
+                "Gold Medal",
+                "Clean presentation",
+                "2025-03-03",
+            ),
         )
 
     if _is_empty(con, "competition_achievement_projects"):
-        con.execute("INSERT INTO competition_achievement_projects (achievement_id, project_id) VALUES (?,?)", (1, 1))
+        con.execute(
+            "INSERT INTO competition_achievement_projects (achievement_id, project_id) VALUES (?,?)",
+            (1, 1),
+        )
 
     if _is_empty(con, "competition_achievement_users"):
         con.executemany(
             "INSERT INTO competition_achievement_users (achievement_id, user_id, role) VALUES (?,?,?)",
-            [(1,1,"Presenter"), (1,2,"Developer")],
+            [
+                (1, 1, "Presenter"),
+                (1, 2, "Developer"),
+            ],
         )
+
 
 # ---------- API ----------
 def ensure_bootstrap(seed: bool = True) -> None:
+    """
+    Create DB file if missing and apply schema + seed data.
+
+    This is only for:
+      - CREATE TABLE / CREATE INDEX
+      - initial INSERT seed data
+
+    All normal runtime queries belong in ShowcaseDBHelper.
+    """
     db_path().parent.mkdir(parents=True, exist_ok=True)
     with _conn() as con:
         for stmt in SCHEMA_DDL:
@@ -285,11 +368,17 @@ def ensure_bootstrap(seed: bool = True) -> None:
             _seed(con)
         con.commit()
 
+
 def reset_database(seed: bool = True) -> None:
+    """
+    Developer helper: delete DB and recreate schema + seed.
+    Not used by normal app flow.
+    """
     p = db_path()
     if p.exists():
         p.unlink()
     ensure_bootstrap(seed=seed)
+
 
 if __name__ == "__main__":
     ensure_bootstrap(True)

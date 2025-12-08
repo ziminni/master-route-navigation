@@ -39,7 +39,7 @@ class FileUploadDialog(QDialog):
         super().__init__(parent)
         self.setModal(True)
         self.setWindowTitle("Bulk File Upload")
-        self.setFixedSize(500, 650)
+        self.setFixedSize(550, 750)
         
         self.selected_files = []  # List of file paths
         self.collection_id = collection_id
@@ -58,7 +58,7 @@ class FileUploadDialog(QDialog):
         title_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         title_label = QLabel("Bulk File Upload")
-        title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #212529; padding: 10px 0;")
         title_layout.addWidget(title_label)
         main_layout.addLayout(title_layout)
         
@@ -77,15 +77,17 @@ class FileUploadDialog(QDialog):
         select_files_btn = QPushButton("Select Files")
         select_files_btn.setStyleSheet("""
             QPushButton {
-                background-color: #0078d4;
+                background-color: #007bff;
                 color: white;
                 font-weight: bold;
-                padding: 8px 20px;
+                padding: 10px 24px;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
+                font-size: 14px;
+                min-width: 140px;
             }
             QPushButton:hover {
-                background-color: #106ebe;
+                background-color: #0056b3;
             }
         """)
         select_files_btn.clicked.connect(self.handle_select_files)
@@ -95,20 +97,44 @@ class FileUploadDialog(QDialog):
         
         # ========== SELECTED FILES LIST ==========
         files_label = QLabel("Selected Files:")
+        files_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #495057; margin-top: 10px;")
         main_layout.addWidget(files_label)
         
         self.files_list = QListWidget()
-        self.files_list.setMinimumHeight(150)
+        self.files_list.setMinimumHeight(180)
         self.files_list.setStyleSheet("""
             QListWidget {
-                border: 1px solid #ccc;
-                border-radius: 4px;
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                padding: 8px;
+            }
+            QListWidget::item {
+                padding: 6px;
+                border-bottom: 1px solid #e9ecef;
+            }
+            QListWidget::item:selected {
+                background-color: #007bff;
+                color: white;
             }
         """)
         main_layout.addWidget(self.files_list)
         
         # Remove selected file button
         remove_file_btn = QPushButton("Remove Selected")
+        remove_file_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                font-weight: bold;
+                padding: 6px 16px;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """)
         remove_file_btn.clicked.connect(self.handle_remove_file)
         main_layout.addWidget(remove_file_btn)
         
@@ -117,44 +143,121 @@ class FileUploadDialog(QDialog):
         date_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         upload_date = QLabel(f"Upload Date: {datetime.datetime.now().strftime('%m/%d/%Y')}")
+        upload_date.setStyleSheet("font-size: 13px; color: #6c757d; padding: 10px 0;")
         date_layout.addWidget(upload_date)
         main_layout.addLayout(date_layout)
+        
+        # ========== FORM FIELDS FRAME ==========
+        form_frame = QFrame()
+        form_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+            }
+        """)
+        form_layout = QVBoxLayout()
+        form_layout.setSpacing(12)
+        
+        # Style for labels and inputs
+        label_style = "color: #6c757d; font-weight: bold; min-width: 100px; font-size: 13px; background: transparent; border: none; padding: 0;"
+        combo_style = """
+            QComboBox {
+                background-color: white;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 8px 12px;
+                min-height: 20px;
+            }
+            QComboBox:focus {
+                border-color: #80bdff;
+            }
+        """
         
         # ========== CATEGORY DROPDOWN ==========
         category_layout = QHBoxLayout()
         category_label = QLabel("Category")
+        category_label.setStyleSheet(label_style)
         category_label.setFixedWidth(100)
         
         self.category_combo = QComboBox()
+        self.category_combo.setStyleSheet(combo_style)
         self.category_combo.addItems(["None", "Syllabus", "Memo", "Forms", "Report", "Other"])
         
         category_layout.addWidget(category_label)
         category_layout.addWidget(self.category_combo)
-        main_layout.addLayout(category_layout)
+        form_layout.addLayout(category_layout)
         
         # ========== COLLECTION DROPDOWN ==========
         collection_layout = QHBoxLayout()
         collection_label = QLabel("Collection")
+        collection_label.setStyleSheet(label_style)
         collection_label.setFixedWidth(100)
         
         self.collection_combo = QComboBox()
+        self.collection_combo.setStyleSheet(combo_style)
         self._load_collections()
         
         collection_layout.addWidget(collection_label)
         collection_layout.addWidget(self.collection_combo)
-        main_layout.addLayout(collection_layout)
+        form_layout.addLayout(collection_layout)
+        
+        form_frame.setLayout(form_layout)
+        main_layout.addWidget(form_frame)
         
         # ========== FILE DESCRIPTION ==========
+        desc_frame = QFrame()
+        desc_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+            }
+        """)
+        desc_layout = QVBoxLayout()
+        desc_layout.setSpacing(10)
+        
         desc_label = QLabel("Description (applied to all files, optional):")
-        main_layout.addWidget(desc_label)
+        desc_label.setStyleSheet("color: #495057; font-weight: bold; font-size: 14px; background: transparent; border: none; padding: 0;")
+        desc_layout.addWidget(desc_label)
         
         self.description_text = QTextEdit()
+        self.description_text.setStyleSheet("""
+            QTextEdit {
+                background-color: white;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 8px;
+                color: #495057;
+            }
+            QTextEdit:focus {
+                border-color: #80bdff;
+            }
+        """)
         self.description_text.setPlaceholderText("Enter description for all files...")
-        self.description_text.setMinimumHeight(80)
-        main_layout.addWidget(self.description_text)
+        self.description_text.setMinimumHeight(100)
+        desc_layout.addWidget(self.description_text)
+        
+        desc_frame.setLayout(desc_layout)
+        main_layout.addWidget(desc_frame)
         
         # ========== PROGRESS BAR ==========
         self.progress_bar = QProgressBar()
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                text-align: center;
+                background-color: #e9ecef;
+                height: 24px;
+            }
+            QProgressBar::chunk {
+                background-color: #28a745;
+                border-radius: 3px;
+            }
+        """)
         self.progress_bar.setVisible(False)  # Hidden until upload starts
         main_layout.addWidget(self.progress_bar)
         
@@ -165,16 +268,17 @@ class FileUploadDialog(QDialog):
                 background-color: #28a745;
                 color: white;
                 font-weight: bold;
-                padding: 10px;
+                padding: 12px 20px;
                 border: none;
-                border-radius: 4px;
-                font-size: 14px;
+                border-radius: 6px;
+                font-size: 15px;
             }
             QPushButton:hover {
                 background-color: #218838;
             }
             QPushButton:disabled {
-                background-color: #ccc;
+                background-color: #6c757d;
+                color: #adb5bd;
             }
         """)
         upload_btn.clicked.connect(self.handle_upload)

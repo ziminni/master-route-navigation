@@ -50,6 +50,11 @@
          <kerning>true</kerning>
         </font>
        </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel {
+	color: #084924;
+};</string>
+       </property>
        <property name="text">
         <string>Audit Logs</string>
        </property>
@@ -100,7 +105,11 @@ QLineEdit {
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_9">
         <item>
-         <widget class="QLineEdit" name="audit_line_edit"/>
+         <widget class="QLineEdit" name="audit_line_edit">
+          <property name="placeholderText">
+           <string>Search logs...</string>
+          </property>
+         </widget>
         </item>
         <item>
          <widget class="QToolButton" name="audit_search_btn">
@@ -157,6 +166,17 @@ QLineEdit {
    </item>
    <item>
     <widget class="QFrame" name="audit_table_container">
+     <property name="styleSheet">
+      <string notr="true">QFrame {
+    background-color: white;
+    border-radius: 15px;
+}
+
+#audit_table_container {
+    border: 1px solid #ccc;
+	border-radius: 20px;
+};</string>
+     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>

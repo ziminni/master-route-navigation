@@ -9,6 +9,9 @@ __pycache__/
 __pycache__/
 *.py[cod]
 *$py.class
+venv/
+
+frontend/assets/uploads/
 
 # SQLite database (development)
 db.sqlite3
@@ -43,3 +46,10 @@ frontend/views/Documents/FileStorage/**/*
 
 # Ignore ALL mock data JSON files (user-generated data)
 frontend/views/Documents/Mock/*.json
+
+services/
+
+frontend/router/router_debug.log
+
+frontend/views/Announcements/assets/images/
+frontend/views/Showcase/assets/images/

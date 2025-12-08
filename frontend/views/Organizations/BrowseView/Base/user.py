@@ -1,0 +1,616 @@
+import os
+import json
+import copy
+import datetime
+from typing import List, Dict, Optional, Tuple
+from PyQt6 import QtWidgets, QtCore, QtGui
+from widgets.orgs_custom_widgets.tables import ActionDelegate
+from ..Utils.image_utils import get_image_path
+
+class User(QtWidgets.QWidget):
+    def __init__(self, name: str = "User", parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(parent)
+        self.name = name
+        self.current_org: Optional[Dict] = None
+        self.ui = None
+        self.no_member_label = None
+        self.table = None
+        self.officer_count = 0
+        self.college_org_count = 0
+        self.data_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'organizations_data.json')
+        self.cooldown_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'student_cooldowns.json')
+        self.audit_log_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'audit_logs.json')
+        self.manager_cooldown_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'manager_action_cooldowns.json')
+        self.notifications_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'notifications.json')
+        
+    def _apply_table_style(self) -> None:
+        """Apply modern stylesheet for the members QTableView."""
+        table = self.ui.list_view
+        table.setAlternatingRowColors(True)
+
+        table.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                            QtWidgets.QSizePolicy.Policy.Expanding)
+
+        table.setStyleSheet("""
+        QTableView {
+            border-radius: 10px;
+            background-color: white;
+            gridline-color: #084924;
+            font-size: 14px;
+            selection-background-color: #FDC601;
+            selection-color: black;
+        }
+        QTableView::item {
+            padding: 7px;
+        }
+        QTableView::item:hover {
+            background-color: #FDC601;
+            color: black;
+        }
+        """)
+
+        header = table.horizontalHeader()
+        header.setStyleSheet("""
+        QHeaderView::section {
+            background-color: #084924;
+            color: white;
+            font-weight: bold;
+            padding: 6px;
+            border: none;
+        }
+        QHeaderView::section:hover {
+            background-color: #098f42;
+        }
+        QHeaderView::section:first {
+            border-top-left-radius: 10px;
+        }
+        QHeaderView::section:last {
+            border-top-right-radius: 10px;
+        }
+        """)
+
+        table.verticalHeader().setVisible(False)
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+
+        model = table.model()
+        if model is not None and model.columnCount() > 0:
+            last_header = model.headerData(model.columnCount() - 1, QtCore.Qt.Orientation.Horizontal)
+            if last_header == "Actions":
+                action_column_index = model.columnCount() - 1
+
+                header.setSectionResizeMode(action_column_index, QtWidgets.QHeaderView.ResizeMode.Interactive)
+                header.resizeSection(action_column_index, 200)
+
+                table.setItemDelegateForColumn(action_column_index, ActionDelegate(table))
+
+    def _load_data(self) -> List[Dict]:
+        """Load organization and branch data from JSON file."""
+        try:
+            with open(self.data_file, 'r') as file:
+                data = json.load(file)
+                return data.get('organizations', [])
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
+        
+    def get_archived(self, is_branch: bool = None) -> List[Dict]:
+        """Get archived organizations or branches."""
+        organizations = self._load_data()
+        archived = []
+        for org in organizations:
+            if org.get("is_archived", False):
+                if is_branch is False or is_branch is None:
+                    archived.append(org)
+            for branch in org.get("branches", []):
+                if branch.get("is_archived", False):
+                    if is_branch or is_branch is None:
+                        archived.append(branch)
+        return archived
+
+    def archive_org(self, org_id: int, is_branch: bool = False):
+        """Archive an organization or branch."""
+        organizations = self._load_data()
+        if is_branch:
+            for org in organizations:
+                for branch in org.get("branches", []):
+                    if branch["id"] == org_id:
+                        branch["is_archived"] = True
+                        self.save_data(organizations)
+                        self._log_action("ARCHIVE_BRANCH", org["name"], subject_name=branch["name"])
+                        return
+        else:
+            for org in organizations:
+                if org["id"] == org_id:
+                    org["is_archived"] = True
+                    self.save_data(organizations)
+                    self._log_action("ARCHIVE_ORG", org["name"], subject_name=org["name"])
+                    return
+
+    def restore_org(self, org_id: int, is_branch: bool = False):
+        """Restore an archived organization or branch."""
+        organizations = self._load_data()
+        if is_branch:
+            for org in organizations:
+                for branch in org.get("branches", []):
+                    if branch["id"] == org_id:
+                        branch["is_archived"] = False
+                        self.save_data(organizations)
+                        self._log_action("RESTORE_BRANCH", org["name"], subject_name=branch["name"])
+                        return
+        else:
+            for org in organizations:
+                if org["id"] == org_id:
+                    org["is_archived"] = False
+                    self.save_data(organizations)
+                    self._log_action("RESTORE_ORG", org["name"], subject_name=org["name"])
+                    return
+
+    def save_data(self) -> None:
+        """Save the ENTIRE organizations_data.json with proper deep updates"""
+        try:
+            # Load full data
+            with open(self.data_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            organizations = data.get("organizations", [])
+            
+            # Find and update the exact org/branch that matches self.current_org
+            updated = False
+            for org in organizations:
+                if org.get("id") == self.current_org.get("id"):
+                    # Main org
+                    org.update(self.current_org)
+                    updated = True
+                    break
+                # Check branches
+                for branch in org.get("branches", []):
+                    if branch.get("id") == self.current_org.get("id"):
+                        branch.update(self.current_org)
+                        updated = True
+                        break
+            if not updated:
+                return            # Write back with proper formatting
+            with open(self.data_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+
+        except Exception:
+            pass
+
+    def save_data_for_org(self, org_to_save: Dict) -> None:
+        """Saves a specific org/branch data dict back to the JSON file."""
+        if not org_to_save or "id" not in org_to_save:
+            return
+
+        organizations = self._load_data()
+        updated = False
+
+        for i in range(len(organizations)):
+            if organizations[i]["id"] == org_to_save["id"]:
+                organizations[i] = copy.deepcopy(org_to_save)
+                updated = True
+                break
+
+        if not updated:
+            for org in organizations:
+                branches = org.get("branches", [])
+                for j in range(len(branches)):
+                    if branches[j]["id"] == org_to_save["id"]:
+                        branches[j] = copy.deepcopy(org_to_save)
+                        updated = True
+                        break
+                if updated:
+                    break
+
+        if not updated:
+            return
+
+        try:
+            with open(self.data_file, 'w') as file:
+                json.dump({"organizations": organizations}, file, indent=4)
+        except Exception:
+            pass
+            
+    def _log_action(self, action_type: str, organization_name: Optional[str], subject_name: Optional[str] = None, changes: Optional[str] = None) -> None:
+        """
+        Logs a user action to the audit log file.
+        
+        Args:
+            action_type (str): Type of action (e.g., "KICK_MEMBER").
+            organization_name (str): Name of the org context.
+            subject_name (str, optional): Name of the user/item being acted upon.
+            changes (str, optional): Details of the change.
+        """
+        log_entry = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "actor": self.name,
+            "action": action_type,
+            "organization": organization_name,
+            "subject": subject_name,
+            "details": changes
+        }
+
+        try:
+            logs = []
+            if os.path.exists(self.audit_log_file):
+                with open(self.audit_log_file, 'r') as f:
+                    logs = json.load(f)
+                    if not isinstance(logs, list):
+                        logs = []
+            
+            logs.append(log_entry)
+            
+            with open(self.audit_log_file, 'w') as f:
+                json.dump(logs, f, indent=4)
+                
+        except Exception:
+            pass
+
+    @staticmethod
+    def _get_logo_path(filename: str) -> str:
+        """
+        Resolve absolute logo path from filename.
+        
+        Args:
+            filename: Just the filename (e.g., "CISC_logo.jpeg") or "No Photo"
+            
+        Returns:
+            Full absolute path to the image in the Data directory
+        """
+        return get_image_path(filename)
+    
+    def set_circular_logo(self, logo_label: QtWidgets.QLabel, logo_path: str, size: int = 200, border_width: int = 4) -> None:
+        """Set a circular logo with a border on the given label."""
+        logo_label.setFixedSize(size, size)
+        
+        if logo_path == "No Photo" or QtGui.QPixmap(logo_path).isNull():
+            
+            logo_label.setPixmap(QtGui.QPixmap()) 
+            
+            logo_label.setText("No Logo")
+            logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            radius = size // 2
+            
+            logo_label.setStyleSheet(f"""
+                QLabel {{
+                    border: {border_width}px solid #084924; 
+                    border-radius: {radius}px; 
+                    color: #888888; 
+                    background-color: white;
+                }}
+            """)
+            return
+
+        pixmap = QtGui.QPixmap(logo_path).scaled(size, size, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
+        centered_pixmap = QtGui.QPixmap(size, size)
+        centered_pixmap.fill(QtCore.Qt.GlobalColor.transparent)
+        
+        with QtGui.QPainter(centered_pixmap) as painter:
+            painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+            x = (size - pixmap.width()) // 2
+            y = (size - pixmap.height()) // 2
+            painter.drawPixmap(x, y, pixmap)
+
+        mask = QtGui.QPixmap(size, size)
+        mask.fill(QtCore.Qt.GlobalColor.transparent)
+        with QtGui.QPainter(mask) as painter:
+            painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+            path = QtGui.QPainterPath()
+            path.addEllipse(0, 0, size, size)
+            painter.fillPath(path, QtCore.Qt.GlobalColor.white)
+
+        centered_pixmap.setMask(mask.createMaskFromColor(QtCore.Qt.GlobalColor.white, QtCore.Qt.MaskMode.MaskOutColor))
+
+        final_pixmap = QtGui.QPixmap(size, size)
+        final_pixmap.fill(QtCore.Qt.GlobalColor.transparent)
+        with QtGui.QPainter(final_pixmap) as painter:
+            painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+            painter.setBrush(QtGui.QBrush(centered_pixmap))
+            painter.setPen(QtGui.QPen(QtGui.QColor(8, 73, 36), border_width))
+            painter.drawEllipse(border_width // 2, border_width // 2, size - border_width, size - border_width)
+
+        logo_label.setStyleSheet("")
+        logo_label.setText("")
+        logo_label.setPixmap(final_pixmap)
+        
+    def show_org_details(self, org_data: Dict) -> None:
+        """Display organization details on the details page."""
+        from services.organization_api_service import OrganizationAPIService
+        
+        # Fetch detailed organization data from API
+        org_id = org_data.get('id')
+        if org_id:
+            api_response = OrganizationAPIService.fetch_organization_details(org_id)
+            if api_response.get('success'):
+                org_details = api_response.get('data', {})
+            else:
+                # Fallback to provided org_data if API fails
+                org_details = org_data
+        else:
+            org_details = org_data
+        
+        self.current_org = org_details
+        
+        # Set organization name
+        org_name = org_details.get("name", "Unknown Organization")
+        self.ui.org_name.setText(org_name)
+        self.ui.header_label_2.setText("Organization")
+        
+        # Set status
+        status = org_details.get("status", "active")
+        self.ui.status_btn.setText(status.capitalize())
+        
+        # Set organization type/level (in org_type field under org name)
+        org_level = org_details.get("org_level", "col")
+        org_level_text = "College Level" if org_level == "col" else "Program Level"
+        self.ui.org_type.setText(org_level_text)
+        self.ui.org_type.setVisible(True)
+        
+        # Set Brief Overview (description of the organization)
+        description = org_details.get("description", "")
+        self.ui.brief_label.setText(description if description else "No description available.")
+        
+        # Set Objectives (obj_label shows the objectives)
+        objectives = org_details.get("objectives", "")
+        # Treat "None" string as empty
+        if objectives == "None":
+            objectives = ""
+        self.ui.obj_label.setText(objectives if objectives else "No objectives available.")
+        
+        # Set branches (organizations that have this org as their main_org)
+        branches = org_details.get("branches", [])
+        if branches and isinstance(branches, list) and len(branches) > 0:
+            branches_text = "\n".join([branch.get("name", "Unnamed") for branch in branches])
+        else:
+            branches_text = "No branches available"
+        self.ui.obj_label_2.setText(branches_text)
+        
+        # Set logo
+        logo_path = org_details.get("logo_path", "No Photo")
+        self.set_circular_logo(self.ui.logo, self._get_logo_path(logo_path))
+        
+        # Clear and set up officer history dropdown (keeping this for future functionality)
+        self.ui.officer_history_dp.clear()
+        self.ui.officer_history_dp.addItem("Current Officers")
+        
+        # Load officers and events from the org_details data
+        officers = org_details.get('officers', [])
+        events = org_details.get('events', [])
+        self.load_officers(officers)
+        self.load_events(events)
+        self.ui.label.setText("A.Y. 2025-2026 - 1st Semester")
+        self.ui.stacked_widget.setCurrentIndex(1)
+
+    def load_officers(self, officers: List[Dict]) -> None:
+        """Load officer cards into the officer grid."""
+        from frontend.widgets.orgs_custom_widgets.cards import OfficerCard
+        self._clear_grid(self.ui.officer_cards_grid)
+        self.officer_count = 0
+        self.ui.officers_scroll_area.verticalScrollBar().setValue(0)
+
+        if not officers:
+            self._add_no_record_label(self.ui.officer_cards_grid)
+            return
+
+        for officer in officers:
+            card = OfficerCard(officer, self)
+            col = self.officer_count % 3
+            row = self.officer_count // 3
+            self.ui.officer_cards_grid.addWidget(card, row, col, alignment=QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignHCenter)
+            self.officer_count += 1
+            self.ui.officer_cards_grid.setRowMinimumHeight(row, 400)
+
+    def load_events(self, events: List[Dict]) -> None:
+        """Load event cards into the events layout."""
+        from frontend.widgets.orgs_custom_widgets.cards import EventCard
+        while self.ui.verticalLayout_14.count():
+            item = self.ui.verticalLayout_14.takeAt(0)
+            if widget := item.widget():
+                widget.deleteLater()
+            elif layout := item.layout():
+                while layout.count():
+                    child_item = layout.takeAt(0)
+                    if child_widget := child_item.widget():
+                        child_widget.deleteLater()
+                layout.deleteLater()
+
+        if not events:
+            no_events_label = QtWidgets.QLabel("No upcoming events.")
+            no_events_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            no_events_label.setStyleSheet("font-size: 16px; color: #666;")
+            self.ui.verticalLayout_14.addWidget(no_events_label)
+        else:
+            for event in events:
+                self.ui.verticalLayout_14.addWidget(EventCard(event, self))
+
+        self.ui.verticalLayout_14.addStretch()
+        self.ui.scroll_area_events.verticalScrollBar().setValue(0)
+
+    def _clear_grid(self, grid_layout: QtWidgets.QGridLayout) -> None:
+        """Remove all widgets from the given grid layout."""
+        for i in reversed(range(grid_layout.count())):
+            if widget := grid_layout.itemAt(i).widget():
+                widget.deleteLater()
+
+    def _add_no_record_label(self, grid_layout: QtWidgets.QGridLayout) -> None:
+        """Add 'No Record(s) Found' label to the grid layout."""
+        no_record_label = QtWidgets.QLabel("No Record(s) Found")
+        no_record_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        no_record_label.setStyleSheet("font-size: 20px;")
+        grid_layout.addWidget(no_record_label, 0, 0, 1, 5)
+
+    def _update_scroll_areas(self) -> None:
+        """Update scroll areas and geometry."""
+        if hasattr(self.ui, 'college_org_scrollable'):
+            self.ui.college_org_scrollable.adjustSize()
+            self.ui.college_org_scrollable.updateGeometry()
+        if hasattr(self.ui, 'joined_org_scrollable'):
+            self.ui.joined_org_scrollable.adjustSize()
+            self.ui.joined_org_scrollable.updateGeometry()
+        self.update()
+
+    def _load_cooldowns(self) -> Dict:
+        """Loads the student cooldown data from JSON file."""
+        try:
+            with open(self.cooldown_file, 'r') as file:
+                data = json.load(file)
+                return data if isinstance(data, dict) else {}
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+
+    def _save_cooldowns(self, cooldowns: Dict) -> None:
+        """Saves the student cooldown data to JSON file."""
+        try:
+            with open(self.cooldown_file, 'w') as file:
+                json.dump(cooldowns, file, indent=4)
+        except Exception:
+            pass
+
+    def get_application_cooldown(self) -> Optional[datetime.datetime]:
+        """Gets the application cooldown end time for the current user."""
+        cooldowns = self._load_cooldowns()
+        cooldown_str = cooldowns.get(self.name)
+        if cooldown_str:
+            try:
+                return datetime.datetime.fromisoformat(cooldown_str)
+            except ValueError:
+                return None
+        return None
+
+    def set_application_cooldown(self, hours: int = 7) -> None:
+        """Sets the application cooldown for the current user."""
+        cooldowns = self._load_cooldowns()
+        cooldown_end_time = datetime.datetime.now() + datetime.timedelta(hours=hours)
+        cooldowns[self.name] = cooldown_end_time.isoformat()
+        self._save_cooldowns(cooldowns)
+
+    def check_application_cooldown(self) -> Tuple[bool, Optional[datetime.datetime]]:
+        """
+        Checks if the user is currently on application cooldown.
+        Also clears the cooldown if it has expired.
+        
+        Returns:
+            Tuple[bool, Optional[datetime.datetime]]: (is_on_cooldown, cooldown_end_time)
+        """
+        cooldown_end_time = self.get_application_cooldown()
+        if cooldown_end_time:
+            if datetime.datetime.now() < cooldown_end_time:
+                return True, cooldown_end_time
+            else:
+                cooldowns = self._load_cooldowns()
+                if self.name in cooldowns:
+                    del cooldowns[self.name]
+                    self._save_cooldowns(cooldowns)
+                return False, None
+        return False, None
+    
+    # --- ADDED: Manager Cooldown Methods ---
+
+    def _load_manager_cooldowns(self) -> Dict:
+        """Loads the manager action cooldown data from JSON file."""
+        try:
+            with open(self.manager_cooldown_file, 'r') as file:
+                data = json.load(file)
+                return data if isinstance(data, dict) else {}
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+
+    def _save_manager_cooldowns(self, cooldowns: Dict) -> None:
+        """Saves the manager action cooldown data to JSON file."""
+        try:
+            with open(self.manager_cooldown_file, 'w') as file:
+                json.dump(cooldowns, file, indent=4)
+        except Exception:
+            pass
+
+    def check_manager_action_cooldown(self, org_id: int, action: str) -> Tuple[bool, Optional[datetime.datetime]]:
+        """
+        Checks if a manager action for a specific org is on cooldown.
+        Also clears the cooldown if it has expired.
+        
+        Returns:
+            Tuple[bool, Optional[datetime.datetime]]: (is_on_cooldown, cooldown_end_time)
+        """
+        # --- FIX: Convert int org_id to string for JSON key lookup ---
+        org_id_str = str(org_id)
+        cooldowns = self._load_manager_cooldowns()
+        org_cooldowns = cooldowns.get(org_id_str, {})
+        cooldown_str = org_cooldowns.get(action)
+        
+        if cooldown_str:
+            try:
+                cooldown_end_time = datetime.datetime.fromisoformat(cooldown_str)
+                if datetime.datetime.now() < cooldown_end_time:
+                    return True, cooldown_end_time
+                else:
+                    # Cooldown expired, remove it
+                    del org_cooldowns[action]
+                    if not org_cooldowns:
+                        if org_id_str in cooldowns:
+                            del cooldowns[org_id_str]
+                    else:
+                        cooldowns[org_id_str] = org_cooldowns
+                    self._save_manager_cooldowns(cooldowns)
+                    return False, None
+            except ValueError:
+                return False, None
+        return False, None
+
+    def set_manager_action_cooldown(self, org_id: int, action: str, minutes: int = 5) -> None:
+        """Sets a manager action cooldown for a specific org."""
+        # --- FIX: Convert int org_id to string for JSON key lookup ---
+        org_id_str = str(org_id)
+        cooldowns = self._load_manager_cooldowns()
+        if org_id_str not in cooldowns:
+            cooldowns[org_id_str] = {}
+        
+        cooldown_end_time = datetime.datetime.now() + datetime.timedelta(minutes=minutes)
+        cooldowns[org_id_str][action] = cooldown_end_time.isoformat()
+        self._save_manager_cooldowns(cooldowns)
+
+    # --- ADDED: Student Notification Methods ---
+    
+    def _load_notifications(self) -> Dict:
+        """Loads the student notifications data from JSON file."""
+        try:
+            with open(self.notifications_file, 'r') as file:
+                data = json.load(file)
+                return data if isinstance(data, dict) else {}
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+
+    def _save_notifications(self, notifications: Dict) -> None:
+        """Saves the student notifications data to JSON file."""
+        try:
+            with open(self.notifications_file, 'w') as file:
+                json.dump(notifications, file, indent=4)
+        except Exception:
+            pass
+
+    def add_notification(self, student_name: str, notification_data: Dict) -> None:
+        """Adds a notification for a specific student."""
+        notifications = self._load_notifications()
+        if student_name not in notifications:
+            notifications[student_name] = []
+        notifications[student_name].append(notification_data)
+        self._save_notifications(notifications)
+    
+    def get_notifications_for_student(self, student_name: str) -> List[Dict]:
+        """Gets all notifications for a specific student."""
+        notifications = self._load_notifications()
+        return notifications.get(student_name, [])
+
+    def clear_notifications_for_student(self, student_name: str, notification_ids: List[str]) -> None:
+        """Removes specific notifications for a student by ID."""
+        notifications = self._load_notifications()
+        if student_name not in notifications:
+            return
+        
+        user_notifs = notifications[student_name]
+        user_notifs = [n for n in user_notifs if n.get("id") not in notification_ids]
+        
+        if not user_notifs:
+            del notifications[student_name]
+        else:
+            notifications[student_name] = user_notifs
+        
+        self._save_notifications(notifications)

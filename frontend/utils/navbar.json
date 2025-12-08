@@ -152,10 +152,17 @@
         {
           "id": 14,
           "name": "Documents",
+<<<<<<< HEAD
           "function": "DocumentsView()",
           "path": "views.Documents.Documents",
           "access": ["student", "admin"],
           "modulars": []
+=======
+          "function": "create_document_view()",
+          "path": "views.DocumentsV2",
+          "access": ["student","admin","faculty","staff"],
+          "modulars":[]
+>>>>>>> master
         },
         {
           "id": 15,

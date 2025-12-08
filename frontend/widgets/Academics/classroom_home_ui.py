@@ -12,82 +12,109 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_ClassCard(object):
     def setupUi(self, ClassCard):
         ClassCard.setObjectName("ClassCard")
-        ClassCard.resize(370, 300)
-        ClassCard.setMinimumSize(QtCore.QSize(340, 270))
-        ClassCard.setMaximumSize(QtCore.QSize(370, 300))
+        ClassCard.resize(320, 250)  # Reduced from 370x300
+        ClassCard.setMinimumSize(QtCore.QSize(280, 220))  # Reduced minimum size
+        ClassCard.setMaximumSize(QtCore.QSize(400, 280))  # Set maximum size
+        
+        # Make size policy responsive
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(ClassCard.sizePolicy().hasHeightForWidth())
+        ClassCard.setSizePolicy(sizePolicy)
+        
         ClassCard.setStyleSheet("QFrame#ClassCard {\n"
 "    background: transparent;\n"
 "    border: 1px solid #e0e0e0;\n"
-"    border-radius: 20px;\n"
+"    border-radius: 16px;  /* Reduced from 20px */\n"
 "    font-family: \"Poppins\";\n"
 "}")
         ClassCard.setFrameShape(QtWidgets.QFrame.Shape.Box)
-        shadow = QtWidgets.QGraphicsDropShadowEffect(blurRadius=20, xOffset=0, yOffset=3, color=QtGui.QColor(0, 0, 0, 40))
+        
+        # Reduced shadow effect
+        shadow = QtWidgets.QGraphicsDropShadowEffect(
+            blurRadius=12,  # Reduced from 20
+            xOffset=0, 
+            yOffset=2,  # Reduced from 3
+            color=QtGui.QColor(0, 0, 0, 30)  # Reduced opacity
+        )
         ClassCard.setGraphicsEffect(shadow)
+        
         self.main_layout = QtWidgets.QVBoxLayout(ClassCard)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
         self.main_layout.setObjectName("main_layout")
+        
         self.header_frame = QtWidgets.QFrame(parent=ClassCard)
-        self.header_frame.setMinimumSize(QtCore.QSize(0, 80))
-        self.header_frame.setMaximumSize(QtCore.QSize(16777215, 140))
+        self.header_frame.setMinimumSize(QtCore.QSize(0, 60))  # Reduced height
+        self.header_frame.setMaximumSize(QtCore.QSize(16777215, 100))  # Reduced max height
         self.header_frame.setStyleSheet("QFrame#header_frame {\n"
 "    background-color: #489052;\n"
-"    border-top-left-radius: 20px;\n"
-"    border-top-right-radius: 20px;\n"
+"    border-top-left-radius: 16px;  /* Reduced from 20px */\n"
+"    border-top-right-radius: 16px;  /* Reduced from 20px */\n"
 "    border-bottom: none;\n"
 "    font-family: \"Poppins\";\n"
 "}")
         self.header_frame.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.header_frame.setObjectName("header_frame")
+        
         self.header_layout = QtWidgets.QHBoxLayout(self.header_frame)
-        self.header_layout.setContentsMargins(16, 16, 16, 16)
+        self.header_layout.setContentsMargins(12, 12, 12, 12)  # Reduced margins
+        self.header_layout.setSpacing(8)  # Added spacing
         self.header_layout.setObjectName("header_layout")
+        
         self.course_info_layout = QtWidgets.QVBoxLayout()
-        self.course_info_layout.setContentsMargins(0, 0, 15, 0)
-        self.course_info_layout.setSpacing(0)
+        self.course_info_layout.setContentsMargins(0, 0, 10, 0)  # Reduced right margin
+        self.course_info_layout.setSpacing(2)  # Reduced spacing
         self.course_info_layout.setObjectName("course_info_layout")
+        
         self.course_code_label = QtWidgets.QLabel(parent=self.header_frame)
         self.course_code_label.setStyleSheet("QLabel {\n"
 "    color: rgba(255, 255, 255, 0.9);\n"
-"    font-size: 36px;\n"
+"    font-size: 24px;  /* Reduced from 36px */\n"
+"    font-weight: 600;  /* Added font weight */\n"
 "    background: transparent;\n"
 "    font-family: \"Poppins\";\n"
 "}")
         self.course_code_label.setObjectName("course_code_label")
         self.course_info_layout.addWidget(self.course_code_label)
+        
         self.course_code_section_label = QtWidgets.QLabel(parent=self.header_frame)
         self.course_code_section_label.setStyleSheet("QLabel {\n"
 "    color: rgba(255, 255, 255, 0.9);\n"
-"    font-size: 16px;\n"
+"    font-size: 14px;  /* Reduced from 16px */\n"
 "    background: transparent;\n"
 "    font-family: \"Poppins\";\n"
 "}")
         self.course_code_section_label.setObjectName("course_code_section_label")
         self.course_info_layout.addWidget(self.course_code_section_label)
+        
         self.instructor_label = QtWidgets.QLabel(parent=self.header_frame)
         self.instructor_label.setStyleSheet("QLabel {\n"
 "    color: white;\n"
-"    font-size: 16px;\n"
+"    font-size: 13px;  /* Reduced from 16px */\n"
 "    font-weight: 400;\n"
 "    font-family: \"Poppins\";\n"
 "    background: transparent;\n"
-"    \n"
+"    margin-top: 4px;\n"  # Added top margin
 "}")
         self.instructor_label.setObjectName("instructor_label")
         self.course_info_layout.addWidget(self.instructor_label)
+        
         self.header_layout.addLayout(self.course_info_layout)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        
+        spacerItem = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.header_layout.addItem(spacerItem)
+        
         self.profile_pic_label = QtWidgets.QLabel(parent=self.header_frame)
-        self.profile_pic_label.setMinimumSize(QtCore.QSize(80, 80))
-        self.profile_pic_label.setMaximumSize(QtCore.QSize(80, 80))
+        self.profile_pic_label.setMinimumSize(QtCore.QSize(60, 60))  # Reduced from 80x80
+        self.profile_pic_label.setMaximumSize(QtCore.QSize(60, 60))  # Reduced from 80x80
         self.profile_pic_label.setStyleSheet("QLabel#profile_pic_label {\n"
 "    background-color: #FFC107;\n"
-"    border-radius: 40px;\n"
+"    border-radius: 30px;  /* Reduced from 40px */\n"
 "    color: white;\n"
 "    font-weight: bold;\n"
-"    font-size: 24px;\n"
+"    font-size: 20px;  /* Reduced from 24px */\n"
 "}")
         self.profile_pic_label.setText("")
         self.profile_pic_label.setPixmap(QtGui.QPixmap(":/icons/person.png"))
@@ -95,7 +122,9 @@ class Ui_ClassCard(object):
         self.profile_pic_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.profile_pic_label.setObjectName("profile_pic_label")
         self.header_layout.addWidget(self.profile_pic_label)
+        
         self.main_layout.addWidget(self.header_frame)
+        
         self.content_frame = QtWidgets.QFrame(parent=ClassCard)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -106,46 +135,55 @@ class Ui_ClassCard(object):
 "    background-color: white;\n"
 "    font-family: \"Poppins\";\n"
 "    border: none;\n"
-"    border-bottom-left-radius: 20px;\n"
-"    border-bottom-right-radius: 20px;\n"
+"    border-bottom-left-radius: 16px;  /* Reduced from 20px */\n"
+"    border-bottom-right-radius: 16px;  /* Reduced from 20px */\n"
 "}")
         self.content_frame.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.content_frame.setObjectName("content_frame")
+        
         self.content_layout = QtWidgets.QVBoxLayout(self.content_frame)
-        self.content_layout.setContentsMargins(16, 16, 16, 12)
+        self.content_layout.setContentsMargins(12, 12, 12, 10)  # Reduced margins
+        self.content_layout.setSpacing(0)
         self.content_layout.setObjectName("content_layout")
+        
         self.recent_posts_label = QtWidgets.QLabel(parent=self.content_frame)
         self.recent_posts_label.setStyleSheet("QLabel {\n"
 "    color: #999;\n"
-"    font-size: 11px;\n"
-"    margin-top: 8px;\n"
+"    font-size: 10px;  /* Reduced from 11px */\n"
+"    margin-top: 4px;  /* Reduced from 8px */\n"
 "    font-style: italic;\n"
 "}")
         self.recent_posts_label.setObjectName("recent_posts_label")
         self.content_layout.addWidget(self.recent_posts_label)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
+        
+        spacerItem1 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
         self.content_layout.addItem(spacerItem1)
+        
         self.options_layout = QtWidgets.QHBoxLayout()
+        self.options_layout.setSpacing(0)
         self.options_layout.setObjectName("options_layout")
-        spacerItem2 = QtWidgets.QSpacerItem(40, 40, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        
+        spacerItem2 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.options_layout.addItem(spacerItem2)
+        
         self.options_button = QtWidgets.QPushButton(parent=self.content_frame)
-        self.options_button.setMinimumSize(QtCore.QSize(24, 24))
-        self.options_button.setMaximumSize(QtCore.QSize(40, 40))
+        self.options_button.setMinimumSize(QtCore.QSize(20, 20))  # Reduced from 24x24
+        self.options_button.setMaximumSize(QtCore.QSize(30, 30))  # Reduced from 40x40
         self.options_button.setBaseSize(QtCore.QSize(0, 0))
         self.options_button.setStyleSheet("QPushButton {\n"
 "    background: transparent;\n"
 "    border: none;\n"
 "    color: #666;\n"
-"    font-size: 30px;\n"
+"    font-size: 24px;  /* Reduced from 30px */\n"
 "    font-weight: bold;\n"
 "}\n"
 "QPushButton:hover {\n"
 "    background-color: #f0f0f0;\n"
-"    border-radius: 12px;\n"
+"    border-radius: 10px;  /* Reduced from 12px */\n"
 "}")
         self.options_button.setObjectName("options_button")
         self.options_layout.addWidget(self.options_button)
+        
         self.content_layout.addLayout(self.options_layout)
         self.main_layout.addWidget(self.content_frame)
 
