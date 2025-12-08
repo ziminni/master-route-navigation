@@ -1450,7 +1450,7 @@ class StudentRequestPage_ui(QWidget):
     def _handleSubmitRequest(self, dialog):
         """Handle the appointment request submission"""
         reason_text = self.reason_text_edit.toPlainText().strip()
-        location = self.location_combo.currentText()
+       
         
         if not reason_text:
             QtWidgets.QMessageBox.warning(
