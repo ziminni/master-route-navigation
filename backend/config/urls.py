@@ -39,6 +39,8 @@ urlpatterns = [
         # House and Feedback
     path('api/feedback/', include('apps.Feedback.urls')),
     path('', include('apps.House.urls')),
+    path('api/users/', include('apps.Users.urls')),
+    path("api/", include("apps.Messaging.urls")),
 
     path('api/showcase/', include('apps.Showcase.urls')),
     path("api/showcase/", include("apps.Showcase.api_urls")),

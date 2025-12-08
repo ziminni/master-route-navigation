@@ -190,6 +190,8 @@ INSTALLED_APPS = [
     'apps.Academics.apps.AcademicsConfig',
     'apps.Feedback.apps.FeedbackConfig',
     'apps.House.apps.HouseConfig',
+
+    'apps.Messaging.apps.MessagingConfig',
     "apps.Showcase.apps.ShowcaseConfig",
     "apps.Appointments.apps.AppointmentsConfig",
 ]
@@ -224,7 +226,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
+# Channels: in‑memory channel layer for dev
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -335,3 +344,4 @@ EMAIL_HOST_USER = 'janmarcpulmones24@gmail.com'      # your@gmail.com
 EMAIL_HOST_PASSWORD = 'sopg utsv eizo jocd'#  16-char app pw
 DEFAULT_FROM_EMAIL = f"CISC Hub <{EMAIL_HOST_USER}>"
 EMAIL_TIMEOUT = 10
+

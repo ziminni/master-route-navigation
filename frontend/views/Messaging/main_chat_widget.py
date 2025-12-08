@@ -8,6 +8,9 @@ from .main_chat import Ui_MainWindow
 
 
 class MainChatWidget(QtWidgets.QWidget):
+    searchRequested = QtCore.pyqtSignal()
+    deleteRequested = QtCore.pyqtSignal()
+
     def __init__(self, parent=None, chat_name="Chat"):
         super().__init__(parent)
 
@@ -16,7 +19,7 @@ class MainChatWidget(QtWidgets.QWidget):
         self.setStyleSheet("QWidget { border: none; background: transparent; }")
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding
+            QtWidgets.QSizePolicy.Policy.Expanding,
         )
 
         # Build UI from generated class inside a dummy QMainWindow
@@ -29,22 +32,56 @@ class MainChatWidget(QtWidgets.QWidget):
         # Make centralwidget/message_widget flexible and borderless
         self.ui.centralwidget.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding
+            QtWidgets.QSizePolicy.Policy.Expanding,
         )
         self.ui.centralwidget.setContentsMargins(0, 0, 0, 0)
 
         self.ui.message_widget.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding
+            QtWidgets.QSizePolicy.Policy.Expanding,
         )
-        self.ui.message_widget.setStyleSheet("""
-             QWidget#message_widget {
+        self.ui.message_widget.setStyleSheet(
+            """
+            QWidget#message_widget {
                 background-color: white;
                 border-radius: 10px;
                 border: 1px solid #ccc;
                 padding: 10px;
             }
-        """)
+        """
+        )
+
+        # ✅ NEW: Create header_buttons layout if it doesn't exist
+        self._setup_header_buttons()
+
+        # options menu for current chat
+        self.options_menu = QtWidgets.QMenu(self)
+        self.options_menu.setStyleSheet(
+            """
+            QMenu {
+                background-color: #ffffff;
+                border: 1px solid #c0c0c0;
+                padding: 4px;
+            }
+            QMenu::item {
+                padding: 6px 18px;
+                color: #111111;
+                background-color: transparent;
+            }
+            QMenu::item:selected {
+                background-color: #003d1f;
+                color: #ffffff;
+            }
+        """
+        )
+        action_delete = self.options_menu.addAction("Delete conversation")
+        action_search = self.options_menu.addAction("Search messages")
+
+        # Just emit signals; wrapper decides what to do
+        action_delete.triggered.connect(self.deleteRequested.emit)
+        action_search.triggered.connect(self.searchRequested.emit)
+
+        self.ui.toolButton.clicked.connect(self._show_options_menu)
 
         # Embed the built centralwidget into this wrapper
         layout = QtWidgets.QVBoxLayout(self)
@@ -55,7 +92,7 @@ class MainChatWidget(QtWidgets.QWidget):
         # Header text
         self.ui.name_header.setText(chat_name)
 
-        # Conversation context (must be set by MainApp)
+        # Conversation context (must be set by MainChatWidgetWrapper)
         self.data_manager = None
         self.current_user_id = None
         self.other_user_id = None
@@ -77,6 +114,57 @@ class MainChatWidget(QtWidgets.QWidget):
     def minimumSizeHint(self):
         return QtCore.QSize(400, 300)
 
+    # ✅ NEW: Setup header buttons layout
+    def _setup_header_buttons(self):
+        """Create header_buttons layout for white '_' and existing '...'."""
+        try:
+            header = getattr(self.ui, "header_widget", None)
+            name_lbl = getattr(self.ui, "name_header", None)
+            menu_btn = getattr(self.ui, "toolButton", None)
+
+            if not header or not menu_btn:
+                print("[MainChatWidget] ⚠ header_widget or toolButton not found")
+                return
+
+            layout = header.layout()
+            if layout is None:
+                layout = QtWidgets.QHBoxLayout(header)
+            layout.setContentsMargins(16, 0, 12, 0)
+            layout.setSpacing(8)
+
+            # make sure name label is on the left
+            if name_lbl and name_lbl.parent() is header:
+                layout.insertWidget(0, name_lbl)
+            layout.addStretch()
+
+            # create white '_' button
+            minimize_btn = QtWidgets.QPushButton("_", header)
+            minimize_btn.setFixedSize(24, 24)
+            minimize_btn.setStyleSheet(
+                "QPushButton {"
+                "  background-color: transparent;"
+                "  color: white;"
+                "  border: none;"
+                "  font-weight: bold;"
+                "  font-size: 16px;"
+                "}"
+                "QPushButton:hover {"
+                "  background-color: rgba(255,255,255,0.15);"
+                "  border-radius: 4px;"
+                "}"
+            )
+            layout.addWidget(minimize_btn)
+
+            # move existing 3-dot button to the right of '_'
+            menu_btn.setParent(header)
+            layout.addWidget(menu_btn)
+
+            # expose '_' for wrapper
+            self.ui.btn_minimize = minimize_btn
+            self.ui.header_buttons = layout
+        except Exception as e:
+            print(f"[MainChatWidget] Error setting up header buttons: {e}")
+
     def set_context(self, data_manager, current_user_id, other_user_id, conversation_id):
         """Provide conversation context so send/attach/link can persist correctly."""
         self.data_manager = data_manager
@@ -85,25 +173,33 @@ class MainChatWidget(QtWidgets.QWidget):
         self.conversation_id = conversation_id
 
     def handle_send(self):
+        text = self.ui.lineedit_msg.text().strip()
+
+        if not text: return
+
         print("[CTX]", self.data_manager, self.current_user_id, self.other_user_id, self.conversation_id)
         if not self._has_context():
             QtWidgets.QMessageBox.warning(self, "No conversation", "Select a conversation first.")
             return
 
+
         text = self.ui.lineedit_msg.text().strip()
         if not text:
             return
 
+        subject = text[:50] or "Chat message"
         payload = {
-            "sender_id": self.current_user_id,
-            "receiver_id": self.other_user_id,
-            "conversation_id": self.conversation_id,
+            "conversation": self.conversation_id,
             "content": text,
-            "message_type": "general",
+            "subject": subject,
             "priority": "normal",
             "status": "sent",
-            "is_read": False,
+            "department": "General",
+            "message_type": "general",
+            "is_broadcast": False,
+            "receiver": self.other_user_id,
         }
+
         created = self.data_manager.create_message(payload)
         if created:
             self.append_text_bubble(created)
@@ -111,8 +207,13 @@ class MainChatWidget(QtWidgets.QWidget):
             self.scroll_to_bottom()
 
     def handle_attach(self):
+
         if not self._has_context():
             QtWidgets.QMessageBox.warning(self, "No conversation", "Select a conversation first.")
+            return
+
+        files, _ = QtWidgets.QFileDialog.getOpenFileNames(self, "Attach files")
+        if not files:
             return
 
         files, _ = QtWidgets.QFileDialog.getOpenFileNames(self, "Attach files")
@@ -133,16 +234,18 @@ class MainChatWidget(QtWidgets.QWidget):
             saved.append(dest)
 
         body = "\n".join(f"[Attachment] {os.path.basename(p)}" for p in saved)
+        subject = "Attachments"  # or body[:50]
+
         payload = {
-            "sender_id": self.current_user_id,
-            "receiver_id": self.other_user_id,
-            "conversation_id": self.conversation_id,
+            "conversation": self.conversation_id,
             "content": body,
-            "message_type": "general",
+            "subject": subject,
             "priority": "normal",
             "status": "sent",
-            "is_read": False,
-            "attachments": saved,
+            "department": "General",
+            "message_type": "general",
+            "is_broadcast": False,
+            "receiver": self.other_user_id,
         }
         created = self.data_manager.create_message(payload)
         if created:
@@ -156,20 +259,23 @@ class MainChatWidget(QtWidgets.QWidget):
 
         url, ok = QtWidgets.QInputDialog.getText(self, "Send link", "URL:")
         if not ok or not url.strip():
+            print(url)
             return
         url = url.strip()
         if not (url.startswith("http://") or url.startswith("https://")):
             url = "https://" + url
+        subject = "Link"  # or body[:50]
 
         payload = {
-            "sender_id": self.current_user_id,
-            "receiver_id": self.other_user_id,
-            "conversation_id": self.conversation_id,
+            "conversation": self.conversation_id,
             "content": url,
-            "message_type": "link",
+            "subject": subject,
             "priority": "normal",
             "status": "sent",
-            "is_read": False,
+            "department": "General",
+            "message_type": "general",
+            "is_broadcast": False,
+            "receiver": self.other_user_id,
         }
         created = self.data_manager.create_message(payload)
         if created:
@@ -177,7 +283,7 @@ class MainChatWidget(QtWidgets.QWidget):
             self.scroll_to_bottom()
 
     def append_text_bubble(self, message):
-        is_sender = (message.get("sender_id") == self.current_user_id)
+        is_sender = (message.get("sender") == self.current_user_id)
         bubble = QtWidgets.QLabel(message.get("content", ""))
         bubble.setWordWrap(True)
         bubble.setStyleSheet(
@@ -247,9 +353,16 @@ class MainChatWidget(QtWidgets.QWidget):
         bar.setValue(bar.maximum())
 
     def _has_context(self) -> bool:
-        return all([
-            self.data_manager is not None,
-            self.current_user_id is not None,
-            self.other_user_id is not None,
-            self.conversation_id is not None
-        ])
+        return all(
+            [
+                self.data_manager is not None,
+                self.current_user_id is not None,
+                self.other_user_id is not None,
+                self.conversation_id is not None,
+                ]
+        )
+
+    def _show_options_menu(self):
+        btn = self.ui.toolButton
+        pos = btn.mapToGlobal(QtCore.QPoint(0, btn.height()))
+        self.options_menu.exec(pos)

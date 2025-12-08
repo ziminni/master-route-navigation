@@ -94,11 +94,13 @@ def cleanup_database():
 
 def setup_environment():
     """Set up virtual environment and dependencies."""
-    
+    # Absolute path to your system Python
+    PYTHON_EXE = r"C:\Users\Grace Anne\AppData\Local\Programs\Python\Python313\python.exe"
+
     # Step 1: Create virtual environment
     if not VENV_DIR.exists():
         run_command(
-            f"python.exe -m venv {VENV_DIR}",
+            f'"{PYTHON_EXE}" -m venv "{VENV_DIR}"',
             "Creating virtual environment",
         )
     else:
@@ -125,14 +127,14 @@ def setup_environment():
     
     # Step 4: Run makemigrations (needs to run from backend directory)
     run_command(
-        f'"{python_path}" manage.py makemigrations',
+        f'"py" manage.py makemigrations',
         "Running makemigrations",
         use_backend_dir=True
     )
     
     # Step 5: Run migrate (needs to run from backend directory)
     run_command(
-        f'"{python_path}" manage.py migrate',
+        f'"py" manage.py migrate',
         "Running migrations",
         use_backend_dir=True
     )
