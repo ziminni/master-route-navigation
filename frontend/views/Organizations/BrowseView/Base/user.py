@@ -168,8 +168,8 @@ class User(QtWidgets.QWidget):
                         branch.update(self.current_org)
                         updated = True
                         break
-        if not updated:
-            return            # Write back with proper formatting
+            if not updated:
+                return            # Write back with proper formatting
             with open(self.data_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
 
